@@ -364,6 +364,17 @@ export class ClassRoom {
       return;
     }
 
+    if (msg.type === "video-frame" && session.role === "teacher") {
+      // فریم تصویر معلم (JPEG با کیفیت پایین) برای تماس تصویری ساده‌ی زنده
+      this.broadcast({ type: "video-frame", data: msg.data }, sender);
+      return;
+    }
+
+    if (msg.type === "video-stop" && session.role === "teacher") {
+      this.broadcast({ type: "video-stop" }, sender);
+      return;
+    }
+
     if (msg.type === "chat") {
       const entry = {
         from: session.name,
@@ -1543,6 +1554,7 @@ async function studentClassPage(env, id) {
       </div>
       <div class="cls-wrap">
         <div class="cls-board-col">
+          <img id="cls-teacher-video" class="hidden" style="width:100%;max-width:280px;border-radius:10px;border:1px solid var(--line);margin-bottom:10px;background:#000;display:block">
           <canvas id="board" width="900" height="500"></canvas>
           <p class="muted" style="font-size:12px;margin-top:6px">تخته کلاس توسط معلم کنترل می‌شود. صدای معلم به‌صورت خودکار پخش می‌شود.</p>
         </div>
@@ -1658,6 +1670,16 @@ async function studentClassPage(env, id) {
         else if(m.type==='draw'){drawStroke(m.stroke);}
         else if(m.type==='clear'){clearBoard();}
         else if(m.type==='audio'){playAudioChunk(m.data);}
+        else if(m.type==='video-frame'){
+          const img=document.getElementById('cls-teacher-video');
+          img.src=m.data;
+          img.classList.remove('hidden');
+        }
+        else if(m.type==='video-stop'){
+          const img=document.getElementById('cls-teacher-video');
+          img.classList.add('hidden');
+          img.src='';
+        }
         else if(m.type==='chat'){addChatMsg(m.entry);}
         else if(m.type==='file'){addFileMsg(m);}
         else if(m.type==='presence'){ if(m.event==='join'&&m.role==='teacher')toast('معلم وارد کلاس شد');}
@@ -2017,7 +2039,9 @@ function teacherPage() {
           <button class="btn sm" id="btn-cls-start">▶️ شروع کلاس</button>
           <button class="btn sm gray hidden" id="btn-cls-stop">⏹️ پایان کلاس</button>
           <button class="btn sm sec hidden" id="btn-mic-toggle">🎙️ روشن کردن میکروفون</button>
+          <button class="btn sm sec hidden" id="btn-cam-toggle">📷 روشن کردن تصویر</button>
         </div>
+        <video id="t-cam-preview" autoplay muted playsinline class="hidden" style="width:160px;border-radius:10px;border:1px solid var(--line);margin-bottom:10px;background:#000"></video>
 
         <div class="cls-wrap" style="display:flex;gap:12px;flex-wrap:wrap">
           <div class="cls-board-col" style="flex:1 1 520px;min-width:280px">
@@ -2129,7 +2153,7 @@ function teacherScript() {
     if(t.dataset.tab==='tables')renderTables();
     if(t.dataset.tab==='schedule'){document.getElementById('btn-gen-schedule').click();}
     if(t.dataset.tab==='questions'){updateDurationDisplay();}
-    if(t.dataset.tab==='classroom'){renderClassLinks();}
+    if(t.dataset.tab==='classroom'){renderClassLinks();setTimeout(function(){if(typeof clsResizeBoard==='function')clsResizeBoard();},50);}
   });
 
   // ===== دانش‌آموزان =====
@@ -3081,10 +3105,11 @@ function teacherScript() {
   }
 
   let clsWs=null, clsMicStream=null, clsRecorder=null, clsDrawing=false, clsLastPoint=null, clsCurrentStroke=null;
+  let clsCamStream=null, clsCamInterval=null;
   const tBoard=document.getElementById('t-board');
   const tCtx=tBoard.getContext('2d');
 
-  function clsResizeBoard(){const ratio=tBoard.height/tBoard.width;const w=tBoard.parentElement.clientWidth;tBoard.style.width=w+'px';tBoard.style.height=(w*ratio)+'px';}
+  function clsResizeBoard(){const ratio=tBoard.height/tBoard.width;const w=tBoard.parentElement.clientWidth;if(!w)return;tBoard.style.width=w+'px';tBoard.style.height=(w*ratio)+'px';}
   clsResizeBoard();window.addEventListener('resize',clsResizeBoard);
 
   function clsPointFromEvent(e){
@@ -3207,6 +3232,7 @@ function teacherScript() {
       document.getElementById('btn-cls-start').classList.add('hidden');
       document.getElementById('btn-cls-stop').classList.remove('hidden');
       document.getElementById('btn-mic-toggle').classList.remove('hidden');
+      document.getElementById('btn-cam-toggle').classList.remove('hidden');
       toast('کلاس آنلاین شروع شد');
     };
     clsWs.onclose=()=>{
@@ -3215,6 +3241,7 @@ function teacherScript() {
       document.getElementById('btn-cls-start').classList.remove('hidden');
       document.getElementById('btn-cls-stop').classList.add('hidden');
       document.getElementById('btn-mic-toggle').classList.add('hidden');
+      document.getElementById('btn-cam-toggle').classList.add('hidden');
     };
     clsWs.onmessage=(evt)=>{
       let m;try{m=JSON.parse(evt.data);}catch(e){return;}
@@ -3228,6 +3255,8 @@ function teacherScript() {
   document.getElementById('btn-cls-stop').onclick=()=>{
     if(clsRecorder&&clsRecorder.state!=='inactive')clsRecorder.stop();
     if(clsMicStream)clsMicStream.getTracks().forEach(t=>t.stop());
+    if(clsCamStream){clsCamStream.getTracks().forEach(t=>t.stop());clsCamStream=null;}
+    if(clsCamInterval){clearInterval(clsCamInterval);clsCamInterval=null;}
     if(clsWs)clsWs.close();
   };
 
@@ -3254,6 +3283,38 @@ function teacherScript() {
       this.textContent='🔴 خاموش کردن میکروفون';
       toast('میکروفون فعال شد');
     }catch(e){ toast('دسترسی به میکروفون داده نشد'); }
+  };
+
+  document.getElementById('btn-cam-toggle').onclick=async function(){
+    const preview=document.getElementById('t-cam-preview');
+    if(clsCamStream){
+      clsCamStream.getTracks().forEach(t=>t.stop());
+      clsCamStream=null;
+      if(clsCamInterval){clearInterval(clsCamInterval);clsCamInterval=null;}
+      preview.classList.add('hidden');
+      preview.srcObject=null;
+      this.textContent='📷 روشن کردن تصویر';
+      clsSend({type:'video-stop'});
+      return;
+    }
+    try{
+      clsCamStream=await navigator.mediaDevices.getUserMedia({video:{width:{ideal:320},height:{ideal:240}}});
+      preview.srcObject=clsCamStream;
+      preview.classList.remove('hidden');
+      this.textContent='🔴 خاموش کردن تصویر';
+      toast('تصویر معلم فعال شد');
+      const cap=document.createElement('canvas');
+      cap.width=320;cap.height=240;
+      const capCtx=cap.getContext('2d');
+      clsCamInterval=setInterval(function(){
+        if(!clsCamStream)return;
+        try{
+          capCtx.drawImage(preview,0,0,cap.width,cap.height);
+          const dataUrl=cap.toDataURL('image/jpeg',0.45);
+          clsSend({type:'video-frame', data: dataUrl});
+        }catch(e){}
+      },220); // حدود ۴-۵ فریم در ثانیه؛ کافی برای تماس تصویری ساده کلاس درس
+    }catch(e){ toast('دسترسی به دوربین داده نشد'); }
   };
 
   checkAuth();
