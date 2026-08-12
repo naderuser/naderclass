@@ -1,0 +1,15 @@
+name = "naderclass"
+main = "index.js"
+compatibility_date = "2026-08-01"
+
+[[kv_namespaces]]
+binding = "EXAM_KV"
+id = "954c66f4efa949c68a65db063e1e1bb6"
+
+[[durable_objects.bindings]]
+name = "CLASSROOM"
+class_name = "ClassRoom"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["ClassRoom"]
