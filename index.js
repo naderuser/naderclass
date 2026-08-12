@@ -3105,7 +3105,7 @@ function teacherScript() {
   }
 
   let clsWs=null, clsMicStream=null, clsRecorder=null, clsDrawing=false, clsLastPoint=null, clsCurrentStroke=null;
-  let clsCamStream=null, clsCamInterval=null;
+  let clsCamStream=null, clsCamInterval=null, clsAudioFromCam=false;
   const tBoard=document.getElementById('t-board');
   const tCtx=tBoard.getContext('2d');
 
@@ -3255,31 +3255,48 @@ function teacherScript() {
   document.getElementById('btn-cls-stop').onclick=()=>{
     if(clsRecorder&&clsRecorder.state!=='inactive')clsRecorder.stop();
     if(clsMicStream)clsMicStream.getTracks().forEach(t=>t.stop());
+    clsMicStream=null;
+    document.getElementById('btn-mic-toggle').textContent='🎙️ روشن کردن میکروفون';
     if(clsCamStream){clsCamStream.getTracks().forEach(t=>t.stop());clsCamStream=null;}
     if(clsCamInterval){clearInterval(clsCamInterval);clsCamInterval=null;}
+    document.getElementById('t-cam-preview').classList.add('hidden');
+    document.getElementById('t-cam-preview').srcObject=null;
+    document.getElementById('btn-cam-toggle').textContent='📷 روشن کردن تصویر';
+    clsAudioFromCam=false;
     if(clsWs)clsWs.close();
   };
 
+  function clsStartMicRecorder(stream){
+    clsMicStream=stream;
+    const mime='audio/webm;codecs=opus';
+    clsRecorder=new MediaRecorder(clsMicStream, MediaRecorder.isTypeSupported(mime)?{mimeType:mime}:undefined);
+    clsRecorder.ondataavailable=async(e)=>{
+      if(e.data && e.data.size>0){
+        const buf=await e.data.arrayBuffer();
+        let binary='';const bytes=new Uint8Array(buf);
+        for(let i=0;i<bytes.length;i++)binary+=String.fromCharCode(bytes[i]);
+        clsSend({type:'audio', data: btoa(binary), mime});
+      }
+    };
+    clsRecorder.start(300); // ارسال هر ۳۰۰ میلی‌ثانیه یک قطعه صوتی برای صدای تقریباً زنده
+  }
+  function clsStopMicRecorder(){
+    if(clsRecorder && clsRecorder.state==='recording')clsRecorder.stop();
+    if(clsMicStream)clsMicStream.getTracks().forEach(t=>t.stop());
+    clsMicStream=null;
+    document.getElementById('btn-mic-toggle').textContent='🎙️ روشن کردن میکروفون';
+  }
+
   document.getElementById('btn-mic-toggle').onclick=async function(){
     if(clsRecorder && clsRecorder.state==='recording'){
-      clsRecorder.stop();
-      if(clsMicStream)clsMicStream.getTracks().forEach(t=>t.stop());
-      this.textContent='🎙️ روشن کردن میکروفون';
+      clsStopMicRecorder();
+      clsAudioFromCam=false;
       return;
     }
     try{
-      clsMicStream=await navigator.mediaDevices.getUserMedia({audio:true});
-      const mime='audio/webm;codecs=opus';
-      clsRecorder=new MediaRecorder(clsMicStream, MediaRecorder.isTypeSupported(mime)?{mimeType:mime}:undefined);
-      clsRecorder.ondataavailable=async(e)=>{
-        if(e.data && e.data.size>0){
-          const buf=await e.data.arrayBuffer();
-          let binary='';const bytes=new Uint8Array(buf);
-          for(let i=0;i<bytes.length;i++)binary+=String.fromCharCode(bytes[i]);
-          clsSend({type:'audio', data: btoa(binary), mime});
-        }
-      };
-      clsRecorder.start(300); // ارسال هر ۳۰۰ میلی‌ثانیه یک قطعه صوتی برای صدای تقریباً زنده
+      const stream=await navigator.mediaDevices.getUserMedia({audio:true});
+      clsStartMicRecorder(stream);
+      clsAudioFromCam=false;
       this.textContent='🔴 خاموش کردن میکروفون';
       toast('میکروفون فعال شد');
     }catch(e){ toast('دسترسی به میکروفون داده نشد'); }
@@ -3288,21 +3305,28 @@ function teacherScript() {
   document.getElementById('btn-cam-toggle').onclick=async function(){
     const preview=document.getElementById('t-cam-preview');
     if(clsCamStream){
-      clsCamStream.getTracks().forEach(t=>t.stop());
+      clsCamStream.getVideoTracks().forEach(t=>t.stop());
       clsCamStream=null;
       if(clsCamInterval){clearInterval(clsCamInterval);clsCamInterval=null;}
       preview.classList.add('hidden');
       preview.srcObject=null;
       this.textContent='📷 روشن کردن تصویر';
       clsSend({type:'video-stop'});
+      if(clsAudioFromCam){ clsStopMicRecorder(); clsAudioFromCam=false; }
       return;
     }
     try{
-      clsCamStream=await navigator.mediaDevices.getUserMedia({video:{width:{ideal:320},height:{ideal:240}}});
+      clsCamStream=await navigator.mediaDevices.getUserMedia({video:{width:{ideal:320},height:{ideal:240}}, audio:true});
       preview.srcObject=clsCamStream;
       preview.classList.remove('hidden');
       this.textContent='🔴 خاموش کردن تصویر';
-      toast('تصویر معلم فعال شد');
+      // اگر میکروفون از قبل روشن نبود، صدا را هم همراه تصویر روشن کن (مثل یک تماس تصویری واقعی)
+      if(!(clsRecorder && clsRecorder.state==='recording') && clsCamStream.getAudioTracks().length){
+        clsStartMicRecorder(new MediaStream(clsCamStream.getAudioTracks()));
+        clsAudioFromCam=true;
+        document.getElementById('btn-mic-toggle').textContent='🔴 خاموش کردن میکروفون';
+      }
+      toast('تماس تصویری (با صدا) فعال شد');
       const cap=document.createElement('canvas');
       cap.width=320;cap.height=240;
       const capCtx=cap.getContext('2d');
@@ -3314,7 +3338,7 @@ function teacherScript() {
           clsSend({type:'video-frame', data: dataUrl});
         }catch(e){}
       },220); // حدود ۴-۵ فریم در ثانیه؛ کافی برای تماس تصویری ساده کلاس درس
-    }catch(e){ toast('دسترسی به دوربین داده نشد'); }
+    }catch(e){ toast('دسترسی به دوربین یا میکروفون داده نشد'); }
   };
 
   checkAuth();
