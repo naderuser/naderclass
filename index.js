@@ -378,6 +378,16 @@ export class ClassRoom {
       return;
     }
 
+    if (msg.type === "file") {
+      // ارسال فایل (عکس/سند) بین معلم و دانش‌آموزان - فقط زنده پخش می‌شود، در تاریخچه ذخیره نمی‌شود
+      const name = String(msg.name || "file").slice(0, 200);
+      const mime = String(msg.mime || "application/octet-stream").slice(0, 100);
+      const data = String(msg.data || "");
+      if (!data || data.length > 3_000_000) return; // حداکثر ~2 مگابایت فایل (بعد از base64)
+      this.broadcast({ type: "file", from: session.name, role: session.role, name, mime, data, ts: Date.now() });
+      return;
+    }
+
     if (msg.type === "raise-hand" && session.role === "student") {
       this.broadcast({ type: "raise-hand", name: session.name });
       return;
@@ -1541,6 +1551,8 @@ async function studentClassPage(env, id) {
           <div class="row" style="margin-top:8px">
             <input id="chatInput" placeholder="پیام خود را بنویسید...">
             <button class="btn sm" id="btnSend" style="flex:0 0 auto">ارسال</button>
+            <button class="btn sm gray" id="btnFile" style="flex:0 0 auto" title="ارسال فایل">📎</button>
+            <input type="file" id="fileInput" style="display:none">
           </div>
         </div>
       </div>
@@ -1607,6 +1619,18 @@ async function studentClassPage(env, id) {
       box.insertAdjacentHTML('beforeend','<div class="msg '+cls+'"><div class="who">'+esc(entry.from)+'</div>'+esc(entry.text)+'</div>');
       box.scrollTop=box.scrollHeight;
     }
+    function addFileMsg(f){
+      const box=document.getElementById('chatBox');
+      const cls=f.role==='teacher'?'teacher':'student';
+      let inner;
+      if((f.mime||'').indexOf('image/')===0){
+        inner='<a href="'+f.data+'" download="'+esc(f.name)+'" target="_blank"><img src="'+f.data+'" style="max-width:180px;max-height:180px;border-radius:8px;display:block"></a>';
+      } else {
+        inner='<a href="'+f.data+'" download="'+esc(f.name)+'" style="color:#2563eb;text-decoration:underline">📎 '+esc(f.name)+'</a>';
+      }
+      box.insertAdjacentHTML('beforeend','<div class="msg '+cls+'"><div class="who">'+esc(f.from)+'</div>'+inner+'</div>');
+      box.scrollTop=box.scrollHeight;
+    }
 
     let ws=null, checkFailCount=0;
     async function connect(){
@@ -1635,6 +1659,7 @@ async function studentClassPage(env, id) {
         else if(m.type==='clear'){clearBoard();}
         else if(m.type==='audio'){playAudioChunk(m.data);}
         else if(m.type==='chat'){addChatMsg(m.entry);}
+        else if(m.type==='file'){addFileMsg(m);}
         else if(m.type==='presence'){ if(m.event==='join'&&m.role==='teacher')toast('معلم وارد کلاس شد');}
       };
     }
@@ -1648,6 +1673,19 @@ async function studentClassPage(env, id) {
       inp.value='';
     };
     document.getElementById('chatInput').addEventListener('keydown',e=>{if(e.key==='Enter')document.getElementById('btnSend').click();});
+    document.getElementById('btnFile').onclick=()=>{document.getElementById('fileInput').click();};
+    document.getElementById('fileInput').addEventListener('change',function(){
+      const file=this.files&&this.files[0];
+      this.value='';
+      if(!file)return;
+      if(!ws||ws.readyState!==1){toast('ابتدا باید به کلاس متصل باشید');return;}
+      if(file.size>2*1024*1024){toast('حجم فایل باید کمتر از ۲ مگابایت باشد');return;}
+      const reader=new FileReader();
+      reader.onload=function(){
+        ws.send(JSON.stringify({type:'file', name:file.name, mime:file.type, data:reader.result}));
+      };
+      reader.readAsDataURL(file);
+    });
     document.getElementById('btn-raise-hand').onclick=()=>{if(ws&&ws.readyState===1){ws.send(JSON.stringify({type:'raise-hand'}));toast('دستت بلند شد ✋');}};
   </script></body></html>`);
 }
@@ -1999,6 +2037,8 @@ function teacherPage() {
             <div class="row" style="margin-top:8px">
               <input id="t-chatInput" placeholder="پیام به کلاس...">
               <button class="btn sm" id="t-btnSend" style="flex:0 0 auto">ارسال</button>
+              <button class="btn sm gray" id="t-btnFile" style="flex:0 0 auto" title="ارسال فایل">📎</button>
+              <input type="file" id="t-fileInput" style="display:none">
             </div>
           </div>
         </div>
@@ -3101,6 +3141,19 @@ function teacherScript() {
     box.insertAdjacentHTML('beforeend','<div class="msg '+cls+'" style="padding:6px 10px;border-radius:10px;max-width:90%;font-size:14px;'+(cls==='teacher'?'background:#eef2ff;align-self:flex-start':'background:#dcfce7;align-self:flex-end;margin-inline-start:auto')+'"><div class="who" style="font-size:11px;color:#666;margin-bottom:2px">'+esc(entry.from)+'</div>'+esc(entry.text)+'</div>');
     box.scrollTop=box.scrollHeight;
   }
+  function clsAddFile(f){
+    const box=document.getElementById('t-chatBox');
+    const cls=f.role==='teacher'?'teacher':'student';
+    const align=cls==='teacher'?'background:#eef2ff;align-self:flex-start':'background:#dcfce7;align-self:flex-end;margin-inline-start:auto';
+    let inner;
+    if((f.mime||'').indexOf('image/')===0){
+      inner='<a href="'+f.data+'" download="'+esc(f.name)+'" target="_blank"><img src="'+f.data+'" style="max-width:180px;max-height:180px;border-radius:8px;display:block"></a>';
+    } else {
+      inner='<a href="'+f.data+'" download="'+esc(f.name)+'" style="color:#2563eb;text-decoration:underline">📎 '+esc(f.name)+'</a>';
+    }
+    box.insertAdjacentHTML('beforeend','<div class="msg '+cls+'" style="padding:6px 10px;border-radius:10px;max-width:90%;font-size:14px;'+align+'"><div class="who" style="font-size:11px;color:#666;margin-bottom:2px">'+esc(f.from)+'</div>'+inner+'</div>');
+    box.scrollTop=box.scrollHeight;
+  }
   document.getElementById('t-btnSend').onclick=()=>{
     const inp=document.getElementById('t-chatInput');
     const text=inp.value.trim();
@@ -3109,6 +3162,18 @@ function teacherScript() {
     inp.value='';
   };
   document.getElementById('t-chatInput').addEventListener('keydown',e=>{if(e.key==='Enter')document.getElementById('t-btnSend').click();});
+  document.getElementById('t-btnFile').onclick=()=>{document.getElementById('t-fileInput').click();};
+  document.getElementById('t-fileInput').addEventListener('change',function(){
+    const file=this.files&&this.files[0];
+    this.value='';
+    if(!file)return;
+    if(file.size>2*1024*1024){toast('حجم فایل باید کمتر از ۲ مگابایت باشد');return;}
+    const reader=new FileReader();
+    reader.onload=function(){
+      clsSend({type:'file', name:file.name, mime:file.type, data:reader.result});
+    };
+    reader.readAsDataURL(file);
+  });
 
   function clsUpdateParticipants(list){
     document.getElementById('cls-online-count').textContent=list.filter(p=>p.role==='student').length;
@@ -3155,6 +3220,7 @@ function teacherScript() {
       let m;try{m=JSON.parse(evt.data);}catch(e){return;}
       if(m.type==='init'){tCtx.clearRect(0,0,tBoard.width,tBoard.height);(m.strokes||[]).forEach(clsDrawLocal);(m.chat||[]).forEach(clsAddChat);clsUpdateParticipants(m.participants||[]);}
       else if(m.type==='chat'){clsAddChat(m.entry);}
+      else if(m.type==='file'){clsAddFile(m);}
       else if(m.type==='presence'){clsUpdateParticipants(m.participants||[]);if(m.event==='join'&&m.role==='student')toast(m.name+' وارد کلاس شد');}
       else if(m.type==='raise-hand'){toast('✋ '+m.name+' دستش را بلند کرد');}
     };
