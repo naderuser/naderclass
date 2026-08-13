@@ -1056,7 +1056,33 @@ const SHARED_CSS = `
   .schedule-table td.cell-panjshanbe{background:linear-gradient(135deg,#fff5f0,#ffe5d5)}
   .schedule-table td.cell-jome{background:linear-gradient(135deg,#f5f5f5,#e8e8e8);color:#666}
   
-  /* ---- AI Chat ---- */
+  /* ---- جدول‌ساز: شبیه اکسل واقعی ---- */
+  .xls-wrap{border:1px solid #b7b7b7;border-radius:8px;overflow:hidden;background:#fff;box-shadow:0 2px 10px rgba(0,0,0,.06)}
+  [data-theme="dark"] .xls-wrap{background:#1e293b;border-color:#475569}
+  .xls-scroll{overflow:auto;max-height:520px}
+  .xls-grid{border-collapse:collapse;width:100%;font-family:'Vazirmatn',Tahoma,sans-serif;font-size:13px}
+  .xls-grid th, .xls-grid td{border:1px solid #d4d4d4;padding:0;height:32px;min-width:90px}
+  [data-theme="dark"] .xls-grid th, [data-theme="dark"] .xls-grid td{border-color:#3f4b5c}
+  .xls-colhead{background:#f3f3f3;color:#616161;text-align:center;font-weight:600;font-size:12px;position:sticky;top:0;z-index:3;user-select:none}
+  [data-theme="dark"] .xls-colhead{background:#0f172a;color:#94a3b8}
+  .xls-corner{background:#f3f3f3;position:sticky;right:0;top:0;z-index:4}
+  [data-theme="dark"] .xls-corner{background:#0f172a}
+  .xls-rowhead{background:#f3f3f3;color:#616161;text-align:center;font-weight:600;font-size:12px;position:sticky;right:0;z-index:2;min-width:36px;width:36px}
+  [data-theme="dark"] .xls-rowhead{background:#0f172a;color:#94a3b8}
+  .xls-titlerow th{background:#e8eaf6;padding:0}
+  [data-theme="dark"] .xls-titlerow th{background:#312e50}
+  .xls-titlerow input{width:100%;height:34px;border:none;background:transparent;text-align:center;font-weight:700;color:#1e293b;padding:0 6px;font-family:inherit;font-size:13px}
+  [data-theme="dark"] .xls-titlerow input{color:#e2e8f0}
+  .xls-titlerow input:focus{outline:2px solid var(--primary);outline-offset:-2px;background:#fff}
+  .xls-grid td input{width:100%;height:32px;border:none;background:transparent;text-align:center;padding:0 6px;font-family:inherit;font-size:13px;color:#1e293b}
+  [data-theme="dark"] .xls-grid td input{color:#e2e8f0}
+  .xls-grid td input:focus{outline:2px solid var(--primary);outline-offset:-2px;background:#eef2ff;position:relative;z-index:1}
+  .xls-grid tbody tr:nth-child(even) td{background:#fafbfc}
+  [data-theme="dark"] .xls-grid tbody tr:nth-child(even) td{background:#243044}
+  .xls-avgrow td{background:#e2efda !important;font-weight:700;color:#375623;text-align:center}
+  [data-theme="dark"] .xls-avgrow td{background:#22381f !important;color:#c8e6c9}
+  .xls-avgrow td:first-child{text-align:center}
+  
   .ai-chat-container{background:linear-gradient(180deg,#f8fafc,#fff);border-radius:16px;border:1px solid #e2e8f0;overflow:hidden;display:flex;flex-direction:column;height:550px}
   [data-theme="dark"] .ai-chat-container{background:#1e293b;border-color:#475569}
   .ai-header{display:flex;align-items:center;gap:12px;padding:16px 20px;background:linear-gradient(135deg,#667eea,#764ba2);color:#fff}
@@ -1871,19 +1897,23 @@ function teacherPage() {
           <div><label style="display:block;margin-bottom:4px">عنوان جدول:</label><input type="text" id="tbl-title" placeholder="مثال: لیست نمرات" style="width:200px;padding:8px;border:1px solid #ddd;border-radius:6px"></div>
         </div>
         <label style="display:flex;align-items:center;gap:8px;margin-bottom:12px;cursor:pointer">
-          <input type="checkbox" id="tbl-avg-check">
-          <span>📈 محاسبه خودکار میانگین (ستون‌های عددی)</span>
+          <input type="checkbox" id="tbl-avg-check" checked>
+          <span>📈 محاسبه خودکار میانگین (ستون‌های عددی) — به‌صورت زنده و با فرمول واقعی اکسل</span>
         </label>
-        <div class="schedule-table-wrap">
-          <table class="schedule-table" id="custom-table">
-            <thead id="custom-table-head"></thead>
-            <tbody id="custom-table-body"></tbody>
-            <tfoot id="custom-table-foot"></tfoot>
-          </table>
+        <div class="xls-wrap">
+          <div class="xls-scroll">
+            <table class="xls-grid" id="custom-table">
+              <thead id="custom-table-head"></thead>
+              <tbody id="custom-table-body"></tbody>
+              <tfoot id="custom-table-foot"></tfoot>
+            </table>
+          </div>
         </div>
-        <button class="btn primary" id="btn-gen-table">🔄 ساخت جدول</button>
-        <button class="btn sec" id="btn-word-table">📄 دانلود Word</button>
-        <button class="btn gray" id="btn-excel-table">📊 دانلود Excel</button>
+        <div class="row" style="margin-top:12px">
+          <button class="btn primary" id="btn-gen-table">🔄 ساخت جدول</button>
+          <button class="btn sec" id="btn-word-table">📄 دانلود Word</button>
+          <button class="btn gray" id="btn-excel-table">📊 دانلود Excel واقعی (xlsx)</button>
+        </div>
       </div>
 
       <div class="card tab-content hidden" id="tab-scan">
@@ -2568,87 +2598,191 @@ function teacherScript() {
     if(r.ok)toast('برنامه هفتگی ذخیره شد ✅');else toast('خطا در ذخیره');
   };
 
-  // ===== جدول‌ساز =====
+  // ===== جدول‌ساز حرفه‌ای (شبیه اکسل واقعی) =====
+  function colLetter(n){ // 1 -> A, 2 -> B ... 27 -> AA
+    let s='';
+    while(n>0){ const m=(n-1)%26; s=String.fromCharCode(65+m)+s; n=Math.floor((n-1)/26); }
+    return s;
+  }
+  function xlsCellId(r,c){return 't'+r+'_'+c;}
+  function xlsTitleId(c){return 'ht_'+c;}
+
   document.getElementById('btn-gen-table').onclick=function(){
     const rows=parseInt(document.getElementById('tbl-rows').value)||5;
     const cols=parseInt(document.getElementById('tbl-cols').value)||4;
     const thead=document.getElementById('custom-table-head');
     const tbody=document.getElementById('custom-table-body');
     const tfoot=document.getElementById('custom-table-foot');
-    let h='<tr><th>ردیف</th>';
-    for(let c=1;c<=cols;c++){h+='<th>ستون '+c+'</th>';}
-    h+='</tr>';thead.innerHTML=h;
+
+    let ch='<tr><th class="xls-corner"></th>';
+    for(let c=1;c<=cols;c++){ch+='<th class="xls-colhead">'+colLetter(c)+'</th>';}
+    ch+='</tr>';
+    ch+='<tr class="xls-titlerow"><th class="xls-rowhead">#</th>';
+    for(let c=1;c<=cols;c++){ch+='<th><input type="text" id="'+xlsTitleId(c)+'" placeholder="عنوان ستون '+c+'" value="ستون '+c+'"></th>';}
+    ch+='</tr>';
+    thead.innerHTML=ch;
+
     let b='';
     for(let r=1;r<=rows;r++){
-      b+='<tr><td>'+r+'</td>';
-      for(let c=1;c<=cols;c++){b+='<td><input type="text" id="t'+r+'_'+c+'" style="width:100%;padding:8px;border:1px solid #ddd;border-radius:4px"></td>';}
+      b+='<tr><td class="xls-rowhead">'+r+'</td>';
+      for(let c=1;c<=cols;c++){b+='<td><input type="text" id="'+xlsCellId(r,c)+'" data-r="'+r+'" data-c="'+c+'"></td>';}
       b+='</tr>';
     }
     tbody.innerHTML=b;
     tfoot.innerHTML='';
     if(document.getElementById('tbl-avg-check').checked)calcAndShowAvg();
   };
-  
+
   function calcAndShowAvg(){
     const rows=parseInt(document.getElementById('tbl-rows').value)||5;
     const cols=parseInt(document.getElementById('tbl-cols').value)||4;
     const tfoot=document.getElementById('custom-table-foot');
+    if(!document.getElementById(xlsCellId(1,1))){ tfoot.innerHTML=''; return; } // جدولی هنوز ساخته نشده
     const avgCells=[];
     for(let c=1;c<=cols;c++){
-      const vals=[];for(let r=1;r<=rows;r++){const el=document.getElementById('t'+r+'_'+c);const v=parseFloat(el?el.value.trim():'');if(!isNaN(v))vals.push(v);}
-      avgCells.push(vals.length>0?(vals.reduce((a,b)=>a+b,0)/vals.length).toFixed(2):'-');
+      const vals=[];for(let r=1;r<=rows;r++){const el=document.getElementById(xlsCellId(r,c));const v=parseFloat(el?el.value.trim():'');if(!isNaN(v))vals.push(v);}
+      avgCells.push(vals.length>0?(vals.reduce((a,b)=>a+b,0)/vals.length).toFixed(2):'—');
     }
-    let f='<tr style="background:#e0f2fe;font-weight:bold"><td>📈 میانگین</td>';
+    let f='<tr class="xls-avgrow"><td>📈</td>';
     for(let c=1;c<=cols;c++){f+='<td>'+avgCells[c-1]+'</td>';}
     f+='</tr>';tfoot.innerHTML=f;
   }
-  document.getElementById('tbl-avg-check').onchange=function(){const rows=parseInt(document.getElementById('tbl-rows').value)||5;if(rows<=0)return;this.checked?calcAndShowAvg():document.getElementById('custom-table-foot').innerHTML='';};
-  
-  document.getElementById('btn-word-table').onclick=function(){
-    const title=document.getElementById('tbl-title').value||'جدول';
+  document.getElementById('tbl-avg-check').onchange=function(){this.checked?calcAndShowAvg():document.getElementById('custom-table-foot').innerHTML='';};
+  // محاسبه‌ی زنده‌ی میانگین با هر بار تایپ در سلول‌های عددی
+  document.getElementById('custom-table-body').addEventListener('input',function(e){
+    if(e.target && e.target.tagName==='INPUT' && document.getElementById('tbl-avg-check').checked) calcAndShowAvg();
+  });
+
+  function xlsGetData(){
     const rows=parseInt(document.getElementById('tbl-rows').value)||5;
     const cols=parseInt(document.getElementById('tbl-cols').value)||4;
-    const showAvg=document.getElementById('tbl-avg-check').checked;
-    let style='<style>body{direction:rtl;font-family:tahoma,Arial;padding:20px}table{width:100%;border-collapse:collapse;margin-top:15px}th,td{border:1px solid #333;padding:8px;text-align:center}th{background:#667eea;color:#fff}td:first-child{background:#eee}</style>';
-    let h='<h2 style="text-align:center">'+title+'</h2><table><tr><th>ردیف</th>';
-    for(let c=1;c<=cols;c++){h+='<th>ستون '+c+'</th>';}h+='</tr>';
+    const titles=[];for(let c=1;c<=cols;c++){const el=document.getElementById(xlsTitleId(c));titles.push(el?el.value||('ستون '+c):('ستون '+c));}
+    const data=[];
     for(let r=1;r<=rows;r++){
-      h+='<tr><td>'+r+'</td>';
-      for(let c=1;c<=cols;c++){const el=document.getElementById('t'+r+'_'+c);h+='<td>'+(el?el.value:'')+'</td>';}
+      const row=[];
+      for(let c=1;c<=cols;c++){const el=document.getElementById(xlsCellId(r,c));row.push(el?el.value:'');}
+      data.push(row);
+    }
+    return {rows, cols, titles, data};
+  }
+
+  document.getElementById('btn-word-table').onclick=function(){
+    const title=document.getElementById('tbl-title').value||'جدول';
+    const showAvg=document.getElementById('tbl-avg-check').checked;
+    const {rows, cols, titles, data}=xlsGetData();
+    let style='<style>body{direction:rtl;font-family:tahoma,Arial;padding:20px}table{width:100%;border-collapse:collapse;margin-top:15px}th,td{border:1px solid #333;padding:8px;text-align:center}th{background:#667eea;color:#fff}td:first-child{background:#eee;font-weight:bold}</style>';
+    let h='<h2 style="text-align:center">'+title+'</h2><table><tr><th>#</th>';
+    for(let c=0;c<cols;c++){h+='<th>'+esc(titles[c])+'</th>';}h+='</tr>';
+    for(let r=0;r<rows;r++){
+      h+='<tr><td>'+(r+1)+'</td>';
+      for(let c=0;c<cols;c++){h+='<td>'+esc(data[r][c])+'</td>';}
       h+='</tr>';
     }
     if(showAvg){
-      const avgCells=[];for(let c=1;c<=cols;c++){const vals=[];for(let r=1;r<=rows;r++){const el=document.getElementById('t'+r+'_'+c);const v=parseFloat(el?el.value.trim():'');if(!isNaN(v))vals.push(v);}avgCells.push(vals.length>0?(vals.reduce((a,b)=>a+b,0)/vals.length).toFixed(2):'-');}
-      h+='<tr style="background:#e0f2fe;font-weight:bold"><td>📈 میانگین</td>';
-      for(let c=1;c<=cols;c++){h+='<td>'+avgCells[c-1]+'</td>';}h+='</tr>';
+      const avgCells=[];for(let c=0;c<cols;c++){const vals=[];for(let r=0;r<rows;r++){const v=parseFloat(data[r][c]);if(!isNaN(v))vals.push(v);}avgCells.push(vals.length>0?(vals.reduce((a,b)=>a+b,0)/vals.length).toFixed(2):'—');}
+      h+='<tr style="background:#e2efda;font-weight:bold"><td>📈 میانگین</td>';
+      for(let c=0;c<cols;c++){h+='<td>'+avgCells[c]+'</td>';}h+='</tr>';
     }
     h+='</table>';
     const blob=new Blob(['<html><head><meta charset="utf-8">'+style+'</head><body>'+h+'</body></html>'],{type:'application/msword'});
     const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=title+'.doc';a.click();
   };
-  
-  document.getElementById('btn-excel-table').onclick=function(){
+
+  let exceljsLoading=null;
+  function loadExcelJS(){
+    if(window.ExcelJS) return Promise.resolve();
+    if(exceljsLoading) return exceljsLoading;
+    exceljsLoading=new Promise(function(resolve,reject){
+      const s=document.createElement('script');
+      s.src='https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js';
+      s.onload=resolve; s.onerror=function(){reject(new Error('load-failed'));};
+      document.head.appendChild(s);
+    });
+    return exceljsLoading;
+  }
+
+  document.getElementById('btn-excel-table').onclick=async function(){
+    const btn=this;
     const title=document.getElementById('tbl-title').value||'جدول';
-    const rows=parseInt(document.getElementById('tbl-rows').value)||5;
-    const cols=parseInt(document.getElementById('tbl-cols').value)||4;
     const showAvg=document.getElementById('tbl-avg-check').checked;
-    let html='<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel"><head><meta charset="utf-8"><style>body{direction:rtl;text-align:center}table{margin:0 auto;direction:rtl}th,td{border:1px solid #333;padding:6px}th{background:#667eea;color:#fff;text-align:center}</style></head><body>';
-    html+='<h2>'+title+'</h2><table><tr><th>ردیف</th>';
-    for(let c=1;c<=cols;c++){html+='<th>ستون '+c+'</th>';}html+='</tr>';
-    for(let r=1;r<=rows;r++){
-      html+='<tr><td>'+r+'</td>';
-      for(let c=1;c<=cols;c++){const el=document.getElementById('t'+r+'_'+c);html+='<td>'+(el?el.value:'')+'</td>';}
-      html+='</tr>';
+    const {rows, cols, titles, data}=xlsGetData();
+    btn.disabled=true; const origText=btn.textContent; btn.textContent='⏳ در حال ساخت فایل...';
+    try{
+      await loadExcelJS();
+      const wb=new ExcelJS.Workbook();
+      wb.creator=${JSON.stringify(APP_TITLE)};
+      const ws=wb.addWorksheet('جدول', { views:[{ rightToLeft:true, state:'frozen', ySplit:2 }] });
+
+      // عنوان بزرگ ادغام‌شده در بالای جدول
+      ws.mergeCells(1,1,1,cols+1);
+      const titleCell=ws.getCell(1,1);
+      titleCell.value=title;
+      titleCell.font={ name:'Calibri', size:16, bold:true, color:{argb:'FF1E293B'} };
+      titleCell.alignment={ horizontal:'center', vertical:'middle' };
+      ws.getRow(1).height=28;
+
+      // سرستون‌ها
+      const headerRow=ws.getRow(2);
+      headerRow.getCell(1).value='#';
+      for(let c=0;c<cols;c++) headerRow.getCell(c+2).value=titles[c];
+      headerRow.eachCell(function(cell){
+        cell.font={ name:'Calibri', bold:true, color:{argb:'FFFFFFFF'} };
+        cell.fill={ type:'pattern', pattern:'solid', fgColor:{argb:'FF4472C4'} };
+        cell.alignment={ horizontal:'center', vertical:'middle' };
+        cell.border={ top:{style:'thin',color:{argb:'FFB7B7B7'}}, left:{style:'thin',color:{argb:'FFB7B7B7'}}, right:{style:'thin',color:{argb:'FFB7B7B7'}}, bottom:{style:'thin',color:{argb:'FFB7B7B7'}} };
+      });
+      headerRow.height=22;
+
+      // داده‌ها
+      for(let r=0;r<rows;r++){
+        const row=ws.getRow(r+3);
+        row.getCell(1).value=r+1;
+        for(let c=0;c<cols;c++){
+          const raw=data[r][c];
+          const num=parseFloat(raw);
+          row.getCell(c+2).value=(raw!==''&&!isNaN(num)&&String(num)===raw.trim())?num:(raw||'');
+        }
+        row.eachCell({includeEmpty:true},function(cell,colNum){
+          if(colNum>cols+1) return;
+          cell.alignment={ horizontal:'center', vertical:'middle' };
+          cell.border={ top:{style:'thin',color:{argb:'FFD4D4D4'}}, left:{style:'thin',color:{argb:'FFD4D4D4'}}, right:{style:'thin',color:{argb:'FFD4D4D4'}}, bottom:{style:'thin',color:{argb:'FFD4D4D4'}} };
+          if((r+3)%2===0) cell.fill={ type:'pattern', pattern:'solid', fgColor:{argb:'FFFAFBFC'} };
+        });
+      }
+
+      // ردیف میانگین با فرمول واقعی اکسل =AVERAGE(...)
+      if(showAvg){
+        const avgRow=ws.getRow(rows+3);
+        avgRow.getCell(1).value='📈 میانگین';
+        for(let c=0;c<cols;c++){
+          const colL=colLetter(c+2); // ستون داده در شیت از ستون B شروع می‌شود
+          const range=colL+'3:'+colL+(rows+2);
+          avgRow.getCell(c+2).value={ formula:'IFERROR(AVERAGE('+range+'),"—")' };
+          avgRow.getCell(c+2).numFmt='0.00';
+        }
+        avgRow.eachCell(function(cell){
+          cell.font={ bold:true, color:{argb:'FF375623'} };
+          cell.fill={ type:'pattern', pattern:'solid', fgColor:{argb:'FFE2EFDA'} };
+          cell.alignment={ horizontal:'center', vertical:'middle' };
+          cell.border={ top:{style:'thin',color:{argb:'FFB7B7B7'}}, left:{style:'thin',color:{argb:'FFB7B7B7'}}, right:{style:'thin',color:{argb:'FFB7B7B7'}}, bottom:{style:'thin',color:{argb:'FFB7B7B7'}} };
+        });
+      }
+
+      // عرض ستون‌ها
+      ws.getColumn(1).width=6;
+      for(let c=0;c<cols;c++) ws.getColumn(c+2).width=Math.max(12, (titles[c]||'').length+4);
+
+      const buf=await wb.xlsx.writeBuffer();
+      const blob=new Blob([buf], {type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+      const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=title+'.xlsx'; a.click();
+      toast('فایل Excel ساخته شد ✅');
+    }catch(err){
+      toast('خطا در ساخت فایل Excel — اتصال اینترنت را بررسی کنید');
+    }finally{
+      btn.disabled=false; btn.textContent=origText;
     }
-    if(showAvg){
-      const avgCells=[];for(let c=1;c<=cols;c++){const vals=[];for(let r=1;r<=rows;r++){const el=document.getElementById('t'+r+'_'+c);const v=parseFloat(el?el.value.trim():'');if(!isNaN(v))vals.push(v);}avgCells.push(vals.length>0?(vals.reduce((a,b)=>a+b,0)/vals.length).toFixed(2):'-');}
-      html+='<tr style="background:#e0f2fe;font-weight:bold"><td>📈 میانگین</td>';
-      for(let c=1;c<=cols;c++){html+='<td>'+avgCells[c-1]+'</td>';}html+='</tr>';
-    }
-    html+='</table></body></html>';
-    const blob=new Blob(['\ufeff'+html],{type:'application/vnd.ms-excel'});
-    const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=title+'.xls';a.click();
   };
+
 
   // ===== اسکنر =====
   let SCANIMG=null, SCANORIG=null, scanRotation=0;
