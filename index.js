@@ -848,6 +848,7 @@ const SHARED_CSS = `
   .btn:hover{background:var(--primary-2)}
   .btn.sec{background:#0d9488}.btn.sec:hover{background:#0f766e}
   .btn.gray{background:#475569}.btn.gray:hover{background:#334155}
+  .btn.gray.active{background:var(--primary);box-shadow:inset 0 0 0 2px rgba(255,255,255,.5)}
   .btn.danger{background:var(--danger)}
   .btn.sm{padding:6px 12px;font-size:13px}
   .row{display:flex;gap:10px;flex-wrap:wrap}
@@ -1031,18 +1032,19 @@ const SHARED_CSS = `
   .crop-actions{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
   
   /* ---- برنامه هفتگی کودکانه ---- */
-  .schedule-table-wrap{overflow-x:auto;border-radius:20px;border:4px solid #e2e8f0;background:#fff;margin-bottom:16px;box-shadow:0 8px 32px rgba(0,0,0,0.12)}
-  [data-theme="dark"] .schedule-table-wrap{background:#1e293b;border-color:#475569}
+  .schedule-table-wrap{overflow-x:auto;border-radius:20px;border:4px solid #94a3b8;background:#fff;margin-bottom:16px;box-shadow:0 8px 32px rgba(0,0,0,0.12)}
+  [data-theme="dark"] .schedule-table-wrap{background:#1e293b;border-color:#64748b}
   .schedule-table{width:100%;border-collapse:collapse;border-radius:20px;overflow:hidden}
-  .schedule-table th{color:#fff;padding:14px 10px;font-weight:700;text-align:center;font-size:15px;text-shadow:0 1px 2px rgba(0,0,0,0.2)}
+  .schedule-table th{color:#fff;padding:14px 10px;font-weight:700;text-align:center;font-size:15px;text-shadow:0 1px 2px rgba(0,0,0,0.35);border:2px solid #94a3b8}
   .schedule-table th.sh-shanbe{background:linear-gradient(135deg,#ff9a9e,#fecfef)}
   .schedule-table th.sh-yekshanbe{background:linear-gradient(135deg,#fddb92,#d1fdff)}
   .schedule-table th.sh-doshshanbe{background:linear-gradient(135deg,#a1ffce,#faffbd)}
   .schedule-table th.sh-seshshanbe{background:linear-gradient(135deg,#e0c3fc,#8ec5fc)}
   .schedule-table th.sh-chaharshanbe{background:linear-gradient(135deg,#a8edea,#fed6e3)}
   .schedule-table th.sh-panjshanbe{background:linear-gradient(135deg,#ffecd2,#fcb69f)}
-  .schedule-table th.sh-jome{background:linear-gradient(135deg,#c9d6ff,#e2e2e2);color:#555}
-  .schedule-table td{border:2px solid #fff;padding:12px 8px;text-align:center;transition:transform 0.2s}
+  .schedule-table th.sh-jome{background:linear-gradient(135deg,#c9d6ff,#e2e2e2);color:#555;text-shadow:none}
+  .schedule-table td{border:2px solid #94a3b8;padding:12px 8px;text-align:center;transition:transform 0.2s;font-weight:600;color:#1e293b}
+  [data-theme="dark"] .schedule-table td{color:#f1f5f9;border-color:#64748b}
   .schedule-table td:hover{transform:scale(1.02)}
   .schedule-table td:first-child{background:#fff;font-weight:700;text-align:center;font-size:14px;color:#333}
   [data-theme="dark"] .schedule-table td:first-child{background:#1e293b;color:#e2e8f0}
@@ -1584,7 +1586,17 @@ async function studentClassPage(env, id) {
     resizeCanvas();window.addEventListener('resize',resizeCanvas);
 
     function drawStroke(s){
-      if(!s||!s.points||s.points.length<2)return;
+      if(!s)return;
+      if(s.type==='text'){
+        ctx.save();
+        ctx.fillStyle=s.color||'#111827';
+        ctx.font='bold '+((s.size||3)*7+12)+'px Vazirmatn, Tahoma, sans-serif';
+        ctx.textBaseline='top';
+        ctx.fillText(s.text||'', s.x*canvas.width, s.y*canvas.height);
+        ctx.restore();
+        return;
+      }
+      if(!s.points||s.points.length<2)return;
       ctx.save();
       ctx.strokeStyle=s.erase?'#ffffff':(s.color||'#111827');
       ctx.lineWidth=s.size||3;
@@ -1609,7 +1621,7 @@ async function studentClassPage(env, id) {
     })();
     function playAudioChunk(b64, mime){
       audioQueue.push({b64, mime: mime||'audio/webm'});
-      if(audioQueue.length>8) audioQueue.splice(0, audioQueue.length-8); // اگر پخش عقب افتاد، فقط تازه‌ترین‌ها را نگه دار
+      if(audioQueue.length>3) audioQueue.splice(0, audioQueue.length-3); // اگر پخش عقب افتاد، فقط تازه‌ترین‌ها را نگه دار تا صدا زنده‌تر بماند
       pumpAudioQueue();
     }
     function pumpAudioQueue(){
@@ -2049,10 +2061,13 @@ function teacherPage() {
 
         <div class="cls-wrap" style="display:flex;gap:12px;flex-wrap:wrap">
           <div class="cls-board-col" style="flex:1 1 520px;min-width:280px">
-            <div class="row" style="margin-bottom:8px">
+            <div class="row" style="margin-bottom:8px;flex-wrap:wrap">
               <input type="color" id="brd-color" value="#111827" style="flex:0 0 44px;padding:2px;height:38px">
-              <input type="range" id="brd-size" min="1" max="20" value="3" style="flex:1">
-              <button class="btn sm gray" id="brd-eraser" style="flex:0 0 auto">🧽 پاک‌کن</button>
+              <input type="range" id="brd-size" min="1" max="20" value="3" style="flex:1;min-width:80px">
+              <button class="btn sm gray active" id="brd-tool-pen" style="flex:0 0 auto">✏️ قلم</button>
+              <button class="btn sm gray" id="brd-tool-line" style="flex:0 0 auto">📏 خط راست</button>
+              <button class="btn sm gray" id="brd-tool-text" style="flex:0 0 auto">🔤 متن</button>
+              <button class="btn sm gray" id="brd-tool-eraser" style="flex:0 0 auto">🧽 پاک‌کن</button>
               <button class="btn sm danger" id="brd-clear" style="flex:0 0 auto">🗑️ پاک کردن تخته</button>
             </div>
             <canvas id="t-board" width="900" height="500" style="width:100%;background:#fff;border:1px solid var(--line);border-radius:10px;touch-action:none;display:block;cursor:crosshair"></canvas>
@@ -3108,7 +3123,7 @@ function teacherScript() {
       }).join('')+'</table>';
   }
 
-  let clsWs=null, clsMicStream=null, clsRecorder=null, clsDrawing=false, clsLastPoint=null, clsCurrentStroke=null, clsAudioActive=false;
+  let clsWs=null, clsMicStream=null, clsRecorder=null, clsDrawing=false, clsLastPoint=null, clsCurrentStroke=null, clsAudioActive=false, clsAudioGen=0;
   let clsCamStream=null, clsCamInterval=null, clsAudioFromCam=false;
   const tBoard=document.getElementById('t-board');
   const tCtx=tBoard.getContext('2d');
@@ -3123,7 +3138,17 @@ function teacherScript() {
     return [cx/rect.width, cy/rect.height];
   }
   function clsDrawLocal(stroke){
-    if(!stroke||!stroke.points||stroke.points.length<2)return;
+    if(!stroke)return;
+    if(stroke.type==='text'){
+      tCtx.save();
+      tCtx.fillStyle=stroke.color||'#111827';
+      tCtx.font='bold '+((stroke.size||3)*7+12)+'px Vazirmatn, Tahoma, sans-serif';
+      tCtx.textBaseline='top';
+      tCtx.fillText(stroke.text||'', stroke.x*tBoard.width, stroke.y*tBoard.height);
+      tCtx.restore();
+      return;
+    }
+    if(!stroke.points||stroke.points.length<2)return;
     tCtx.save();
     tCtx.strokeStyle=stroke.erase?'#ffffff':(stroke.color||'#111827');
     tCtx.lineWidth=stroke.size||3;
@@ -3136,23 +3161,72 @@ function teacherScript() {
   }
   function clsSend(obj){ if(clsWs && clsWs.readyState===1) clsWs.send(JSON.stringify(obj)); }
 
+  let brdMode='pen'; // pen | line | text | eraser
+  let clsLineStart=null, clsLineSnapshot=null;
+  function clsSetMode(mode){
+    brdMode=mode;
+    ['pen','line','text','eraser'].forEach(function(m){
+      document.getElementById('brd-tool-'+m).classList.toggle('active', m===mode);
+    });
+  }
+  document.getElementById('brd-tool-pen').onclick=function(){clsSetMode('pen');};
+  document.getElementById('brd-tool-line').onclick=function(){clsSetMode('line');};
+  document.getElementById('brd-tool-text').onclick=function(){clsSetMode('text');};
+  document.getElementById('brd-tool-eraser').onclick=function(){clsSetMode('eraser');};
+
   function clsStartStroke(e){
     e.preventDefault();
+    const pt=clsPointFromEvent(e);
+
+    if(brdMode==='text'){
+      const text=window.prompt('متن مورد نظر را بنویسید:');
+      if(text && text.trim()){
+        const stroke={ type:'text', text: text.trim(), x: pt[0], y: pt[1], color: document.getElementById('brd-color').value, size: parseInt(document.getElementById('brd-size').value)||3 };
+        clsDrawLocal(stroke);
+        clsSend({type:'draw', stroke});
+      }
+      return;
+    }
+
     clsDrawing=true;
-    const eraseOn=document.getElementById('brd-eraser').classList.contains('active');
-    clsCurrentStroke={ color: document.getElementById('brd-color').value, size: parseInt(document.getElementById('brd-size').value)||3, erase: eraseOn, points: [clsPointFromEvent(e)] };
+    if(brdMode==='line'){
+      clsLineStart=pt;
+      try{ clsLineSnapshot=tCtx.getImageData(0,0,tBoard.width,tBoard.height); }catch(err){ clsLineSnapshot=null; }
+      return;
+    }
+
+    const eraseOn=brdMode==='eraser';
+    clsCurrentStroke={ color: document.getElementById('brd-color').value, size: parseInt(document.getElementById('brd-size').value)||3, erase: eraseOn, points: [pt] };
   }
   function clsMoveStroke(e){
     if(!clsDrawing)return;
     e.preventDefault();
-    clsCurrentStroke.points.push(clsPointFromEvent(e));
+    const pt=clsPointFromEvent(e);
+
+    if(brdMode==='line'){
+      if(clsLineSnapshot) tCtx.putImageData(clsLineSnapshot,0,0);
+      clsDrawLocal({ color: document.getElementById('brd-color').value, size: parseInt(document.getElementById('brd-size').value)||3, points:[clsLineStart, pt] });
+      return;
+    }
+
+    clsCurrentStroke.points.push(pt);
     if(clsCurrentStroke.points.length>=2){
       const tail={ ...clsCurrentStroke, points: clsCurrentStroke.points.slice(-2) };
       clsDrawLocal(tail);
       clsSend({type:'draw', stroke: tail});
     }
   }
-  function clsEndStroke(){ clsDrawing=false; clsCurrentStroke=null; }
+  function clsEndStroke(e){
+    if(clsDrawing && brdMode==='line' && clsLineStart){
+      const pt=clsPointFromEvent(e);
+      if(clsLineSnapshot) tCtx.putImageData(clsLineSnapshot,0,0);
+      const stroke={ color: document.getElementById('brd-color').value, size: parseInt(document.getElementById('brd-size').value)||3, points:[clsLineStart, pt] };
+      clsDrawLocal(stroke);
+      clsSend({type:'draw', stroke});
+      clsLineStart=null; clsLineSnapshot=null;
+    }
+    clsDrawing=false; clsCurrentStroke=null;
+  }
 
   tBoard.addEventListener('mousedown',clsStartStroke);
   tBoard.addEventListener('mousemove',clsMoveStroke);
@@ -3161,7 +3235,6 @@ function teacherScript() {
   tBoard.addEventListener('touchmove',clsMoveStroke,{passive:false});
   tBoard.addEventListener('touchend',clsEndStroke);
 
-  document.getElementById('brd-eraser').onclick=function(){this.classList.toggle('active');this.textContent=this.classList.contains('active')?'✏️ بازگشت به قلم':'🧽 پاک‌کن';};
   document.getElementById('brd-clear').onclick=function(){tCtx.clearRect(0,0,tBoard.width,tBoard.height);clsSend({type:'clear'});};
 
   function clsAddChat(entry){
@@ -3271,18 +3344,22 @@ function teacherScript() {
   };
 
   function clsStartMicRecorder(stream){
+    if(clsAudioActive) return; // جلوگیری از راه‌اندازی دوباره و همپوشانی صدا (علت اصلی تکرار صدا)
     clsMicStream=stream;
     clsAudioActive=true;
+    clsAudioGen++;
+    const myGen=clsAudioGen;
     const preferredMimes=['audio/webm;codecs=opus','audio/webm','audio/mp4'];
     const mime=preferredMimes.find(m=>window.MediaRecorder && MediaRecorder.isTypeSupported(m)) || '';
     function recordOneChunk(){
-      if(!clsAudioActive || !clsMicStream) return;
+      if(myGen!==clsAudioGen || !clsAudioActive || !clsMicStream) return;
       let chunks=[];
       let rec;
       try{ rec=new MediaRecorder(clsMicStream, mime?{mimeType:mime}:undefined); }
       catch(e){ clsAudioActive=false; toast('امکان ضبط صدا در این مرورگر نیست'); return; }
       rec.ondataavailable=(e)=>{ if(e.data && e.data.size>0) chunks.push(e.data); };
       rec.onstop=async()=>{
+        if(myGen!==clsAudioGen) return; // این نسل صدا دیگر معتبر نیست (متوقف یا دوباره‌شروع‌شده)
         if(chunks.length){
           const blob=new Blob(chunks, {type: mime||'audio/webm'});
           const buf=await blob.arrayBuffer();
@@ -3290,17 +3367,19 @@ function teacherScript() {
           for(let i=0;i<bytes.length;i++)binary+=String.fromCharCode(bytes[i]);
           clsSend({type:'audio', data: btoa(binary), mime: mime||'audio/webm'});
         }
-        if(clsAudioActive) setTimeout(recordOneChunk, 20);
+        if(clsAudioActive && myGen===clsAudioGen) setTimeout(recordOneChunk, 15);
       };
       rec.start();
       clsRecorder=rec;
-      // هر قطعه یک فایل صوتی کامل و مستقل است (نه یک استریم پیوسته)، برای سازگاری بیشتر بین مرورگرها
-      setTimeout(()=>{ if(rec.state==='recording') rec.stop(); }, 700);
+      // هر قطعه یک فایل صوتی کامل و مستقل است (نه یک استریم پیوسته)، برای سازگاری بین مرورگرها
+      // مدت کوتاه‌تر = تأخیر کمتر در شنیدن صدای معلم
+      setTimeout(()=>{ if(rec.state==='recording') rec.stop(); }, 380);
     }
     recordOneChunk();
   }
   function clsStopMicRecorder(){
     clsAudioActive=false;
+    clsAudioGen++; // هر حلقه‌ی در حال اجرا با چک نسل، خودش را متوقف می‌کند
     if(clsRecorder && clsRecorder.state==='recording')clsRecorder.stop();
     if(clsMicStream)clsMicStream.getTracks().forEach(t=>t.stop());
     clsMicStream=null;
