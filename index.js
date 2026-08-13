@@ -156,9 +156,9 @@ function getScheduleHtml(data) {
     body{direction:rtl;font-family:"BNazanin",tahoma,Arial;padding:30px;background:#f8fafc}
     .header{text-align:center;padding:20px;background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;border-radius:20px;margin-bottom:20px}
     .header h1{font-size:24px;margin:0 0 10px}.header p{margin:5px 0;font-size:14px}
-    table{width:100%;border-collapse:separate;border-spacing:0;border-radius:16px;overflow:hidden;box-shadow:0 4px 15px rgba(0,0,0,0.08);border:1px solid #e2e8f0}
-    th{padding:12px 8px;font-size:14px;text-align:center;border-bottom:1px dashed #cbd5e1;border-left:1px dashed #e2e8f0}
-    td{padding:14px 8px;text-align:center;font-size:13px;min-height:50px;font-weight:600;color:#1e293b;border-bottom:1px dashed #cbd5e1;border-left:1px dashed rgba(0,0,0,0.06)}
+    table{width:100%;border-collapse:separate;border-spacing:0;border-radius:16px;overflow:hidden;box-shadow:0 4px 15px rgba(0,0,0,0.08);border:1.5px solid #94a3b8}
+    th{padding:12px 8px;font-size:14px;text-align:center;border-bottom:1.5px solid #94a3b8;border-left:1.5px solid #94a3b8}
+    td{padding:14px 8px;text-align:center;font-size:13px;min-height:50px;font-weight:600;color:#1e293b;border-bottom:1.5px solid #94a3b8;border-left:1.5px solid #cbd5e1}
     tr:last-child td{border-bottom:none}
     .footer{text-align:center;margin-top:30px;padding:20px;border-top:2px dashed #ddd}
   </style>`;
@@ -669,7 +669,7 @@ async function handleApi(req, env, url, path) {
           headers: { "Content-Type": "application/json", "Authorization": "Bearer " + apiKey },
           body: JSON.stringify({
             model: "llama-3.3-70b-versatile",
-            messages: [{ role: "system", content: "You are a helpful assistant for Iranian teachers. Always respond in Persian/Farsi." }, ...messages.slice(-10)],
+            messages: [{ role: "system", content: "You are a helpful assistant for Iranian teachers. Follow the system/user instructions provided about which language to respond in." }, ...messages.slice(-10)],
             max_tokens: 1024
           })
         });
@@ -1034,17 +1034,17 @@ const SHARED_CSS = `
   .crop-actions{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
   
   /* ---- برنامه هفتگی (هدر تیره در گوشه، ستون‌های زنگ سفید، ردیف‌های رنگی نقطه‌چین) ---- */
-  .schedule-table-wrap{overflow-x:auto;border-radius:16px;border:1px solid #e2e8f0;background:#fff;margin-bottom:16px;box-shadow:0 4px 20px rgba(0,0,0,0.08)}
+  .schedule-table-wrap{overflow-x:auto;border-radius:16px;border:1.5px solid #94a3b8;background:#fff;margin-bottom:16px;box-shadow:0 4px 20px rgba(0,0,0,0.08)}
   [data-theme="dark"] .schedule-table-wrap{background:#1e293b;border-color:#334155}
   .schedule-table{width:100%;border-collapse:separate;border-spacing:0}
-  .schedule-table th{padding:14px 10px;font-weight:700;text-align:center;font-size:14px;border-bottom:1px dashed #cbd5e1;border-left:1px dashed #e2e8f0}
+  .schedule-table th{padding:14px 10px;font-weight:700;text-align:center;font-size:14px;border-bottom:1.5px solid #94a3b8;border-left:1.5px solid #94a3b8}
   .schedule-table th:first-child{border-left:none}
   .schedule-table th.sch-corner{background:#334155;color:#fff;border-radius:16px 0 0 0;border-bottom:none}
   [data-theme="dark"] .schedule-table th.sch-corner{background:#0f172a}
   .schedule-table th.sch-period{background:#fff;color:#334155}
   [data-theme="dark"] .schedule-table th.sch-period{background:#1e293b;color:#e2e8f0;border-color:#334155}
   .schedule-table th.sch-period:last-child{border-radius:0 16px 0 0}
-  .schedule-table td{padding:10px 8px;text-align:center;font-weight:600;color:#1e293b;border-bottom:1px dashed #cbd5e1;border-left:1px dashed rgba(0,0,0,0.06)}
+  .schedule-table td{padding:10px 8px;text-align:center;font-weight:600;color:#1e293b;border-bottom:1.5px solid #94a3b8;border-left:1.5px solid #cbd5e1}
   [data-theme="dark"] .schedule-table td{color:#f1f5f9;border-color:#334155}
   .schedule-table tr:last-child td{border-bottom:none}
   .schedule-table td:first-child{font-weight:700;text-align:center;font-size:14px;border-left:none}
@@ -1066,6 +1066,17 @@ const SHARED_CSS = `
   .schedule-table textarea{background:transparent;border:none;width:100%;min-height:46px;text-align:center;font-family:inherit;font-size:13px;color:inherit;resize:vertical}
   .schedule-table textarea:focus{outline:2px solid var(--primary);outline-offset:2px;border-radius:6px}
   
+  /* ---- ترجمه ---- */
+  .tl-lang-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:16px}
+  .tl-lang-row select{padding:9px 10px;border:1px solid #ddd;border-radius:8px;font-family:inherit;font-size:14px;background:#fff}
+  [data-theme="dark"] .tl-lang-row select{background:#1e293b;border-color:#475569;color:#e2e8f0}
+  .tl-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  .tl-grid textarea{width:100%;padding:12px;border:1px solid #ddd;border-radius:8px;resize:vertical;font-family:inherit;font-size:14px}
+  [data-theme="dark"] .tl-grid textarea{background:#1e293b;border-color:#475569;color:#e2e8f0}
+  .tl-grid textarea[readonly]{background:#f8fafc}
+  [data-theme="dark"] .tl-grid textarea[readonly]{background:#0f172a}
+  @media (max-width:640px){ .tl-grid{grid-template-columns:1fr} }
+
   /* ---- جدول‌ساز: شبیه اکسل واقعی ---- */
   .xls-wrap{border:1px solid #b7b7b7;border-radius:8px;overflow:hidden;background:#fff;box-shadow:0 2px 10px rgba(0,0,0,.06)}
   [data-theme="dark"] .xls-wrap{background:#1e293b;border-color:#475569}
@@ -2034,26 +2045,32 @@ function teacherPage() {
       </div>
 
       <div class="card tab-content hidden" id="tab-translate">
-        <h3>🌐 ترجمه متن</h3>
-        <p class="muted">متن را از فارسی به انگلیسی یا برعکس ترجمه کنید</p>
-        <div style="margin-bottom:16px">
-          <label style="margin-left:16px">زبان مبدا:</label>
-          <select id="tl-from" style="padding:8px;border:1px solid #ddd;border-radius:6px">
+        <h3>🌐 ترجمه متن (با هوش مصنوعی)</h3>
+        <p class="muted">متن را بین زبان‌های مختلف ترجمه کنید — ترجمه طبیعی و روان با هوش مصنوعی</p>
+        <div class="tl-lang-row">
+          <select id="tl-from">
             <option value="fa">فارسی</option>
             <option value="en">انگلیسی</option>
+            <option value="ar">عربی</option>
+            <option value="fr">فرانسوی</option>
+            <option value="de">آلمانی</option>
+            <option value="tr">ترکی</option>
           </select>
-          <button class="btn sm" onclick="tlSwap()" style="margin:0 8px">⇄</button>
-          <label style="margin-left:16px">زبان مقصد:</label>
-          <select id="tl-to" style="padding:8px;border:1px solid #ddd;border-radius:6px">
+          <button class="btn sm" onclick="tlSwap()">⇄</button>
+          <select id="tl-to">
             <option value="en">انگلیسی</option>
             <option value="fa">فارسی</option>
+            <option value="ar">عربی</option>
+            <option value="fr">فرانسوی</option>
+            <option value="de">آلمانی</option>
+            <option value="tr">ترکی</option>
           </select>
         </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
-          <div><label>متن ورودی:</label><textarea id="tl-input" rows="8" style="width:100%;padding:12px;border:1px solid #ddd;border-radius:8px;resize:vertical;font-family:inherit" placeholder="متن خود را اینجا بنویسید..."></textarea></div>
-          <div><label>ترجمه:</label><textarea id="tl-output" rows="8" style="width:100%;padding:12px;border:1px solid #ddd;border-radius:8px;resize:vertical;font-family:inherit;background:#f8fafc" readonly placeholder="ترجمه اینجا نمایش داده می‌شود..."></textarea></div>
+        <div class="tl-grid">
+          <div><label>متن ورودی:</label><textarea id="tl-input" rows="8" dir="rtl" placeholder="متن خود را اینجا بنویسید..."></textarea></div>
+          <div><label>ترجمه:</label><textarea id="tl-output" rows="8" dir="ltr" readonly placeholder="ترجمه اینجا نمایش داده می‌شود..."></textarea></div>
         </div>
-        <div style="margin-top:16px;display:flex;gap:10px">
+        <div style="margin-top:16px;display:flex;gap:10px;flex-wrap:wrap">
           <button class="btn primary" id="btn-translate">🌐 ترجمه کن</button>
           <button class="btn" onclick="tlCopy()">📋 کپی ترجمه</button>
           <button class="btn gray" onclick="tlClear()">🗑️ پاک کردن</button>
@@ -2579,9 +2596,9 @@ function teacherScript() {
     style+='body{direction:rtl;font-family:"BNazanin",tahoma,Arial;padding:30px;background:#f8fafc}';
     style+='.header{text-align:center;padding:20px;background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;border-radius:20px;margin-bottom:20px}';
     style+='.header h1{font-size:24px;margin:0 0 10px}.header p{margin:5px 0;font-size:14px}';
-    style+='table{width:100%;border-collapse:separate;border-spacing:0;border-radius:16px;overflow:hidden;box-shadow:0 4px 15px rgba(0,0,0,0.08);border:1px solid #e2e8f0}';
-    style+='th{padding:12px 8px;font-size:14px;text-align:center;border-bottom:1px dashed #cbd5e1;border-left:1px dashed #e2e8f0}';
-    style+='td{padding:14px 8px;text-align:center;font-size:13px;min-height:50px;font-weight:600;color:#1e293b;border-bottom:1px dashed #cbd5e1;border-left:1px dashed rgba(0,0,0,0.06)}';
+    style+='table{width:100%;border-collapse:separate;border-spacing:0;border-radius:16px;overflow:hidden;box-shadow:0 4px 15px rgba(0,0,0,0.08);border:1.5px solid #94a3b8}';
+    style+='th{padding:12px 8px;font-size:14px;text-align:center;border-bottom:1.5px solid #94a3b8;border-left:1.5px solid #94a3b8}';
+    style+='td{padding:14px 8px;text-align:center;font-size:13px;min-height:50px;font-weight:600;color:#1e293b;border-bottom:1.5px solid #94a3b8;border-left:1.5px solid #cbd5e1}';
     style+='tr:last-child td{border-bottom:none}';
     style+='.footer{text-align:center;margin-top:30px;padding:20px;border-top:2px dashed #ddd}</style>';
     let header='<div class="header"><h1>⭐ برنامه هفتگی کلاس ⭐</h1><p>🏫 '+esc(school)+' | سال تحصیلی: '+esc(year)+'</p><p>کلاس: '+esc(cls)+' | آموزگار: '+esc(teacher)+'</p></div>';
@@ -3229,10 +3246,39 @@ function teacherScript() {
 
   // ===== ترجمه =====
   document.getElementById('tl-from').onchange=function(){const f=this.value;const t=document.getElementById('tl-to');if(f===t.value){t.value=f==='fa'?'en':'fa';}};
-  window.tlSwap=function(){const f=document.getElementById('tl-from');const t=document.getElementById('tl-to');const tmp=f.value;f.value=t.value;t.value=tmp;const inp=document.getElementById('tl-input');const out=document.getElementById('tl-output');const t2=inp.value;inp.value=out.value;out.value=t2;};
+  const tlLangNames={fa:'فارسی',en:'انگلیسی',ar:'عربی',fr:'فرانسوی',de:'آلمانی',tr:'ترکی'};
+  const tlLangDir={fa:'rtl',ar:'rtl',en:'ltr',fr:'ltr',de:'ltr',tr:'ltr'};
+  function tlUpdateDirs(){
+    document.getElementById('tl-input').dir=tlLangDir[document.getElementById('tl-from').value]||'rtl';
+    document.getElementById('tl-output').dir=tlLangDir[document.getElementById('tl-to').value]||'ltr';
+  }
+  document.getElementById('tl-from').addEventListener('change',tlUpdateDirs);
+  document.getElementById('tl-to').addEventListener('change',tlUpdateDirs);
+  window.tlSwap=function(){
+    const f=document.getElementById('tl-from');const t=document.getElementById('tl-to');
+    const tmp=f.value;f.value=t.value;t.value=tmp;
+    const inp=document.getElementById('tl-input');const out=document.getElementById('tl-output');
+    const t2=inp.value;inp.value=out.value;out.value=t2;
+    tlUpdateDirs();
+  };
   window.tlCopy=function(){const txt=document.getElementById('tl-output').value;if(!txt){toast('متنی وارد نشده');return;}navigator.clipboard.writeText(txt).then(()=>toast('کپی شد ✅'));};
   window.tlClear=function(){document.getElementById('tl-input').value='';document.getElementById('tl-output').value='';};
-  document.getElementById('btn-translate').onclick=async function(){const text=document.getElementById('tl-input').value.trim();if(!text){toast('متنی وارد نشده');return;}const from=document.getElementById('tl-from').value;const to=document.getElementById('tl-to').value;const btn=this;btn.disabled=true;btn.textContent='⏳ در حال ترجمه...';try{const res=await fetch('https://api.mymemory.translated.net/get?q='+encodeURIComponent(text)+'&langpair='+from+'|'+to);const data=await res.json();if(data.responseStatus===200 && data.responseData){document.getElementById('tl-output').value=data.responseData.translatedText;toast('ترجمه شد ✅');}else{toast('خطا در ترجمه');}}catch(e){toast('خطا در اتصال');}btn.disabled=false;btn.textContent='🌐 ترجمه کن';};
+  document.getElementById('btn-translate').onclick=async function(){
+    const text=document.getElementById('tl-input').value.trim();
+    if(!text){toast('متنی وارد نشده');return;}
+    const from=document.getElementById('tl-from').value, to=document.getElementById('tl-to').value;
+    if(from===to){toast('زبان مبدا و مقصد یکسان است');return;}
+    const btn=this;btn.disabled=true;btn.textContent='⏳ در حال ترجمه...';
+    try{
+      const sys='You are a professional translator. Translate the text the user sends from '+tlLangNames[from]+' ('+from+') to '+tlLangNames[to]+' ('+to+'). '+
+        'Respond with ONLY the translation itself — natural and fluent, no quotes, no explanations, no extra commentary, no original text repeated.';
+      const res=await fetch('/api/teacher/ai/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({messages:[{role:'system',content:sys},{role:'user',content:text}]})});
+      const data=await res.json();
+      if(data.error){toast('خطا در ترجمه: '+data.error);}
+      else{document.getElementById('tl-output').value=(data.content||'').trim();tlUpdateDirs();toast('ترجمه شد ✅');}
+    }catch(e){toast('خطا در اتصال');}
+    btn.disabled=false;btn.textContent='🌐 ترجمه کن';
+  };
 
   // ===== AI Chat =====
   let aiMessages=[{role:'system',content:'تو یک دستیار هوشمند برای معلمان هستی. به زبان فارسی پاسخ بده.'}];
