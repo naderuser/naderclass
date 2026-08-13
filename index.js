@@ -1551,6 +1551,7 @@ async function studentClassPage(env, id) {
         <span id="cls-status-text" class="muted">در حال اتصال به کلاس...</span>
         <span style="flex:1"></span>
         <button class="btn sm sec" id="btn-raise-hand">✋ بلند کردن دست</button>
+        <button class="btn sm" id="btn-enable-sound">🔊 فعال‌سازی صدای کلاس</button>
       </div>
       <div class="cls-wrap">
         <div class="cls-board-col">
@@ -1597,32 +1598,35 @@ async function studentClassPage(env, id) {
     function clearBoard(){ctx.clearRect(0,0,canvas.width,canvas.height);}
 
     // ===== پخش صدای زنده معلم با MediaSource =====
-    let mediaSource=null, sourceBuffer=null, audioEl=null, audioQueue=[], mseReady=false;
-    function initAudio(){
-      audioEl=new Audio();audioEl.autoplay=true;
-      if('MediaSource' in window && MediaSource.isTypeSupported('audio/webm;codecs=opus')){
-        mediaSource=new MediaSource();
-        audioEl.src=URL.createObjectURL(mediaSource);
-        mediaSource.addEventListener('sourceopen',()=>{
-          sourceBuffer=mediaSource.addSourceBuffer('audio/webm;codecs=opus');
-          sourceBuffer.addEventListener('updateend',pumpAudioQueue);
-          mseReady=true;
-          pumpAudioQueue();
-        });
-      }
+    let audioQueue=[], audioPlaying=false, audioWarned=false, audioUnlocked=false;
+    (function setupSoundUnlock(){
+      const btn=document.getElementById('btn-enable-sound');
+      btn.onclick=function(){
+        // پخش یک صدای خیلی کوتاه و بی‌صدا برای باز کردن قفل پخش خودکار صدا در مرورگر
+        const a=new Audio('data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAA=');
+        a.play().then(()=>{audioUnlocked=true;btn.classList.add('hidden');pumpAudioQueue();}).catch(()=>{audioUnlocked=true;btn.classList.add('hidden');pumpAudioQueue();});
+      };
+    })();
+    function playAudioChunk(b64, mime){
+      audioQueue.push({b64, mime: mime||'audio/webm'});
+      if(audioQueue.length>8) audioQueue.splice(0, audioQueue.length-8); // اگر پخش عقب افتاد، فقط تازه‌ترین‌ها را نگه دار
+      pumpAudioQueue();
     }
     function pumpAudioQueue(){
-      if(!mseReady||!sourceBuffer||sourceBuffer.updating||audioQueue.length===0)return;
-      try{sourceBuffer.appendBuffer(audioQueue.shift());}catch(e){audioQueue=[];}
-    }
-    function b64ToBuf(b64){const bin=atob(b64);const arr=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)arr[i]=bin.charCodeAt(i);return arr.buffer;}
-    function playAudioChunk(b64){
-      if(!audioEl)initAudio();
-      if(mseReady){audioQueue.push(b64ToBuf(b64));pumpAudioQueue();}
-      else{
-        // مرورگرهایی که MSE پشتیبانی نمی‌کنند: پخش تکه‌ای (ممکن است کمی قطع‌ودوصل داشته باشد)
-        const a=new Audio('data:audio/webm;base64,'+b64);a.play().catch(()=>{});
-      }
+      if(!audioUnlocked||audioPlaying||audioQueue.length===0) return;
+      const item=audioQueue.shift();
+      const a=new Audio('data:'+item.mime+';base64,'+item.b64);
+      audioPlaying=true;
+      a.onended=()=>{ audioPlaying=false; pumpAudioQueue(); };
+      a.onerror=()=>{
+        audioPlaying=false;
+        if(!audioWarned){
+          audioWarned=true;
+          toast('مرورگر شما امکان پخش صدای معلم را ندارد؛ لطفاً Chrome را امتحان کنید');
+        }
+        pumpAudioQueue();
+      };
+      a.play().catch(()=>{ audioPlaying=false; pumpAudioQueue(); });
     }
 
     function addChatMsg(entry){
@@ -1669,7 +1673,7 @@ async function studentClassPage(env, id) {
         if(m.type==='init'){clearBoard();(m.strokes||[]).forEach(drawStroke);(m.chat||[]).forEach(addChatMsg);}
         else if(m.type==='draw'){drawStroke(m.stroke);}
         else if(m.type==='clear'){clearBoard();}
-        else if(m.type==='audio'){playAudioChunk(m.data);}
+        else if(m.type==='audio'){playAudioChunk(m.data, m.mime);}
         else if(m.type==='video-frame'){
           const img=document.getElementById('cls-teacher-video');
           img.src=m.data;
@@ -3104,7 +3108,7 @@ function teacherScript() {
       }).join('')+'</table>';
   }
 
-  let clsWs=null, clsMicStream=null, clsRecorder=null, clsDrawing=false, clsLastPoint=null, clsCurrentStroke=null;
+  let clsWs=null, clsMicStream=null, clsRecorder=null, clsDrawing=false, clsLastPoint=null, clsCurrentStroke=null, clsAudioActive=false;
   let clsCamStream=null, clsCamInterval=null, clsAudioFromCam=false;
   const tBoard=document.getElementById('t-board');
   const tCtx=tBoard.getContext('2d');
@@ -3268,19 +3272,35 @@ function teacherScript() {
 
   function clsStartMicRecorder(stream){
     clsMicStream=stream;
-    const mime='audio/webm;codecs=opus';
-    clsRecorder=new MediaRecorder(clsMicStream, MediaRecorder.isTypeSupported(mime)?{mimeType:mime}:undefined);
-    clsRecorder.ondataavailable=async(e)=>{
-      if(e.data && e.data.size>0){
-        const buf=await e.data.arrayBuffer();
-        let binary='';const bytes=new Uint8Array(buf);
-        for(let i=0;i<bytes.length;i++)binary+=String.fromCharCode(bytes[i]);
-        clsSend({type:'audio', data: btoa(binary), mime});
-      }
-    };
-    clsRecorder.start(300); // ارسال هر ۳۰۰ میلی‌ثانیه یک قطعه صوتی برای صدای تقریباً زنده
+    clsAudioActive=true;
+    const preferredMimes=['audio/webm;codecs=opus','audio/webm','audio/mp4'];
+    const mime=preferredMimes.find(m=>window.MediaRecorder && MediaRecorder.isTypeSupported(m)) || '';
+    function recordOneChunk(){
+      if(!clsAudioActive || !clsMicStream) return;
+      let chunks=[];
+      let rec;
+      try{ rec=new MediaRecorder(clsMicStream, mime?{mimeType:mime}:undefined); }
+      catch(e){ clsAudioActive=false; toast('امکان ضبط صدا در این مرورگر نیست'); return; }
+      rec.ondataavailable=(e)=>{ if(e.data && e.data.size>0) chunks.push(e.data); };
+      rec.onstop=async()=>{
+        if(chunks.length){
+          const blob=new Blob(chunks, {type: mime||'audio/webm'});
+          const buf=await blob.arrayBuffer();
+          let binary='';const bytes=new Uint8Array(buf);
+          for(let i=0;i<bytes.length;i++)binary+=String.fromCharCode(bytes[i]);
+          clsSend({type:'audio', data: btoa(binary), mime: mime||'audio/webm'});
+        }
+        if(clsAudioActive) setTimeout(recordOneChunk, 20);
+      };
+      rec.start();
+      clsRecorder=rec;
+      // هر قطعه یک فایل صوتی کامل و مستقل است (نه یک استریم پیوسته)، برای سازگاری بیشتر بین مرورگرها
+      setTimeout(()=>{ if(rec.state==='recording') rec.stop(); }, 700);
+    }
+    recordOneChunk();
   }
   function clsStopMicRecorder(){
+    clsAudioActive=false;
     if(clsRecorder && clsRecorder.state==='recording')clsRecorder.stop();
     if(clsMicStream)clsMicStream.getTracks().forEach(t=>t.stop());
     clsMicStream=null;
