@@ -148,33 +148,35 @@ function getScheduleHtml(data) {
     'linear-gradient(135deg,#e0c3fc,#8ec5fc)',
     'linear-gradient(135deg,#a8edea,#fed6e3)'
   ];
-  const cellColors = ['#fff5f5','#fffef0','#f0fff4','#f8f0ff','#f0ffff'];
+  const dayLabelColors = ['#fde2e2','#fdf3d1','#dcf5e3','#ecdcfb','#d7f5f7'];
+  const cellColors = ['#fef5f5','#fefbf0','#f2fbf5','#f7f2fd','#f0fafb'];
   
   let style = `<style>
     @font-face{font-family:"BNazanin";src:url(https://cdn.jsdelivr.net/gh/naderuser/bnazanin@main/BNazanin.ttf)}
     body{direction:rtl;font-family:"BNazanin",tahoma,Arial;padding:30px;background:#f8fafc}
     .header{text-align:center;padding:20px;background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;border-radius:20px;margin-bottom:20px}
     .header h1{font-size:24px;margin:0 0 10px}.header p{margin:5px 0;font-size:14px}
-    table{width:100%;border-collapse:separate;border-spacing:0;border-radius:15px;overflow:hidden;box-shadow:0 4px 15px rgba(0,0,0,0.1)}
-    th{border:none;padding:12px 8px;font-size:14px;color:#fff;text-align:center}
-    td{border:none;padding:15px 8px;text-align:center;font-size:13px;min-height:50px}
+    table{width:100%;border-collapse:separate;border-spacing:0;border-radius:16px;overflow:hidden;box-shadow:0 4px 15px rgba(0,0,0,0.08);border:1px solid #e2e8f0}
+    th{padding:12px 8px;font-size:14px;text-align:center;border-bottom:1px dashed #cbd5e1;border-left:1px dashed #e2e8f0}
+    td{padding:14px 8px;text-align:center;font-size:13px;min-height:50px;font-weight:600;color:#1e293b;border-bottom:1px dashed #cbd5e1;border-left:1px dashed rgba(0,0,0,0.06)}
+    tr:last-child td{border-bottom:none}
     .footer{text-align:center;margin-top:30px;padding:20px;border-top:2px dashed #ddd}
   </style>`;
   
   let header = `<div class="header"><h1>⭐ برنامه هفتگی کلاس ⭐</h1><p>🏫 ${esc(school)} | سال تحصیلی: ${esc(year)}</p><p>کلاس: ${esc(cls)} | آموزگار: ${esc(teacher)}</p></div>`;
   
-  let table = '<table><tr><th style="background:#555">روز / زنگ</th>';
+  let table = '<table><tr><th style="background:#334155;color:#fff;border-bottom:none">روز / زنگ</th>';
   for (let z = 0; z < 5; z++) {
-    table += `<th style="background:${dayColors[z]};color:#333">🔔 ${zang[z]}</th>`;
+    table += `<th style="background:#fff;color:#334155">🔔 ${zang[z]}</th>`;
   }
   table += '</tr>';
   
   for (let d = 0; d < 5; d++) {
-    table += `<tr><td style="background:#eee;font-weight:bold;color:#333">${days[d]}</td>`;
+    table += `<tr><td style="background:${dayLabelColors[d]}">${days[d]}</td>`;
     for (let i = 1; i <= 5; i++) {
       const key = `c${d}${i}`;
       const val = (data.cells && data.cells[key]) || '&nbsp;';
-      table += `<td style="background:${cellColors[d]};color:#333"><div style="min-height:40px">${val}</div></td>`;
+      table += `<td style="background:${cellColors[d]}"><div style="min-height:40px">${val}</div></td>`;
     }
     table += '</tr>';
   }
@@ -1031,30 +1033,38 @@ const SHARED_CSS = `
   .ratio-btn.active{background:var(--primary);color:#fff;border-color:var(--primary)}
   .crop-actions{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
   
-  /* ---- برنامه هفتگی کودکانه ---- */
-  .schedule-table-wrap{overflow-x:auto;border-radius:20px;border:4px solid #94a3b8;background:#fff;margin-bottom:16px;box-shadow:0 8px 32px rgba(0,0,0,0.12)}
-  [data-theme="dark"] .schedule-table-wrap{background:#1e293b;border-color:#64748b}
-  .schedule-table{width:100%;border-collapse:collapse;border-radius:20px;overflow:hidden}
-  .schedule-table th{color:#fff;padding:14px 10px;font-weight:700;text-align:center;font-size:15px;text-shadow:0 1px 2px rgba(0,0,0,0.35);border:2px solid #94a3b8}
-  .schedule-table th.sh-shanbe{background:linear-gradient(135deg,#ff9a9e,#fecfef)}
-  .schedule-table th.sh-yekshanbe{background:linear-gradient(135deg,#fddb92,#d1fdff)}
-  .schedule-table th.sh-doshshanbe{background:linear-gradient(135deg,#a1ffce,#faffbd)}
-  .schedule-table th.sh-seshshanbe{background:linear-gradient(135deg,#e0c3fc,#8ec5fc)}
-  .schedule-table th.sh-chaharshanbe{background:linear-gradient(135deg,#a8edea,#fed6e3)}
-  .schedule-table th.sh-panjshanbe{background:linear-gradient(135deg,#ffecd2,#fcb69f)}
-  .schedule-table th.sh-jome{background:linear-gradient(135deg,#c9d6ff,#e2e2e2);color:#555;text-shadow:none}
-  .schedule-table td{border:2px solid #94a3b8;padding:12px 8px;text-align:center;transition:transform 0.2s;font-weight:600;color:#1e293b}
-  [data-theme="dark"] .schedule-table td{color:#f1f5f9;border-color:#64748b}
-  .schedule-table td:hover{transform:scale(1.02)}
-  .schedule-table td:first-child{background:#fff;font-weight:700;text-align:center;font-size:14px;color:#333}
-  [data-theme="dark"] .schedule-table td:first-child{background:#1e293b;color:#e2e8f0}
-  .schedule-table td.cell-shanbe{background:linear-gradient(135deg,#fff5f5,#ffe6e6)}
-  .schedule-table td.cell-yekshanbe{background:linear-gradient(135deg,#fffef0,#fffadc)}
-  .schedule-table td.cell-doshshanbe{background:linear-gradient(135deg,#f0fff4,#d5f5e3)}
-  .schedule-table td.cell-seshshanbe{background:linear-gradient(135deg,#f8f0ff,#ead5ff)}
-  .schedule-table td.cell-chaharshanbe{background:linear-gradient(135deg,#f0ffff,#d5f5f5)}
-  .schedule-table td.cell-panjshanbe{background:linear-gradient(135deg,#fff5f0,#ffe5d5)}
-  .schedule-table td.cell-jome{background:linear-gradient(135deg,#f5f5f5,#e8e8e8);color:#666}
+  /* ---- برنامه هفتگی (هدر تیره در گوشه، ستون‌های زنگ سفید، ردیف‌های رنگی نقطه‌چین) ---- */
+  .schedule-table-wrap{overflow-x:auto;border-radius:16px;border:1px solid #e2e8f0;background:#fff;margin-bottom:16px;box-shadow:0 4px 20px rgba(0,0,0,0.08)}
+  [data-theme="dark"] .schedule-table-wrap{background:#1e293b;border-color:#334155}
+  .schedule-table{width:100%;border-collapse:separate;border-spacing:0}
+  .schedule-table th{padding:14px 10px;font-weight:700;text-align:center;font-size:14px;border-bottom:1px dashed #cbd5e1;border-left:1px dashed #e2e8f0}
+  .schedule-table th:first-child{border-left:none}
+  .schedule-table th.sch-corner{background:#334155;color:#fff;border-radius:16px 0 0 0;border-bottom:none}
+  [data-theme="dark"] .schedule-table th.sch-corner{background:#0f172a}
+  .schedule-table th.sch-period{background:#fff;color:#334155}
+  [data-theme="dark"] .schedule-table th.sch-period{background:#1e293b;color:#e2e8f0;border-color:#334155}
+  .schedule-table th.sch-period:last-child{border-radius:0 16px 0 0}
+  .schedule-table td{padding:10px 8px;text-align:center;font-weight:600;color:#1e293b;border-bottom:1px dashed #cbd5e1;border-left:1px dashed rgba(0,0,0,0.06)}
+  [data-theme="dark"] .schedule-table td{color:#f1f5f9;border-color:#334155}
+  .schedule-table tr:last-child td{border-bottom:none}
+  .schedule-table td:first-child{font-weight:700;text-align:center;font-size:14px;border-left:none}
+  .schedule-table td.sch-daylabel-shanbe{background:#fde2e2}
+  .schedule-table td.sch-daylabel-yekshanbe{background:#fdf3d1}
+  .schedule-table td.sch-daylabel-doshshanbe{background:#dcf5e3}
+  .schedule-table td.sch-daylabel-seshshanbe{background:#ecdcfb}
+  .schedule-table td.sch-daylabel-chaharshanbe{background:#d7f5f7}
+  .schedule-table td.cell-shanbe{background:#fef5f5}
+  .schedule-table td.cell-yekshanbe{background:#fefbf0}
+  .schedule-table td.cell-doshshanbe{background:#f2fbf5}
+  .schedule-table td.cell-seshshanbe{background:#f7f2fd}
+  .schedule-table td.cell-chaharshanbe{background:#f0fafb}
+  [data-theme="dark"] .schedule-table td.sch-daylabel-shanbe,[data-theme="dark"] .schedule-table td.cell-shanbe{background:#3a2626}
+  [data-theme="dark"] .schedule-table td.sch-daylabel-yekshanbe,[data-theme="dark"] .schedule-table td.cell-yekshanbe{background:#3a3620}
+  [data-theme="dark"] .schedule-table td.sch-daylabel-doshshanbe,[data-theme="dark"] .schedule-table td.cell-doshshanbe{background:#20362a}
+  [data-theme="dark"] .schedule-table td.sch-daylabel-seshshanbe,[data-theme="dark"] .schedule-table td.cell-seshshanbe{background:#302036}
+  [data-theme="dark"] .schedule-table td.sch-daylabel-chaharshanbe,[data-theme="dark"] .schedule-table td.cell-chaharshanbe{background:#1e3638}
+  .schedule-table textarea{background:transparent;border:none;width:100%;min-height:46px;text-align:center;font-family:inherit;font-size:13px;color:inherit;resize:vertical}
+  .schedule-table textarea:focus{outline:2px solid var(--primary);outline-offset:2px;border-radius:6px}
   
   /* ---- جدول‌ساز: شبیه اکسل واقعی ---- */
   .xls-wrap{border:1px solid #b7b7b7;border-radius:8px;overflow:hidden;background:#fff;box-shadow:0 2px 10px rgba(0,0,0,.06)}
@@ -1878,7 +1888,7 @@ function teacherPage() {
         </div>
         <div class="schedule-table-wrap">
           <table class="schedule-table" id="schedule-table">
-            <thead><tr><th>روز / زنگ ⭐</th><th class="sh-shanbe">🔔 زنگ اول</th><th class="sh-yekshanbe">🔔 زنگ دوم</th><th class="sh-doshshanbe">🔔 زنگ سوم</th><th class="sh-seshshanbe">🔔 زنگ چهارم</th><th class="sh-chaharshanbe">🔔 زنگ پنجم</th></tr></thead>
+            <thead><tr><th class="sch-corner">روز / زنگ</th><th class="sch-period">🔔 زنگ اول</th><th class="sch-period">🔔 زنگ دوم</th><th class="sch-period">🔔 زنگ سوم</th><th class="sch-period">🔔 زنگ چهارم</th><th class="sch-period">🔔 زنگ پنجم</th></tr></thead>
             <tbody id="schedule-body"></tbody>
           </table>
         </div>
@@ -2544,12 +2554,12 @@ function teacherScript() {
     const body=document.getElementById('schedule-body');
     let html='';
     const days=['شنبه','یکشنبه','دوشنبه','سه‌شنبه','چهارشنبه'];
-    const cellColors=['#fff5f5','#fffef0','#f0fff4','#f8f0ff','#f0ffff'];
+    const dayKeys=['shanbe','yekshanbe','doshshanbe','seshshanbe','chaharshanbe'];
     for(let d=0;d<5;d++){
-      html+='<tr><td style="background:#eee;font-weight:bold;padding:12px 8px">'+days[d]+'</td>';
+      html+='<tr><td class="sch-daylabel-'+dayKeys[d]+'">'+days[d]+'</td>';
       for(let i=1;i<=5;i++){
         const val=(scheduleData.cells&&scheduleData.cells['c'+d+i])||'';
-        html+='<td style="background:'+cellColors[d]+';padding:12px 8px"><textarea style="width:100%;min-height:50px;border:1px solid rgba(0,0,0,0.1);padding:6px;border-radius:8px;font-family:inherit;font-size:13px" id="c'+d+i+'" placeholder="زنگ '+(i)+'">'+esc(val)+'</textarea></td>';
+        html+='<td class="cell-'+dayKeys[d]+'"><textarea id="c'+d+i+'" placeholder="زنگ '+(i)+'">'+esc(val)+'</textarea></td>';
       }
       html+='</tr>';
     }
@@ -2563,23 +2573,24 @@ function teacherScript() {
     const teacher=document.getElementById('sch-teacher').value||'';
     const days=['شنبه','یکشنبه','دوشنبه','سه‌شنبه','چهارشنبه'];
     const zang=['زنگ اول','زنگ دوم','زنگ سوم','زنگ چهارم','زنگ پنجم'];
-    const dayColors=['linear-gradient(135deg,#ff9a9e,#fecfef)','linear-gradient(135deg,#fddb92,#d1fdff)','linear-gradient(135deg,#a1ffce,#faffbd)','linear-gradient(135deg,#e0c3fc,#8ec5fc)','linear-gradient(135deg,#a8edea,#fed6e3)'];
-    const cellColors=['#fff5f5','#fffef0','#f0fff4','#f8f0ff','#f0ffff'];
+    const dayLabelColors=['#fde2e2','#fdf3d1','#dcf5e3','#ecdcfb','#d7f5f7'];
+    const cellColors=['#fef5f5','#fefbf0','#f2fbf5','#f7f2fd','#f0fafb'];
     let style='<style>@font-face{font-family:"BNazanin";src:url(https://cdn.jsdelivr.net/gh/naderuser/bnazanin@main/BNazanin.ttf)}';
     style+='body{direction:rtl;font-family:"BNazanin",tahoma,Arial;padding:30px;background:#f8fafc}';
     style+='.header{text-align:center;padding:20px;background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;border-radius:20px;margin-bottom:20px}';
     style+='.header h1{font-size:24px;margin:0 0 10px}.header p{margin:5px 0;font-size:14px}';
-    style+='table{width:100%;border-collapse:separate;border-spacing:0;border-radius:15px;overflow:hidden;box-shadow:0 4px 15px rgba(0,0,0,0.1)}';
-    style+='th{border:none;padding:12px 8px;font-size:14px;color:#fff;text-align:center}';
-    style+='td{border:none;padding:15px 8px;text-align:center;font-size:13px;min-height:50px}';
+    style+='table{width:100%;border-collapse:separate;border-spacing:0;border-radius:16px;overflow:hidden;box-shadow:0 4px 15px rgba(0,0,0,0.08);border:1px solid #e2e8f0}';
+    style+='th{padding:12px 8px;font-size:14px;text-align:center;border-bottom:1px dashed #cbd5e1;border-left:1px dashed #e2e8f0}';
+    style+='td{padding:14px 8px;text-align:center;font-size:13px;min-height:50px;font-weight:600;color:#1e293b;border-bottom:1px dashed #cbd5e1;border-left:1px dashed rgba(0,0,0,0.06)}';
+    style+='tr:last-child td{border-bottom:none}';
     style+='.footer{text-align:center;margin-top:30px;padding:20px;border-top:2px dashed #ddd}</style>';
     let header='<div class="header"><h1>⭐ برنامه هفتگی کلاس ⭐</h1><p>🏫 '+esc(school)+' | سال تحصیلی: '+esc(year)+'</p><p>کلاس: '+esc(cls)+' | آموزگار: '+esc(teacher)+'</p></div>';
-    let table='<table><tr><th style="background:#555">روز / زنگ</th>';
-    for(let z=0;z<5;z++){table+='<th style="background:'+dayColors[z]+';color:#333">🔔 '+zang[z]+'</th>';}
+    let table='<table><tr><th style="background:#334155;color:#fff;border-bottom:none">روز / زنگ</th>';
+    for(let z=0;z<5;z++){table+='<th style="background:#fff;color:#334155">🔔 '+zang[z]+'</th>';}
     table+='</tr>';
     for(let d=0;d<5;d++){
-      table+='<tr><td style="background:#eee;font-weight:bold;color:#333">'+days[d]+'</td>';
-      for(let i=1;i<=5;i++){const el=document.getElementById('c'+d+i);const val=(el?el.value:'')||'&nbsp;';table+='<td style="background:'+cellColors[d]+';color:#333"><div style="min-height:40px">'+val+'</div></td>';}
+      table+='<tr><td style="background:'+dayLabelColors[d]+'">'+days[d]+'</td>';
+      for(let i=1;i<=5;i++){const el=document.getElementById('c'+d+i);const val=(el?el.value:'')||'&nbsp;';table+='<td style="background:'+cellColors[d]+'"><div style="min-height:40px">'+val+'</div></td>';}
       table+='</tr>';
     }
     table+='</table>';
