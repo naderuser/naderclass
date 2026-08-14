@@ -122,8 +122,8 @@ async function listStudents(env) {
   let cursor;
   do {
     const res = await env.EXAM_KV.list({ prefix: "student:", cursor });
-    for (const k of res.keys) {
-      const v = await env.EXAM_KV.get(k.name);
+    const values = await Promise.all(res.keys.map((k) => env.EXAM_KV.get(k.name)));
+    for (const v of values) {
       if (v) out.push(JSON.parse(v));
     }
     cursor = res.list_complete ? null : res.cursor;
@@ -194,6 +194,7 @@ function safeQuestion(q) {
     text: q.text, 
     options: q.options || [], 
     image: q.image || "",
+    imageWidth: q.imageWidth || 320,
     weight: q.weight || 1
   };
 }
@@ -555,23 +556,47 @@ async function handleApi(req, env, url, path) {
 
     if (path === "/api/teacher/students" && method === "GET") {
       const students = await listStudents(env);
-      const withStatus = [];
-      for (const s of students) {
-        const subRaw = await env.EXAM_KV.get("submission:" + s.uuid);
+      const subs = await Promise.all(students.map((s) => env.EXAM_KV.get("submission:" + s.uuid)));
+      const withStatus = students.map((s, idx) => {
+        const subRaw = subs[idx];
         let status = "pending";
         if (subRaw) {
           const sub = JSON.parse(subRaw);
           status = sub.grading && sub.grading.graded ? "graded" : "submitted";
         }
-        withStatus.push({ ...s, status });
-      }
+        return { ...s, status };
+      });
       return json({ ok: true, students: withStatus });
     }
 
     if (path === "/api/teacher/students" && method === "POST") {
       const body = await req.json().catch(() => ({}));
       const id = uuid();
-      const rec = { uuid: id, label: String(body.label || "").slice(0, 120), createdAt: Date.now() };
+      let photo = "";
+      if (typeof body.photo === "string" && body.photo.startsWith("data:image/")) {
+        if (body.photo.length > 2_800_000) return json({ ok: false, error: "حجم عکس پروفایل بیش از حد مجاز است (حداکثر ۲ مگابایت)" }, 400);
+        photo = body.photo;
+      }
+      const rec = { uuid: id, label: String(body.label || "").slice(0, 120), photo, createdAt: Date.now() };
+      await env.EXAM_KV.put("student:" + id, JSON.stringify(rec));
+      return json({ ok: true, student: rec });
+    }
+
+    if (path.startsWith("/api/teacher/students/") && method === "PATCH") {
+      const id = decodeURIComponent(path.slice("/api/teacher/students/".length));
+      const raw = await env.EXAM_KV.get("student:" + id);
+      if (!raw) return json({ ok: false, error: "دانش‌آموز پیدا نشد" }, 404);
+      const rec = JSON.parse(raw);
+      const body = await req.json().catch(() => ({}));
+      if (typeof body.photo === "string") {
+        if (body.photo && body.photo.startsWith("data:image/")) {
+          if (body.photo.length > 2_800_000) return json({ ok: false, error: "حجم عکس پروفایل بیش از حد مجاز است (حداکثر ۲ مگابایت)" }, 400);
+          rec.photo = body.photo;
+        } else if (body.photo === "") {
+          rec.photo = "";
+        }
+      }
+      if (typeof body.label === "string") rec.label = body.label.slice(0, 120);
       await env.EXAM_KV.put("student:" + id, JSON.stringify(rec));
       return json({ ok: true, student: rec });
     }
@@ -600,6 +625,7 @@ async function handleApi(req, env, url, path) {
           options: Array.isArray(q.options) ? q.options.map((o) => String(o)) : [],
           correct: q.correct == null ? "" : q.correct,
           image: typeof q.image === "string" ? q.image : "",
+          imageWidth: Number.isFinite(parseInt(q.imageWidth, 10)) ? Math.min(900, Math.max(80, parseInt(q.imageWidth, 10))) : 320,
           weight: Math.min(20, Math.max(0.5, parseFloat(q.weight) || 1)),
           order: i,
         };
@@ -708,16 +734,19 @@ function wordResponse(bodyHtml, filename) {
       .qnum { width: 36px; text-align:center; font-weight:bold; }
       .opt { padding: 2px 18px; }
       .ans { min-height: 40px; }
-      img { max-width: 320px; }
+      img { max-width: 900px; }
       .frac{display:inline-block;text-align:center;vertical-align:middle;margin:0 3px}
       .frac .fn{display:block;border-bottom:1.5px solid #000;padding:0 4px}
       .frac .fd{display:block;padding:0 4px}
       .shape{display:inline-block;vertical-align:middle;line-height:1;margin:0 2px}
       .shape svg{display:block}
-      .ldiv{display:inline-block;border-collapse:collapse;margin:6px 2px;vertical-align:top}
-      .ldiv td{padding:2px 8px;vertical-align:top}
-      .ldiv .divisor{border-right:1.5px solid #000}
-      .ldiv .quotient{border-top:1.5px solid #000;border-right:1.5px solid #000}
+      .ldiv{border-collapse:collapse;display:inline-table;margin:6px 4px;vertical-align:middle}
+      .ldiv td{padding:3px 10px;text-align:center;vertical-align:top}
+      .ldiv td.ld-bar{border-right:2px solid #000}
+      .ldiv td.ld-top{border-bottom:2px solid #000;min-width:60px;min-height:20px}
+      .ldiv .ld-divisor{vertical-align:bottom;padding-bottom:6px;font-weight:bold}
+      .ldiv .ld-dividend{padding:2px 6px;text-align:center}
+      .ldiv .ld-work{min-height:26px}
     </style></head><body dir="rtl">` +
     bodyHtml +
     `</body></html>`;
@@ -741,7 +770,7 @@ function wordHeader(meta, extra = "") {
 
 function questionBodyWord(q) {
   let inner = `<div><b>${q.rich ? q.text : esc(q.text)}</b> <span style="font-size:11px;color:#666">(وزن: ${q.weight || 1})</span></div>`;
-  if (q.image) inner += `<div><img src="${esc(q.image)}"></div>`;
+  if (q.image) inner += `<div><img src="${esc(q.image)}" style="width:${q.imageWidth || 320}px;max-width:100%"></div>`;
   if (q.type === "multiple") {
     (q.options || []).forEach((o, oi) => {
       inner += `<div class="opt">${["الف", "ب", "ج", "د"][oi] || oi + 1}) ${esc(o)}</div>`;
@@ -810,7 +839,7 @@ function answerSheetWord(sub) {
     const mark = g.marks ? g.marks[q.id] : "";
     const fb = g.feedback ? g.feedback[q.id] : "";
     let qcell = q.rich ? q.text : esc(q.text);
-    if (q.image) qcell += `<div><img src="${esc(q.image)}"></div>`;
+    if (q.image) qcell += `<div><img src="${esc(q.image)}" style="width:${q.imageWidth || 320}px;max-width:100%"></div>`;
     body +=
       `<tr><td class="qnum">${i + 1}</td>` +
       `<td>${qcell} <small>(${esc(QUESTION_TYPES[q.type] || q.type)})</small></td>` +
@@ -868,7 +897,7 @@ const SHARED_CSS = `
   [data-theme="dark"] .toolbar button{background:#334155;border-color:#475569;color:#e2e8f0}
   .toolbar button:hover{background:#c7d2fe}
   .toolbar .grp-label{font-size:12px;color:var(--muted);align-self:center;margin-left:6px}
-  .imgprev{max-width:220px;max-height:160px;border:1px solid var(--line);border-radius:8px;margin-top:6px;display:block}
+  .imgprev{height:auto;border:1px solid var(--line);border-radius:8px;margin-top:6px;display:block}
   table{width:100%;border-collapse:collapse;margin-top:10px}
   th,td{border:1px solid var(--line);padding:8px;text-align:right;font-size:14px;vertical-align:top}
   th{background:#f1f5f9}
@@ -926,10 +955,13 @@ const SHARED_CSS = `
   .frac .fd{display:block;padding:0 5px}
   .shape{display:inline-block;vertical-align:middle;line-height:1;margin:0 2px}
   .shape svg{display:block}
-  .ldiv{display:inline-block;border-collapse:collapse;margin:6px 2px;vertical-align:top}
-  .ldiv td{border:none;padding:2px 8px;font-size:15px;vertical-align:top}
-  .ldiv .divisor{border-right:2px solid currentColor}
-  .ldiv .quotient{border-top:2px solid currentColor;border-right:2px solid currentColor}
+  .ldiv{display:inline-table;border-collapse:collapse;margin:6px 4px;vertical-align:middle}
+  .ldiv td{padding:3px 10px;font-size:15px;text-align:center;vertical-align:top}
+  .ldiv td.ld-bar{border-right:2px solid currentColor}
+  .ldiv td.ld-top{border-bottom:2px solid currentColor;min-width:60px;min-height:20px}
+  .ldiv .ld-divisor{vertical-align:bottom;padding-bottom:6px;font-weight:bold}
+  .ldiv .ld-dividend{padding:2px 6px;text-align:center}
+  .ldiv .ld-work{min-height:26px}
   
   /* ---- اسکنر حرفه‌ای ---- */
   .upload-zone{border:2px dashed #cbd5e1;border-radius:16px;padding:40px 20px;text-align:center;cursor:pointer;transition:all .3s;background:#fafbfc;margin-bottom:16px}
@@ -1399,7 +1431,7 @@ async function studentPage(env, id) {
         
         return \`<tr>
           <td>\${i + 1}</td>
-          <td>\${qHtml(q)}\${q.image ? '<br><img src="'+q.image+'" class="imgprev">' : ''}</td>
+          <td>\${qHtml(q)}\${q.image ? '<br><img src="'+q.image+'" class="imgprev" style="max-width:'+(q.imageWidth||320)+'px;width:100%">' : ''}</td>
           <td>\${ansText(q, ans) || '<i>بدون پاسخ</i>'}</td>
           <td>\${resultCell}</td>
           <td>\${esc(fb) || '—'}</td>
@@ -1478,7 +1510,7 @@ async function studentPage(env, id) {
         }else{
           body='<textarea data-q="'+q.id+'" placeholder="پاسخ خود را بنویسید..."></textarea>';
         }
-        const img=q.image?'<img src="'+q.image+'" class="imgprev">':'';
+        const img=q.image?'<img src="'+q.image+'" class="imgprev" style="max-width:'+(q.imageWidth||320)+'px;width:100%">':'';
         const weightInfo = q.weight ? \`<span style="font-size:11px;color:#64748b;margin-right:8px">(وزن: \${q.weight})</span>\` : '';
         return '<div class="q-block"><div class="qhead"><b>'+(i+1)+'. '+qHtml(q)+'</b><span class="badge">'+typeLabel(q.type)+weightInfo+'</span></div>'+img+body+'</div>';
       }).join('');
@@ -1784,6 +1816,7 @@ function teacherPage() {
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
   <script>pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';</script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
   </head>
   <body><div class="wrap">
     ${pageHeader()}
@@ -1817,11 +1850,13 @@ function teacherPage() {
 
       <div class="card tab-content" id="tab-students">
         <h3>👨‍🎓 ساخت دانش‌آموز جدید</h3>
-        <div class="row">
+        <div class="row" style="align-items:center">
           <input id="new-label" placeholder="نام دانش‌آموز (اختیاری)">
+          <label class="btn sec sm" style="flex:0 0 auto;cursor:pointer">📷 عکس پروفایل<input type="file" accept="image/*" id="new-student-photo" style="display:none"></label>
+          <img id="new-student-photo-preview" class="hidden" style="width:36px;height:36px;border-radius:50%;object-fit:cover;flex:0 0 auto">
           <button class="btn" id="btn-add-student" style="flex:0 0 auto">➕ ساخت لینک اختصاصی</button>
         </div>
-        <p class="muted">برای هر دانش‌آموز یک UUID و لینک جداگانه ساخته می‌شود.</p>
+        <p class="muted">برای هر دانش‌آموز یک UUID و لینک جداگانه ساخته می‌شود. عکس پروفایل اختیاری است (حداکثر ۲ مگابایت).</p>
         <div id="students-list"></div>
       </div>
 
@@ -1860,6 +1895,7 @@ function teacherPage() {
           <button class="btn gray sm" data-add="multiple" style="flex:0 0 auto">➕ چهارگزینه‌ای</button>
           <button class="btn gray sm" data-add="truefalse" style="flex:0 0 auto">➕ صحیح/غلط</button>
           <button class="btn gray sm" data-add="short" style="flex:0 0 auto">➕ کوتاه‌پاسخ</button>
+          <button class="btn sec sm" onclick="distributeWeights()" style="flex:0 0 auto">⚖️ تقسیم مساوی وزن‌ها</button>
         </div>
         <div style="margin-top:16px;display:flex;gap:10px;flex-wrap:wrap">
           <button class="btn" id="btn-save-q">💾 ذخیره سربرگ و سوالات</button>
@@ -1993,7 +2029,7 @@ function teacherPage() {
             <div class="resize-group" id="resize-total-info" style="background:#e0f2fe;border:2px solid #93c5fd"><label>📦 اطلاعات کلی</label><div style="display:flex;justify-content:space-between;margin-top:8px"><div><span class="muted">حجم اصلی:</span> <strong id="total-original-size">-</strong></div><div><span class="muted">حجم جدید:</span> <strong id="total-new-size" style="color:#10b981">-</strong></div><div><span class="muted">کاهش:</span> <strong id="total-reduction" style="color:#059669">-</strong></div></div></div>
           </div>
           <div class="resize-preview" id="resize-preview"></div>
-          <div class="resize-toolbar"><button class="btn primary" id="btn-resize-all">⚡ فشرده‌سازی همه</button><button class="btn secondary" id="btn-clear-resize">🗑️ پاک کردن</button></div>
+          <div class="resize-toolbar"><button class="btn primary" id="btn-resize-all">⚡ فشرده‌سازی همه (دانلود جداگانه)</button><button class="btn sec" id="btn-resize-zip">📦 دانلود همه به‌صورت ZIP</button><button class="btn secondary" id="btn-clear-resize">🗑️ پاک کردن</button></div>
         </div>
       </div>
 
@@ -2012,6 +2048,11 @@ function teacherPage() {
             <div class="crop-ratios">
               <span>نسبت تصویر:</span>
               <button class="ratio-btn active" data-ratio="free">آزاد</button>
+              <button class="ratio-btn" data-ratio="1:1">۱:۱ (مربع)</button>
+              <button class="ratio-btn" data-ratio="4:3">۴:۳</button>
+              <button class="ratio-btn" data-ratio="3:4">۳:۴ (عمودی)</button>
+              <button class="ratio-btn" data-ratio="16:9">۱۶:۹ (عریض)</button>
+              <button class="ratio-btn" data-ratio="210:297">A4 (عمودی)</button>
             </div>
           </div>
           <div class="crop-actions"><button class="btn danger" id="btn-crop-delete">🗑️ حذف عکس</button><button class="btn secondary" id="btn-crop-reset">↩️ بازنشانی</button><button class="btn primary" id="btn-crop-download">💾 دانلود عکس</button></div>
@@ -2172,7 +2213,13 @@ function teacherPage() {
 function teacherScript() {
   return `
   const TYPES={descriptive:'تشریحی',multiple:'چهارگزینه‌ای',truefalse:'صحیح/غلط',short:'کوتاه‌پاسخ'};
-  const MATH=['+','\u2212','\u00d7','\u00f7','=','\u2260','\u00b1','<','>','\u2264','\u2265','\u221a','\u221b','%','\u03c0','\u00b0','\u00bd','\u00bc','\u00be','\u2153','\u2154','\u215b','\u00b2','\u00b3','( )','[ ]','\u2211','\u220f','\u221e','\u2220','\u22a5','\u2225','\u2234','\u2235','\u2248','\u221d','\u222b','\u2192','\u2190'];
+  const MATH=['+','\u2212','\u00d7','\u00f7','=','\u2260','\u00b1','\u2213','<','>','\u2264','\u2265','\u221a','\u221b','\u221c','%','\u2030','\u03c0','\u00b0',
+    '\u00bd','\u2153','\u2154','\u00bc','\u00be','\u2155','\u2156','\u2157','\u2158','\u2159','\u215a','\u215b','\u215c','\u215d','\u215e',
+    '\u00b2','\u00b3','\u2070','\u00b9','\u2074','\u2075',
+    '( )','[ ]','{ }','\u2211','\u220f','\u221e','\u2220','\u22a5','\u2225','\u2234','\u2235','\u2248','\u2261','\u2245','\u221d','\u222b',
+    '\u2192','\u2190','\u2194','\u2191','\u2193',
+    '\u2208','\u2209','\u2282','\u2286','\u2284','\u222a','\u2229','\u2205',
+    '\u2200','\u2203','\u00ac','\u2227','\u2228','\u2295','\u0394','\u2202','\u2207'];
   const SHAPES=['\u25b3','\u25bd','\u25c1','\u25b7','\u25c0','\u25b6','\u25b2','\u25bc','\u25a1','\u25ad','\u25ac','\u25b1','\u25b0','\u25c7','\u25c6','\u2b20','\u2b1f','\u2b21','\u2b22','\u25cb','\u25ef','\u25cf','\u2b24','\u2b2d','\u2605','\u2606','\u23e2','\u22bf','\u25e2','\u25e3','\u25e4','\u25e5','\u2194','\u2191','\u2193','\u2220','\u22a5','\u2225','\u2312','\u2299','\u2014'];
   const SVG_SHAPES=[
     {name:'مکعب', svg:'<svg viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="3"><rect x="20" y="35" width="45" height="45"/><path d="M20 35 L40 15 L85 15 L65 35"/><path d="M65 35 L65 80 L85 60 L85 15"/></svg>'},
@@ -2237,25 +2284,78 @@ function teacherScript() {
     const d=await api('/api/teacher/students');
     const box=document.getElementById('students-list');
     if(!d.students.length){box.innerHTML='<p class="muted">هنوز دانش‌آموزی ساخته نشده است.</p>';return;}
-    box.innerHTML='<table><tr><th>#</th><th>نام</th><th>لینک اختصاصی</th><th>وضعیت</th><th></th></tr>'+
+    box.innerHTML='<table><tr><th>عکس</th><th>#</th><th>نام</th><th>لینک اختصاصی</th><th>وضعیت</th><th></th></tr>'+
       d.students.map((s,i)=>{
         const link=location.origin+'/s/'+s.uuid;
         let st='<span class="pill no">در انتظار</span>';
         if(s.status==='submitted')st='<span class="pill gr">ثبت‌شده (تصحیح‌نشده)</span>';
         if(s.status==='graded')st='<span class="pill ok">تصحیح‌شده</span>';
-        return '<tr><td>'+(i+1)+'</td><td>'+esc(s.label||'-')+'</td>'+
+        const avatar=s.photo?'<img src="'+s.photo+'" style="width:36px;height:36px;border-radius:50%;object-fit:cover;display:block">':'<div style="width:36px;height:36px;border-radius:50%;background:#e2e8f0;display:flex;align-items:center;justify-content:center;font-size:16px">🧑‍🎓</div>';
+        return '<tr><td>'+avatar+'</td><td>'+(i+1)+'</td><td>'+esc(s.label||'-')+'</td>'+
           '<td><div class="link-box">'+link+'</div></td>'+
           '<td>'+st+'</td>'+
           '<td><button class="btn sm" onclick="copyLink(\\''+link+'\\')">کپی</button> '+
+          '<label class="btn sm sec" style="cursor:pointer">📷 عکس<input type="file" accept="image/*" style="display:none" onchange="changeStudentPhoto(\\''+s.uuid+'\\',this)"></label> '+
           '<button class="btn sm danger" onclick="delStudent(\\''+s.uuid+'\\')">حذف</button></td></tr>';
       }).join('')+'</table>';
   }
   window.copyLink=(l)=>{navigator.clipboard.writeText(l).then(()=>toast('لینک کپی شد'));};
   window.delStudent=async(id)=>{if(!confirm('حذف این دانش‌آموز و پاسخنامه‌اش؟'))return;await api('/api/teacher/students/'+id,{method:'DELETE'});loadStudents();};
+
+  // کوچک و فشرده کردن عکس پروفایل قبل از ارسال (حداکثر ابعاد 320px، حداکثر حجم اصلی 2 مگابایت)
+  function resizeProfilePhoto(file){
+    return new Promise((resolve,reject)=>{
+      if(file.size>2*1024*1024){reject(new Error('حجم عکس باید کمتر از ۲ مگابایت باشد'));return;}
+      const rd=new FileReader();
+      rd.onload=ev=>{
+        const img=new Image();
+        img.onload=()=>{
+          const c=document.createElement('canvas');const mw=320;let w=img.width,h=img.height;
+          if(w>mw){h=Math.round(h*mw/w);w=mw;}
+          c.width=w;c.height=h;c.getContext('2d').drawImage(img,0,0,w,h);
+          resolve(c.toDataURL('image/jpeg',0.85));
+        };
+        img.onerror=()=>reject(new Error('فایل عکس معتبر نیست'));
+        img.src=ev.target.result;
+      };
+      rd.onerror=()=>reject(new Error('خطا در خواندن فایل'));
+      rd.readAsDataURL(file);
+    });
+  }
+
+  let newStudentPhoto='';
+  document.getElementById('new-student-photo').addEventListener('change',async function(){
+    const f=this.files&&this.files[0];this.value='';
+    if(!f)return;
+    try{
+      newStudentPhoto=await resizeProfilePhoto(f);
+      const prev=document.getElementById('new-student-photo-preview');
+      prev.src=newStudentPhoto;prev.classList.remove('hidden');
+    }catch(e){toast(e.message);}
+  });
+
+  window.changeStudentPhoto=async(id,input)=>{
+    const f=input.files&&input.files[0];input.value='';
+    if(!f)return;
+    try{
+      const photo=await resizeProfilePhoto(f);
+      const r=await api('/api/teacher/students/'+id,{method:'PATCH',headers:{'content-type':'application/json'},body:JSON.stringify({photo})});
+      if(r.ok){toast('عکس پروفایل بروزرسانی شد ✅');loadStudents();}
+      else{toast('خطا: '+(r.error||'ثبت نشد'));}
+    }catch(e){toast(e.message);}
+  };
+
   document.getElementById('btn-add-student').onclick=async()=>{
     const label=document.getElementById('new-label').value.trim();
-    await api('/api/teacher/students',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({label})});
-    document.getElementById('new-label').value='';loadStudents();toast('دانش‌آموز ساخته شد');
+    const btn=document.getElementById('btn-add-student');btn.disabled=true;
+    try{
+      const r=await api('/api/teacher/students',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({label,photo:newStudentPhoto})});
+      if(!r.ok){toast('خطا: '+(r.error||'ساخته نشد'));return;}
+      document.getElementById('new-label').value='';
+      newStudentPhoto='';
+      document.getElementById('new-student-photo-preview').classList.add('hidden');
+      loadStudents();toast('دانش‌آموز ساخته شد ✅');
+    }finally{btn.disabled=false;}
   };
 
   // ===== سوالات =====
@@ -2302,13 +2402,30 @@ function teacherScript() {
   function renderQ(){
     const box=document.getElementById('q-list');
     box.innerHTML=QUESTIONS.map((q,i)=>qBlock(q,i)).join('')||'<p class="muted">سوالی اضافه نشده است.</p>';
-    
-    // نمایش جمع وزن‌ها
-    const totalDiv = document.createElement('div');
-    totalDiv.id = 'weight-total-display';
-    totalDiv.className = 'weight-total';
-    box.parentNode.insertBefore(totalDiv, box.nextSibling);
+
+    // نمایش جمع وزن‌ها (فقط یک‌بار ساخته می‌شود، نه هر بار رندر)
+    let totalDiv = document.getElementById('weight-total-display');
+    if (!totalDiv) {
+      totalDiv = document.createElement('div');
+      totalDiv.id = 'weight-total-display';
+      totalDiv.className = 'weight-total';
+      box.parentNode.insertBefore(totalDiv, box.nextSibling);
+    }
     updateWeightDisplay();
+
+    // نمایش خلاصه‌ی تعداد هر نوع سوال
+    let summaryDiv = document.getElementById('q-type-summary');
+    if (!summaryDiv) {
+      summaryDiv = document.createElement('div');
+      summaryDiv.id = 'q-type-summary';
+      summaryDiv.className = 'muted';
+      summaryDiv.style.cssText = 'font-size:13px;margin-top:6px';
+      totalDiv.parentNode.insertBefore(summaryDiv, totalDiv.nextSibling);
+    }
+    const counts = {};
+    QUESTIONS.forEach(q => { counts[q.type] = (counts[q.type]||0) + 1; });
+    const parts = Object.keys(counts).map(t => (TYPES[t]||t) + ': ' + counts[t]);
+    summaryDiv.textContent = QUESTIONS.length ? ('📊 تعداد کل سوالات: ' + QUESTIONS.length + ' (' + parts.join(' | ') + ')') : '';
   }
   
   function escA(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
@@ -2317,6 +2434,9 @@ function teacherScript() {
     const mk=(arr,fn)=>arr.map(s=>'<button type="button" onmousedown="event.preventDefault()" onclick="'+fn+'('+i+',\\''+escA(s)+'\\')">'+escA(s)+'</button>').join('');
     let h='<div class="toolbar"><span class="grp-label">علائم ریاضی:</span>'+mk(MATH,'insSym')+
       '<button type="button" onmousedown="event.preventDefault()" onclick="insFrac('+i+')">کسر a/b</button>'+
+      '<button type="button" onmousedown="event.preventDefault()" onclick="insPow('+i+')">توان xⁿ</button>'+
+      '<button type="button" onmousedown="event.preventDefault()" onclick="insSub('+i+')">زیرنویس xₙ</button>'+
+      '<button type="button" onmousedown="event.preventDefault()" onclick="insRoot('+i+')">ریشه ⁿ√</button>'+
       '<button type="button" onmousedown="event.preventDefault()" onclick="insDiv('+i+')">تقسیم چكشی</button></div>';
     h+='<div class="toolbar"><span class="grp-label">اشکال هندسی:</span>'+
       '<span class="grp-label">اندازه:</span><input type="range" min="14" max="140" value="40" id="ssz-'+i+'" style="width:110px;vertical-align:middle" oninput="resizeSel('+i+')"> '+
@@ -2330,9 +2450,6 @@ function teacherScript() {
     if(q.type==='descriptive'){
       body='<label>متن سوال</label>'+symBar(i)+
         '<div class="rich" data-qd="'+i+'" contenteditable="true" oninput="updHtml('+i+')">'+qHtml(q)+'</div>';
-      body+='<label>عکس / شکل (اختیاری)</label>';
-      if(q.image){body+='<img src="'+q.image+'" class="imgprev"><div><button class="btn sm danger" type="button" onclick="rmImg('+i+')">حذف عکس</button></div>';}
-      else{body+='<input type="file" accept="image/*" onchange="loadImg('+i+',this)">';}
     }else{
       body='<label>متن سوال</label><textarea data-qd="'+i+'" oninput="upd('+i+',\\'text\\',this.value)">'+esc(q.text)+'</textarea>';
       if(q.type==='multiple'){
@@ -2350,6 +2467,21 @@ function teacherScript() {
         body+='<label>پاسخ نمونه (اختیاری)</label><input type="text" value="'+esc(q.correct||'')+'" oninput="upd('+i+',\\'correct\\',this.value)">';
       }
     }
+
+    // ===== عکس / شکل (برای همه‌ی انواع سوال) =====
+    body+='<label>🖼️ عکس / شکل (اختیاری)</label>';
+    if(q.image){
+      const w=q.imageWidth||320;
+      body+='<div><img src="'+q.image+'" class="imgprev" style="max-width:'+w+'px;width:100%"></div>'+
+        '<div class="row" style="align-items:center;margin-top:6px">'+
+        '<label style="flex:0 0 auto;margin:0">اندازه‌ی نمایش:</label>'+
+        '<select onchange="updImgSize('+i+',this.value)" style="flex:0 0 auto;width:auto">'+
+          [['180','کوچک'],['320','متوسط'],['500','بزرگ'],['800','تمام عرض برگه']].map(o=>'<option value="'+o[0]+'" '+(String(w)===o[0]?'selected':'')+'>'+o[1]+'</option>').join('')+
+        '</select>'+
+        '<button class="btn sm danger" type="button" onclick="rmImg('+i+')" style="flex:0 0 auto">حذف عکس</button></div>';
+    }else{
+      body+='<input type="file" accept="image/*" onchange="loadImg('+i+',this)">';
+    }
     
     // ===== بخش وزن (ضریب) هر سوال =====
     body += \`
@@ -2365,6 +2497,7 @@ function teacherScript() {
       '<span><span class="badge">'+TYPES[q.type]+'</span> '+
       '<button class="btn sm gray" onclick="moveQ('+i+',-1)">▲</button> '+
       '<button class="btn sm gray" onclick="moveQ('+i+',1)">▼</button> '+
+      '<button class="btn sm gray" onclick="dupQ('+i+')">📋 کپی</button> '+
       '<button class="btn sm danger" onclick="delQ('+i+')">حذف</button></span></div>'+body+'</div>';
   }
   
@@ -2383,8 +2516,28 @@ function teacherScript() {
   
   window.upd=(i,k,v)=>{QUESTIONS[i][k]=v;};
   window.updOpt=(i,oi,v)=>{QUESTIONS[i].options=QUESTIONS[i].options||['','','',''];QUESTIONS[i].options[oi]=v;};
-  window.delQ=(i)=>{QUESTIONS.splice(i,1);renderQ();};
+  window.delQ=(i)=>{
+    if(!confirm('این سوال حذف شود؟ این کار قابل بازگشت نیست.'))return;
+    QUESTIONS.splice(i,1);renderQ();
+  };
+  window.dupQ=(i)=>{
+    const copy=JSON.parse(JSON.stringify(QUESTIONS[i]));
+    copy.id=uid();
+    QUESTIONS.splice(i+1,0,copy);
+    renderQ();
+    toast('سوال کپی شد ✅');
+  };
   window.moveQ=(i,dir)=>{const j=i+dir;if(j<0||j>=QUESTIONS.length)return;const t=QUESTIONS[i];QUESTIONS[i]=QUESTIONS[j];QUESTIONS[j]=t;renderQ();};
+  window.distributeWeights=()=>{
+    if(!QUESTIONS.length){toast('ابتدا سوالی اضافه کنید');return;}
+    const each=Math.round((20/QUESTIONS.length)*2)/2; // رند به نزدیک‌ترین 0.5
+    QUESTIONS.forEach(q=>q.weight=each);
+    // اگر به‌خاطر رند کردن مجموع دقیقاً 20 نشد، اختلاف را به سوال آخر اضافه/کم می‌کنیم
+    const diff=20-QUESTIONS.reduce((s,q)=>s+q.weight,0);
+    if(Math.abs(diff)>0.001) QUESTIONS[QUESTIONS.length-1].weight=Math.max(0.5,QUESTIONS[QUESTIONS.length-1].weight+diff);
+    renderQ();
+    toast('وزن‌ها به‌طور مساوی تقسیم شدند ✅');
+  };
   
   function richEl(i){return document.querySelector('.rich[data-qd="'+i+'"]');}
   function ssize(i){const r=document.getElementById('ssz-'+i);return r?parseInt(r.value,10):40;}
@@ -2400,7 +2553,20 @@ function teacherScript() {
   window.insShape=(i,s)=>insHtmlAt(i,'<span class="shape" contenteditable="false" style="font-size:'+ssize(i)+'px">'+escA(s)+'</span>&#8203;');
   window.insSvg=(i,si)=>{const s=SVG_SHAPES[si];if(!s)return;const z=ssize(i);const svg=s.svg.replace('<svg','<svg width="'+z+'" height="'+z+'"');insHtmlAt(i,'<span class="shape" contenteditable="false">'+svg+'</span>&#8203;');};
   window.insFrac=(i)=>{const n=prompt('صورت کسر:');if(n===null)return;const d=prompt('مخرج کسر:');if(d===null)return;insHtmlAt(i,'<span class="frac" contenteditable="false"><span class="fn">'+escA(n)+'</span><span class="fd">'+escA(d)+'</span></span>&#8203;');};
-  window.insDiv=(i)=>{const dd=prompt('مقسوم:','')||'مقسوم';const dv=prompt('مقسوم‌علیه:','')||'مقسوم‌علیه';insHtmlAt(i,'<table class="ldiv"><tr><td class="dividend">'+escA(dd)+'</td><td class="divisor">'+escA(dv)+'</td></tr><tr><td class="work"><br></td><td class="quotient">خارج‌قسمت</td></tr></table>&#8203;');};
+  window.insPow=(i)=>{const b=prompt('پایه (مثال: 2):');if(b===null)return;const p=prompt('توان (مثال: 3):');if(p===null)return;insHtmlAt(i,'<span contenteditable="false">'+escA(b)+'<sup>'+escA(p)+'</sup></span>&#8203;');};
+  window.insSub=(i)=>{const b=prompt('پایه (مثال: a):');if(b===null)return;const s=prompt('زیرنویس (مثال: n):');if(s===null)return;insHtmlAt(i,'<span contenteditable="false">'+escA(b)+'<sub>'+escA(s)+'</sub></span>&#8203;');};
+  window.insRoot=(i)=>{const idx=prompt('درجه‌ی ریشه (برای جذر خالی بگذارید، مثال: 3 برای ریشه‌ی سوم):','');if(idx===null)return;const rad=prompt('عدد زیر رادیکال:');if(rad===null)return;
+    insHtmlAt(i,'<span class="nroot" contenteditable="false">'+(idx?'<sup>'+escA(idx)+'</sup>':'')+'\u221a<span style="text-decoration:overline;padding:0 2px">'+escA(rad)+'</span></span>&#8203;');};
+  window.insDiv=(i)=>{
+    const dd=prompt('مقسوم (عدد داخل کادر):','');
+    if(dd===null)return;
+    const dv=prompt('مقسوم‌علیه (عدد تقسیم‌کننده):','');
+    if(dv===null)return;
+    insHtmlAt(i,'<table class="ldiv" contenteditable="false" dir="ltr">'+
+      '<tr><td class="ld-bar">&nbsp;</td><td class="ld-top">&nbsp;</td></tr>'+
+      '<tr><td class="ld-bar ld-divisor">'+escA(dv)+'</td><td><div class="ld-dividend">'+escA(dd)+'</div><div class="ld-work">&nbsp;</div></td></tr>'+
+      '</table>&#8203;');
+  };
   window.updHtml=(i)=>{const el=richEl(i);if(!el)return;const c=el.cloneNode(true);c.querySelectorAll('.shape').forEach(s=>{s.style.outline='';});QUESTIONS[i].text=c.innerHTML;QUESTIONS[i].rich=true;};
   let SELSHAPE=null;
   document.addEventListener('click',function(e){
@@ -2433,7 +2599,8 @@ function teacherScript() {
       };img.src=ev.target.result;
     };rd.readAsDataURL(f);
   };
-  window.rmImg=(i)=>{QUESTIONS[i].image='';renderQ();};
+  window.rmImg=(i)=>{QUESTIONS[i].image='';QUESTIONS[i].imageWidth=0;renderQ();};
+  window.updImgSize=(i,val)=>{QUESTIONS[i].imageWidth=parseInt(val,10)||320;renderQ();};
   
   document.querySelectorAll('[data-add]').forEach(b=>b.onclick=()=>{
     const t=b.dataset.add;
@@ -2518,7 +2685,7 @@ function teacherScript() {
           gradeCell='<select id="mk_'+s.uuid+'_'+q.id+'"><option value="">—</option>'+opt('excellent','🌟 خیلی خوب')+opt('good','✅ خوب')+opt('acceptable','📌 قابل‌قبول')+opt('needs-improve','📖 نیاز به تلاش')+'</select>';
         }
         
-        return '<tr><td>'+(i+1)+'</td><td>'+qHtml(q)+(q.image?'<br><img src="'+q.image+'" class="imgprev">':'')+'</td>'+
+        return '<tr><td>'+(i+1)+'</td><td>'+qHtml(q)+(q.image?'<br><img src="'+q.image+'" class="imgprev" style="max-width:'+(q.imageWidth||320)+'px;width:100%">':'')+'</td>'+
           '<td>'+(ansText(q,ans)||'<i>بدون پاسخ</i>')+'</td>'+
           '<td>'+gradeCell+'</td>'+
           '<td><input type="text" id="fb_'+s.uuid+'_'+q.id+'" value="'+esc(fb)+'" placeholder="بازخورد"></td></tr>';
@@ -2824,7 +2991,8 @@ function teacherScript() {
 
   function loadScanImg(file){
     const rd=new FileReader();
-    rd.onload=ev=>{const img=new Image();img.onload=()=>{SCANIMG=img;SCANORIG=img;document.getElementById('scan-controls').classList.remove('hidden');scanDropZone.classList.add('hidden');applyScan();};img.src=ev.target.result;};
+    rd.onload=ev=>{const img=new Image();img.onload=()=>{SCANIMG=img;SCANORIG=img;scanRotation=0;document.getElementById('scan-controls').classList.remove('hidden');scanDropZone.classList.add('hidden');applyScan();};img.onerror=()=>{toast('فایل عکس معتبر نیست');};img.src=ev.target.result;};
+    rd.onerror=()=>{toast('خطا در خواندن فایل');};
     rd.readAsDataURL(file);
   }
 
@@ -2855,30 +3023,36 @@ function teacherScript() {
 
   function applyScan(){
     if(!SCANORIG)return;
+    scanRotation=(scanRotation%4+4)%4;
     const cv=document.getElementById('scan-canvas');const ctx=cv.getContext('2d');
     const mw=1400;let w=SCANORIG.width,h=SCANORIG.height;if(w>mw){h=Math.round(h*mw/w);w=mw;}
-    cv.width=w;cv.height=h;ctx.drawImage(SCANORIG,0,0,w,h);
+    if(scanRotation===1||scanRotation===3){cv.width=h;cv.height=w;}else{cv.width=w;cv.height=h;}
+    ctx.save();
+    if(scanRotation===1)ctx.translate(cv.width,0);
+    if(scanRotation===2)ctx.translate(cv.width,cv.height);
+    if(scanRotation===3)ctx.translate(0,cv.height);
+    ctx.rotate(scanRotation*Math.PI/2);
+    ctx.drawImage(SCANORIG,0,0,w,h);
+    ctx.restore();
+    const cw=cv.width, ch=cv.height;
     const bright=parseInt(document.getElementById('scan-bright').value,10);
     const contrast=parseInt(document.getElementById('scan-contrast').value,10);
     const sharp=parseInt(document.getElementById('scan-sharp').value,10)/100;
     const sat=parseInt(document.getElementById('scan-saturation').value,10)/100+1;
-    let im=ctx.getImageData(0,0,w,h);let d=im.data;
-    if(sat!==1){for(let p=0;p<d.length;p+=4){const gray=0.299*d[p]+0.587*d[p+1]+0.114*d[p+2];d[p]=Math.min(255,Math.max(0,gray+sat*(d[p]-gray)));d[p+1]=Math.min(255,Math.max(0,gray+sat*(d[p+1]-gray)));d[p+2]=Math.min(255,Math.max(0,gray+sat*(d[p+2]-gray)));}ctx.putImageData(im,0,0);im=ctx.getImageData(0,0,w,h);d=im.data;}
+    let im=ctx.getImageData(0,0,cw,ch);let d=im.data;
+    if(sat!==1){for(let p=0;p<d.length;p+=4){const gray=0.299*d[p]+0.587*d[p+1]+0.114*d[p+2];d[p]=Math.min(255,Math.max(0,gray+sat*(d[p]-gray)));d[p+1]=Math.min(255,Math.max(0,gray+sat*(d[p+1]-gray)));d[p+2]=Math.min(255,Math.max(0,gray+sat*(d[p+2]-gray)));}ctx.putImageData(im,0,0);im=ctx.getImageData(0,0,cw,ch);d=im.data;}
     const factor=(259*(contrast+255))/(255*(259-contrast));
     for(let p=0;p<d.length;p+=4){for(let c=0;c<3;c++){let val=d[p+c];val=factor*(val-128)+128+bright;d[p+c]=Math.min(255,Math.max(0,val));}}
     ctx.putImageData(im,0,0);
-    if(sharp>0){im=ctx.getImageData(0,0,w,h);const tmp=ctx.createImageData(w,h);const kernel=[0,-sharp,0,-sharp,1+4*sharp,-sharp,0,-sharp,0];for(let y=1;y<h-1;y++){for(let x=1;x<w-1;x++){for(let c=0;c<3;c++){let sum=0;for(let ky=-1;ky<=1;ky++){for(let kx=-1;kx<=1;kx++){const idx=((y+ky)*w+(x+kx))*4+c;sum+=im.data[idx]*kernel[(ky+1)*3+(kx+1)];}}tmp.data[(y*w+x)*4+c]=Math.min(255,Math.max(0,sum));}tmp.data[(y*w+x)*4+3]=255;}}ctx.putImageData(tmp,0,0);}
+    if(sharp>0){im=ctx.getImageData(0,0,cw,ch);const tmp=ctx.createImageData(cw,ch);const kernel=[0,-sharp,0,-sharp,1+4*sharp,-sharp,0,-sharp,0];for(let y=1;y<ch-1;y++){for(let x=1;x<cw-1;x++){for(let c=0;c<3;c++){let sum=0;for(let ky=-1;ky<=1;ky++){for(let kx=-1;kx<=1;kx++){const idx=((y+ky)*cw+(x+kx))*4+c;sum+=im.data[idx]*kernel[(ky+1)*3+(kx+1)];}}tmp.data[(y*cw+x)*4+c]=Math.min(255,Math.max(0,sum));}tmp.data[(y*cw+x)*4+3]=255;}}ctx.putImageData(tmp,0,0);}
   }
 
-  document.getElementById('btn-rotate-l').onclick=()=>{if(!SCANORIG){toast('ابتدا عکس را انتخاب کنید');return;}scanRotation--;applyRotation();};
-  document.getElementById('btn-rotate-r').onclick=()=>{if(!SCANORIG){toast('ابتدا عکس را انتخاب کنید');return;}scanRotation++;applyRotation();};
-  
-  function applyRotation(){
-    if(!SCANORIG)return;scanRotation=(scanRotation%4+4)%4;const cv=document.getElementById('scan-canvas');const ctx=cv.getContext('2d');const img=SCANORIG;let w=img.width,h=img.height;const mw=1400;if(w>mw){h=Math.round(h*mw/w);w=mw;}if(scanRotation===1||scanRotation===3){cv.width=h;cv.height=w;}else{cv.width=w;cv.height=h;}ctx.save();if(scanRotation===1)ctx.translate(cv.width,0);if(scanRotation===2)ctx.translate(cv.width,cv.height);if(scanRotation===3)ctx.translate(0,cv.height);ctx.rotate(scanRotation*Math.PI/2);ctx.drawImage(img,0,0,w,h);ctx.restore();
-  }
+  document.getElementById('btn-rotate-l').onclick=()=>{if(!SCANORIG){toast('ابتدا عکس را انتخاب کنید');return;}scanRotation--;applyScan();};
+  document.getElementById('btn-rotate-r').onclick=()=>{if(!SCANORIG){toast('ابتدا عکس را انتخاب کنید');return;}scanRotation++;applyScan();};
 
-  document.getElementById('btn-reset-scan').onclick=()=>{SCANORIG=SCANIMG;document.getElementById('scan-bright').value=0;document.getElementById('scan-contrast').value=0;document.getElementById('scan-sharp').value=0;document.getElementById('scan-saturation').value=0;updateFilterValues();document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));document.querySelector('.filter-btn[data-filter="original"]').classList.add('active');applyScan();};
-  document.getElementById('btn-remove-scan').onclick=()=>{if(!confirm('عکس فعلی حذف شود؟'))return;SCANIMG=null;SCANORIG=null;document.getElementById('scan-controls').classList.add('hidden');document.getElementById('scan-drop-zone').classList.remove('hidden');document.getElementById('scan-file').value='';document.getElementById('scan-bright').value=0;document.getElementById('scan-contrast').value=0;document.getElementById('scan-sharp').value=0;document.getElementById('scan-saturation').value=0;updateFilterValues();document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));document.querySelector('.filter-btn[data-filter="original"]').classList.add('active');};
+
+  document.getElementById('btn-reset-scan').onclick=()=>{SCANORIG=SCANIMG;scanRotation=0;document.getElementById('scan-bright').value=0;document.getElementById('scan-contrast').value=0;document.getElementById('scan-sharp').value=0;document.getElementById('scan-saturation').value=0;updateFilterValues();document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));document.querySelector('.filter-btn[data-filter="original"]').classList.add('active');applyScan();};
+  document.getElementById('btn-remove-scan').onclick=()=>{if(!confirm('عکس فعلی حذف شود؟'))return;SCANIMG=null;SCANORIG=null;scanRotation=0;document.getElementById('scan-controls').classList.add('hidden');document.getElementById('scan-drop-zone').classList.remove('hidden');document.getElementById('scan-file').value='';document.getElementById('scan-bright').value=0;document.getElementById('scan-contrast').value=0;document.getElementById('scan-sharp').value=0;document.getElementById('scan-saturation').value=0;updateFilterValues();document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));document.querySelector('.filter-btn[data-filter="original"]').classList.add('active');};
   document.getElementById('btn-dl-img').onclick=()=>{if(!SCANORIG){toast('ابتدا عکس را انتخاب کنید');return;}const cv=document.getElementById('scan-canvas');cv.toBlob(blob=>{const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='اسکن.png';document.body.appendChild(a);a.click();a.remove();},'image/png');};
   document.getElementById('btn-dl-pdf').onclick=()=>{if(!SCANORIG){toast('ابتدا عکس را انتخاب کنید');return;}if(!window.jspdf){toast('کتابخانه PDF در دسترس نیست');return;}const cv=document.getElementById('scan-canvas');const img=cv.toDataURL('image/jpeg',0.92);const jsPDF=window.jspdf.jsPDF;const pdf=new jsPDF({orientation:cv.width>=cv.height?'l':'p',unit:'pt',format:'a4'});const pw=pdf.internal.pageSize.getWidth(),ph=pdf.internal.pageSize.getHeight();const m=24,aw=pw-2*m,ah=ph-2*m;let iw=cv.width,ih=cv.height;const ratio=Math.min(aw/iw,ah/ih);iw*=ratio;ih*=ratio;pdf.addImage(img,'JPEG',(pw-iw)/2,(ph-ih)/2,iw,ih);pdf.save('اسکن.pdf');toast('فایل PDF ساخته شد ✅');};
 
@@ -2893,8 +3067,15 @@ function teacherScript() {
 
   function handleResizeFiles(files){
     Array.from(files).forEach(file=>{
+      if(!file.type.startsWith('image/')){toast('فایل «'+file.name+'» عکس نیست و نادیده گرفته شد');return;}
       const rd=new FileReader();
-      rd.onload=ev=>{const img=new Image();img.onload=()=>{RESIZE_IMAGES.push({file,img,original:ev.target.result});document.getElementById('resize-controls').classList.remove('hidden');renderResizePreview();};img.src=ev.target.result;};
+      rd.onload=ev=>{
+        const img=new Image();
+        img.onload=()=>{RESIZE_IMAGES.push({file,img,original:ev.target.result});document.getElementById('resize-controls').classList.remove('hidden');renderResizePreview();};
+        img.onerror=()=>{toast('فایل «'+file.name+'» قابل بازکردن نیست');};
+        img.src=ev.target.result;
+      };
+      rd.onerror=()=>{toast('خطا در خواندن فایل «'+file.name+'»');};
       rd.readAsDataURL(file);
     });
   }
@@ -2936,21 +3117,58 @@ function teacherScript() {
   document.querySelectorAll('.format-btn').forEach(btn=>{btn.onclick=()=>{document.querySelectorAll('.format-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');updateTotalInfo();};});
   document.querySelectorAll('input[name="resize-size"]').forEach(radio=>{radio.addEventListener('change',updateTotalInfo);});
 
-  document.getElementById('btn-resize-all').onclick=()=>{
-    if(!RESIZE_IMAGES.length){toast('ابتدا عکس انتخاب کنید');return;}
+  function computeResizedBlob(r,fmt,mime,q,sizeOpt){
+    return new Promise((resolve)=>{
+      let w=r.img.width,h=r.img.height;
+      if(sizeOpt!=='original'){const maxSize=parseInt(sizeOpt);if(w>maxSize||h>maxSize){const ratio=Math.min(maxSize/w,maxSize/h);w=Math.round(w*ratio);h=Math.round(h*ratio);}}
+      const cv=document.createElement('canvas');cv.width=w;cv.height=h;const ctx=cv.getContext('2d');ctx.drawImage(r.img,0,0,w,h);
+      cv.toBlob(blob=>resolve({blob,w,h}),mime,q);
+    });
+  }
+  function getResizeSettings(){
     const q=parseInt(document.getElementById('resize-quality').value,10)/100;
     const fmt=document.querySelector('.format-btn.active').dataset.format;
     const sizeOpt=document.querySelector('input[name="resize-size"]:checked').value;
     const mime=fmt==='png'?'image/png':fmt==='webp'?'image/webp':'image/jpeg';
     const ext=fmt==='png'?'png':fmt==='webp'?'webp':'jpg';
-    RESIZE_IMAGES.forEach((r,i)=>{
-      let w=r.img.width,h=r.img.height;
-      if(sizeOpt!=='original'){const maxSize=parseInt(sizeOpt);if(w>maxSize||h>maxSize){const ratio=Math.min(maxSize/w,maxSize/h);w=Math.round(w*ratio);h=Math.round(h*ratio);}}
-      const cv=document.createElement('canvas');cv.width=w;cv.height=h;const ctx=cv.getContext('2d');ctx.drawImage(r.img,0,0,w,h);
-      cv.toBlob(blob=>{const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='عکس_'+(i+1)+'_'+w+'x'+h+'.'+ext;document.body.appendChild(a);a.click();a.remove();},mime,q);
-    });
-    toast('عکس‌ها با موفقیت فشرده شدند ✅');
+    return {q,fmt,sizeOpt,mime,ext};
+  }
+
+  document.getElementById('btn-resize-all').onclick=async()=>{
+    if(!RESIZE_IMAGES.length){toast('ابتدا عکس انتخاب کنید');return;}
+    const {q,mime,ext,sizeOpt}=getResizeSettings();
+    let failCount=0;
+    for(let i=0;i<RESIZE_IMAGES.length;i++){
+      const {blob,w,h}=await computeResizedBlob(RESIZE_IMAGES[i],null,mime,q,sizeOpt);
+      if(!blob){failCount++;continue;}
+      const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='عکس_'+(i+1)+'_'+w+'x'+h+'.'+ext;document.body.appendChild(a);a.click();a.remove();
+    }
+    toast(failCount?('برخی عکس‌ها ('+failCount+') با خطا مواجه شدند'):'عکس‌ها با موفقیت فشرده شدند ✅');
   };
+
+  document.getElementById('btn-resize-zip').onclick=async()=>{
+    if(!RESIZE_IMAGES.length){toast('ابتدا عکس انتخاب کنید');return;}
+    if(!window.JSZip){toast('کتابخانه ZIP در دسترس نیست');return;}
+    const btn=document.getElementById('btn-resize-zip');btn.disabled=true;const origText=btn.textContent;btn.textContent='⏳ در حال ساخت ZIP...';
+    try{
+      const {q,mime,ext,sizeOpt}=getResizeSettings();
+      const zip=new JSZip();
+      let failCount=0;
+      for(let i=0;i<RESIZE_IMAGES.length;i++){
+        const {blob,w,h}=await computeResizedBlob(RESIZE_IMAGES[i],null,mime,q,sizeOpt);
+        if(!blob){failCount++;continue;}
+        zip.file('عکس_'+(i+1)+'_'+w+'x'+h+'.'+ext, blob);
+      }
+      const zipBlob=await zip.generateAsync({type:'blob'});
+      const a=document.createElement('a');a.href=URL.createObjectURL(zipBlob);a.download='عکس‌های_فشرده.zip';a.click();
+      toast(failCount?('ZIP ساخته شد (برخی عکس‌ها با خطا مواجه شدند)'):'فایل ZIP دانلود شد ✅');
+    }catch(e){
+      toast('خطا در ساخت فایل ZIP');
+    }finally{
+      btn.disabled=false;btn.textContent=origText;
+    }
+  };
+
   document.getElementById('btn-clear-resize').onclick=()=>{RESIZE_IMAGES=[];renderResizePreview();document.getElementById('resize-controls').classList.add('hidden');};
 
   // ===== Crop (اصلاح‌شده با پشتیبانی از لمس برای گوشی) =====
@@ -3011,11 +3229,13 @@ function teacherScript() {
         wrapper.style.height = displayHeight + 'px';
         cropImg = { el: img, natW: img.naturalWidth, natH: img.naturalHeight };
         initCropBox();
+        cropControls.classList.remove('hidden');
+        cropDropZone.classList.add('hidden');
       };
+      img.onerror = () => { toast('فایل عکس معتبر نیست'); };
       img.src = ev.target.result;
-      cropControls.classList.remove('hidden');
-      cropDropZone.classList.add('hidden');
     };
+    rd.onerror = () => { toast('خطا در خواندن فایل'); };
     rd.readAsDataURL(file);
   }
 
@@ -3033,6 +3253,11 @@ function teacherScript() {
     box.style.top = cropState.y + 'px';
     box.style.width = cropState.w + 'px';
     box.style.height = cropState.h + 'px';
+    const ratioBtns = document.querySelectorAll('.ratio-btn');
+    if (ratioBtns.length) {
+      ratioBtns.forEach(b => b.classList.remove('active'));
+      document.querySelector('.ratio-btn[data-ratio="free"]').classList.add('active');
+    }
   }
 
   document.getElementById('btn-crop-delete').onclick = () => {
@@ -3045,8 +3270,20 @@ function teacherScript() {
   document.getElementById('btn-crop-reset').onclick = () => initCropBox();
 
   function applyRatio() {
-    // فقط حالت آزاد - بدون تغییر نسبت
-    return;
+    if (cropState.ratio === 'free') return;
+    const wrapper = document.getElementById('crop-wrapper');
+    const maxW = parseFloat(wrapper.style.width), maxH = parseFloat(wrapper.style.height);
+    const parts = cropState.ratio.split(':').map(Number);
+    const ratio = parts[0] / parts[1];
+    // مرکز باکس فعلی را حفظ کن، فقط اندازه را با نسبت جدید تنظیم کن
+    const cx = cropState.x + cropState.w / 2, cy = cropState.y + cropState.h / 2;
+    let newW = cropState.w, newH = newW / ratio;
+    if (newH > maxH) { newH = maxH; newW = newH * ratio; }
+    if (newW > maxW) { newW = maxW; newH = newW / ratio; }
+    cropState.w = newW; cropState.h = newH;
+    cropState.x = Math.max(0, Math.min(maxW - newW, cx - newW / 2));
+    cropState.y = Math.max(0, Math.min(maxH - newH, cy - newH / 2));
+    updateCropBox();
   }
 
   document.querySelectorAll('.ratio-btn').forEach(btn => {
@@ -3113,6 +3350,24 @@ function teacherScript() {
     cropState.startY = pos.offsetY;
   }
 
+  // محاسبه‌ی تغییر اندازه با رعایت مرزهای تصویر (رفع اشکال قبلی: دسته‌های شمال/غرب می‌توانستند از تصویر بیرون بزنند)
+  function resizeCropBox(rh, dx, dy, w, h) {
+    if (rh.includes('e')) cropState.w = Math.max(50, Math.min(w - cropState.x, cropState.w + dx));
+    if (rh.includes('w')) {
+      let newX = Math.max(0, cropState.x + dx);
+      let newW = cropState.w + (cropState.x - newX);
+      if (newW < 50) { newW = 50; newX = cropState.x + cropState.w - 50; }
+      cropState.x = newX; cropState.w = newW;
+    }
+    if (rh.includes('s')) cropState.h = Math.max(50, Math.min(h - cropState.y, cropState.h + dy));
+    if (rh.includes('n')) {
+      let newY = Math.max(0, cropState.y + dy);
+      let newH = cropState.h + (cropState.y - newY);
+      if (newH < 50) { newH = 50; newY = cropState.y + cropState.h - 50; }
+      cropState.y = newY; cropState.h = newH;
+    }
+  }
+
   function moveCropDrag(e) {
     if (!cropState.dragging && !cropState.resizing) return;
     e.preventDefault();
@@ -3131,18 +3386,13 @@ function teacherScript() {
       cropState.x = Math.max(0, Math.min(w - cropState.w, cropState.x + dx));
       cropState.y = Math.max(0, Math.min(h - cropState.h, cropState.y + dy));
     } else if (cropState.resizing) {
-      const rh = cropState.handle;
-      if (rh.includes('e')) cropState.w = Math.max(50, Math.min(w - cropState.x, cropState.w + dx));
-      if (rh.includes('w')) { cropState.w = Math.max(50, cropState.w - dx);
-        cropState.x += dx; }
-      if (rh.includes('s')) cropState.h = Math.max(50, Math.min(h - cropState.y, cropState.h + dy));
-      if (rh.includes('n')) { cropState.h = Math.max(50, cropState.h - dy);
-        cropState.y += dy; }
+      resizeCropBox(cropState.handle, dx, dy, w, h);
     }
     updateCropBox();
   }
 
   function endCropDrag(e) {
+    if (cropState.resizing && cropState.ratio !== 'free') applyRatio();
     cropState.dragging = false;
     cropState.resizing = false;
   }
@@ -3200,18 +3450,13 @@ function teacherScript() {
       cropState.x = Math.max(0, Math.min(w - cropState.w, cropState.x + dx));
       cropState.y = Math.max(0, Math.min(h - cropState.h, cropState.y + dy));
     } else if (cropState.resizing) {
-      const rh = cropState.handle;
-      if (rh.includes('e')) cropState.w = Math.max(50, Math.min(w - cropState.x, cropState.w + dx));
-      if (rh.includes('w')) { cropState.w = Math.max(50, cropState.w - dx);
-        cropState.x += dx; }
-      if (rh.includes('s')) cropState.h = Math.max(50, Math.min(h - cropState.y, cropState.h + dy));
-      if (rh.includes('n')) { cropState.h = Math.max(50, cropState.h - dy);
-        cropState.y += dy; }
+      resizeCropBox(cropState.handle, dx, dy, w, h);
     }
     updateCropBox();
   }
 
   function endTouchDrag(e) {
+    if (cropState.resizing && cropState.ratio !== 'free') applyRatio();
     cropState.dragging = false;
     cropState.resizing = false;
   }
@@ -3242,7 +3487,29 @@ function teacherScript() {
   
   document.getElementById('btn-pdf-render-all').onclick=async()=>{if(!pdfDoc){toast('فایل PDF انتخاب نشده');return;}document.getElementById('pdf-preview').innerHTML='';pdfRenderedPages=[];const selectType=document.querySelector('.pdf-select-btn.active')?.dataset.pages||'all';let pagesToRender=[];if(selectType==='all'){for(let i=1;i<=pdfDoc.numPages;i++)pagesToRender.push(i);}else if(selectType==='odd'){for(let i=1;i<=pdfDoc.numPages;i+=2)pagesToRender.push(i);}else if(selectType==='even'){for(let i=2;i<=pdfDoc.numPages;i+=2)pagesToRender.push(i);}else if(selectType==='range'){const rangeStr=document.getElementById('pdf-range').value;const parts=rangeStr.split(',');parts.forEach(p=>{if(p.includes('-')){const [s,e]=p.split('-').map(x=>parseInt(x.trim()));for(let i=s;i<=e;i++)if(i>=1&&i<=pdfDoc.numPages)pagesToRender.push(i);}else{const n=parseInt(p.trim());if(n>=1&&n<=pdfDoc.numPages)pagesToRender.push(n);}});}pagesToRender=[...new Set(pagesToRender)].sort((a,b)=>a-b);toast('در حال رندر '+pagesToRender.length+' صفحه...');for(const pn of pagesToRender){await renderPdfPage(pn);}toast('رندر تمام صفحات انجام شد ✅');};
   document.getElementById('btn-pdf-clear-previews').onclick=()=>{document.getElementById('pdf-preview').innerHTML='';pdfRenderedPages=[];};
-  document.getElementById('btn-pdf-download-zip').onclick=async()=>{if(pdfRenderedPages.length===0){toast('ابتدا صفحات را رندر کنید');return;}toast('در حال ساخت ZIP...');const format=document.querySelector('.pdf-format-btn.active')?.dataset.format||'png';const ext=format==='jpeg'?'jpg':format;const mimeType='image/'+format;const blobs=pdfRenderedPages.map(rp=>{const dataUrl=rp.canvas.toDataURL(mimeType,format==='jpeg'?parseInt(document.getElementById('jpeg-quality')?.value||85)/100:undefined);const binary=atob(dataUrl.split(',')[1]);const array=new Uint8Array(binary.length);for(let i=0;i<binary.length;i++)array[i]=binary.charCodeAt(i);return {name:pdfFileName.replace('.pdf','_page_'+rp.pageNum+'.'+ext),data:array};});blobs.forEach((b,i)=>{setTimeout(()=>{const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([b.data],{type:mimeType}));a.download=b.name;a.click();},i*300);});toast('دانلود '+blobs.length+' فایل شروع شد ✅');};
+  document.getElementById('btn-pdf-download-zip').onclick=async()=>{
+    if(pdfRenderedPages.length===0){toast('ابتدا صفحات را رندر کنید');return;}
+    if(!window.JSZip){toast('کتابخانه ZIP در دسترس نیست');return;}
+    const btn=document.getElementById('btn-pdf-download-zip');btn.disabled=true;const origText=btn.textContent;btn.textContent='⏳ در حال ساخت ZIP...';
+    try{
+      const format=document.querySelector('.pdf-format-btn.active')?.dataset.format||'png';
+      const ext=format==='jpeg'?'jpg':format;
+      const mimeType='image/'+format;
+      const zip=new JSZip();
+      pdfRenderedPages.forEach(rp=>{
+        const dataUrl=rp.canvas.toDataURL(mimeType,format==='jpeg'?parseInt(document.getElementById('jpeg-quality')?.value||85)/100:undefined);
+        const base64=dataUrl.split(',')[1];
+        zip.file(pdfFileName.replace(/\.pdf$/i,'')+'_page_'+rp.pageNum+'.'+ext, base64, {base64:true});
+      });
+      const blob=await zip.generateAsync({type:'blob'});
+      const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=pdfFileName.replace(/\.pdf$/i,'')+'_pages.zip';a.click();
+      toast('فایل ZIP شامل '+pdfRenderedPages.length+' صفحه دانلود شد ✅');
+    }catch(e){
+      toast('خطا در ساخت فایل ZIP');
+    }finally{
+      btn.disabled=false;btn.textContent=origText;
+    }
+  };
 
   // ===== ترجمه =====
   document.getElementById('tl-from').onchange=function(){const f=this.value;const t=document.getElementById('tl-to');if(f===t.value){t.value=f==='fa'?'en':'fa';}};
