@@ -295,6 +295,7 @@ export class ClassRoom {
     this.sessions = new Map(); // ws -> { role, id, name }
     this.strokes = []; // تاریخچه تخته هوشمند برای سینک اعضای جدید
     this.chat = []; // آخرین پیام‌های چت
+    this.boardBg = null; // صفحه‌ی PDF فعلی روی تخته (data URL) یا null
   }
 
   async fetch(req) {
@@ -317,6 +318,7 @@ export class ClassRoom {
       type: "init",
       role,
       strokes: this.strokes,
+      boardBg: this.boardBg,
       chat: this.chat.slice(-50),
       participants: this.participantList(),
     }));
@@ -358,6 +360,13 @@ export class ClassRoom {
     if (msg.type === "clear" && session.role === "teacher") {
       this.strokes = [];
       this.broadcast({ type: "clear" }, sender);
+      return;
+    }
+
+    if (msg.type === "board-bg" && session.role === "teacher") {
+      this.boardBg = msg.data || null;
+      this.strokes = []; // با تغییر صفحه‌ی PDF، یادداشت‌های قبلی روی صفحه‌ی قبل پاک می‌شود
+      this.broadcast({ type: "board-bg", data: this.boardBg }, sender);
       return;
     }
 
@@ -983,6 +992,7 @@ const SHARED_CSS = `
 
   /* ---- فرمول‌ساز ریاضی (شبیه MathType) ---- */
   .mt-modal-overlay{position:fixed;inset:0;background:rgba(15,23,42,.55);z-index:200;display:flex;align-items:center;justify-content:center;padding:16px}
+  .mt-modal-overlay.hidden{display:none}
   .mt-modal{background:#fff;border-radius:16px;padding:18px;max-width:720px;width:100%;max-height:88vh;overflow:auto;box-shadow:0 20px 60px rgba(0,0,0,.3)}
   [data-theme="dark"] .mt-modal{background:#1e293b;color:#e2e8f0}
   .mt-modal-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
@@ -991,6 +1001,11 @@ const SHARED_CSS = `
   [data-theme="dark"] .mt-palette button{background:#0f172a;border-color:#475569;color:#e2e8f0}
   .mt-canvas{min-height:80px;font-size:22px;direction:ltr;text-align:center}
   .mt-open-btn{font-weight:700}
+
+  /* ---- پنل PDF کلاس آنلاین ---- */
+  .cls-pdf-panel{background:#f8fafc;border:1px solid var(--line);border-radius:10px;padding:8px 10px;margin-bottom:10px}
+  [data-theme="dark"] .cls-pdf-panel{background:#0f172a}
+  #cls-pdf-nav input[type="number"]{padding:4px;border:1px solid #cbd5e1;border-radius:6px}
 
   .mt-ph{display:inline-block;min-width:18px;min-height:1.1em;border:1px dashed #94a3b8;border-radius:4px;padding:0 3px;outline:none}
   .mt-ph:empty:before{content:attr(data-ph);color:#94a3b8;font-size:.7em}
@@ -1081,7 +1096,7 @@ const SHARED_CSS = `
   /* ===== Crop - با پشتیبانی از لمس برای گوشی ===== */
   .crop-area{background:#1e293b;border-radius:12px;padding:16px;margin:16px 0;display:flex;justify-content:center;overflow:hidden}
   #crop-wrapper{position:relative;display:inline-block;max-width:100%}
-  #crop-img{max-width:100%;max-height:50vh;display:block}
+  #crop-img{display:block}
   #crop-box{position:absolute;border:2px dashed #fff;box-shadow:0 0 0 9999px rgba(0,0,0,.5);cursor:move;top:0;left:0}
   
   /* دسته‌های برش - بزرگ برای گوشی */
@@ -1750,6 +1765,39 @@ async function studentClassPage(env, id) {
     }
     function clearBoard(){ctx.clearRect(0,0,canvas.width,canvas.height);}
 
+    // ===== لایه‌ی پس‌زمینه (صفحه‌ی PDF که معلم روی تخته گذاشته) =====
+    let boardBgImg=null;
+    function setBoardBg(dataUrl){
+      if(!dataUrl){
+        boardBgImg=null;
+        ctx.clearRect(0,0,canvas.width,canvas.height);
+        return;
+      }
+      const img=new Image();
+      img.onload=()=>{
+        boardBgImg=img;
+        ctx.clearRect(0,0,canvas.width,canvas.height);
+        ctx.drawImage(img,0,0,canvas.width,canvas.height);
+      };
+      img.src=dataUrl;
+    }
+    function setBoardBgAndReplay(dataUrl,strokes){
+      if(!dataUrl){
+        boardBgImg=null;
+        ctx.clearRect(0,0,canvas.width,canvas.height);
+        (strokes||[]).forEach(drawStroke);
+        return;
+      }
+      const img=new Image();
+      img.onload=()=>{
+        boardBgImg=img;
+        ctx.clearRect(0,0,canvas.width,canvas.height);
+        ctx.drawImage(img,0,0,canvas.width,canvas.height);
+        (strokes||[]).forEach(drawStroke);
+      };
+      img.src=dataUrl;
+    }
+
     // ===== پخش صدای زنده معلم با MediaSource =====
     let audioQueue=[], audioPlaying=false, audioWarned=false, audioUnlocked=false;
     (function setupSoundUnlock(){
@@ -1823,9 +1871,14 @@ async function studentClassPage(env, id) {
       ws.onerror=()=>{try{ws.close();}catch(e){}};
       ws.onmessage=(evt)=>{
         let m;try{m=JSON.parse(evt.data);}catch(e){return;}
-        if(m.type==='init'){clearBoard();(m.strokes||[]).forEach(drawStroke);(m.chat||[]).forEach(addChatMsg);}
+        if(m.type==='init'){
+          if(m.boardBg){setBoardBgAndReplay(m.boardBg,m.strokes||[]);}
+          else{clearBoard();boardBgImg=null;(m.strokes||[]).forEach(drawStroke);}
+          (m.chat||[]).forEach(addChatMsg);
+        }
         else if(m.type==='draw'){drawStroke(m.stroke);}
-        else if(m.type==='clear'){clearBoard();}
+        else if(m.type==='clear'){ctx.clearRect(0,0,canvas.width,canvas.height);if(boardBgImg)ctx.drawImage(boardBgImg,0,0,canvas.width,canvas.height);}
+        else if(m.type==='board-bg'){setBoardBg(m.data);}
         else if(m.type==='audio'){playAudioChunk(m.data, m.mime);}
         else if(m.type==='video-frame'){
           const img=document.getElementById('cls-teacher-video');
@@ -2257,6 +2310,19 @@ function teacherPage() {
 
         <div class="cls-wrap" style="display:flex;gap:12px;flex-wrap:wrap">
           <div class="cls-board-col" style="flex:1 1 520px;min-width:280px">
+            <div class="cls-pdf-panel">
+              <div class="row" style="align-items:center;flex-wrap:wrap">
+                <label class="btn sm sec" style="cursor:pointer;flex:0 0 auto">📄 افزودن PDF<input type="file" accept="application/pdf" id="cls-pdf-file" style="display:none"></label>
+                <span id="cls-pdf-name" class="muted" style="font-size:12px"></span>
+              </div>
+              <div id="cls-pdf-nav" class="row hidden" style="align-items:center;margin-top:6px;flex-wrap:wrap">
+                <button class="btn sm gray" id="cls-pdf-prev" style="flex:0 0 auto">◀ قبلی</button>
+                <span style="flex:0 0 auto">صفحه <input type="number" id="cls-pdf-pagenum" min="1" value="1" style="width:60px;text-align:center"> از <span id="cls-pdf-total">1</span></span>
+                <button class="btn sm gray" id="cls-pdf-next" style="flex:0 0 auto">بعدی ▶</button>
+                <button class="btn sm primary" id="cls-pdf-show" style="flex:0 0 auto">🖼️ نمایش این صفحه روی تخته</button>
+                <button class="btn sm danger" id="cls-pdf-remove-bg" style="flex:0 0 auto">حذف PDF از تخته</button>
+              </div>
+            </div>
             <div class="row" style="margin-bottom:8px;flex-wrap:wrap">
               <input type="color" id="brd-color" value="#111827" style="flex:0 0 44px;padding:2px;height:38px">
               <input type="range" id="brd-size" min="1" max="20" value="3" style="flex:1;min-width:80px">
@@ -2264,7 +2330,7 @@ function teacherPage() {
               <button class="btn sm gray" id="brd-tool-line" style="flex:0 0 auto">📏 خط راست</button>
               <button class="btn sm gray" id="brd-tool-text" style="flex:0 0 auto">🔤 متن</button>
               <button class="btn sm gray" id="brd-tool-eraser" style="flex:0 0 auto">🧽 پاک‌کن</button>
-              <button class="btn sm danger" id="brd-clear" style="flex:0 0 auto">🗑️ پاک کردن تخته</button>
+              <button class="btn sm danger" id="brd-clear" style="flex:0 0 auto">🗑️ پاک کردن یادداشت‌ها</button>
             </div>
             <canvas id="t-board" width="900" height="500" style="width:100%;background:#fff;border:1px solid var(--line);border-radius:10px;touch-action:none;display:block;cursor:crosshair"></canvas>
             <p class="muted" style="font-size:12px;margin-top:6px">روی تخته بکشید؛ ترسیم برای همه دانش‌آموزان متصل به‌صورت زنده نمایش داده می‌شود.</p>
@@ -3359,16 +3425,15 @@ function teacherScript() {
     rd.onload = ev => {
       const img = document.getElementById('crop-img');
       img.onload = () => {
-        // نمایش عکس با اندازه اصلی - برای گوشی هم مناسب باشد
+        // نمایش عکس با نسبت واقعی - محدودیت عرض و ارتفاع هر دو با هم در نظر گرفته می‌شوند
+        // (قبلاً فقط عرض محدود می‌شد و CSS جداگانه ارتفاع را می‌بُرید، همین باعث کشیده‌شدن عکس می‌شد)
         const maxWidth = window.innerWidth - 80;
+        const maxHeight = window.innerHeight * 0.5;
         let displayWidth = img.naturalWidth;
         let displayHeight = img.naturalHeight;
-        
-        // اگر عکس از عرض صفحه بزرگتر بود، کوچک کن ولی نسبت حفظ بشه
-        if (displayWidth > maxWidth) {
-          displayHeight = (displayHeight * maxWidth) / displayWidth;
-          displayWidth = maxWidth;
-        }
+        const scale = Math.min(1, maxWidth / displayWidth, maxHeight / displayHeight);
+        displayWidth = Math.round(displayWidth * scale);
+        displayHeight = Math.round(displayHeight * scale);
         
         img.style.width = displayWidth + 'px';
         img.style.height = displayHeight + 'px';
@@ -3767,6 +3832,112 @@ function teacherScript() {
   }
   function clsSend(obj){ if(clsWs && clsWs.readyState===1) clsWs.send(JSON.stringify(obj)); }
 
+  // ===== لایه‌ی پس‌زمینه (صفحه‌ی PDF روی تخته) =====
+  let clsBoardBgImg=null;
+  function clsSetBoardBg(dataUrl){
+    if(!dataUrl){
+      clsBoardBgImg=null;
+      tCtx.clearRect(0,0,tBoard.width,tBoard.height);
+      return;
+    }
+    const img=new Image();
+    img.onload=()=>{
+      clsBoardBgImg=img;
+      tCtx.clearRect(0,0,tBoard.width,tBoard.height);
+      tCtx.drawImage(img,0,0,tBoard.width,tBoard.height);
+    };
+    img.onerror=()=>{toast('خطا در بارگذاری تصویر پس‌زمینه');};
+    img.src=dataUrl;
+  }
+  function clsSetBoardBgAndReplay(dataUrl,strokes){
+    if(!dataUrl){
+      clsBoardBgImg=null;
+      tCtx.clearRect(0,0,tBoard.width,tBoard.height);
+      (strokes||[]).forEach(clsDrawLocal);
+      return;
+    }
+    const img=new Image();
+    img.onload=()=>{
+      clsBoardBgImg=img;
+      tCtx.clearRect(0,0,tBoard.width,tBoard.height);
+      tCtx.drawImage(img,0,0,tBoard.width,tBoard.height);
+      (strokes||[]).forEach(clsDrawLocal);
+    };
+    img.onerror=()=>{toast('خطا در بارگذاری تصویر پس‌زمینه');};
+    img.src=dataUrl;
+  }
+
+  // ===== نمایش PDF روی تخته =====
+  let clsPdfDoc=null, clsPdfFileName='', clsPdfCurrentPage=1;
+  document.getElementById('cls-pdf-file').addEventListener('change',async function(){
+    const f=this.files&&this.files[0];this.value='';
+    if(!f)return;
+    if(f.type!=='application/pdf'){toast('فقط فایل PDF مجاز است');return;}
+    try{
+      const buf=await f.arrayBuffer();
+      clsPdfDoc=await pdfjsLib.getDocument({data:buf}).promise;
+      clsPdfFileName=f.name;
+      clsPdfCurrentPage=1;
+      document.getElementById('cls-pdf-name').textContent=f.name;
+      document.getElementById('cls-pdf-total').textContent=clsPdfDoc.numPages;
+      const pn=document.getElementById('cls-pdf-pagenum');
+      pn.value=1;pn.max=clsPdfDoc.numPages;
+      document.getElementById('cls-pdf-nav').classList.remove('hidden');
+      toast('فایل PDF بارگذاری شد ✅ ('+clsPdfDoc.numPages+' صفحه)');
+    }catch(e){
+      toast('خطا در باز کردن فایل PDF - فایل معتبر است؟');
+      clsPdfDoc=null;
+    }
+  });
+  async function clsRenderPdfPage(pageNum){
+    const page=await clsPdfDoc.getPage(pageNum);
+    const baseViewport=page.getViewport({scale:1});
+    const targetWidth=1100;
+    const scale=targetWidth/baseViewport.width;
+    const viewport=page.getViewport({scale});
+    const canvas=document.createElement('canvas');
+    canvas.width=viewport.width;canvas.height=viewport.height;
+    const ctx=canvas.getContext('2d');
+    ctx.fillStyle='#fff';ctx.fillRect(0,0,canvas.width,canvas.height);
+    await page.render({canvasContext:ctx,viewport}).promise;
+    return canvas.toDataURL('image/jpeg',0.72);
+  }
+  document.getElementById('cls-pdf-prev').onclick=()=>{
+    if(!clsPdfDoc)return;
+    clsPdfCurrentPage=Math.max(1,clsPdfCurrentPage-1);
+    document.getElementById('cls-pdf-pagenum').value=clsPdfCurrentPage;
+  };
+  document.getElementById('cls-pdf-next').onclick=()=>{
+    if(!clsPdfDoc)return;
+    clsPdfCurrentPage=Math.min(clsPdfDoc.numPages,clsPdfCurrentPage+1);
+    document.getElementById('cls-pdf-pagenum').value=clsPdfCurrentPage;
+  };
+  document.getElementById('cls-pdf-pagenum').addEventListener('change',function(){
+    if(!clsPdfDoc)return;
+    let v=parseInt(this.value,10)||1;
+    v=Math.max(1,Math.min(clsPdfDoc.numPages,v));
+    clsPdfCurrentPage=v;this.value=v;
+  });
+  document.getElementById('cls-pdf-show').onclick=async()=>{
+    if(!clsPdfDoc){toast('ابتدا یک فایل PDF انتخاب کنید');return;}
+    const btn=document.getElementById('cls-pdf-show');btn.disabled=true;const orig=btn.textContent;btn.textContent='⏳ در حال رندر...';
+    try{
+      const dataUrl=await clsRenderPdfPage(clsPdfCurrentPage);
+      clsSetBoardBg(dataUrl);
+      clsSend({type:'board-bg',data:dataUrl});
+      toast('صفحه '+clsPdfCurrentPage+' روی تخته نمایش داده شد ✅');
+    }catch(e){
+      toast('خطا در رندر این صفحه از PDF');
+    }finally{
+      btn.disabled=false;btn.textContent=orig;
+    }
+  };
+  document.getElementById('cls-pdf-remove-bg').onclick=()=>{
+    clsSetBoardBg(null);
+    clsSend({type:'board-bg',data:null});
+    toast('PDF از روی تخته حذف شد');
+  };
+
   let brdMode='pen'; // pen | line | text | eraser
   let clsLineStart=null, clsLineSnapshot=null;
   function clsSetMode(mode){
@@ -3841,7 +4012,11 @@ function teacherScript() {
   tBoard.addEventListener('touchmove',clsMoveStroke,{passive:false});
   tBoard.addEventListener('touchend',clsEndStroke);
 
-  document.getElementById('brd-clear').onclick=function(){tCtx.clearRect(0,0,tBoard.width,tBoard.height);clsSend({type:'clear'});};
+  document.getElementById('brd-clear').onclick=function(){
+    tCtx.clearRect(0,0,tBoard.width,tBoard.height);
+    if(clsBoardBgImg)tCtx.drawImage(clsBoardBgImg,0,0,tBoard.width,tBoard.height);
+    clsSend({type:'clear'});
+  };
 
   function clsAddChat(entry){
     const box=document.getElementById('t-chatBox');
@@ -3928,9 +4103,14 @@ function teacherScript() {
     };
     clsWs.onmessage=(evt)=>{
       let m;try{m=JSON.parse(evt.data);}catch(e){return;}
-      if(m.type==='init'){tCtx.clearRect(0,0,tBoard.width,tBoard.height);(m.strokes||[]).forEach(clsDrawLocal);(m.chat||[]).forEach(clsAddChat);clsUpdateParticipants(m.participants||[]);}
+      if(m.type==='init'){
+        if(m.boardBg){clsSetBoardBgAndReplay(m.boardBg,m.strokes||[]);}
+        else{tCtx.clearRect(0,0,tBoard.width,tBoard.height);clsBoardBgImg=null;(m.strokes||[]).forEach(clsDrawLocal);}
+        (m.chat||[]).forEach(clsAddChat);clsUpdateParticipants(m.participants||[]);
+      }
       else if(m.type==='chat'){clsAddChat(m.entry);}
       else if(m.type==='file'){clsAddFile(m);}
+      else if(m.type==='board-bg'){clsSetBoardBg(m.data);}
       else if(m.type==='presence'){clsUpdateParticipants(m.participants||[]);if(m.event==='join'&&m.role==='student')toast(m.name+' وارد کلاس شد');}
       else if(m.type==='raise-hand'){toast('✋ '+m.name+' دستش را بلند کرد');}
     };
