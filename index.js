@@ -747,6 +747,24 @@ function wordResponse(bodyHtml, filename) {
       .ldiv .ld-divisor{vertical-align:bottom;padding-bottom:6px;font-weight:bold}
       .ldiv .ld-dividend{padding:2px 6px;text-align:center}
       .ldiv .ld-work{min-height:26px}
+      .mt-frac{display:inline-block;text-align:center;vertical-align:middle;margin:0 4px}
+      .mt-frac .mt-num{display:block;border-bottom:2px solid #000;padding:0 4px}
+      .mt-frac .mt-den{display:block;padding:0 4px}
+      .mt-root{display:inline-block;vertical-align:middle;margin:0 4px}
+      .mt-root .mt-idx{font-size:.6em;vertical-align:top}
+      .mt-root .mt-rad{text-decoration:overline;padding:0 3px}
+      .mt-op{display:inline-block;vertical-align:middle;margin:0 4px}
+      .mt-op-stack{display:inline-block;text-align:center;vertical-align:middle}
+      .mt-op-over,.mt-op-under{display:block;font-size:.55em}
+      .mt-op-sign{display:block;font-size:1.6em;line-height:1}
+      .mt-op-arg{display:inline-block;vertical-align:middle}
+      .mt-lim{display:inline-block;vertical-align:middle;margin:0 4px}
+      .mt-lim-stack{display:inline-block;text-align:center;vertical-align:middle}
+      .mt-lim-word{display:block;font-size:.7em}
+      .mt-lim-under{display:block;font-size:.55em}
+      .mt-matrix{border-collapse:collapse;display:inline-table;vertical-align:middle;margin:0 5px;border-left:2px solid #000;border-right:2px solid #000}
+      .mt-matrix td{padding:4px 10px;text-align:center}
+      .mt-ph{display:inline-block;min-width:16px}
     </style></head><body dir="rtl">` +
     bodyHtml +
     `</body></html>`;
@@ -962,6 +980,50 @@ const SHARED_CSS = `
   .ldiv .ld-divisor{vertical-align:bottom;padding-bottom:6px;font-weight:bold}
   .ldiv .ld-dividend{padding:2px 6px;text-align:center}
   .ldiv .ld-work{min-height:26px}
+
+  /* ---- فرمول‌ساز ریاضی (شبیه MathType) ---- */
+  .mt-modal-overlay{position:fixed;inset:0;background:rgba(15,23,42,.55);z-index:200;display:flex;align-items:center;justify-content:center;padding:16px}
+  .mt-modal{background:#fff;border-radius:16px;padding:18px;max-width:720px;width:100%;max-height:88vh;overflow:auto;box-shadow:0 20px 60px rgba(0,0,0,.3)}
+  [data-theme="dark"] .mt-modal{background:#1e293b;color:#e2e8f0}
+  .mt-modal-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+  .mt-palette{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-bottom:6px}
+  .mt-palette button{padding:6px 10px;border-radius:8px;border:1px solid #cbd5e1;background:#f8fafc;cursor:pointer;font-family:inherit;font-size:13px}
+  [data-theme="dark"] .mt-palette button{background:#0f172a;border-color:#475569;color:#e2e8f0}
+  .mt-canvas{min-height:80px;font-size:22px;direction:ltr;text-align:center}
+  .mt-open-btn{font-weight:700}
+
+  .mt-ph{display:inline-block;min-width:18px;min-height:1.1em;border:1px dashed #94a3b8;border-radius:4px;padding:0 3px;outline:none}
+  .mt-ph:empty:before{content:attr(data-ph);color:#94a3b8;font-size:.7em}
+  .mt-ph:focus{border-color:var(--primary-2);border-style:solid}
+
+  .mt-frac{display:inline-flex;flex-direction:column;text-align:center;vertical-align:middle;margin:0 4px;line-height:1.1}
+  .mt-frac .mt-num{display:block;border-bottom:2px solid currentColor;padding:0 4px}
+  .mt-frac .mt-den{display:block;padding:0 4px}
+
+  .mt-pow, .mt-sub{display:inline-block;vertical-align:middle;margin:0 3px}
+  .mt-pow sup, .mt-sub sub{font-size:.68em}
+
+  .mt-root{display:inline-flex;align-items:flex-start;vertical-align:middle;margin:0 4px}
+  .mt-root .mt-idx{font-size:.6em;position:relative;top:.3em}
+  .mt-root .mt-radsign{font-size:1.1em;padding:0 1px}
+  .mt-root .mt-rad{text-decoration:overline;padding:0 3px}
+
+  .mt-op{display:inline-flex;align-items:center;vertical-align:middle;margin:0 4px}
+  .mt-op-stack{display:inline-flex;flex-direction:column;align-items:center;text-align:center;margin-left:4px}
+  .mt-op-over,.mt-op-under{font-size:.55em;min-height:1em}
+  .mt-op-sign{font-size:1.6em;line-height:1}
+
+  .mt-lim{display:inline-flex;align-items:center;vertical-align:middle;margin:0 4px}
+  .mt-lim-stack{display:inline-flex;flex-direction:column;align-items:center;text-align:center;margin-left:4px}
+  .mt-lim-word{font-size:.7em}
+  .mt-lim-under{font-size:.55em}
+
+  .mt-matrix{display:inline-table;border-collapse:collapse;vertical-align:middle;margin:0 5px;border-left:2px solid currentColor;border-right:2px solid currentColor}
+  .mt-matrix td{padding:4px 10px;text-align:center}
+
+  .mt-paren{display:inline-flex;align-items:center;vertical-align:middle}
+  .mt-paren-sign{font-size:1.4em}
+
   
   /* ---- اسکنر حرفه‌ای ---- */
   .upload-zone{border:2px dashed #cbd5e1;border-radius:16px;padding:40px 20px;text-align:center;cursor:pointer;transition:all .3s;background:#fafbfc;margin-bottom:16px}
@@ -1903,6 +1965,42 @@ function teacherPage() {
         </div>
       </div>
 
+      <div id="mt-modal-overlay" class="mt-modal-overlay hidden">
+        <div class="mt-modal">
+          <div class="mt-modal-head">
+            <b>🧮 فرمول‌ساز ریاضی</b>
+            <button type="button" class="btn sm gray" onclick="closeMathBuilder()">✖ بستن</button>
+          </div>
+          <div class="mt-palette">
+            <span class="grp-label">قالب‌ها:</span>
+            <button type="button" onmousedown="event.preventDefault()" onclick="mtInsertFrac()">کسر <span style="font-size:11px">a/b</span></button>
+            <button type="button" onmousedown="event.preventDefault()" onclick="mtInsertPow()">توان xⁿ</button>
+            <button type="button" onmousedown="event.preventDefault()" onclick="mtInsertSub()">زیرنویس xₙ</button>
+            <button type="button" onmousedown="event.preventDefault()" onclick="mtInsertRoot()">رادیکال ⁿ√</button>
+            <button type="button" onmousedown="event.preventDefault()" onclick="mtInsertBigOp('\u2211')">جمع ∑</button>
+            <button type="button" onmousedown="event.preventDefault()" onclick="mtInsertBigOp('\u220f')">حاصل‌ضرب ∏</button>
+            <button type="button" onmousedown="event.preventDefault()" onclick="mtInsertBigOp('\u222b')">انتگرال ∫</button>
+            <button type="button" onmousedown="event.preventDefault()" onclick="mtInsertLim()">حد lim</button>
+            <button type="button" onmousedown="event.preventDefault()" onclick="mtInsertMatrix(2)">ماتریس ۲×۲</button>
+            <button type="button" onmousedown="event.preventDefault()" onclick="mtInsertMatrix(3)">ماتریس ۳×۳</button>
+            <button type="button" onmousedown="event.preventDefault()" onclick="mtInsertParen('(',')')">پرانتز ( )</button>
+            <button type="button" onmousedown="event.preventDefault()" onclick="mtInsertParen('[',']')">کروشه [ ]</button>
+            <button type="button" onmousedown="event.preventDefault()" onclick="mtInsertParen('{','}')">آکولاد { }</button>
+            <button type="button" onmousedown="event.preventDefault()" onclick="mtInsertDiv()">تقسیم چکشی</button>
+          </div>
+          <div class="mt-palette">
+            <span class="grp-label">علائم:</span>
+            <span id="mt-sym-row"></span>
+          </div>
+          <p class="muted" style="margin:4px 0">روی هر جای فرمول کلیک کنید تا نشانگر آنجا برود، سپس قالب بعدی را از بالا اضافه کنید (امکان تودرتو کردن قالب‌ها وجود دارد). اعداد به‌صورت خودکار فارسی نوشته می‌شوند.</p>
+          <div id="mt-canvas" class="mt-canvas rich" contenteditable="true" dir="rtl"></div>
+          <div class="row" style="margin-top:12px">
+            <button class="btn primary" onclick="mtInsertIntoQuestion()">➕ درج در سوال</button>
+            <button class="btn gray" onclick="document.getElementById('mt-canvas').innerHTML=''">🗑️ پاک کردن فرمول</button>
+          </div>
+        </div>
+      </div>
+
       <div class="card tab-content hidden" id="tab-answers">
         <h3>✅ تصحیح و پاسخنامه‌ها</h3>
         <div class="grading-type-selector" style="margin-bottom:16px;padding:12px;background:#f0f9ff;border-radius:8px;">
@@ -2433,11 +2531,7 @@ function teacherScript() {
   function symBar(i){
     const mk=(arr,fn)=>arr.map(s=>'<button type="button" onmousedown="event.preventDefault()" onclick="'+fn+'('+i+',\\''+escA(s)+'\\')">'+escA(s)+'</button>').join('');
     let h='<div class="toolbar"><span class="grp-label">علائم ریاضی:</span>'+mk(MATH,'insSym')+
-      '<button type="button" onmousedown="event.preventDefault()" onclick="insFrac('+i+')">کسر a/b</button>'+
-      '<button type="button" onmousedown="event.preventDefault()" onclick="insPow('+i+')">توان xⁿ</button>'+
-      '<button type="button" onmousedown="event.preventDefault()" onclick="insSub('+i+')">زیرنویس xₙ</button>'+
-      '<button type="button" onmousedown="event.preventDefault()" onclick="insRoot('+i+')">ریشه ⁿ√</button>'+
-      '<button type="button" onmousedown="event.preventDefault()" onclick="insDiv('+i+')">تقسیم چكشی</button></div>';
+      '<button type="button" class="mt-open-btn" onmousedown="event.preventDefault()" onclick="openMathBuilder('+i+')">🧮 فرمول‌ساز (کسر، توان، رادیکال، ماتریس، تقسیم چکشی، جمع، انتگرال...)</button></div>';
     h+='<div class="toolbar"><span class="grp-label">اشکال هندسی:</span>'+
       '<span class="grp-label">اندازه:</span><input type="range" min="14" max="140" value="40" id="ssz-'+i+'" style="width:110px;vertical-align:middle" oninput="resizeSel('+i+')"> '+
       mk(SHAPES,'insShape')+
@@ -2552,22 +2646,76 @@ function teacherScript() {
   window.insSym=(i,s)=>insHtmlAt(i,escA(s));
   window.insShape=(i,s)=>insHtmlAt(i,'<span class="shape" contenteditable="false" style="font-size:'+ssize(i)+'px">'+escA(s)+'</span>&#8203;');
   window.insSvg=(i,si)=>{const s=SVG_SHAPES[si];if(!s)return;const z=ssize(i);const svg=s.svg.replace('<svg','<svg width="'+z+'" height="'+z+'"');insHtmlAt(i,'<span class="shape" contenteditable="false">'+svg+'</span>&#8203;');};
-  window.insFrac=(i)=>{const n=prompt('صورت کسر:');if(n===null)return;const d=prompt('مخرج کسر:');if(d===null)return;insHtmlAt(i,'<span class="frac" contenteditable="false"><span class="fn">'+escA(n)+'</span><span class="fd">'+escA(d)+'</span></span>&#8203;');};
-  window.insPow=(i)=>{const b=prompt('پایه (مثال: 2):');if(b===null)return;const p=prompt('توان (مثال: 3):');if(p===null)return;insHtmlAt(i,'<span contenteditable="false">'+escA(b)+'<sup>'+escA(p)+'</sup></span>&#8203;');};
-  window.insSub=(i)=>{const b=prompt('پایه (مثال: a):');if(b===null)return;const s=prompt('زیرنویس (مثال: n):');if(s===null)return;insHtmlAt(i,'<span contenteditable="false">'+escA(b)+'<sub>'+escA(s)+'</sub></span>&#8203;');};
-  window.insRoot=(i)=>{const idx=prompt('درجه‌ی ریشه (برای جذر خالی بگذارید، مثال: 3 برای ریشه‌ی سوم):','');if(idx===null)return;const rad=prompt('عدد زیر رادیکال:');if(rad===null)return;
-    insHtmlAt(i,'<span class="nroot" contenteditable="false">'+(idx?'<sup>'+escA(idx)+'</sup>':'')+'\u221a<span style="text-decoration:overline;padding:0 2px">'+escA(rad)+'</span></span>&#8203;');};
-  window.insDiv=(i)=>{
-    const dd=prompt('مقسوم (عدد داخل کادر):','');
-    if(dd===null)return;
-    const dv=prompt('مقسوم‌علیه (عدد تقسیم‌کننده):','');
-    if(dv===null)return;
-    insHtmlAt(i,'<table class="ldiv" contenteditable="false" dir="ltr">'+
-      '<tr><td class="ld-bar">&nbsp;</td><td class="ld-top">&nbsp;</td></tr>'+
-      '<tr><td class="ld-bar ld-divisor">'+escA(dv)+'</td><td><div class="ld-dividend">'+escA(dd)+'</div><div class="ld-work">&nbsp;</div></td></tr>'+
-      '</table>&#8203;');
+  // تبدیل خودکار اعداد انگلیسی به فارسی، فقط در گره‌های متنی (بدون دست‌زدن به attribute ها مثل style/data تا ساختار خراب نشود)
+  const FA_DIGITS=['۰','۱','۲','۳','۴','۵','۶','۷','۸','۹'];
+  function toFaDigits(s){return String(s==null?'':s).replace(/[0-9]/g,d=>FA_DIGITS[+d]);}
+  function convertDigitsInElement(el){
+    if(!el)return;
+    const walker=document.createTreeWalker(el,NodeFilter.SHOW_TEXT,null);
+    const nodes=[];let n;
+    while(n=walker.nextNode())nodes.push(n);
+    nodes.forEach(node=>{if(/[0-9]/.test(node.textContent))node.textContent=toFaDigits(node.textContent);});
+  }
+
+  window.updHtml=(i)=>{const el=richEl(i);if(!el)return;convertDigitsInElement(el);const c=el.cloneNode(true);c.querySelectorAll('.shape').forEach(s=>{s.style.outline='';});QUESTIONS[i].text=c.innerHTML;QUESTIONS[i].rich=true;};
+
+  // ===== فرمول‌ساز ریاضی (شبیه MathType) =====
+  let mtTargetIndex=null;
+  window.openMathBuilder=(i)=>{
+    mtTargetIndex=i;
+    document.getElementById('mt-canvas').innerHTML='';
+    document.getElementById('mt-modal-overlay').classList.remove('hidden');
+    setTimeout(()=>document.getElementById('mt-canvas').focus(),50);
   };
-  window.updHtml=(i)=>{const el=richEl(i);if(!el)return;const c=el.cloneNode(true);c.querySelectorAll('.shape').forEach(s=>{s.style.outline='';});QUESTIONS[i].text=c.innerHTML;QUESTIONS[i].rich=true;};
+  window.closeMathBuilder=()=>{
+    document.getElementById('mt-modal-overlay').classList.add('hidden');
+  };
+  window.mtInsertIntoQuestion=()=>{
+    if(mtTargetIndex===null)return;
+    const canvas=document.getElementById('mt-canvas');
+    convertDigitsInElement(canvas);
+    const h=canvas.innerHTML.trim();
+    if(!h){toast('ابتدا یک فرمول بسازید');return;}
+    insHtmlAt(mtTargetIndex,h+'\u200b');
+    closeMathBuilder();
+    toast('فرمول درج شد ✅');
+  };
+  function mtInsHtml(h){
+    const el=document.getElementById('mt-canvas');
+    el.focus();
+    const sel=document.getSelection();
+    if(!sel.rangeCount||!el.contains(sel.anchorNode)){const r=document.createRange();r.selectNodeContents(el);r.collapse(false);sel.removeAllRanges();sel.addRange(r);}
+    document.execCommand('insertHTML',false,h);
+  }
+  window.mtInsSym=(btn)=>{mtInsHtml(btn.dataset.sym);};
+  window.mtInsertFrac=()=>{mtInsHtml('<span class="mt-frac" contenteditable="false"><span class="mt-ph mt-num" contenteditable="true" data-ph="بالا"></span><span class="mt-ph mt-den" contenteditable="true" data-ph="پایین"></span></span>\u200b');};
+  window.mtInsertPow=()=>{mtInsHtml('<span class="mt-pow" contenteditable="false"><span class="mt-ph" contenteditable="true" data-ph="پایه"></span><sup class="mt-ph" contenteditable="true" data-ph="n"></sup></span>\u200b');};
+  window.mtInsertSub=()=>{mtInsHtml('<span class="mt-sub" contenteditable="false"><span class="mt-ph" contenteditable="true" data-ph="پایه"></span><sub class="mt-ph" contenteditable="true" data-ph="n"></sub></span>\u200b');};
+  window.mtInsertRoot=()=>{mtInsHtml('<span class="mt-root" contenteditable="false"><sup class="mt-ph mt-idx" contenteditable="true" data-ph=""></sup><span class="mt-radsign">\u221a</span><span class="mt-ph mt-rad" contenteditable="true" data-ph="مقدار"></span></span>\u200b');};
+  window.mtInsertBigOp=(sign)=>{mtInsHtml('<span class="mt-op" contenteditable="false"><span class="mt-op-stack"><span class="mt-ph mt-op-over" contenteditable="true" data-ph=""></span><span class="mt-op-sign">'+sign+'</span><span class="mt-ph mt-op-under" contenteditable="true" data-ph=""></span></span><span class="mt-ph mt-op-arg" contenteditable="true" data-ph="عبارت"></span></span>\u200b');};
+  window.mtInsertLim=()=>{mtInsHtml('<span class="mt-lim" contenteditable="false"><span class="mt-lim-stack"><span class="mt-lim-word">lim</span><span class="mt-ph mt-lim-under" contenteditable="true" data-ph="x\u2192a"></span></span><span class="mt-ph" contenteditable="true" data-ph="عبارت"></span></span>\u200b');};
+  window.mtInsertMatrix=(n)=>{
+    let rows='';
+    for(let r=0;r<n;r++){
+      let cells='';
+      for(let c=0;c<n;c++)cells+='<td class="mt-ph" contenteditable="true" data-ph="."></td>';
+      rows+='<tr>'+cells+'</tr>';
+    }
+    mtInsHtml('<table class="mt-matrix" contenteditable="false"><tbody>'+rows+'</tbody></table>\u200b');
+  };
+  window.mtInsertParen=(l,r)=>{mtInsHtml('<span class="mt-paren" contenteditable="false"><span class="mt-paren-sign">'+l+'</span><span class="mt-ph" contenteditable="true" data-ph="عبارت"></span><span class="mt-paren-sign">'+r+'</span></span>\u200b');};
+  window.mtInsertDiv=()=>{mtInsHtml('<table class="ldiv" contenteditable="false" dir="ltr"><tr><td class="ld-bar">&nbsp;</td><td class="ld-top mt-ph" contenteditable="true" data-ph=""></td></tr><tr><td class="ld-bar ld-divisor mt-ph" contenteditable="true" data-ph="مقسوم‌علیه"></td><td><div class="ld-dividend mt-ph" contenteditable="true" data-ph="مقسوم"></div><div class="ld-work">&nbsp;</div></td></tr></table>\u200b');};
+
+  (function initMathBuilder(){
+    const row=document.getElementById('mt-sym-row');
+    if(!row)return;
+    row.innerHTML=MATH.map(function(s){return '<button type="button" onmousedown="event.preventDefault()" onclick="mtInsSym(this)" data-sym="'+escA(s)+'">'+escA(s)+'</button>';}).join('');
+    const canvas=document.getElementById('mt-canvas');
+    if(canvas)canvas.addEventListener('input',function(){convertDigitsInElement(canvas);});
+    const overlay=document.getElementById('mt-modal-overlay');
+    if(overlay)overlay.addEventListener('mousedown',function(e){if(e.target===overlay)closeMathBuilder();});
+  })();
+
   let SELSHAPE=null;
   document.addEventListener('click',function(e){
     const sh=e.target&&e.target.closest?e.target.closest('.shape'):null;
