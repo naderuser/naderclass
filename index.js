@@ -148,31 +148,32 @@ function getScheduleHtml(data) {
     'linear-gradient(135deg,#e0c3fc,#8ec5fc)',
     'linear-gradient(135deg,#a8edea,#fed6e3)'
   ];
-  const dayLabelColors = ['#fde2e2','#fdf3d1','#dcf5e3','#ecdcfb','#d7f5f7'];
-  const cellColors = ['#fef5f5','#fefbf0','#f2fbf5','#f7f2fd','#f0fafb'];
+  const accentColors = ['#ef4444','#f59e0b','#10b981','#8b5cf6','#06b6d4'];
+  const cellColors = ['#fef2f2','#fffbeb','#f0fdf4','#f5f3ff','#ecfeff'];
   
   let style = `<style>
     @font-face{font-family:"BNazanin";src:url(https://cdn.jsdelivr.net/gh/naderuser/bnazanin@main/BNazanin.ttf)}
     body{direction:rtl;font-family:"BNazanin",tahoma,Arial;padding:30px;background:#f8fafc}
     .header{text-align:center;padding:20px;background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;border-radius:20px;margin-bottom:20px}
-    .header h1{font-size:24px;margin:0 0 10px}.header p{margin:5px 0;font-size:14px}
-    table{width:100%;border-collapse:separate;border-spacing:0;border-radius:16px;overflow:hidden;box-shadow:0 4px 15px rgba(0,0,0,0.08);border:1.5px solid #94a3b8}
-    th{padding:12px 8px;font-size:14px;text-align:center;border-bottom:1.5px solid #94a3b8;border-left:1.5px solid #94a3b8}
-    td{padding:14px 8px;text-align:center;font-size:13px;min-height:50px;font-weight:600;color:#1e293b;border-bottom:1.5px solid #94a3b8;border-left:1.5px solid #cbd5e1}
+    .header h1{font-size:24px;margin:0 0 10px;font-weight:800;letter-spacing:.3px}.header p{margin:5px 0;font-size:14px}
+    table{width:100%;border-collapse:separate;border-spacing:0;border-radius:18px;overflow:hidden;box-shadow:0 8px 24px rgba(15,23,42,.10);border:1px solid #e2e8f0}
+    th{padding:14px 8px;font-size:14px;font-weight:800;text-align:center;border-bottom:2px solid #e2e8f0;border-left:1px solid #e2e8f0}
+    td{padding:14px 10px;text-align:center;font-size:13px;min-height:50px;font-weight:600;color:#1e293b;border-bottom:1px solid #eef2f6;border-left:1px solid #eef2f6}
     tr:last-child td{border-bottom:none}
+    .daylabel{border-right:5px solid;font-weight:800}
     .footer{text-align:center;margin-top:30px;padding:20px;border-top:2px dashed #ddd}
   </style>`;
   
   let header = `<div class="header"><h1>⭐ برنامه هفتگی کلاس ⭐</h1><p>🏫 ${esc(school)} | سال تحصیلی: ${esc(year)}</p><p>کلاس: ${esc(cls)} | آموزگار: ${esc(teacher)}</p></div>`;
   
-  let table = '<table><tr><th style="background:#334155;color:#fff;border-bottom:none">روز / زنگ</th>';
+  let table = '<table><tr><th style="background:linear-gradient(135deg,#1e293b,#334155);color:#fff;border-bottom:none">روز / زنگ</th>';
   for (let z = 0; z < 5; z++) {
-    table += `<th style="background:#fff;color:#334155">🔔 ${zang[z]}</th>`;
+    table += `<th style="background:#f8fafc;color:#334155">🔔 ${zang[z]}</th>`;
   }
   table += '</tr>';
   
   for (let d = 0; d < 5; d++) {
-    table += `<tr><td style="background:${dayLabelColors[d]}">${days[d]}</td>`;
+    table += `<tr><td class="daylabel" style="background:${cellColors[d]};border-right-color:${accentColors[d]}">${days[d]}</td>`;
     for (let i = 1; i <= 5; i++) {
       const key = `c${d}${i}`;
       const val = (data.cells && data.cells[key]) || '&nbsp;';
@@ -364,6 +365,10 @@ export class ClassRoom {
     }
 
     if (msg.type === "board-bg" && session.role === "teacher") {
+      if (msg.data && msg.data.length > 4_000_000) {
+        try { sender.send(JSON.stringify({ type: "error", message: "حجم تصویر صفحه‌ی PDF برای ارسال زنده خیلی زیاد است." })); } catch {}
+        return;
+      }
       this.boardBg = msg.data || null;
       this.strokes = []; // با تغییر صفحه‌ی PDF، یادداشت‌های قبلی روی صفحه‌ی قبل پاک می‌شود
       this.broadcast({ type: "board-bg", data: this.boardBg }, sender);
@@ -1142,38 +1147,44 @@ const SHARED_CSS = `
   .ratio-btn.active{background:var(--primary);color:#fff;border-color:var(--primary)}
   .crop-actions{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
   
-  /* ---- برنامه هفتگی (هدر تیره در گوشه، ستون‌های زنگ سفید، ردیف‌های رنگی نقطه‌چین) ---- */
-  .schedule-table-wrap{overflow-x:auto;border-radius:16px;border:1.5px solid #94a3b8;background:#fff;margin-bottom:16px;box-shadow:0 4px 20px rgba(0,0,0,0.08)}
-  [data-theme="dark"] .schedule-table-wrap{background:#1e293b;border-color:#334155}
+  /* ---- برنامه هفتگی (نسخه‌ی پیشرفته: نوار رنگی کنار هر روز، تایپوگرافی بهتر، هایلایت امروز) ---- */
+  .schedule-table-wrap{overflow-x:auto;border-radius:18px;background:#fff;margin-bottom:16px;box-shadow:0 10px 30px rgba(15,23,42,.10),0 2px 8px rgba(15,23,42,.06);border:1px solid #e2e8f0}
+  [data-theme="dark"] .schedule-table-wrap{background:#1e293b;border-color:#334155;box-shadow:0 10px 30px rgba(0,0,0,.35)}
   .schedule-table{width:100%;border-collapse:separate;border-spacing:0}
-  .schedule-table th{padding:14px 10px;font-weight:700;text-align:center;font-size:14px;border-bottom:1.5px solid #94a3b8;border-left:1.5px solid #94a3b8}
-  .schedule-table th:first-child{border-left:none}
-  .schedule-table th.sch-corner{background:#334155;color:#fff;border-radius:16px 0 0 0;border-bottom:none}
-  [data-theme="dark"] .schedule-table th.sch-corner{background:#0f172a}
-  .schedule-table th.sch-period{background:#fff;color:#334155}
-  [data-theme="dark"] .schedule-table th.sch-period{background:#1e293b;color:#e2e8f0;border-color:#334155}
-  .schedule-table th.sch-period:last-child{border-radius:0 16px 0 0}
-  .schedule-table td{padding:10px 8px;text-align:center;font-weight:600;color:#1e293b;border-bottom:1.5px solid #94a3b8;border-left:1.5px solid #cbd5e1}
-  [data-theme="dark"] .schedule-table td{color:#f1f5f9;border-color:#334155}
+  .schedule-table th{padding:16px 10px;font-weight:800;text-align:center;font-size:14px;letter-spacing:.2px;border-bottom:2px solid #e2e8f0}
+  [data-theme="dark"] .schedule-table th{border-color:#334155}
+  .schedule-table th.sch-corner{background:linear-gradient(135deg,#1e293b,#334155);color:#fff;border-radius:18px 0 0 0}
+  [data-theme="dark"] .schedule-table th.sch-corner{background:linear-gradient(135deg,#0f172a,#1e293b)}
+  .schedule-table th.sch-period{background:#f8fafc;color:#334155;border-left:1px solid #e2e8f0}
+  [data-theme="dark"] .schedule-table th.sch-period{background:#0f172a;color:#e2e8f0;border-color:#334155}
+  .schedule-table th.sch-period:last-child{border-radius:0 18px 0 0;border-left:none}
+  .schedule-table td{padding:12px 8px;text-align:center;font-weight:600;color:#1e293b;border-bottom:1px solid #eef2f6;border-left:1px solid #eef2f6}
+  [data-theme="dark"] .schedule-table td{color:#f1f5f9;border-color:#2d3b4e}
   .schedule-table tr:last-child td{border-bottom:none}
-  .schedule-table td:first-child{font-weight:700;text-align:center;font-size:14px;border-left:none}
-  .schedule-table td.sch-daylabel-shanbe{background:#fde2e2}
-  .schedule-table td.sch-daylabel-yekshanbe{background:#fdf3d1}
-  .schedule-table td.sch-daylabel-doshshanbe{background:#dcf5e3}
-  .schedule-table td.sch-daylabel-seshshanbe{background:#ecdcfb}
-  .schedule-table td.sch-daylabel-chaharshanbe{background:#d7f5f7}
-  .schedule-table td.cell-shanbe{background:#fef5f5}
-  .schedule-table td.cell-yekshanbe{background:#fefbf0}
-  .schedule-table td.cell-doshshanbe{background:#f2fbf5}
-  .schedule-table td.cell-seshshanbe{background:#f7f2fd}
-  .schedule-table td.cell-chaharshanbe{background:#f0fafb}
-  [data-theme="dark"] .schedule-table td.sch-daylabel-shanbe,[data-theme="dark"] .schedule-table td.cell-shanbe{background:#3a2626}
-  [data-theme="dark"] .schedule-table td.sch-daylabel-yekshanbe,[data-theme="dark"] .schedule-table td.cell-yekshanbe{background:#3a3620}
-  [data-theme="dark"] .schedule-table td.sch-daylabel-doshshanbe,[data-theme="dark"] .schedule-table td.cell-doshshanbe{background:#20362a}
-  [data-theme="dark"] .schedule-table td.sch-daylabel-seshshanbe,[data-theme="dark"] .schedule-table td.cell-seshshanbe{background:#302036}
-  [data-theme="dark"] .schedule-table td.sch-daylabel-chaharshanbe,[data-theme="dark"] .schedule-table td.cell-chaharshanbe{background:#1e3638}
-  .schedule-table textarea{background:transparent;border:none;width:100%;min-height:46px;text-align:center;font-family:inherit;font-size:13px;color:inherit;resize:vertical}
-  .schedule-table textarea:focus{outline:2px solid var(--primary);outline-offset:2px;border-radius:6px}
+  .schedule-table tr:last-child td:first-child{border-radius:0 0 0 18px}
+  .schedule-table tr:last-child td:last-child{border-radius:0 0 18px 0}
+  .schedule-table td:first-child{font-weight:800;text-align:center;font-size:14px;border-left:none;position:relative;padding-right:16px}
+  .sch-day-accent{position:absolute;top:8px;bottom:8px;right:2px;width:4px;border-radius:4px}
+  .schedule-table td.sch-daylabel-shanbe .sch-day-accent{background:#ef4444}
+  .schedule-table td.sch-daylabel-yekshanbe .sch-day-accent{background:#f59e0b}
+  .schedule-table td.sch-daylabel-doshshanbe .sch-day-accent{background:#10b981}
+  .schedule-table td.sch-daylabel-seshshanbe .sch-day-accent{background:#8b5cf6}
+  .schedule-table td.sch-daylabel-chaharshanbe .sch-day-accent{background:#06b6d4}
+  .schedule-table td.cell-shanbe{background:#fef2f2}
+  .schedule-table td.cell-yekshanbe{background:#fffbeb}
+  .schedule-table td.cell-doshshanbe{background:#f0fdf4}
+  .schedule-table td.cell-seshshanbe{background:#f5f3ff}
+  .schedule-table td.cell-chaharshanbe{background:#ecfeff}
+  [data-theme="dark"] .schedule-table td.sch-daylabel-shanbe,[data-theme="dark"] .schedule-table td.cell-shanbe{background:#2a1e1e}
+  [data-theme="dark"] .schedule-table td.sch-daylabel-yekshanbe,[data-theme="dark"] .schedule-table td.cell-yekshanbe{background:#2a2618}
+  [data-theme="dark"] .schedule-table td.sch-daylabel-doshshanbe,[data-theme="dark"] .schedule-table td.cell-doshshanbe{background:#18291f}
+  [data-theme="dark"] .schedule-table td.sch-daylabel-seshshanbe,[data-theme="dark"] .schedule-table td.cell-seshshanbe{background:#241f33}
+  [data-theme="dark"] .schedule-table td.sch-daylabel-chaharshanbe,[data-theme="dark"] .schedule-table td.cell-chaharshanbe{background:#17282a}
+  .schedule-table tr.sch-today td{box-shadow:inset 0 0 0 2px var(--primary)}
+  .schedule-table tr.sch-today td:first-child .sch-today-badge{position:absolute;top:2px;left:6px;font-size:9px;background:var(--primary);color:#fff;padding:1px 7px;border-radius:8px;font-weight:700}
+  .schedule-table textarea{background:transparent;border:none;width:100%;min-height:50px;text-align:center;font-family:inherit;font-size:13px;color:inherit;resize:vertical;line-height:1.5}
+  .schedule-table textarea:focus{outline:2px solid var(--primary);outline-offset:2px;border-radius:8px}
+  .schedule-table textarea::placeholder{color:#94a3b8;font-style:italic}
   
   /* ---- ترجمه ---- */
   .tl-lang-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:16px}
@@ -2314,6 +2325,7 @@ function teacherPage() {
               <div class="row" style="align-items:center;flex-wrap:wrap">
                 <label class="btn sm sec" style="cursor:pointer;flex:0 0 auto">📄 افزودن PDF<input type="file" accept="application/pdf" id="cls-pdf-file" style="display:none"></label>
                 <span id="cls-pdf-name" class="muted" style="font-size:12px"></span>
+                <button class="btn sm danger hidden" id="cls-pdf-remove-file" style="flex:0 0 auto">🗑️ حذف فایل PDF</button>
               </div>
               <div id="cls-pdf-nav" class="row hidden" style="align-items:center;margin-top:6px;flex-wrap:wrap">
                 <button class="btn sm gray" id="cls-pdf-prev" style="flex:0 0 auto">◀ قبلی</button>
@@ -2953,8 +2965,12 @@ function teacherScript() {
     let html='';
     const days=['شنبه','یکشنبه','دوشنبه','سه‌شنبه','چهارشنبه'];
     const dayKeys=['shanbe','yekshanbe','doshshanbe','seshshanbe','chaharshanbe'];
+    // نگاشت روز هفته‌ی جاری (جاوااسکریپت) به ایندکس ردیف برنامه (شنبه=0 ... چهارشنبه=4)
+    const jsDayToRow={6:0,0:1,1:2,2:3,3:4};
+    const todayRow=jsDayToRow.hasOwnProperty(new Date().getDay())?jsDayToRow[new Date().getDay()]:-1;
     for(let d=0;d<5;d++){
-      html+='<tr><td class="sch-daylabel-'+dayKeys[d]+'">'+days[d]+'</td>';
+      const isToday=d===todayRow;
+      html+='<tr'+(isToday?' class="sch-today"':'')+'><td class="sch-daylabel-'+dayKeys[d]+'"><span class="sch-day-accent"></span>'+(isToday?'<span class="sch-today-badge">امروز</span>':'')+days[d]+'</td>';
       for(let i=1;i<=5;i++){
         const val=(scheduleData.cells&&scheduleData.cells['c'+d+i])||'';
         html+='<td class="cell-'+dayKeys[d]+'"><textarea id="c'+d+i+'" placeholder="زنگ '+(i)+'">'+esc(val)+'</textarea></td>';
@@ -2971,23 +2987,24 @@ function teacherScript() {
     const teacher=document.getElementById('sch-teacher').value||'';
     const days=['شنبه','یکشنبه','دوشنبه','سه‌شنبه','چهارشنبه'];
     const zang=['زنگ اول','زنگ دوم','زنگ سوم','زنگ چهارم','زنگ پنجم'];
-    const dayLabelColors=['#fde2e2','#fdf3d1','#dcf5e3','#ecdcfb','#d7f5f7'];
-    const cellColors=['#fef5f5','#fefbf0','#f2fbf5','#f7f2fd','#f0fafb'];
+    const accentColors=['#ef4444','#f59e0b','#10b981','#8b5cf6','#06b6d4'];
+    const cellColors=['#fef2f2','#fffbeb','#f0fdf4','#f5f3ff','#ecfeff'];
     let style='<style>@font-face{font-family:"BNazanin";src:url(https://cdn.jsdelivr.net/gh/naderuser/bnazanin@main/BNazanin.ttf)}';
     style+='body{direction:rtl;font-family:"BNazanin",tahoma,Arial;padding:30px;background:#f8fafc}';
     style+='.header{text-align:center;padding:20px;background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;border-radius:20px;margin-bottom:20px}';
-    style+='.header h1{font-size:24px;margin:0 0 10px}.header p{margin:5px 0;font-size:14px}';
-    style+='table{width:100%;border-collapse:separate;border-spacing:0;border-radius:16px;overflow:hidden;box-shadow:0 4px 15px rgba(0,0,0,0.08);border:1.5px solid #94a3b8}';
-    style+='th{padding:12px 8px;font-size:14px;text-align:center;border-bottom:1.5px solid #94a3b8;border-left:1.5px solid #94a3b8}';
-    style+='td{padding:14px 8px;text-align:center;font-size:13px;min-height:50px;font-weight:600;color:#1e293b;border-bottom:1.5px solid #94a3b8;border-left:1.5px solid #cbd5e1}';
+    style+='.header h1{font-size:24px;margin:0 0 10px;font-weight:800;letter-spacing:.3px}.header p{margin:5px 0;font-size:14px}';
+    style+='table{width:100%;border-collapse:separate;border-spacing:0;border-radius:18px;overflow:hidden;box-shadow:0 8px 24px rgba(15,23,42,.10);border:1px solid #e2e8f0}';
+    style+='th{padding:14px 8px;font-size:14px;font-weight:800;text-align:center;border-bottom:2px solid #e2e8f0;border-left:1px solid #e2e8f0}';
+    style+='td{padding:14px 10px;text-align:center;font-size:13px;min-height:50px;font-weight:600;color:#1e293b;border-bottom:1px solid #eef2f6;border-left:1px solid #eef2f6}';
     style+='tr:last-child td{border-bottom:none}';
+    style+='.daylabel{border-right:5px solid;font-weight:800}';
     style+='.footer{text-align:center;margin-top:30px;padding:20px;border-top:2px dashed #ddd}</style>';
     let header='<div class="header"><h1>⭐ برنامه هفتگی کلاس ⭐</h1><p>🏫 '+esc(school)+' | سال تحصیلی: '+esc(year)+'</p><p>کلاس: '+esc(cls)+' | آموزگار: '+esc(teacher)+'</p></div>';
-    let table='<table><tr><th style="background:#334155;color:#fff;border-bottom:none">روز / زنگ</th>';
-    for(let z=0;z<5;z++){table+='<th style="background:#fff;color:#334155">🔔 '+zang[z]+'</th>';}
+    let table='<table><tr><th style="background:linear-gradient(135deg,#1e293b,#334155);color:#fff;border-bottom:none">روز / زنگ</th>';
+    for(let z=0;z<5;z++){table+='<th style="background:#f8fafc;color:#334155">🔔 '+zang[z]+'</th>';}
     table+='</tr>';
     for(let d=0;d<5;d++){
-      table+='<tr><td style="background:'+dayLabelColors[d]+'">'+days[d]+'</td>';
+      table+='<tr><td class="daylabel" style="background:'+cellColors[d]+';border-right-color:'+accentColors[d]+'">'+days[d]+'</td>';
       for(let i=1;i<=5;i++){const el=document.getElementById('c'+d+i);const val=(el?el.value:'')||'&nbsp;';table+='<td style="background:'+cellColors[d]+'"><div style="min-height:40px">'+val+'</div></td>';}
       table+='</tr>';
     }
@@ -3883,6 +3900,7 @@ function teacherScript() {
       const pn=document.getElementById('cls-pdf-pagenum');
       pn.value=1;pn.max=clsPdfDoc.numPages;
       document.getElementById('cls-pdf-nav').classList.remove('hidden');
+      document.getElementById('cls-pdf-remove-file').classList.remove('hidden');
       toast('فایل PDF بارگذاری شد ✅ ('+clsPdfDoc.numPages+' صفحه)');
     }catch(e){
       toast('خطا در باز کردن فایل PDF - فایل معتبر است؟');
@@ -3892,15 +3910,25 @@ function teacherScript() {
   async function clsRenderPdfPage(pageNum){
     const page=await clsPdfDoc.getPage(pageNum);
     const baseViewport=page.getViewport({scale:1});
-    const targetWidth=1100;
-    const scale=targetWidth/baseViewport.width;
-    const viewport=page.getViewport({scale});
-    const canvas=document.createElement('canvas');
-    canvas.width=viewport.width;canvas.height=viewport.height;
-    const ctx=canvas.getContext('2d');
-    ctx.fillStyle='#fff';ctx.fillRect(0,0,canvas.width,canvas.height);
-    await page.render({canvasContext:ctx,viewport}).promise;
-    return canvas.toDataURL('image/jpeg',0.72);
+    async function renderAt(targetWidth,quality){
+      const scale=targetWidth/baseViewport.width;
+      const viewport=page.getViewport({scale});
+      const canvas=document.createElement('canvas');
+      canvas.width=viewport.width;canvas.height=viewport.height;
+      const ctx=canvas.getContext('2d');
+      ctx.fillStyle='#fff';ctx.fillRect(0,0,canvas.width,canvas.height);
+      await page.render({canvasContext:ctx,viewport}).promise;
+      return canvas.toDataURL('image/jpeg',quality);
+    }
+    // ابتدا با کیفیت بالا رندر می‌کنیم؛ اگر حجم نهایی برای ارسال زنده خیلی بزرگ شد، به‌صورت خودکار کیفیت را کمی کاهش می‌دهیم
+    let dataUrl=await renderAt(1900,0.9);
+    if(dataUrl.length>3_000_000){
+      dataUrl=await renderAt(1500,0.82);
+    }
+    if(dataUrl.length>3_000_000){
+      dataUrl=await renderAt(1100,0.75);
+    }
+    return dataUrl;
   }
   document.getElementById('cls-pdf-prev').onclick=()=>{
     if(!clsPdfDoc)return;
@@ -3936,6 +3964,16 @@ function teacherScript() {
     clsSetBoardBg(null);
     clsSend({type:'board-bg',data:null});
     toast('PDF از روی تخته حذف شد');
+  };
+  document.getElementById('cls-pdf-remove-file').onclick=()=>{
+    if(!confirm('فایل PDF بارگذاری‌شده حذف شود؟ (اگر روی تخته نمایش داده شده، آن هم حذف می‌شود)'))return;
+    clsPdfDoc=null;clsPdfFileName='';clsPdfCurrentPage=1;
+    document.getElementById('cls-pdf-name').textContent='';
+    document.getElementById('cls-pdf-nav').classList.add('hidden');
+    document.getElementById('cls-pdf-remove-file').classList.add('hidden');
+    document.getElementById('cls-pdf-file').value='';
+    if(clsBoardBgImg){clsSetBoardBg(null);clsSend({type:'board-bg',data:null});}
+    toast('فایل PDF حذف شد');
   };
 
   let brdMode='pen'; // pen | line | text | eraser
@@ -4111,6 +4149,7 @@ function teacherScript() {
       else if(m.type==='chat'){clsAddChat(m.entry);}
       else if(m.type==='file'){clsAddFile(m);}
       else if(m.type==='board-bg'){clsSetBoardBg(m.data);}
+      else if(m.type==='error'){toast(m.message||'خطا');}
       else if(m.type==='presence'){clsUpdateParticipants(m.participants||[]);if(m.event==='join'&&m.role==='student')toast(m.name+' وارد کلاس شد');}
       else if(m.type==='raise-hand'){toast('✋ '+m.name+' دستش را بلند کرد');}
     };
