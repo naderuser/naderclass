@@ -297,6 +297,8 @@ export class ClassRoom {
     this.strokes = []; // تاریخچه تخته هوشمند برای سینک اعضای جدید
     this.chat = []; // آخرین پیام‌های چت
     this.boardBg = null; // صفحه‌ی PDF فعلی روی تخته (data URL) یا null
+    this.boardBgW = 900;
+    this.boardBgH = 560;
   }
 
   async fetch(req) {
@@ -320,6 +322,8 @@ export class ClassRoom {
       role,
       strokes: this.strokes,
       boardBg: this.boardBg,
+      boardBgW: this.boardBgW,
+      boardBgH: this.boardBgH,
       chat: this.chat.slice(-50),
       participants: this.participantList(),
     }));
@@ -370,8 +374,10 @@ export class ClassRoom {
         return;
       }
       this.boardBg = msg.data || null;
+      this.boardBgW = msg.w || 900;
+      this.boardBgH = msg.h || 560;
       this.strokes = []; // با تغییر صفحه‌ی PDF، یادداشت‌های قبلی روی صفحه‌ی قبل پاک می‌شود
-      this.broadcast({ type: "board-bg", data: this.boardBg }, sender);
+      this.broadcast({ type: "board-bg", data: this.boardBg, w: this.boardBgW, h: this.boardBgH }, sender);
       return;
     }
 
@@ -1007,10 +1013,49 @@ const SHARED_CSS = `
   .mt-canvas{min-height:80px;font-size:22px;direction:ltr;text-align:center}
   .mt-open-btn{font-weight:700}
 
+  /* ---- دفتر مدیریت کلاسی ---- */
+  .lb-menu-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px;margin-top:16px}
+  .lb-menu-btn{display:flex;flex-direction:column;align-items:center;gap:6px;padding:22px 14px;border-radius:14px;border:1px solid var(--line);background:#f8fafc;cursor:pointer;font-family:inherit;text-align:center;transition:transform .15s,box-shadow .15s}
+  .lb-menu-btn:hover{transform:translateY(-2px);box-shadow:0 8px 20px rgba(0,0,0,.08);border-color:var(--primary)}
+  [data-theme="dark"] .lb-menu-btn{background:#0f172a}
+  .lb-menu-btn .lb-ico{font-size:32px}
+  .lb-menu-btn .lb-t{font-weight:700;font-size:14px}
+  .lb-menu-btn small{color:var(--muted);font-size:11px}
+  .lb-panel{margin-top:8px}
+  .lb-meta-form{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;margin:14px 0}
+  .lb-meta-form label{display:block;font-size:12px;color:var(--muted);margin-bottom:3px}
+  .lb-meta-form input{width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:8px;font-family:inherit}
+  .lb-textarea{width:100%;padding:10px;border:1px solid #cbd5e1;border-radius:8px;font-family:inherit;font-size:14px;resize:vertical;margin-bottom:12px}
+  .lb-preview{overflow-x:auto;margin-top:10px;border:1px solid var(--line);border-radius:10px;padding:10px;background:#fff}
+  [data-theme="dark"] .lb-preview{background:#1e293b}
+  .lb-table{width:100%;border-collapse:collapse;font-size:12px}
+  .lb-table th,.lb-table td{border:1px solid #94a3b8;padding:6px 8px;text-align:center}
+  .lb-table th{background:#dbeafe;font-weight:700}
+  [data-theme="dark"] .lb-table th{background:#1e3a5f}
+  .lb-table input,.lb-table textarea{width:100%;border:none;background:transparent;text-align:center;font-family:inherit;font-size:12px;padding:2px}
+  .lb-table-tight th,.lb-table-tight td{padding:3px 4px;font-size:11px}
+  .lb-table-tight input{min-width:22px}
+  .lb-pacing-table{width:max-content;min-width:100%;border-collapse:collapse;font-size:11px;margin-bottom:22px}
+  .lb-pacing-table th,.lb-pacing-table td{border:1px solid #94a3b8;padding:4px 6px;text-align:center}
+  .lb-pacing-table th{background:#dbeafe}
+  [data-theme="dark"] .lb-pacing-table th{background:#1e3a5f}
+  .lb-pacing-table td.lb-subject{background:#f1f5f9;font-weight:700;white-space:nowrap;padding:4px 10px}
+  [data-theme="dark"] .lb-pacing-table td.lb-subject{background:#0f172a}
+  .lb-pacing-table td.lb-cell{min-width:38px;height:34px}
+  .lb-nowruz{background:#16a34a !important;color:#fff;writing-mode:vertical-rl;text-orientation:mixed;font-weight:700;text-align:center}
+
   /* ---- پنل PDF کلاس آنلاین ---- */
   .cls-pdf-panel{background:#f8fafc;border:1px solid var(--line);border-radius:10px;padding:8px 10px;margin-bottom:10px}
   [data-theme="dark"] .cls-pdf-panel{background:#0f172a}
   #cls-pdf-nav input[type="number"]{padding:4px;border:1px solid #cbd5e1;border-radius:6px}
+
+  /* ---- چیدمان کلاس آنلاین: تخته بزرگ و در اولویت، به‌خصوص در گوشی ---- */
+  .cls-board-col{flex:1 1 520px;min-width:280px}
+  .cls-chat-col{flex:0 0 300px;min-width:260px}
+  @media (max-width:760px){
+    .cls-board-col{flex:1 1 100%}
+    .cls-chat-col{flex:1 1 100%;min-width:0}
+  }
 
   .mt-ph{display:inline-block;min-width:18px;min-height:1.1em;border:1px dashed #94a3b8;border-radius:4px;padding:0 3px;outline:none}
   .mt-ph:empty:before{content:attr(data-ph);color:#94a3b8;font-size:.7em}
@@ -1699,8 +1744,6 @@ async function studentClassPage(env, id) {
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>کلاس آنلاین</title>${FONT_LINK}<style>${SHARED_CSS}
     .cls-wrap{display:flex;gap:12px;flex-wrap:wrap}
-    .cls-board-col{flex:1 1 520px;min-width:280px}
-    .cls-chat-col{flex:0 0 300px;min-width:260px}
     #board{width:100%;background:#fff;border:1px solid var(--line);border-radius:10px;touch-action:none;display:block}
     .cls-status{display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap}
     .dot{width:10px;height:10px;border-radius:50%;background:#dc2626;display:inline-block}
@@ -1749,7 +1792,22 @@ async function studentClassPage(env, id) {
 
     const canvas=document.getElementById('board');
     const ctx=canvas.getContext('2d');
-    function resizeCanvas(){const ratio=canvas.height/canvas.width;const w=canvas.parentElement.clientWidth;canvas.style.width=w+'px';canvas.style.height=(w*ratio)+'px';}
+    const BOARD_DEFAULT_W=900, BOARD_DEFAULT_H=560;
+    function resizeCanvas(){
+      const ratio=canvas.height/canvas.width;
+      const containerW=canvas.parentElement.clientWidth;
+      if(!containerW)return;
+      const maxH=window.innerHeight*0.7; // در گوشی هم جا می‌شود، بدون نیاز به اسکرول زیاد
+      let w=containerW, h=w*ratio;
+      if(h>maxH){h=maxH;w=h/ratio;}
+      canvas.style.width=w+'px';
+      canvas.style.height=h+'px';
+    }
+    function resizeCanvasTo(w,h){
+      canvas.width=Math.round(w);
+      canvas.height=Math.round(h);
+      resizeCanvas();
+    }
     resizeCanvas();window.addEventListener('resize',resizeCanvas);
 
     function drawStroke(s){
@@ -1778,23 +1836,26 @@ async function studentClassPage(env, id) {
 
     // ===== لایه‌ی پس‌زمینه (صفحه‌ی PDF که معلم روی تخته گذاشته) =====
     let boardBgImg=null;
-    function setBoardBg(dataUrl){
+    function setBoardBg(dataUrl,w,h){
       if(!dataUrl){
         boardBgImg=null;
+        resizeCanvasTo(w||BOARD_DEFAULT_W,h||BOARD_DEFAULT_H);
         ctx.clearRect(0,0,canvas.width,canvas.height);
         return;
       }
       const img=new Image();
       img.onload=()=>{
         boardBgImg=img;
+        resizeCanvasTo(w||img.naturalWidth,h||img.naturalHeight);
         ctx.clearRect(0,0,canvas.width,canvas.height);
         ctx.drawImage(img,0,0,canvas.width,canvas.height);
       };
       img.src=dataUrl;
     }
-    function setBoardBgAndReplay(dataUrl,strokes){
+    function setBoardBgAndReplay(dataUrl,strokes,w,h){
       if(!dataUrl){
         boardBgImg=null;
+        resizeCanvasTo(w||BOARD_DEFAULT_W,h||BOARD_DEFAULT_H);
         ctx.clearRect(0,0,canvas.width,canvas.height);
         (strokes||[]).forEach(drawStroke);
         return;
@@ -1802,6 +1863,7 @@ async function studentClassPage(env, id) {
       const img=new Image();
       img.onload=()=>{
         boardBgImg=img;
+        resizeCanvasTo(w||img.naturalWidth,h||img.naturalHeight);
         ctx.clearRect(0,0,canvas.width,canvas.height);
         ctx.drawImage(img,0,0,canvas.width,canvas.height);
         (strokes||[]).forEach(drawStroke);
@@ -1883,13 +1945,13 @@ async function studentClassPage(env, id) {
       ws.onmessage=(evt)=>{
         let m;try{m=JSON.parse(evt.data);}catch(e){return;}
         if(m.type==='init'){
-          if(m.boardBg){setBoardBgAndReplay(m.boardBg,m.strokes||[]);}
+          if(m.boardBg){setBoardBgAndReplay(m.boardBg,m.strokes||[],m.boardBgW,m.boardBgH);}
           else{clearBoard();boardBgImg=null;(m.strokes||[]).forEach(drawStroke);}
           (m.chat||[]).forEach(addChatMsg);
         }
         else if(m.type==='draw'){drawStroke(m.stroke);}
         else if(m.type==='clear'){ctx.clearRect(0,0,canvas.width,canvas.height);if(boardBgImg)ctx.drawImage(boardBgImg,0,0,canvas.width,canvas.height);}
-        else if(m.type==='board-bg'){setBoardBg(m.data);}
+        else if(m.type==='board-bg'){setBoardBg(m.data,m.w,m.h);}
         else if(m.type==='audio'){playAudioChunk(m.data, m.mime);}
         else if(m.type==='video-frame'){
           const img=document.getElementById('cls-teacher-video');
@@ -1969,6 +2031,7 @@ function teacherPage() {
         <div class="tab" data-tab="translate">🌐 ترجمه</div>
         <div class="tab" data-tab="ai">🤖 هوش مصنوعی</div>
         <div class="tab" data-tab="classroom">🖥️ کلاس آنلاین</div>
+        <div class="tab" data-tab="logbook">📔 دفتر مدیریت کلاسی</div>
         <div class="tab" data-tab="settings">⚙️ تنظیمات</div>
         <div style="flex:1"></div>
         <div class="tab" id="btn-logout" style="background:#fee2e2;color:#991b1b">🚪 خروج</div>
@@ -2320,7 +2383,7 @@ function teacherPage() {
         <video id="t-cam-preview" autoplay muted playsinline class="hidden" style="width:160px;border-radius:10px;border:1px solid var(--line);margin-bottom:10px;background:#000"></video>
 
         <div class="cls-wrap" style="display:flex;gap:12px;flex-wrap:wrap">
-          <div class="cls-board-col" style="flex:1 1 520px;min-width:280px">
+          <div class="cls-board-col">
             <div class="cls-pdf-panel">
               <div class="row" style="align-items:center;flex-wrap:wrap">
                 <label class="btn sm sec" style="cursor:pointer;flex:0 0 auto">📄 افزودن PDF<input type="file" accept="application/pdf" id="cls-pdf-file" style="display:none"></label>
@@ -2347,7 +2410,7 @@ function teacherPage() {
             <canvas id="t-board" width="900" height="500" style="width:100%;background:#fff;border:1px solid var(--line);border-radius:10px;touch-action:none;display:block;cursor:crosshair"></canvas>
             <p class="muted" style="font-size:12px;margin-top:6px">روی تخته بکشید؛ ترسیم برای همه دانش‌آموزان متصل به‌صورت زنده نمایش داده می‌شود.</p>
           </div>
-          <div class="cls-chat-col" style="flex:0 0 300px;min-width:260px">
+          <div class="cls-chat-col">
             <h4 style="margin:0 0 6px">👥 حاضرین (<span id="cls-online-count">0</span>)</h4>
             <div id="cls-participants" class="muted" style="font-size:13px;max-height:110px;overflow:auto;margin-bottom:10px"></div>
             <div id="t-chatBox" style="height:220px;overflow:auto;border:1px solid var(--line);border-radius:10px;padding:10px;background:#fafafa;display:flex;flex-direction:column;gap:6px"></div>
@@ -2364,6 +2427,162 @@ function teacherPage() {
         <h4>🔗 لینک‌های اختصاصی ورود دانش‌آموزان به کلاس</h4>
         <p class="muted">برای هر دانش‌آموزی که در تب «دانش‌آموزان» ساخته‌اید، یک لینک اختصاصی کلاس آنلاین وجود دارد؛ کافیست دانش‌آموز روی لینک بزند تا مستقیم وارد کلاس شود.</p>
         <div id="cls-links-list"></div>
+      </div>
+
+      <div class="card tab-content hidden" id="tab-logbook">
+        <div id="lb-menu">
+          <h3>📔 دفتر مدیریت کلاسی</h3>
+          <p class="muted">مجموعه‌ی فرم‌های اداری و آموزشی معلم؛ هرکدام را انتخاب کنید تا وارد شوید. همه قابل دانلود Word، Excel و چاپ/PDF هستند.</p>
+          <div class="lb-menu-grid">
+            <button class="lb-menu-btn" data-lb="pacing"><span class="lb-ico">📊</span><span class="lb-t">جدول بودجه‌بندی آموزشی</span><small>پایه‌های اول تا ششم</small></button>
+            <button class="lb-menu-btn" data-lb="roster"><span class="lb-ico">👨‍🎓</span><span class="lb-t">لیست اسامی دانش‌آموزان</span></button>
+            <button class="lb-menu-btn" data-lb="absence"><span class="lb-ico">📋</span><span class="lb-t">ثبت غیبت دانش‌آموزان</span></button>
+            <button class="lb-menu-btn" data-lb="performance"><span class="lb-ico">📈</span><span class="lb-t">ثبت سطح عملکرد دانش‌آموزان</span></button>
+            <button class="lb-menu-btn" data-lb="council"><span class="lb-ico">🗣️</span><span class="lb-t">صورتجلسه شورای آموزشی اولیا</span></button>
+            <button class="lb-menu-btn" data-lb="meetings"><span class="lb-ico">🤝</span><span class="lb-t">جلسات فردی با اولیا</span></button>
+          </div>
+        </div>
+
+        <!-- ===== ۱. جدول بودجه‌بندی آموزشی ===== -->
+        <div class="lb-panel hidden" id="lb-panel-pacing">
+          <button class="btn sm gray lb-back-btn">← بازگشت به دفتر</button>
+          <h3>📊 جدول بودجه‌بندی آموزشی (پایه اول تا ششم)</h3>
+          <div class="lb-meta-form">
+            <div><label>نام مدرسه</label><input id="lbp-school" placeholder="......................."></div>
+            <div><label>نام آموزگار</label><input id="lbp-teacher" placeholder="......................."></div>
+            <div><label>سال تحصیلی</label><input id="lbp-year" placeholder="......................."></div>
+          </div>
+          <p class="muted">در هر خانه‌ی جدول: شماره درس، صفحات کتاب، زمان تدریس و توضیحات معلم یادداشت می‌شود.</p>
+          <div id="lb-pacing-preview" class="lb-preview"></div>
+          <div class="row" style="margin-top:12px">
+            <button class="btn primary" id="btn-lb-pacing-word">📄 دانلود Word</button>
+            <button class="btn sec" id="btn-lb-pacing-excel">📊 دانلود Excel</button>
+            <button class="btn gray" id="btn-lb-pacing-pdf">🖨️ چاپ / دانلود PDF</button>
+          </div>
+        </div>
+
+        <!-- ===== ۲. لیست اسامی دانش‌آموزان ===== -->
+        <div class="lb-panel hidden" id="lb-panel-roster">
+          <button class="btn sm gray lb-back-btn">← بازگشت به دفتر</button>
+          <h3>👨‍🎓 جدول لیست اسامی دانش‌آموزان</h3>
+          <div class="lb-meta-form">
+            <div><label>نام مدرسه</label><input id="lbr-school" placeholder="......................."></div>
+            <div><label>نام آموزگار</label><input id="lbr-teacher" placeholder="......................."></div>
+            <div><label>پایه تحصیلی</label><input id="lbr-grade" placeholder="......................."></div>
+            <div><label>سال تحصیلی</label><input id="lbr-year" placeholder="......................."></div>
+          </div>
+          <div class="row">
+            <label>تعداد ردیف: </label><input type="number" id="lbr-rows" value="30" min="1" max="100" style="width:90px">
+            <button class="btn sm sec" id="btn-lbr-build">🔄 ساخت جدول</button>
+            <button class="btn sm gray" id="btn-lbr-addrow">➕ افزودن ردیف (ادامه اسامی)</button>
+          </div>
+          <div class="lb-preview"><table class="lb-table" id="lbr-table"></table></div>
+          <div class="row" style="margin-top:12px">
+            <button class="btn primary" id="btn-lb-roster-word">📄 دانلود Word</button>
+            <button class="btn sec" id="btn-lb-roster-excel">📊 دانلود Excel</button>
+            <button class="btn gray" id="btn-lb-roster-pdf">🖨️ چاپ / دانلود PDF</button>
+          </div>
+        </div>
+
+        <!-- ===== ۳. ثبت غیبت دانش‌آموزان ===== -->
+        <div class="lb-panel hidden" id="lb-panel-absence">
+          <button class="btn sm gray lb-back-btn">← بازگشت به دفتر</button>
+          <h3>📋 جدول ثبت غیبت دانش‌آموزان</h3>
+          <div class="lb-meta-form">
+            <div><label>نام مدرسه</label><input id="lba-school" placeholder="......................."></div>
+            <div><label>نام آموزگار</label><input id="lba-teacher" placeholder="......................."></div>
+            <div><label>پایه تحصیلی</label><input id="lba-grade" placeholder="......................."></div>
+            <div><label>سال تحصیلی</label><input id="lba-year" placeholder="......................."></div>
+          </div>
+          <p class="muted">راهنما: موجه «م» | غیرموجه «غ» | تأخیر «ت»</p>
+          <div class="row">
+            <label>ماه: </label>
+            <select id="lba-month">
+              <option>مهر</option><option>آبان</option><option>آذر</option><option>دی</option><option>بهمن</option><option>اسفند</option><option>فروردین</option><option>اردیبهشت</option><option>خرداد</option>
+            </select>
+            <label>تعداد روز: </label><input type="number" id="lba-days" value="30" min="28" max="31" style="width:80px">
+            <label>تعداد دانش‌آموز: </label><input type="number" id="lba-rows" value="30" min="1" max="60" style="width:80px">
+            <button class="btn sm sec" id="btn-lba-build">🔄 ساخت جدول</button>
+            <button class="btn sm gray" id="btn-lba-addrow">➕ افزودن ردیف (ادامه جدول)</button>
+          </div>
+          <div class="lb-preview"><table class="lb-table lb-table-tight" id="lba-table"></table></div>
+          <div class="row" style="margin-top:12px">
+            <button class="btn primary" id="btn-lb-absence-word">📄 دانلود Word</button>
+            <button class="btn sec" id="btn-lb-absence-excel">📊 دانلود Excel</button>
+            <button class="btn gray" id="btn-lb-absence-pdf">🖨️ چاپ / دانلود PDF</button>
+          </div>
+        </div>
+
+        <!-- ===== ۴. ثبت سطح عملکرد دانش‌آموزان ===== -->
+        <div class="lb-panel hidden" id="lb-panel-performance">
+          <button class="btn sm gray lb-back-btn">← بازگشت به دفتر</button>
+          <h3>📈 جدول شماره ۵: ثبت سطح عملکرد دانش‌آموزان</h3>
+          <p class="muted">ثبت عملکرد دانش‌آموزان براساس انتظارات آموزشی هر یک از دروس</p>
+          <div class="lb-meta-form">
+            <div><label>نام مدرسه</label><input id="lbf-school" placeholder="......................."></div>
+            <div><label>نام آموزگار</label><input id="lbf-teacher" placeholder="......................."></div>
+            <div><label>پایه تحصیلی</label><input id="lbf-grade" placeholder="......................."></div>
+            <div><label>سال تحصیلی</label><input id="lbf-year" placeholder="......................."></div>
+          </div>
+          <div class="lb-preview" id="lb-performance-preview"></div>
+          <div class="row" style="margin-top:12px">
+            <button class="btn primary" id="btn-lb-performance-word">📄 دانلود Word</button>
+            <button class="btn sec" id="btn-lb-performance-excel">📊 دانلود Excel</button>
+            <button class="btn gray" id="btn-lb-performance-pdf">🖨️ چاپ / دانلود PDF</button>
+          </div>
+        </div>
+
+        <!-- ===== ۵. صورتجلسه شورای آموزشی اولیا ===== -->
+        <div class="lb-panel hidden" id="lb-panel-council">
+          <button class="btn sm gray lb-back-btn">← بازگشت به دفتر</button>
+          <h3>🗣️ جدول شماره ۱: جلسات شورای آموزشی اولیا</h3>
+          <div class="lb-meta-form">
+            <div><label>تاریخ برگزاری</label><input id="lbc-date" placeholder="......................."></div>
+            <div><label>موضوع جلسه</label><input id="lbc-topic" placeholder="......................."></div>
+            <div><label>شماره جلسه</label><input id="lbc-num" placeholder="......................."></div>
+            <div><label>ساعت تشکیل</label><input id="lbc-time" placeholder="......................."></div>
+          </div>
+          <label>۱- خلاصه مباحث مطرح شده</label>
+          <textarea id="lbc-summary" rows="5" class="lb-textarea" placeholder="شرح مباحث و موضوعات مطرح‌شده در جلسه..."></textarea>
+          <label>۲- تصمیمات و پیشنهادهای ارائه‌شده</label>
+          <textarea id="lbc-decisions" rows="5" class="lb-textarea" placeholder="مصوبات، پیشنهادها و راهکارهای آموزشی..."></textarea>
+          <div class="row">
+            <label>۳- تعداد اعضای جلسه: </label><input type="number" id="lbc-rows" value="10" min="1" max="40" style="width:80px">
+            <button class="btn sm sec" id="btn-lbc-build">🔄 ساخت جدول اعضا</button>
+            <button class="btn sm gray" id="btn-lbc-addrow">➕ افزودن ردیف</button>
+          </div>
+          <div class="lb-preview"><table class="lb-table" id="lbc-table"></table></div>
+          <p style="margin-top:10px"><b>امضاء و تأیید مدیر مدرسه:</b> .......................</p>
+          <div class="row" style="margin-top:12px">
+            <button class="btn primary" id="btn-lb-council-word">📄 دانلود Word</button>
+            <button class="btn sec" id="btn-lb-council-excel">📊 دانلود Excel</button>
+            <button class="btn gray" id="btn-lb-council-pdf">🖨️ چاپ / دانلود PDF</button>
+          </div>
+        </div>
+
+        <!-- ===== ۶. جلسات فردی با اولیا ===== -->
+        <div class="lb-panel hidden" id="lb-panel-meetings">
+          <button class="btn sm gray lb-back-btn">← بازگشت به دفتر</button>
+          <h3>🤝 جدول ۱۰ - جلسات فردی با اولیا</h3>
+          <div class="lb-meta-form">
+            <div><label>نام مدرسه</label><input id="lbm-school" placeholder="......................."></div>
+            <div><label>نام آموزگار</label><input id="lbm-teacher" placeholder="......................."></div>
+            <div><label>پایه تحصیلی</label><input id="lbm-grade" placeholder="......................."></div>
+            <div><label>سال تحصیلی</label><input id="lbm-year" placeholder="......................."></div>
+          </div>
+          <div class="row">
+            <label>تعداد ردیف: </label><input type="number" id="lbm-rows" value="15" min="1" max="60" style="width:80px">
+            <button class="btn sm sec" id="btn-lbm-build">🔄 ساخت جدول</button>
+            <button class="btn sm gray" id="btn-lbm-addrow">➕ افزودن ردیف (ادامه جلسات)</button>
+          </div>
+          <div class="lb-preview"><table class="lb-table" id="lbm-table"></table></div>
+          <div class="row" style="margin-top:12px">
+            <button class="btn primary" id="btn-lb-meetings-word">📄 دانلود Word</button>
+            <button class="btn sec" id="btn-lb-meetings-excel">📊 دانلود Excel</button>
+            <button class="btn gray" id="btn-lb-meetings-pdf">🖨️ چاپ / دانلود PDF</button>
+          </div>
+        </div>
+
       </div>
 
       <div class="card tab-content hidden" id="tab-settings">
@@ -3815,8 +4034,23 @@ function teacherScript() {
   let clsCamStream=null, clsCamInterval=null, clsAudioFromCam=false;
   const tBoard=document.getElementById('t-board');
   const tCtx=tBoard.getContext('2d');
+  const CLS_BOARD_DEFAULT_W=900, CLS_BOARD_DEFAULT_H=560;
 
-  function clsResizeBoard(){const ratio=tBoard.height/tBoard.width;const w=tBoard.parentElement.clientWidth;if(!w)return;tBoard.style.width=w+'px';tBoard.style.height=(w*ratio)+'px';}
+  function clsResizeBoard(){
+    const ratio=tBoard.height/tBoard.width;
+    const containerW=tBoard.parentElement.clientWidth;
+    if(!containerW)return;
+    const maxH=window.innerHeight*0.78; // بزرگ ولی همیشه در صفحه جا می‌شود (مثل نمایشگر PDF در Adobe Connect)
+    let w=containerW, h=w*ratio;
+    if(h>maxH){h=maxH;w=h/ratio;}
+    tBoard.style.width=w+'px';
+    tBoard.style.height=h+'px';
+  }
+  function clsResizeBoardTo(w,h){
+    tBoard.width=Math.round(w);
+    tBoard.height=Math.round(h);
+    clsResizeBoard();
+  }
   clsResizeBoard();window.addEventListener('resize',clsResizeBoard);
 
   function clsPointFromEvent(e){
@@ -3851,24 +4085,27 @@ function teacherScript() {
 
   // ===== لایه‌ی پس‌زمینه (صفحه‌ی PDF روی تخته) =====
   let clsBoardBgImg=null;
-  function clsSetBoardBg(dataUrl){
+  function clsSetBoardBg(dataUrl,w,h){
     if(!dataUrl){
       clsBoardBgImg=null;
+      clsResizeBoardTo(w||CLS_BOARD_DEFAULT_W,h||CLS_BOARD_DEFAULT_H);
       tCtx.clearRect(0,0,tBoard.width,tBoard.height);
       return;
     }
     const img=new Image();
     img.onload=()=>{
       clsBoardBgImg=img;
+      clsResizeBoardTo(w||img.naturalWidth,h||img.naturalHeight);
       tCtx.clearRect(0,0,tBoard.width,tBoard.height);
       tCtx.drawImage(img,0,0,tBoard.width,tBoard.height);
     };
     img.onerror=()=>{toast('خطا در بارگذاری تصویر پس‌زمینه');};
     img.src=dataUrl;
   }
-  function clsSetBoardBgAndReplay(dataUrl,strokes){
+  function clsSetBoardBgAndReplay(dataUrl,strokes,w,h){
     if(!dataUrl){
       clsBoardBgImg=null;
+      clsResizeBoardTo(w||CLS_BOARD_DEFAULT_W,h||CLS_BOARD_DEFAULT_H);
       tCtx.clearRect(0,0,tBoard.width,tBoard.height);
       (strokes||[]).forEach(clsDrawLocal);
       return;
@@ -3876,6 +4113,7 @@ function teacherScript() {
     const img=new Image();
     img.onload=()=>{
       clsBoardBgImg=img;
+      clsResizeBoardTo(w||img.naturalWidth,h||img.naturalHeight);
       tCtx.clearRect(0,0,tBoard.width,tBoard.height);
       tCtx.drawImage(img,0,0,tBoard.width,tBoard.height);
       (strokes||[]).forEach(clsDrawLocal);
@@ -3918,17 +4156,17 @@ function teacherScript() {
       const ctx=canvas.getContext('2d');
       ctx.fillStyle='#fff';ctx.fillRect(0,0,canvas.width,canvas.height);
       await page.render({canvasContext:ctx,viewport}).promise;
-      return canvas.toDataURL('image/jpeg',quality);
+      return {dataUrl:canvas.toDataURL('image/jpeg',quality), w:canvas.width, h:canvas.height};
     }
     // ابتدا با کیفیت بالا رندر می‌کنیم؛ اگر حجم نهایی برای ارسال زنده خیلی بزرگ شد، به‌صورت خودکار کیفیت را کمی کاهش می‌دهیم
-    let dataUrl=await renderAt(1900,0.9);
-    if(dataUrl.length>3_000_000){
-      dataUrl=await renderAt(1500,0.82);
+    let result=await renderAt(1900,0.9);
+    if(result.dataUrl.length>3_000_000){
+      result=await renderAt(1500,0.82);
     }
-    if(dataUrl.length>3_000_000){
-      dataUrl=await renderAt(1100,0.75);
+    if(result.dataUrl.length>3_000_000){
+      result=await renderAt(1100,0.75);
     }
-    return dataUrl;
+    return result;
   }
   document.getElementById('cls-pdf-prev').onclick=()=>{
     if(!clsPdfDoc)return;
@@ -3950,9 +4188,10 @@ function teacherScript() {
     if(!clsPdfDoc){toast('ابتدا یک فایل PDF انتخاب کنید');return;}
     const btn=document.getElementById('cls-pdf-show');btn.disabled=true;const orig=btn.textContent;btn.textContent='⏳ در حال رندر...';
     try{
-      const dataUrl=await clsRenderPdfPage(clsPdfCurrentPage);
+      const {dataUrl,w,h}=await clsRenderPdfPage(clsPdfCurrentPage);
+      clsResizeBoardTo(w,h);
       clsSetBoardBg(dataUrl);
-      clsSend({type:'board-bg',data:dataUrl});
+      clsSend({type:'board-bg',data:dataUrl,w,h});
       toast('صفحه '+clsPdfCurrentPage+' روی تخته نمایش داده شد ✅');
     }catch(e){
       toast('خطا در رندر این صفحه از PDF');
@@ -3961,8 +4200,9 @@ function teacherScript() {
     }
   };
   document.getElementById('cls-pdf-remove-bg').onclick=()=>{
+    clsResizeBoardTo(CLS_BOARD_DEFAULT_W,CLS_BOARD_DEFAULT_H);
     clsSetBoardBg(null);
-    clsSend({type:'board-bg',data:null});
+    clsSend({type:'board-bg',data:null,w:CLS_BOARD_DEFAULT_W,h:CLS_BOARD_DEFAULT_H});
     toast('PDF از روی تخته حذف شد');
   };
   document.getElementById('cls-pdf-remove-file').onclick=()=>{
@@ -3972,7 +4212,7 @@ function teacherScript() {
     document.getElementById('cls-pdf-nav').classList.add('hidden');
     document.getElementById('cls-pdf-remove-file').classList.add('hidden');
     document.getElementById('cls-pdf-file').value='';
-    if(clsBoardBgImg){clsSetBoardBg(null);clsSend({type:'board-bg',data:null});}
+    if(clsBoardBgImg){clsResizeBoardTo(CLS_BOARD_DEFAULT_W,CLS_BOARD_DEFAULT_H);clsSetBoardBg(null);clsSend({type:'board-bg',data:null,w:CLS_BOARD_DEFAULT_W,h:CLS_BOARD_DEFAULT_H});}
     toast('فایل PDF حذف شد');
   };
 
@@ -4264,6 +4504,346 @@ function teacherScript() {
       },220); // حدود ۴-۵ فریم در ثانیه؛ کافی برای تماس تصویری ساده کلاس درس
     }catch(e){ toast('دسترسی به دوربین یا میکروفون داده نشد'); }
   };
+
+  // ===================== دفتر مدیریت کلاسی =====================
+  // --- ناوبری منو ---
+  document.querySelectorAll('.lb-menu-btn').forEach(function(b){
+    b.onclick=function(){
+      document.getElementById('lb-menu').classList.add('hidden');
+      const panel=document.getElementById('lb-panel-'+b.dataset.lb);
+      if(panel)panel.classList.remove('hidden');
+      if(b.dataset.lb==='pacing')lbRenderPacing();
+      if(b.dataset.lb==='performance')lbRenderPerformance();
+    };
+  });
+  document.querySelectorAll('.lb-back-btn').forEach(function(b){
+    b.onclick=function(){
+      document.querySelectorAll('.lb-panel').forEach(function(p){p.classList.add('hidden');});
+      document.getElementById('lb-menu').classList.remove('hidden');
+    };
+  });
+
+  // --- ابزارهای مشترک خروجی ---
+  function lbMetaBlock(fields){ // fields: [[label,inputId]]
+    return '<p class="lb-meta">'+fields.map(function(f){
+      var el=document.getElementById(f[1]);
+      var val=el?el.value:'';
+      return '<b>'+f[0]+':</b> '+esc(val||'.......................')+'&nbsp;&nbsp;&nbsp;&nbsp;';
+    }).join('')+'</p>';
+  }
+  function lbWordExport(title,bodyHtml,filename){
+    var style='<style>body{direction:rtl;font-family:tahoma,Arial;padding:16px}h1,h2,h3{text-align:center}table{width:100%;border-collapse:collapse;margin:10px 0}th,td{border:1px solid #333;padding:6px;text-align:center;font-size:12px}th{background:#dbeafe}.lb-meta{margin-bottom:14px;font-size:14px}.lb-nowruz{background:#16a34a;color:#fff;font-weight:bold}</style>';
+    var blob=new Blob(['<html><head><meta charset="utf-8">'+style+'<title>'+esc(title)+'</title></head><body><h2>'+esc(title)+'</h2>'+bodyHtml+'</body></html>'],{type:'application/msword'});
+    var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=filename+'.doc';a.click();
+  }
+  function lbPrintExport(title,bodyHtml){
+    var style='<style>@page{size:A4 landscape;margin:8mm}body{direction:rtl;font-family:tahoma,Arial;padding:6px}h1,h2,h3{text-align:center}table{width:100%;border-collapse:collapse;margin:8px 0}th,td{border:1px solid #333;padding:4px;text-align:center;font-size:10px}th{background:#dbeafe}.lb-meta{margin-bottom:10px;font-size:12px}.lb-nowruz{background:#16a34a;color:#fff;font-weight:bold}</style>';
+    var w=window.open('','_blank');
+    if(!w){toast('اجازه‌ی باز کردن پنجره‌ی چاپ داده نشد (popup blocked)');return;}
+    w.document.write('<html><head><meta charset="utf-8">'+style+'<title>'+esc(title)+'</title></head><body><h2>'+esc(title)+'</h2>'+bodyHtml+'</body></html>');
+    w.document.close();
+    setTimeout(function(){w.print();},500);
+  }
+  async function lbExcelExport(filename,buildFn){
+    try{
+      await loadExcelJS();
+      var wb=new ExcelJS.Workbook();
+      await buildFn(wb);
+      var buf=await wb.xlsx.writeBuffer();
+      var blob=new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+      var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=filename+'.xlsx';a.click();
+      toast('فایل اکسل ساخته شد ✅');
+    }catch(e){toast('خطا در ساخت فایل اکسل');}
+  }
+  function lbAddExcelSheet(wb,sheetName,rows,styleHeader){
+    var ws=wb.addWorksheet(sheetName.slice(0,31),{views:[{rightToLeft:true}]});
+    rows.forEach(function(rowArr,ri){
+      var row=ws.addRow(rowArr);
+      if(ri===0 && styleHeader!==false){
+        row.eachCell(function(cell){
+          cell.font={bold:true};
+          cell.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FFDBEAFE'}};
+          cell.alignment={horizontal:'center',vertical:'middle'};
+        });
+      }
+    });
+    ws.columns.forEach(function(col){
+      var maxLen=10;
+      col.eachCell({includeEmpty:true},function(cell){
+        var len=(cell.value?String(cell.value).length:0);
+        if(len>maxLen)maxLen=len;
+      });
+      col.width=Math.min(35,maxLen+3);
+    });
+    return ws;
+  }
+
+  // --- تبدیل جدول‌های پویا (ردیفی) به آرایه‌ی داده برای خروجی ---
+  function lbTableToRows(tableEl){
+    if(!tableEl)return [[]];
+    var headers=Array.from(tableEl.querySelectorAll('thead th')).map(function(th){return th.textContent.trim();});
+    var rows=[headers];
+    tableEl.querySelectorAll('tbody tr').forEach(function(tr){
+      var row=[];
+      tr.querySelectorAll('td').forEach(function(td){
+        var inp=td.querySelector('input,textarea');
+        row.push(inp?inp.value:td.textContent.trim());
+      });
+      rows.push(row);
+    });
+    return rows;
+  }
+  function lbRowsToHtmlTable(rows){
+    if(!rows.length)return '<table></table>';
+    var h='<table><tr>'+rows[0].map(function(c){return '<th>'+esc(c)+'</th>';}).join('')+'</tr>';
+    for(var i=1;i<rows.length;i++){
+      h+='<tr>'+rows[i].map(function(c){return '<td>'+esc(c)+'</td>';}).join('')+'</tr>';
+    }
+    h+='</table>';
+    return h;
+  }
+  function lbBuildSimpleTableHtml(headers,rowCount){
+    var h='<thead><tr>'+headers.map(function(hd){return '<th>'+esc(hd)+'</th>';}).join('')+'</tr></thead><tbody>';
+    for(var r=1;r<=rowCount;r++){
+      h+='<tr><td>'+r+'</td>';
+      for(var c=1;c<headers.length;c++){h+='<td><input type="text"></td>';}
+      h+='</tr>';
+    }
+    h+='</tbody>';
+    return h;
+  }
+  function lbAddSimpleRow(tableId,colCount){
+    var tbody=document.querySelector('#'+tableId+' tbody');
+    if(!tbody)return;
+    var rowNum=tbody.children.length+1;
+    var tr=document.createElement('tr');
+    var html='<td>'+rowNum+'</td>';
+    for(var c=1;c<colCount;c++)html+='<td><input type="text"></td>';
+    tr.innerHTML=html;
+    tbody.appendChild(tr);
+  }
+
+  // ===================== ۱. جدول بودجه‌بندی =====================
+  var LB_GRADES=[
+    {title:'پایه اول دبستان',subjects:['فارسی','نگارش فارسی','ریاضی','علوم تجربی','قرآن','هدیه‌های آسمان']},
+    {title:'پایه دوم دبستان',subjects:['فارسی','نگارش فارسی','ریاضی','علوم تجربی','قرآن','هدیه‌های آسمان']},
+    {title:'پایه سوم دبستان',subjects:['فارسی','نگارش فارسی','ریاضی','علوم تجربی','مطالعات اجتماعی','قرآن','هدیه‌های آسمان']},
+    {title:'پایه چهارم دبستان',subjects:['فارسی','نگارش فارسی','ریاضی','علوم تجربی','مطالعات اجتماعی','قرآن','هدیه‌های آسمان']},
+    {title:'پایه پنجم دبستان',subjects:['فارسی','نگارش فارسی','ریاضی','علوم تجربی','مطالعات اجتماعی','قرآن','هدیه‌های آسمان']},
+    {title:'پایه ششم دبستان',subjects:['فارسی (بخوانیم)','نگارش فارسی','ریاضی','علوم تجربی','مطالعات اجتماعی','قرآن','هدیه‌های آسمان','کار و فناوری','تفکر و پژوهش']}
+  ];
+  var LB_MONTHS1=['مهر','آبان','آذر','دی'];
+  var LB_MONTHS2=['بهمن','اسفند','فروردین','اردیبهشت'];
+  function lbBuildPacingTableHtml(grade){
+    var subjects=grade.subjects;
+    var h='<h3>'+esc(grade.title)+'</h3><div style="overflow-x:auto"><table class="lb-pacing-table"><thead>';
+    h+='<tr><th rowspan="3">موضوع</th><th colspan="8">نوبت اول</th><th rowspan="3" class="lb-nowruz">تعطیلات<br>نوروز</th><th colspan="8">نوبت دوم</th></tr>';
+    h+='<tr>'+LB_MONTHS1.map(function(m){return '<th colspan="2">'+m+'</th>';}).join('')+LB_MONTHS2.map(function(m){return '<th colspan="2">'+m+'</th>';}).join('')+'</tr>';
+    h+='<tr>'+Array(8).fill('<th>نیمه۱</th><th>نیمه۲</th>').join('')+'</tr>';
+    h+='</thead><tbody>';
+    subjects.forEach(function(subj,i){
+      h+='<tr><td class="lb-subject">'+esc(subj)+'</td>';
+      for(var c=0;c<8;c++)h+='<td class="lb-cell"></td>';
+      if(i===0)h+='<td class="lb-nowruz" rowspan="'+subjects.length+'">تعطیلات<br>نوروز</td>';
+      for(var c2=0;c2<8;c2++)h+='<td class="lb-cell"></td>';
+      h+='</tr>';
+    });
+    h+='</tbody></table></div>';
+    return h;
+  }
+  function lbRenderPacing(){
+    var el=document.getElementById('lb-pacing-preview');
+    el.innerHTML=LB_GRADES.map(lbBuildPacingTableHtml).join('')+
+      '<p><b>توضیحات:</b></p><p class="muted">این بودجه‌بندی پیشنهادی می‌باشد.</p>';
+  }
+  function lbPacingFullHtml(){
+    var meta=lbMetaBlock([['نام مدرسه','lbp-school'],['نام آموزگار','lbp-teacher'],['سال تحصیلی','lbp-year']]);
+    var tables=LB_GRADES.map(lbBuildPacingTableHtml).join('');
+    return meta+tables+'<p><b>توضیحات:</b></p><p>این بودجه‌بندی پیشنهادی می‌باشد.</p>';
+  }
+  document.getElementById('btn-lb-pacing-word').onclick=function(){lbWordExport('جدول بودجه‌بندی آموزشی',lbPacingFullHtml(),'بودجه-بندی-آموزشی');};
+  document.getElementById('btn-lb-pacing-pdf').onclick=function(){lbPrintExport('جدول بودجه‌بندی آموزشی',lbPacingFullHtml());};
+  document.getElementById('btn-lb-pacing-excel').onclick=function(){
+    lbExcelExport('بودجه-بندی-آموزشی',function(wb){
+      LB_GRADES.forEach(function(grade){
+        var headerRow1=['موضوع'].concat(LB_MONTHS1.reduce(function(a,m){return a.concat([m,'']);},[])).concat(['تعطیلات نوروز']).concat(LB_MONTHS2.reduce(function(a,m){return a.concat([m,'']);},[]));
+        var headerRow2=[''].concat(Array(8).fill(0).map(function(_,i){return i%2===0?'نیمه۱':'نیمه۲';})).concat(['']).concat(Array(8).fill(0).map(function(_,i){return i%2===0?'نیمه۱':'نیمه۲';}));
+        var rows=[headerRow1,headerRow2];
+        grade.subjects.forEach(function(subj){
+          rows.push([subj].concat(Array(8).fill('')).concat(['']).concat(Array(8).fill('')));
+        });
+        lbAddExcelSheet(wb,grade.title,rows);
+      });
+    });
+  };
+
+  // ===================== ۲. لیست اسامی دانش‌آموزان =====================
+  var LB_ROSTER_HEADERS=['ردیف','نام و نام خانوادگی دانش‌آموز','نام پدر','تاریخ تولد','کد ملی','وضعیت سلامت / توضیحات','شماره تماس ولی','آدرس محل سکونت','توضیحات و پیگیری‌های لازم'];
+  document.getElementById('btn-lbr-build').onclick=function(){
+    var n=parseInt(document.getElementById('lbr-rows').value,10)||30;
+    document.getElementById('lbr-table').innerHTML=lbBuildSimpleTableHtml(LB_ROSTER_HEADERS,n);
+  };
+  document.getElementById('btn-lbr-addrow').onclick=function(){lbAddSimpleRow('lbr-table',LB_ROSTER_HEADERS.length);};
+  document.getElementById('btn-lbr-build').click();
+  function lbRosterExportHtml(){
+    var meta=lbMetaBlock([['نام مدرسه','lbr-school'],['نام آموزگار','lbr-teacher'],['پایه تحصیلی','lbr-grade'],['سال تحصیلی','lbr-year']]);
+    var rows=lbTableToRows(document.getElementById('lbr-table'));
+    return meta+lbRowsToHtmlTable(rows)+'<p style="margin-top:14px"><b>ادامه اسامی دانش‌آموزان</b></p>';
+  }
+  document.getElementById('btn-lb-roster-word').onclick=function(){lbWordExport('جدول لیست اسامی دانش‌آموزان',lbRosterExportHtml(),'لیست-اسامی-دانش-آموزان');};
+  document.getElementById('btn-lb-roster-pdf').onclick=function(){lbPrintExport('جدول لیست اسامی دانش‌آموزان',lbRosterExportHtml());};
+  document.getElementById('btn-lb-roster-excel').onclick=function(){
+    lbExcelExport('لیست-اسامی-دانش-آموزان',function(wb){
+      lbAddExcelSheet(wb,'لیست اسامی',lbTableToRows(document.getElementById('lbr-table')));
+    });
+  };
+
+  // ===================== ۳. ثبت غیبت =====================
+  document.getElementById('btn-lba-build').onclick=function(){
+    var days=parseInt(document.getElementById('lba-days').value,10)||30;
+    var n=parseInt(document.getElementById('lba-rows').value,10)||30;
+    var headers=['ردیف','نام و نام خانوادگی'];
+    for(var d=1;d<=days;d++)headers.push(String(d));
+    document.getElementById('lba-table').innerHTML=lbBuildSimpleTableHtml(headers,n);
+  };
+  document.getElementById('btn-lba-addrow').onclick=function(){
+    var days=parseInt(document.getElementById('lba-days').value,10)||30;
+    lbAddSimpleRow('lba-table',days+2);
+  };
+  document.getElementById('btn-lba-build').click();
+  function lbAbsenceExportHtml(){
+    var month=document.getElementById('lba-month').value;
+    var meta=lbMetaBlock([['نام مدرسه','lba-school'],['نام آموزگار','lba-teacher'],['پایه تحصیلی','lba-grade'],['سال تحصیلی','lba-year']]);
+    meta+='<p><b>ماه:</b> '+esc(month)+' &nbsp;&nbsp; موجه: «م» | غیرموجه: «غ» | تأخیر: «ت»</p>';
+    var rows=lbTableToRows(document.getElementById('lba-table'));
+    return meta+lbRowsToHtmlTable(rows)+'<p style="margin-top:14px"><b>ادامه جدول غیبت دانش‌آموزان</b></p>';
+  }
+  document.getElementById('btn-lb-absence-word').onclick=function(){lbWordExport('جدول ثبت غیبت دانش‌آموزان',lbAbsenceExportHtml(),'ثبت-غیبت-دانش-آموزان');};
+  document.getElementById('btn-lb-absence-pdf').onclick=function(){lbPrintExport('جدول ثبت غیبت دانش‌آموزان',lbAbsenceExportHtml());};
+  document.getElementById('btn-lb-absence-excel').onclick=function(){
+    lbExcelExport('ثبت-غیبت-دانش-آموزان',function(wb){
+      lbAddExcelSheet(wb,'ثبت غیبت',lbTableToRows(document.getElementById('lba-table')));
+    });
+  };
+
+  // ===================== ۴. ثبت سطح عملکرد =====================
+  var LB_PERF_SUBJECTS=[
+    {name:'قرآن',items:['روخوانی','روان‌خوانی','ترجمه کلمات و عبارات قرآنی','پیام‌های قرآنی','آداب و اخلاق قرآنی']},
+    {name:'هدیه‌های آسمان',items:['شناخت مفاهیم دینی','انجام فعالیت‌ها و مشارکت در کلاس','توانایی بیان پیام‌های دینی','ارتباط مفاهیم با زندگی روزمره']},
+    {name:'فارسی',items:['گوش دادن','سخن گفتن','خواندن','درک مطلب','نوشتن و نگارش','واژه‌آموزی']}
+  ];
+  function lbBuildPerformanceHtml(forExport){
+    var h='<table class="lb-table"><thead><tr><th>نام درس</th><th>مهم‌ترین انتظارات آموزشی</th><th>ثبت عملکرد دانش‌آموزان</th><th>توصیف عملکرد و موارد ضروری</th></tr></thead><tbody id="lb-perf-tbody">';
+    LB_PERF_SUBJECTS.forEach(function(subj){
+      subj.items.forEach(function(item,idx){
+        h+='<tr>';
+        if(idx===0)h+='<td rowspan="'+subj.items.length+'" style="font-weight:700;background:#f1f5f9">'+esc(subj.name)+'</td>';
+        h+='<td>'+esc(item)+'</td>';
+        h+=forExport?'<td></td><td></td>':'<td><input type="text"></td><td><textarea rows="2"></textarea></td>';
+        h+='</tr>';
+      });
+    });
+    h+='</tbody></table>';
+    return h;
+  }
+  function lbRenderPerformance(){
+    var el=document.getElementById('lb-performance-preview');
+    el.innerHTML=lbBuildPerformanceHtml(false)+
+      '<div class="row" style="margin-top:10px"><button class="btn sm gray" id="btn-lbf-addrow">➕ افزودن ردیف (ادامه ثبت عملکرد)</button></div>';
+    document.getElementById('btn-lbf-addrow').onclick=function(){
+      var tbody=document.getElementById('lb-perf-tbody');
+      var tr=document.createElement('tr');
+      tr.innerHTML='<td></td><td><input type="text" placeholder="مورد اضافی"></td><td><input type="text"></td><td><textarea rows="2"></textarea></td>';
+      tbody.appendChild(tr);
+    };
+  }
+  function lbPerformanceExportHtml(){
+    var meta=lbMetaBlock([['نام مدرسه','lbf-school'],['نام آموزگار','lbf-teacher'],['پایه تحصیلی','lbf-grade'],['سال تحصیلی','lbf-year']]);
+    // خواندن مقادیر واقعی واردشده در جدول زنده
+    var tbody=document.getElementById('lb-perf-tbody');
+    var h='<table><thead><tr><th>نام درس</th><th>مهم‌ترین انتظارات آموزشی</th><th>ثبت عملکرد دانش‌آموزان</th><th>توصیف عملکرد و موارد ضروری</th></tr></thead><tbody>';
+    if(tbody){
+      Array.from(tbody.children).forEach(function(tr){
+        h+='<tr>';
+        Array.from(tr.children).forEach(function(td){
+          var inp=td.querySelector('input,textarea');
+          if(td.hasAttribute('rowspan'))h+='<td rowspan="'+td.getAttribute('rowspan')+'">'+esc(td.textContent.trim())+'</td>';
+          else h+='<td>'+esc(inp?inp.value:td.textContent.trim())+'</td>';
+        });
+        h+='</tr>';
+      });
+    }
+    h+='</tbody></table>';
+    return meta+h;
+  }
+  document.getElementById('btn-lb-performance-word').onclick=function(){lbWordExport('جدول شماره ۵: ثبت سطح عملکرد دانش‌آموزان',lbPerformanceExportHtml(),'ثبت-سطح-عملکرد');};
+  document.getElementById('btn-lb-performance-pdf').onclick=function(){lbPrintExport('جدول شماره ۵: ثبت سطح عملکرد دانش‌آموزان',lbPerformanceExportHtml());};
+  document.getElementById('btn-lb-performance-excel').onclick=function(){
+    lbExcelExport('ثبت-سطح-عملکرد',function(wb){
+      var rows=[['نام درس','مهم‌ترین انتظارات آموزشی','ثبت عملکرد دانش‌آموزان','توصیف عملکرد و موارد ضروری']];
+      LB_PERF_SUBJECTS.forEach(function(subj){
+        subj.items.forEach(function(item,idx){rows.push([idx===0?subj.name:'',item,'','']);});
+      });
+      lbAddExcelSheet(wb,'سطح عملکرد',rows);
+    });
+  };
+
+  // ===================== ۵. صورتجلسه شورای آموزشی اولیا =====================
+  var LB_COUNCIL_HEADERS=['ردیف','نام و نام خانوادگی','سمت / نقش','امضاء'];
+  document.getElementById('btn-lbc-build').onclick=function(){
+    var n=parseInt(document.getElementById('lbc-rows').value,10)||10;
+    document.getElementById('lbc-table').innerHTML=lbBuildSimpleTableHtml(LB_COUNCIL_HEADERS,n);
+  };
+  document.getElementById('btn-lbc-addrow').onclick=function(){lbAddSimpleRow('lbc-table',LB_COUNCIL_HEADERS.length);};
+  document.getElementById('btn-lbc-build').click();
+  function lbCouncilExportHtml(){
+    var meta=lbMetaBlock([['تاریخ برگزاری','lbc-date'],['موضوع جلسه','lbc-topic'],['شماره جلسه','lbc-num'],['ساعت تشکیل','lbc-time']]);
+    var summary='<p><b>۱- خلاصه مباحث مطرح شده:</b></p><p style="border:1px solid #ccc;padding:10px;min-height:60px">'+esc(document.getElementById('lbc-summary').value||'')+'</p>';
+    var decisions='<p><b>۲- تصمیمات و پیشنهادهای ارائه‌شده:</b></p><p style="border:1px solid #ccc;padding:10px;min-height:60px">'+esc(document.getElementById('lbc-decisions').value||'')+'</p>';
+    var rows=lbTableToRows(document.getElementById('lbc-table'));
+    var table='<p><b>۳- اسامی اعضای جلسه:</b></p>'+lbRowsToHtmlTable(rows);
+    var sign='<p style="margin-top:16px"><b>امضاء و تأیید مدیر مدرسه:</b> .......................</p>';
+    return meta+summary+decisions+table+sign;
+  }
+  document.getElementById('btn-lb-council-word').onclick=function(){lbWordExport('جدول شماره ۱: جلسات شورای آموزشی اولیا',lbCouncilExportHtml(),'صورتجلسه-شورای-آموزشی');};
+  document.getElementById('btn-lb-council-pdf').onclick=function(){lbPrintExport('جدول شماره ۱: جلسات شورای آموزشی اولیا',lbCouncilExportHtml());};
+  document.getElementById('btn-lb-council-excel').onclick=function(){
+    lbExcelExport('صورتجلسه-شورای-آموزشی',function(wb){
+      var ws=wb.addWorksheet('صورتجلسه',{views:[{rightToLeft:true}]});
+      ws.addRow(['تاریخ برگزاری',document.getElementById('lbc-date').value]);
+      ws.addRow(['موضوع جلسه',document.getElementById('lbc-topic').value]);
+      ws.addRow(['شماره جلسه',document.getElementById('lbc-num').value]);
+      ws.addRow(['ساعت تشکیل',document.getElementById('lbc-time').value]);
+      ws.addRow([]);
+      ws.addRow(['خلاصه مباحث مطرح شده',document.getElementById('lbc-summary').value]);
+      ws.addRow(['تصمیمات و پیشنهادها',document.getElementById('lbc-decisions').value]);
+      ws.addRow([]);
+      lbTableToRows(document.getElementById('lbc-table')).forEach(function(r){ws.addRow(r);});
+      ws.columns.forEach(function(c){c.width=28;});
+    });
+  };
+
+  // ===================== ۶. جلسات فردی با اولیا =====================
+  var LB_MEET_HEADERS=['ردیف','نام و نام خانوادگی ولی','نسبت با دانش‌آموز','تاریخ دیدار','موضوع دیدار','نتایج (تصمیمات، راهکارها، پیگیری)'];
+  document.getElementById('btn-lbm-build').onclick=function(){
+    var n=parseInt(document.getElementById('lbm-rows').value,10)||15;
+    document.getElementById('lbm-table').innerHTML=lbBuildSimpleTableHtml(LB_MEET_HEADERS,n);
+  };
+  document.getElementById('btn-lbm-addrow').onclick=function(){lbAddSimpleRow('lbm-table',LB_MEET_HEADERS.length);};
+  document.getElementById('btn-lbm-build').click();
+  function lbMeetingsExportHtml(){
+    var meta=lbMetaBlock([['نام مدرسه','lbm-school'],['نام آموزگار','lbm-teacher'],['پایه تحصیلی','lbm-grade'],['سال تحصیلی','lbm-year']]);
+    var rows=lbTableToRows(document.getElementById('lbm-table'));
+    return meta+lbRowsToHtmlTable(rows)+'<p style="margin-top:14px"><b>ادامه جلسات فردی با اولیا</b></p>';
+  }
+  document.getElementById('btn-lb-meetings-word').onclick=function(){lbWordExport('جدول ۱۰ - جلسات فردی با اولیا',lbMeetingsExportHtml(),'جلسات-فردی-با-اولیا');};
+  document.getElementById('btn-lb-meetings-pdf').onclick=function(){lbPrintExport('جدول ۱۰ - جلسات فردی با اولیا',lbMeetingsExportHtml());};
+  document.getElementById('btn-lb-meetings-excel').onclick=function(){
+    lbExcelExport('جلسات-فردی-با-اولیا',function(wb){
+      lbAddExcelSheet(wb,'جلسات فردی',lbTableToRows(document.getElementById('lbm-table')));
+    });
+  };
+  // ===================== پایان دفتر مدیریت کلاسی =====================
 
   checkAuth();
   `;
