@@ -1041,7 +1041,10 @@ const SHARED_CSS = `
   [data-theme="dark"] .lb-pacing-table th{background:#1e3a5f}
   .lb-pacing-table td.lb-subject{background:#f1f5f9;font-weight:700;white-space:nowrap;padding:4px 10px}
   [data-theme="dark"] .lb-pacing-table td.lb-subject{background:#0f172a}
-  .lb-pacing-table td.lb-cell{min-width:38px;height:34px}
+  .lb-pacing-table td.lb-cell{min-width:100px;padding:2px}
+  .lb-pacing-input{width:100%;min-height:56px;border:none;background:transparent;resize:vertical;font-family:inherit;font-size:11px;text-align:center;padding:3px;color:inherit}
+  .lb-pacing-input:focus{outline:2px solid var(--primary);outline-offset:1px;background:#eef2ff;border-radius:6px}
+  .lb-pacing-input::placeholder{color:#94a3b8;font-size:9px}
   .lb-nowruz{background:#16a34a !important;color:#fff;writing-mode:vertical-rl;text-orientation:mixed;font-weight:700;text-align:center}
 
   /* ---- پنل PDF کلاس آنلاین ---- */
@@ -4636,6 +4639,23 @@ function teacherScript() {
     tr.innerHTML=html;
     tbody.appendChild(tr);
   }
+  // ساخت دوباره‌ی جدول (مثلاً با تعداد ردیف جدید) بدون پاک شدن اطلاعاتی که قبلاً تایپ شده
+  function lbRebuildPreserving(tableId,headers,rowCount){
+    var tableEl=document.getElementById(tableId);
+    var oldRows=tableEl.querySelector('tbody')?lbTableToRows(tableEl).slice(1):[];
+    tableEl.innerHTML=lbBuildSimpleTableHtml(headers,rowCount);
+    var trs=tableEl.querySelectorAll('tbody tr');
+    trs.forEach(function(tr,rIdx){
+      var oldRow=oldRows[rIdx];
+      if(!oldRow)return;
+      var tds=tr.querySelectorAll('td');
+      tds.forEach(function(td,cIdx){
+        if(cIdx===0)return; // ستون ردیف را دست نمی‌زنیم
+        var inp=td.querySelector('input,textarea');
+        if(inp && oldRow[cIdx]!==undefined)inp.value=oldRow[cIdx];
+      });
+    });
+  }
 
   // ===================== ۱. جدول بودجه‌بندی =====================
   var LB_GRADES=[
@@ -4648,50 +4668,76 @@ function teacherScript() {
   ];
   var LB_MONTHS1=['مهر','آبان','آذر','دی'];
   var LB_MONTHS2=['بهمن','اسفند','فروردین','اردیبهشت'];
-  function lbBuildPacingTableHtml(grade){
+  var LB_PACING_DATA={}; // { gradeIdx: [ [16 مقدار برای هر سطر درس], ... ] } - نگه‌داری مقادیر تایپ‌شده هر پایه در حافظه
+  function lbBuildPacingTableHtml(gradeIdx,forExport){
+    var grade=LB_GRADES[gradeIdx];
     var subjects=grade.subjects;
+    var saved=LB_PACING_DATA[gradeIdx];
     var h='<h3>'+esc(grade.title)+'</h3><div style="overflow-x:auto"><table class="lb-pacing-table"><thead>';
     h+='<tr><th rowspan="3">موضوع</th><th colspan="8">نوبت اول</th><th rowspan="3" class="lb-nowruz">تعطیلات<br>نوروز</th><th colspan="8">نوبت دوم</th></tr>';
     h+='<tr>'+LB_MONTHS1.map(function(m){return '<th colspan="2">'+m+'</th>';}).join('')+LB_MONTHS2.map(function(m){return '<th colspan="2">'+m+'</th>';}).join('')+'</tr>';
     h+='<tr>'+Array(8).fill('<th>نیمه۱</th><th>نیمه۲</th>').join('')+'</tr>';
     h+='</thead><tbody>';
+    function cellHtml(rowIdx,colIdx){
+      var val=(saved&&saved[rowIdx]&&saved[rowIdx][colIdx])||'';
+      if(forExport)return '<td class="lb-cell">'+esc(val).replace(/\n/g,'<br>')+'</td>';
+      return '<td class="lb-cell"><textarea class="lb-pacing-input" data-grade="'+gradeIdx+'" data-row="'+rowIdx+'" data-col="'+colIdx+'" rows="3" placeholder="شماره درس / صفحات / زمان / توضیحات">'+esc(val)+'</textarea></td>';
+    }
     subjects.forEach(function(subj,i){
       h+='<tr><td class="lb-subject">'+esc(subj)+'</td>';
-      for(var c=0;c<8;c++)h+='<td class="lb-cell"></td>';
+      for(var c=0;c<8;c++)h+=cellHtml(i,c);
       if(i===0)h+='<td class="lb-nowruz" rowspan="'+subjects.length+'">تعطیلات<br>نوروز</td>';
-      for(var c2=0;c2<8;c2++)h+='<td class="lb-cell"></td>';
+      for(var c2=8;c2<16;c2++)h+=cellHtml(i,c2);
       h+='</tr>';
     });
     h+='</tbody></table></div>';
     return h;
   }
+  function lbSelectedGradeIdx(){
+    return parseInt(document.getElementById('lbp-grade-select').value,10)||0;
+  }
   function lbSelectedGrade(){
-    var idx=parseInt(document.getElementById('lbp-grade-select').value,10)||0;
-    return LB_GRADES[idx];
+    return LB_GRADES[lbSelectedGradeIdx()];
   }
   function lbRenderPacing(){
+    var idx=lbSelectedGradeIdx();
     var el=document.getElementById('lb-pacing-preview');
-    el.innerHTML=lbBuildPacingTableHtml(lbSelectedGrade())+
+    el.innerHTML=lbBuildPacingTableHtml(idx,false)+
       '<p><b>توضیحات:</b></p><p class="muted">این بودجه‌بندی پیشنهادی می‌باشد.</p>';
+    // ذخیره‌ی زنده‌ی مقادیر تایپ‌شده در حافظه (تا با تغییر پایه از بین نروند)
+    el.querySelectorAll('.lb-pacing-input').forEach(function(ta){
+      ta.addEventListener('input',function(){
+        var g=parseInt(ta.dataset.grade,10),r=parseInt(ta.dataset.row,10),c=parseInt(ta.dataset.col,10);
+        if(!LB_PACING_DATA[g])LB_PACING_DATA[g]=[];
+        if(!LB_PACING_DATA[g][r])LB_PACING_DATA[g][r]=[];
+        LB_PACING_DATA[g][r][c]=ta.value;
+      });
+    });
   }
   document.getElementById('lbp-grade-select').addEventListener('change',lbRenderPacing);
   function lbPacingFullHtml(){
-    var grade=lbSelectedGrade();
+    var idx=lbSelectedGradeIdx();
+    var grade=LB_GRADES[idx];
     var meta=lbMetaBlock([['نام مدرسه','lbp-school'],['نام آموزگار','lbp-teacher'],['سال تحصیلی','lbp-year']]);
     meta+='<p><b>پایه تحصیلی:</b> '+esc(grade.title)+'</p>';
-    var table=lbBuildPacingTableHtml(grade);
+    var table=lbBuildPacingTableHtml(idx,true);
     return meta+table+'<p><b>توضیحات:</b></p><p>این بودجه‌بندی پیشنهادی می‌باشد.</p>';
   }
   document.getElementById('btn-lb-pacing-word').onclick=function(){lbWordExport('جدول بودجه‌بندی آموزشی - '+lbSelectedGrade().title,lbPacingFullHtml(),'بودجه-بندی-'+lbSelectedGrade().title,true);};
   document.getElementById('btn-lb-pacing-pdf').onclick=function(){lbPrintExport('جدول بودجه‌بندی آموزشی - '+lbSelectedGrade().title,lbPacingFullHtml(),true);};
   document.getElementById('btn-lb-pacing-excel').onclick=function(){
-    var grade=lbSelectedGrade();
+    var idx=lbSelectedGradeIdx();
+    var grade=LB_GRADES[idx];
+    var saved=LB_PACING_DATA[idx]||[];
     lbExcelExport('بودجه-بندی-'+grade.title,function(wb){
       var headerRow1=['موضوع'].concat(LB_MONTHS1.reduce(function(a,m){return a.concat([m,'']);},[])).concat(['تعطیلات نوروز']).concat(LB_MONTHS2.reduce(function(a,m){return a.concat([m,'']);},[]));
       var headerRow2=[''].concat(Array(8).fill(0).map(function(_,i){return i%2===0?'نیمه۱':'نیمه۲';})).concat(['']).concat(Array(8).fill(0).map(function(_,i){return i%2===0?'نیمه۱':'نیمه۲';}));
       var rows=[headerRow1,headerRow2];
-      grade.subjects.forEach(function(subj){
-        rows.push([subj].concat(Array(8).fill('')).concat(['']).concat(Array(8).fill('')));
+      grade.subjects.forEach(function(subj,i){
+        var rowVals=saved[i]||[];
+        var first8=[];for(var c=0;c<8;c++)first8.push(rowVals[c]||'');
+        var second8=[];for(var c2=8;c2<16;c2++)second8.push(rowVals[c2]||'');
+        rows.push([subj].concat(first8).concat(['']).concat(second8));
       });
       lbAddExcelSheet(wb,grade.title,rows);
     });
@@ -4701,7 +4747,7 @@ function teacherScript() {
   var LB_ROSTER_HEADERS=['ردیف','نام و نام خانوادگی دانش‌آموز','نام پدر','تاریخ تولد','کد ملی','وضعیت سلامت / توضیحات','شماره تماس ولی','آدرس محل سکونت','توضیحات و پیگیری‌های لازم'];
   document.getElementById('btn-lbr-build').onclick=function(){
     var n=parseInt(document.getElementById('lbr-rows').value,10)||30;
-    document.getElementById('lbr-table').innerHTML=lbBuildSimpleTableHtml(LB_ROSTER_HEADERS,n);
+    lbRebuildPreserving('lbr-table',LB_ROSTER_HEADERS,n);
   };
   document.getElementById('btn-lbr-addrow').onclick=function(){lbAddSimpleRow('lbr-table',LB_ROSTER_HEADERS.length);};
   document.getElementById('btn-lbr-build').click();
@@ -4724,7 +4770,7 @@ function teacherScript() {
     var n=parseInt(document.getElementById('lba-rows').value,10)||30;
     var headers=['ردیف','نام و نام خانوادگی'];
     for(var d=1;d<=days;d++)headers.push(String(d));
-    document.getElementById('lba-table').innerHTML=lbBuildSimpleTableHtml(headers,n);
+    lbRebuildPreserving('lba-table',headers,n);
   };
   document.getElementById('btn-lba-addrow').onclick=function(){
     var days=parseInt(document.getElementById('lba-days').value,10)||30;
@@ -4768,6 +4814,7 @@ function teacherScript() {
   }
   function lbRenderPerformance(){
     var el=document.getElementById('lb-performance-preview');
+    if(el.innerHTML.trim())return; // اگر قبلاً ساخته شده و دانش‌آموز مقداری تایپ کرده، دوباره نسازیم تا اطلاعات پاک نشود
     el.innerHTML=lbBuildPerformanceHtml(false)+
       '<div class="row" style="margin-top:10px"><button class="btn sm gray" id="btn-lbf-addrow">➕ افزودن ردیف (ادامه ثبت عملکرد)</button></div>';
     document.getElementById('btn-lbf-addrow').onclick=function(){
@@ -4812,7 +4859,7 @@ function teacherScript() {
   var LB_COUNCIL_HEADERS=['ردیف','نام و نام خانوادگی','سمت / نقش','امضاء'];
   document.getElementById('btn-lbc-build').onclick=function(){
     var n=parseInt(document.getElementById('lbc-rows').value,10)||10;
-    document.getElementById('lbc-table').innerHTML=lbBuildSimpleTableHtml(LB_COUNCIL_HEADERS,n);
+    lbRebuildPreserving('lbc-table',LB_COUNCIL_HEADERS,n);
   };
   document.getElementById('btn-lbc-addrow').onclick=function(){lbAddSimpleRow('lbc-table',LB_COUNCIL_HEADERS.length);};
   document.getElementById('btn-lbc-build').click();
@@ -4847,7 +4894,7 @@ function teacherScript() {
   var LB_MEET_HEADERS=['ردیف','نام و نام خانوادگی ولی','نسبت با دانش‌آموز','تاریخ دیدار','موضوع دیدار','نتایج (تصمیمات، راهکارها، پیگیری)'];
   document.getElementById('btn-lbm-build').onclick=function(){
     var n=parseInt(document.getElementById('lbm-rows').value,10)||15;
-    document.getElementById('lbm-table').innerHTML=lbBuildSimpleTableHtml(LB_MEET_HEADERS,n);
+    lbRebuildPreserving('lbm-table',LB_MEET_HEADERS,n);
   };
   document.getElementById('btn-lbm-addrow').onclick=function(){lbAddSimpleRow('lbm-table',LB_MEET_HEADERS.length);};
   document.getElementById('btn-lbm-build').click();
