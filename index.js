@@ -2440,7 +2440,7 @@ function teacherPage() {
             <button class="lb-menu-btn" data-lb="pacing"><span class="lb-ico">📊</span><span class="lb-t">جدول بودجه‌بندی آموزشی</span><small>پایه‌های اول تا ششم</small></button>
             <button class="lb-menu-btn" data-lb="roster"><span class="lb-ico">👨‍🎓</span><span class="lb-t">لیست اسامی دانش‌آموزان</span></button>
             <button class="lb-menu-btn" data-lb="absence"><span class="lb-ico">📋</span><span class="lb-t">ثبت غیبت دانش‌آموزان</span></button>
-            <button class="lb-menu-btn" data-lb="performance"><span class="lb-ico">📈</span><span class="lb-t">ثبت سطح عملکرد دانش‌آموزان</span></button>
+            <button class="lb-menu-btn" data-lb="performance"><span class="lb-ico">📈</span><span class="lb-t">ثبت سطوح عملکرد دانش‌آموز</span></button>
             <button class="lb-menu-btn" data-lb="council"><span class="lb-ico">🗣️</span><span class="lb-t">صورتجلسه شورای آموزشی اولیا</span></button>
             <button class="lb-menu-btn" data-lb="meetings"><span class="lb-ico">🤝</span><span class="lb-t">جلسات فردی با اولیا</span></button>
           </div>
@@ -2527,18 +2527,23 @@ function teacherPage() {
           </div>
         </div>
 
-        <!-- ===== ۴. ثبت سطح عملکرد دانش‌آموزان ===== -->
+        <!-- ===== ۴. ثبت سطوح عملکرد دانش‌آموز ===== -->
         <div class="lb-panel hidden" id="lb-panel-performance">
           <button class="btn sm gray lb-back-btn">← بازگشت به دفتر</button>
-          <h3>📈 جدول شماره ۵: ثبت سطح عملکرد دانش‌آموزان</h3>
-          <p class="muted">ثبت عملکرد دانش‌آموزان براساس انتظارات آموزشی هر یک از دروس</p>
+          <h3>📈 جدول شماره ۸: ثبت سطوح عملکرد دانش‌آموز</h3>
+          <p class="muted">ثبت سطوح عملکرد دانش‌آموز براساس انتظارات آموزشی هر یک از کتب درسی</p>
           <div class="lb-meta-form">
             <div><label>نام مدرسه</label><input id="lbf-school" placeholder="......................."></div>
             <div><label>نام آموزگار</label><input id="lbf-teacher" placeholder="......................."></div>
             <div><label>پایه تحصیلی</label><input id="lbf-grade" placeholder="......................."></div>
             <div><label>سال تحصیلی</label><input id="lbf-year" placeholder="......................."></div>
           </div>
+          <div class="row">
+            <label>تعداد ستون‌های ثبت عملکرد (دانش‌آموزان): </label><input type="number" id="lbf-cols" value="20" min="1" max="60" style="width:80px">
+            <button class="btn sm sec" id="btn-lbf-build">🔄 ساخت جدول</button>
+          </div>
           <div class="lb-preview" id="lb-performance-preview"></div>
+          <p class="muted" style="margin-top:10px">لازم به ذکر است انتظارات آموزشی تمامی پایه‌ها در جدول شماره ۸ ارائه گردیده. آموزگاران بر پایه بر انتظارات پیش‌بینی شده نسبت به تکمیل جدول اقدام می‌نمایند.</p>
           <div class="row" style="margin-top:12px">
             <button class="btn primary" id="btn-lb-performance-word">📄 دانلود Word</button>
             <button class="btn sec" id="btn-lb-performance-excel">📊 دانلود Excel</button>
@@ -4792,66 +4797,106 @@ function teacherScript() {
     });
   };
 
-  // ===================== ۴. ثبت سطح عملکرد =====================
+  // ===================== ۴. ثبت سطوح عملکرد دانش‌آموز (جدول شماره ۸) =====================
+  // تعداد ردیف هر درس متناسب با بزرگی و اهمیتش در نظر گرفته شده (قرآن بزرگ‌تر ... تا شایستگی‌های عمومی کوچک‌تر)
   var LB_PERF_SUBJECTS=[
-    {name:'قرآن',items:['روخوانی','روان‌خوانی','ترجمه کلمات و عبارات قرآنی','پیام‌های قرآنی','آداب و اخلاق قرآنی']},
-    {name:'هدیه‌های آسمان',items:['شناخت مفاهیم دینی','انجام فعالیت‌ها و مشارکت در کلاس','توانایی بیان پیام‌های دینی','ارتباط مفاهیم با زندگی روزمره']},
-    {name:'فارسی',items:['گوش دادن','سخن گفتن','خواندن','درک مطلب','نوشتن و نگارش','واژه‌آموزی']}
+    {name:'قرآن',rows:6},
+    {name:'هدیه‌های آسمان',rows:5},
+    {name:'فارسی',rows:5},
+    {name:'ریاضی',rows:5},
+    {name:'علوم',rows:4},
+    {name:'اجتماعی',rows:4},
+    {name:'تفکر و پژوهش',rows:2},
+    {name:'کار و فناوری',rows:2},
+    {name:'هنر',rows:2},
+    {name:'تربیت بدنی',rows:2},
+    {name:'شایستگی‌های عمومی',rows:2}
   ];
-  function lbBuildPerformanceHtml(forExport){
-    var h='<table class="lb-table"><thead><tr><th>نام درس</th><th>مهم‌ترین انتظارات آموزشی</th><th>ثبت عملکرد دانش‌آموزان</th><th>توصیف عملکرد و موارد ضروری</th></tr></thead><tbody id="lb-perf-tbody">';
-    LB_PERF_SUBJECTS.forEach(function(subj){
-      subj.items.forEach(function(item,idx){
-        h+='<tr>';
-        if(idx===0)h+='<td rowspan="'+subj.items.length+'" style="font-weight:700;background:#f1f5f9">'+esc(subj.name)+'</td>';
-        h+='<td>'+esc(item)+'</td>';
-        h+=forExport?'<td></td><td></td>':'<td><input type="text"></td><td><textarea rows="2"></textarea></td>';
+  var LB_PERF_DATA={}; // { 'subjIdx-rowIdx': {expect:'', desc:'', cols:['','', ...]} } - نگه‌داری مقادیر تایپ‌شده در حافظه
+  function lbPerfColsCount(){
+    return parseInt(document.getElementById('lbf-cols').value,10)||20;
+  }
+  function lbBuildPerformanceHtml(forExport,colsCount){
+    var cols=colsCount||lbPerfColsCount();
+    var h='<table class="lb-table lb-table-tight"><thead>';
+    h+='<tr><th rowspan="2">نام درس</th><th rowspan="2">مهم‌ترین انتظارات آموزشی</th><th colspan="'+cols+'">ثبت عملکرد دانش‌آموزان</th><th rowspan="2">توصیف کوتاه موارد ضروری</th></tr>';
+    h+='<tr>';
+    for(var c=0;c<cols;c++){
+      h+=forExport?'<th style="min-width:22px">'+(c+1)+'</th>':'<th style="min-width:34px">'+(c+1)+'</th>';
+    }
+    h+='</tr></thead><tbody id="lb-perf-tbody">';
+    LB_PERF_SUBJECTS.forEach(function(subj,sIdx){
+      for(var r=0;r<subj.rows;r++){
+        var key=sIdx+'-'+r;
+        var saved=LB_PERF_DATA[key]||{};
+        h+='<tr data-subj="'+sIdx+'" data-row="'+r+'">';
+        if(r===0)h+='<td rowspan="'+subj.rows+'" style="font-weight:700;background:#f1f5f9">'+esc(subj.name)+'</td>';
+        h+=forExport?'<td>'+esc(saved.expect||'').replace(/\\n/g,'<br>')+'</td>':'<td><textarea class="lb-perf-expect" data-key="'+key+'" rows="2" placeholder="انتظار آموزشی">'+esc(saved.expect||'')+'</textarea></td>';
+        for(var c2=0;c2<cols;c2++){
+          var v=(saved.cols&&saved.cols[c2])||'';
+          h+=forExport?'<td>'+esc(v)+'</td>':'<td><input type="text" class="lb-perf-cell" data-key="'+key+'" data-col="'+c2+'" value="'+esc(v)+'"></td>';
+        }
+        h+=forExport?'<td>'+esc(saved.desc||'').replace(/\\n/g,'<br>')+'</td>':'<td><textarea class="lb-perf-desc" data-key="'+key+'" rows="2" placeholder="توضیح کوتاه">'+esc(saved.desc||'')+'</textarea></td>';
         h+='</tr>';
-      });
+      }
     });
     h+='</tbody></table>';
     return h;
   }
+  function lbBindPerformanceInputs(el){
+    el.querySelectorAll('.lb-perf-expect').forEach(function(ta){
+      ta.addEventListener('input',function(){
+        if(!LB_PERF_DATA[ta.dataset.key])LB_PERF_DATA[ta.dataset.key]={};
+        LB_PERF_DATA[ta.dataset.key].expect=ta.value;
+      });
+    });
+    el.querySelectorAll('.lb-perf-desc').forEach(function(ta){
+      ta.addEventListener('input',function(){
+        if(!LB_PERF_DATA[ta.dataset.key])LB_PERF_DATA[ta.dataset.key]={};
+        LB_PERF_DATA[ta.dataset.key].desc=ta.value;
+      });
+    });
+    el.querySelectorAll('.lb-perf-cell').forEach(function(inp){
+      inp.addEventListener('input',function(){
+        var key=inp.dataset.key,c=parseInt(inp.dataset.col,10);
+        if(!LB_PERF_DATA[key])LB_PERF_DATA[key]={};
+        if(!LB_PERF_DATA[key].cols)LB_PERF_DATA[key].cols=[];
+        LB_PERF_DATA[key].cols[c]=inp.value;
+      });
+    });
+  }
   function lbRenderPerformance(){
     var el=document.getElementById('lb-performance-preview');
-    if(el.innerHTML.trim())return; // اگر قبلاً ساخته شده و دانش‌آموز مقداری تایپ کرده، دوباره نسازیم تا اطلاعات پاک نشود
-    el.innerHTML=lbBuildPerformanceHtml(false)+
-      '<div class="row" style="margin-top:10px"><button class="btn sm gray" id="btn-lbf-addrow">➕ افزودن ردیف (ادامه ثبت عملکرد)</button></div>';
-    document.getElementById('btn-lbf-addrow').onclick=function(){
-      var tbody=document.getElementById('lb-perf-tbody');
-      var tr=document.createElement('tr');
-      tr.innerHTML='<td></td><td><input type="text" placeholder="مورد اضافی"></td><td><input type="text"></td><td><textarea rows="2"></textarea></td>';
-      tbody.appendChild(tr);
-    };
+    el.innerHTML=lbBuildPerformanceHtml(false);
+    lbBindPerformanceInputs(el);
   }
+  document.getElementById('btn-lbf-build').onclick=lbRenderPerformance;
   function lbPerformanceExportHtml(){
     var meta=lbMetaBlock([['نام مدرسه','lbf-school'],['نام آموزگار','lbf-teacher'],['پایه تحصیلی','lbf-grade'],['سال تحصیلی','lbf-year']]);
-    // خواندن مقادیر واقعی واردشده در جدول زنده
-    var tbody=document.getElementById('lb-perf-tbody');
-    var h='<table><thead><tr><th>نام درس</th><th>مهم‌ترین انتظارات آموزشی</th><th>ثبت عملکرد دانش‌آموزان</th><th>توصیف عملکرد و موارد ضروری</th></tr></thead><tbody>';
-    if(tbody){
-      Array.from(tbody.children).forEach(function(tr){
-        h+='<tr>';
-        Array.from(tr.children).forEach(function(td){
-          var inp=td.querySelector('input,textarea');
-          if(td.hasAttribute('rowspan'))h+='<td rowspan="'+td.getAttribute('rowspan')+'">'+esc(td.textContent.trim())+'</td>';
-          else h+='<td>'+esc(inp?inp.value:td.textContent.trim())+'</td>';
-        });
-        h+='</tr>';
-      });
-    }
-    h+='</tbody></table>';
-    return meta+h;
+    var table=lbBuildPerformanceHtml(true,lbPerfColsCount());
+    var note='<p style="margin-top:14px" class="muted">لازم به ذکر است انتظارات آموزشی تمامی پایه‌ها در جدول شماره ۸ ارائه گردیده. آموزگاران بر پایه بر انتظارات پیش‌بینی شده نسبت به تکمیل جدول اقدام می‌نمایند.</p>';
+    return meta+table+note;
   }
-  document.getElementById('btn-lb-performance-word').onclick=function(){lbWordExport('جدول شماره ۵: ثبت سطح عملکرد دانش‌آموزان',lbPerformanceExportHtml(),'ثبت-سطح-عملکرد',false);};
-  document.getElementById('btn-lb-performance-pdf').onclick=function(){lbPrintExport('جدول شماره ۵: ثبت سطح عملکرد دانش‌آموزان',lbPerformanceExportHtml(),false);};
+  document.getElementById('btn-lb-performance-word').onclick=function(){lbWordExport('جدول شماره ۸: ثبت سطوح عملکرد دانش‌آموز',lbPerformanceExportHtml(),'ثبت-سطوح-عملکرد-دانش-آموز',true);};
+  document.getElementById('btn-lb-performance-pdf').onclick=function(){lbPrintExport('جدول شماره ۸: ثبت سطوح عملکرد دانش‌آموز',lbPerformanceExportHtml(),true);};
   document.getElementById('btn-lb-performance-excel').onclick=function(){
-    lbExcelExport('ثبت-سطح-عملکرد',function(wb){
-      var rows=[['نام درس','مهم‌ترین انتظارات آموزشی','ثبت عملکرد دانش‌آموزان','توصیف عملکرد و موارد ضروری']];
-      LB_PERF_SUBJECTS.forEach(function(subj){
-        subj.items.forEach(function(item,idx){rows.push([idx===0?subj.name:'',item,'','']);});
+    var cols=lbPerfColsCount();
+    lbExcelExport('ثبت-سطوح-عملکرد-دانش-آموز',function(wb){
+      var header=['نام درس','مهم‌ترین انتظارات آموزشی'];
+      for(var c=0;c<cols;c++)header.push(String(c+1));
+      header.push('توصیف کوتاه موارد ضروری');
+      var rows=[header];
+      LB_PERF_SUBJECTS.forEach(function(subj,sIdx){
+        for(var r=0;r<subj.rows;r++){
+          var key=sIdx+'-'+r;
+          var saved=LB_PERF_DATA[key]||{};
+          var row=[r===0?subj.name:'',saved.expect||''];
+          for(var c2=0;c2<cols;c2++)row.push((saved.cols&&saved.cols[c2])||'');
+          row.push(saved.desc||'');
+          rows.push(row);
+        }
       });
-      lbAddExcelSheet(wb,'سطح عملکرد',rows);
+      lbAddExcelSheet(wb,'سطوح عملکرد',rows);
     });
   };
 
