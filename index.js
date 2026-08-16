@@ -4744,7 +4744,7 @@ function teacherScript() {
   };
 
   // ===================== ۲. لیست اسامی دانش‌آموزان =====================
-  var LB_ROSTER_HEADERS=['ردیف','نام و نام خانوادگی دانش‌آموز','نام پدر','تاریخ تولد','کد ملی','وضعیت سلامت / توضیحات','شماره تماس ولی','آدرس محل سکونت','توضیحات و پیگیری‌های لازم'];
+  var LB_ROSTER_HEADERS=['ردیف','نام و نام خانوادگی دانش‌آموز','نام پدر','کد ملی','شماره تماس ولی','آدرس محل سکونت','توضیحات و پیگیری‌های لازم'];
   document.getElementById('btn-lbr-build').onclick=function(){
     var n=parseInt(document.getElementById('lbr-rows').value,10)||30;
     lbRebuildPreserving('lbr-table',LB_ROSTER_HEADERS,n);
