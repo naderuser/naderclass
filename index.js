@@ -4680,7 +4680,7 @@ function teacherScript() {
     h+='</thead><tbody>';
     function cellHtml(rowIdx,colIdx){
       var val=(saved&&saved[rowIdx]&&saved[rowIdx][colIdx])||'';
-      if(forExport)return '<td class="lb-cell">'+esc(val).replace(/\n/g,'<br>')+'</td>';
+      if(forExport)return '<td class="lb-cell">'+esc(val).replace(/\\n/g,'<br>')+'</td>';
       return '<td class="lb-cell"><textarea class="lb-pacing-input" data-grade="'+gradeIdx+'" data-row="'+rowIdx+'" data-col="'+colIdx+'" rows="3" placeholder="شماره درس / صفحات / زمان / توضیحات">'+esc(val)+'</textarea></td>';
     }
     subjects.forEach(function(subj,i){
