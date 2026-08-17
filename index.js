@@ -2563,11 +2563,18 @@ function teacherPage() {
             </select>
           </div>
           <div class="row" style="align-items:center;flex-wrap:wrap;gap:8px">
-            <label style="flex:0 0 auto">دانش‌آموزان این پایه:</label>
-            <div id="lbf-student-list" style="display:flex;flex-wrap:wrap;gap:8px"></div>
+            <label style="flex:0 0 auto">دانش‌آموز:</label>
+            <select id="lbf-student-select" style="flex:0 0 auto;min-width:220px">
+              <option value="">— انتخاب دانش‌آموز —</option>
+            </select>
             <button class="btn sm sec" id="btn-lbf-new">🆕 دانش‌آموز جدید</button>
           </div>
           <div id="lbf-form-wrap" class="hidden">
+            <div class="row" style="align-items:center;gap:14px;margin:10px 0">
+              <img id="lbf-photo-preview" class="hidden" style="width:76px;height:76px;border-radius:50%;object-fit:cover;border:1px solid var(--line)">
+              <label class="btn sm sec" style="cursor:pointer">📷 عکس پروفایل دانش‌آموز<input type="file" accept="image/*" id="lbf-photo-input" style="display:none"></label>
+              <button class="btn sm gray hidden" id="btn-lbf-photo-remove">🗑️ حذف عکس</button>
+            </div>
             <div class="lb-meta-form">
               <div><label>نام مدرسه</label><input id="lbf-school" placeholder="......................."></div>
               <div><label>نام آموزگار</label><input id="lbf-teacher" placeholder="......................."></div>
@@ -5038,21 +5045,24 @@ function teacherScript() {
   }
   document.getElementById('btn-lbf-build').onclick=lbRenderPerformance;
 
-  // --- لیست دانش‌آموزانِ ثبت‌شده برای پایه‌ی انتخاب‌شده ---
+  // --- لیست دانش‌آموزانِ ثبت‌شده برای پایه‌ی انتخاب‌شده (به‌صورت یک ردیف/کشویی، بدون اشغال فضا) ---
   async function lbRenderPerfStudentList(gradeIdx){
-    var wrap=document.getElementById('lbf-student-list');
-    wrap.innerHTML='<span class="muted">در حال بارگذاری...</span>';
+    var sel=document.getElementById('lbf-student-select');
+    sel.innerHTML='<option value="">در حال بارگذاری...</option>';
     var list=(await lbLoad('performance:list:'+gradeIdx))||[];
-    wrap.innerHTML='';
-    if(!list.length){wrap.innerHTML='<span class="muted">هنوز دانش‌آموزی برای این پایه ثبت نشده</span>';return;}
+    sel.innerHTML='<option value="">— انتخاب دانش‌آموز —</option>';
     list.forEach(function(s){
-      var b=document.createElement('button');
-      b.type='button';
-      b.className='btn sm gray';
-      b.textContent='👤 '+s.name;
-      b.onclick=function(){lbPerfLoadStudent(s.uuid);};
-      wrap.appendChild(b);
+      var opt=document.createElement('option');
+      opt.value=s.uuid;
+      opt.textContent=s.name;
+      sel.appendChild(opt);
     });
+    if(!list.length){
+      var opt2=document.createElement('option');
+      opt2.value='';opt2.disabled=true;
+      opt2.textContent='هنوز دانش‌آموزی برای این پایه ثبت نشده';
+      sel.appendChild(opt2);
+    }
   }
   async function lbUpdatePerfListEntry(gradeIdx,uuidStr,name){
     var key='performance:list:'+gradeIdx;
@@ -5061,17 +5071,37 @@ function teacherScript() {
     if(idx>=0)list[idx].name=name;else list.push({uuid:uuidStr,name:name});
     await lbSave(key,list,true);
   }
+  // --- عکس پروفایل دانش‌آموز ---
+  var LB_PERF_PHOTO='';
+  function lbSetPerfPhoto(dataUrl){
+    LB_PERF_PHOTO=dataUrl||'';
+    var img=document.getElementById('lbf-photo-preview');
+    var removeBtn=document.getElementById('btn-lbf-photo-remove');
+    if(LB_PERF_PHOTO){img.src=LB_PERF_PHOTO;img.classList.remove('hidden');removeBtn.classList.remove('hidden');}
+    else{img.src='';img.classList.add('hidden');removeBtn.classList.add('hidden');}
+  }
+  document.getElementById('lbf-photo-input').addEventListener('change',async function(){
+    var f=this.files&&this.files[0];this.value='';
+    if(!f)return;
+    try{
+      var dataUrl=await resizeProfilePhoto(f);
+      lbSetPerfPhoto(dataUrl);
+    }catch(e){toast(e.message);}
+  });
+  document.getElementById('btn-lbf-photo-remove').onclick=function(){lbSetPerfPhoto('');};
   // --- دانش‌آموز جدید: فرم خالی نشان داده می‌شود تا معلم نام را وارد کند ---
   function lbPerfNew(){
     LB_PERF_CURRENT_UUID=null;
     LB_PERF_DATA={};
     document.getElementById('lbf-student-name').value='';
     document.getElementById('lbf-cols').value=12;
+    document.getElementById('lbf-student-select').value='';
+    lbSetPerfPhoto('');
     document.getElementById('lbf-form-wrap').classList.remove('hidden');
     lbRenderPerformance();
   }
   document.getElementById('btn-lbf-new').onclick=lbPerfNew;
-  // --- بارگذاری سطح عملکرد یک دانش‌آموز خاص با کلیک روی نامش ---
+  // --- بارگذاری سطح عملکرد یک دانش‌آموز خاص با انتخاب نامش از لیست ---
   async function lbPerfLoadStudent(uuidStr){
     var rec=await lbLoad('performance:student:'+uuidStr);
     if(!rec){toast('اطلاعات این دانش‌آموز پیدا نشد');return;}
@@ -5079,6 +5109,7 @@ function teacherScript() {
     LB_PERF_DATA=rec.data||{};
     document.getElementById('lbf-student-name').value=rec.name||'';
     document.getElementById('lbf-cols').value=rec.cols||12;
+    lbSetPerfPhoto(rec.photo||'');
     if(rec.meta){
       document.getElementById('lbf-school').value=rec.meta.school||'';
       document.getElementById('lbf-teacher').value=rec.meta.teacher||'';
@@ -5087,6 +5118,10 @@ function teacherScript() {
     document.getElementById('lbf-form-wrap').classList.remove('hidden');
     lbRenderPerformance();
   }
+  document.getElementById('lbf-student-select').addEventListener('change',function(){
+    if(this.value)lbPerfLoadStudent(this.value);
+    else document.getElementById('lbf-form-wrap').classList.add('hidden');
+  });
   // --- ذخیره‌ی سطح عملکرد دانش‌آموزِ در حال ویرایش ---
   document.getElementById('btn-lbf-save').onclick=async function(){
     var name=document.getElementById('lbf-student-name').value.trim();
@@ -5098,13 +5133,16 @@ function teacherScript() {
       name:name,
       grade:gradeIdx,
       cols:lbPerfColsCount(),
+      photo:LB_PERF_PHOTO,
       meta:{school:document.getElementById('lbf-school').value,teacher:document.getElementById('lbf-teacher').value,year:document.getElementById('lbf-year').value},
       data:LB_PERF_DATA
     };
     var ok=await lbSave('performance:student:'+LB_PERF_CURRENT_UUID,rec,true);
     if(ok){
       await lbUpdatePerfListEntry(gradeIdx,LB_PERF_CURRENT_UUID,name);
-      lbRenderPerfStudentList(gradeIdx);
+      var sel=document.getElementById('lbf-student-select');
+      await lbRenderPerfStudentList(gradeIdx);
+      sel.value=LB_PERF_CURRENT_UUID;
       toast('سطح عملکرد «'+name+'» ذخیره شد');
     }else{
       toast('خطا در ذخیره اطلاعات');
@@ -5118,11 +5156,13 @@ function teacherScript() {
   });
   function lbPerformanceExportHtml(){
     var gradeText=document.getElementById('lbf-grade-select').selectedOptions[0].textContent;
+    var studentName=document.getElementById('lbf-student-name').value||'';
+    var photoHtml=LB_PERF_PHOTO?('<div style="text-align:center;margin-bottom:10px"><img src="'+LB_PERF_PHOTO+'" style="width:96px;height:96px;border-radius:50%;object-fit:cover;border:2px solid #94a3b8"></div>'):'';
     var meta=lbMetaBlock([['نام مدرسه','lbf-school'],['نام آموزگار','lbf-teacher'],['سال تحصیلی','lbf-year'],['نام دانش‌آموز','lbf-student-name']]);
     meta='<p class="lb-meta"><b>پایه تحصیلی:</b> '+esc(gradeText)+'</p>'+meta;
     var table=lbBuildPerformanceHtml(true,lbPerfColsCount());
     var note='<p style="margin-top:14px" class="muted">لازم به ذکر است انتظارات آموزشی تمامی پایه‌ها در جدول شماره ۸ ارائه گردیده. آموزگاران بر پایه بر انتظارات پیش‌بینی شده نسبت به تکمیل جدول اقدام می‌نمایند.</p>';
-    return meta+table+note;
+    return photoHtml+meta+table+note;
   }
   document.getElementById('btn-lb-performance-word').onclick=function(){lbWordExport('جدول شماره ۸: ثبت سطوح عملکرد دانش‌آموز',lbPerformanceExportHtml(),'ثبت-سطوح-عملکرد-دانش-آموز',true);};
   document.getElementById('btn-lb-performance-pdf').onclick=function(){lbPrintExport('جدول شماره ۸: ثبت سطوح عملکرد دانش‌آموز',lbPerformanceExportHtml(),true);};
