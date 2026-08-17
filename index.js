@@ -5316,9 +5316,9 @@ function teacherScript() {
   var LB_WEEKLY_GRADES_FA=['۱','۲','۳','۴','۵','۶'];
   var LB_WEEKLY_DATA={}; // key: 'dayIdx-gradeIdx-sessionIdx' -> مقدار سلول
   function lbBuildWeeklyHtml(forExport){
-    var h='<p style="font-weight:700;margin-bottom:8px">برنامه درسی چندپایه</p>';
+    var h='<p style="font-weight:700;margin-bottom:6px">برنامه درسی چندپایه</p>';
+    h+='<table class="lb-table lb-table-tight" style="width:100%"><thead><tr><th>روز</th><th>پایه</th><th>جلسه اول</th><th>جلسه دوم</th><th>جلسه سوم</th><th>جلسه چهارم</th><th>جلسه پنجم</th></tr></thead><tbody>';
     LB_WEEKLY_DAYS.forEach(function(day,dIdx){
-      h+='<table class="lb-table lb-table-tight" style="margin-bottom:14px"><thead><tr><th>روز</th><th>پایه</th><th>جلسه اول</th><th>جلسه دوم</th><th>جلسه سوم</th><th>جلسه چهارم</th><th>جلسه پنجم</th></tr></thead><tbody>';
       LB_WEEKLY_GRADES_FA.forEach(function(gLabel,gIdx){
         h+='<tr>';
         if(gIdx===0)h+='<td rowspan="6" style="font-weight:700;background:#f1f5f9">'+esc(day)+'</td>';
@@ -5330,8 +5330,8 @@ function teacherScript() {
         }
         h+='</tr>';
       });
-      h+='</tbody></table>';
     });
+    h+='</tbody></table>';
     return h;
   }
   function lbBindWeeklyInputs(el){
