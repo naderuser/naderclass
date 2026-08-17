@@ -574,6 +574,22 @@ async function handleApi(req, env, url, path) {
       return json({ ok: true });
     }
 
+    /* --- دفتر مدیریت کلاسی: ذخیره/بازیابی عمومی --- */
+    if (path === "/api/teacher/lb-save" && method === "POST") {
+      const body = await req.json().catch(() => ({}));
+      const key = String(body.key || "").slice(0, 200);
+      if (!key) return json({ ok: false, error: "کلید نامعتبر است" }, 400);
+      await env.EXAM_KV.put("lbdata:" + key, JSON.stringify(body.value ?? null));
+      return json({ ok: true });
+    }
+
+    if (path === "/api/teacher/lb-load" && method === "GET") {
+      const key = url.searchParams.get("key") || "";
+      if (!key) return json({ ok: false, error: "کلید نامعتبر است" }, 400);
+      const raw = await env.EXAM_KV.get("lbdata:" + key);
+      return json({ ok: true, value: raw ? JSON.parse(raw) : null });
+    }
+
     if (path === "/api/teacher/students" && method === "GET") {
       const students = await listStudents(env);
       const subs = await Promise.all(students.map((s) => env.EXAM_KV.get("submission:" + s.uuid)));
@@ -2469,6 +2485,7 @@ function teacherPage() {
           <p class="muted">در هر خانه‌ی جدول: شماره درس، صفحات کتاب، زمان تدریس و توضیحات معلم یادداشت می‌شود.</p>
           <div id="lb-pacing-preview" class="lb-preview"></div>
           <div class="row" style="margin-top:12px">
+            <button class="btn primary" id="btn-lbp-save">💾 ذخیره</button>
             <button class="btn primary" id="btn-lb-pacing-word">📄 دانلود Word (این پایه)</button>
             <button class="btn sec" id="btn-lb-pacing-excel">📊 دانلود Excel (این پایه)</button>
             <button class="btn gray" id="btn-lb-pacing-pdf">🖨️ چاپ / دانلود PDF (این پایه)</button>
@@ -2492,6 +2509,7 @@ function teacherPage() {
           </div>
           <div class="lb-preview"><table class="lb-table" id="lbr-table"></table></div>
           <div class="row" style="margin-top:12px">
+            <button class="btn primary" id="btn-lbr-save">💾 ذخیره</button>
             <button class="btn primary" id="btn-lb-roster-word">📄 دانلود Word</button>
             <button class="btn sec" id="btn-lb-roster-excel">📊 دانلود Excel</button>
             <button class="btn gray" id="btn-lb-roster-pdf">🖨️ چاپ / دانلود PDF</button>
@@ -2521,6 +2539,7 @@ function teacherPage() {
           </div>
           <div class="lb-preview"><table class="lb-table lb-table-tight" id="lba-table"></table></div>
           <div class="row" style="margin-top:12px">
+            <button class="btn primary" id="btn-lba-save">💾 ذخیره</button>
             <button class="btn primary" id="btn-lb-absence-word">📄 دانلود Word</button>
             <button class="btn sec" id="btn-lb-absence-excel">📊 دانلود Excel</button>
             <button class="btn gray" id="btn-lb-absence-pdf">🖨️ چاپ / دانلود PDF</button>
@@ -2532,22 +2551,41 @@ function teacherPage() {
           <button class="btn sm gray lb-back-btn">← بازگشت به دفتر</button>
           <h3>📈 جدول شماره ۸: ثبت سطوح عملکرد دانش‌آموز</h3>
           <p class="muted">ثبت سطوح عملکرد دانش‌آموز براساس انتظارات آموزشی هر یک از کتب درسی</p>
-          <div class="lb-meta-form">
-            <div><label>نام مدرسه</label><input id="lbf-school" placeholder="......................."></div>
-            <div><label>نام آموزگار</label><input id="lbf-teacher" placeholder="......................."></div>
-            <div><label>پایه تحصیلی</label><input id="lbf-grade" placeholder="......................."></div>
-            <div><label>سال تحصیلی</label><input id="lbf-year" placeholder="......................."></div>
+          <div class="row" style="align-items:center">
+            <label style="flex:0 0 auto">پایه تحصیلی:</label>
+            <select id="lbf-grade-select" style="flex:0 0 auto;min-width:180px">
+              <option value="0">پایه اول دبستان</option>
+              <option value="1">پایه دوم دبستان</option>
+              <option value="2">پایه سوم دبستان</option>
+              <option value="3">پایه چهارم دبستان</option>
+              <option value="4">پایه پنجم دبستان</option>
+              <option value="5">پایه ششم دبستان</option>
+            </select>
           </div>
-          <div class="row">
-            <label>تعداد ستون‌های ثبت عملکرد (دانش‌آموزان): </label><input type="number" id="lbf-cols" value="20" min="1" max="60" style="width:80px">
-            <button class="btn sm sec" id="btn-lbf-build">🔄 ساخت جدول</button>
+          <div class="row" style="align-items:center;flex-wrap:wrap;gap:8px">
+            <label style="flex:0 0 auto">دانش‌آموزان این پایه:</label>
+            <div id="lbf-student-list" style="display:flex;flex-wrap:wrap;gap:8px"></div>
+            <button class="btn sm sec" id="btn-lbf-new">🆕 دانش‌آموز جدید</button>
           </div>
-          <div class="lb-preview" id="lb-performance-preview"></div>
-          <p class="muted" style="margin-top:10px">لازم به ذکر است انتظارات آموزشی تمامی پایه‌ها در جدول شماره ۸ ارائه گردیده. آموزگاران بر پایه بر انتظارات پیش‌بینی شده نسبت به تکمیل جدول اقدام می‌نمایند.</p>
-          <div class="row" style="margin-top:12px">
-            <button class="btn primary" id="btn-lb-performance-word">📄 دانلود Word</button>
-            <button class="btn sec" id="btn-lb-performance-excel">📊 دانلود Excel</button>
-            <button class="btn gray" id="btn-lb-performance-pdf">🖨️ چاپ / دانلود PDF</button>
+          <div id="lbf-form-wrap" class="hidden">
+            <div class="lb-meta-form">
+              <div><label>نام مدرسه</label><input id="lbf-school" placeholder="......................."></div>
+              <div><label>نام آموزگار</label><input id="lbf-teacher" placeholder="......................."></div>
+              <div><label>سال تحصیلی</label><input id="lbf-year" placeholder="......................."></div>
+              <div><label>نام دانش‌آموز</label><input id="lbf-student-name" placeholder="نام و نام خانوادگی دانش‌آموز"></div>
+            </div>
+            <div class="row">
+              <label>تعداد ستون‌های ثبت عملکرد: </label><input type="number" id="lbf-cols" value="12" min="1" max="60" style="width:80px">
+              <button class="btn sm sec" id="btn-lbf-build">🔄 ساخت جدول</button>
+            </div>
+            <div class="lb-preview" id="lb-performance-preview"></div>
+            <p class="muted" style="margin-top:10px">لازم به ذکر است انتظارات آموزشی تمامی پایه‌ها در جدول شماره ۸ ارائه گردیده. آموزگاران بر پایه بر انتظارات پیش‌بینی شده نسبت به تکمیل جدول اقدام می‌نمایند.</p>
+            <div class="row" style="margin-top:12px">
+              <button class="btn primary" id="btn-lbf-save">💾 ذخیره</button>
+              <button class="btn primary" id="btn-lb-performance-word">📄 دانلود Word</button>
+              <button class="btn sec" id="btn-lb-performance-excel">📊 دانلود Excel</button>
+              <button class="btn gray" id="btn-lb-performance-pdf">🖨️ چاپ / دانلود PDF</button>
+            </div>
           </div>
         </div>
 
@@ -2573,6 +2611,7 @@ function teacherPage() {
           <div class="lb-preview"><table class="lb-table" id="lbc-table"></table></div>
           <p style="margin-top:10px"><b>امضاء و تأیید مدیر مدرسه:</b> .......................</p>
           <div class="row" style="margin-top:12px">
+            <button class="btn primary" id="btn-lbc-save">💾 ذخیره</button>
             <button class="btn primary" id="btn-lb-council-word">📄 دانلود Word</button>
             <button class="btn sec" id="btn-lb-council-excel">📊 دانلود Excel</button>
             <button class="btn gray" id="btn-lb-council-pdf">🖨️ چاپ / دانلود PDF</button>
@@ -2596,6 +2635,7 @@ function teacherPage() {
           </div>
           <div class="lb-preview"><table class="lb-table" id="lbm-table"></table></div>
           <div class="row" style="margin-top:12px">
+            <button class="btn primary" id="btn-lbm-save">💾 ذخیره</button>
             <button class="btn primary" id="btn-lb-meetings-word">📄 دانلود Word</button>
             <button class="btn sec" id="btn-lb-meetings-excel">📊 دانلود Excel</button>
             <button class="btn gray" id="btn-lb-meetings-pdf">🖨️ چاپ / دانلود PDF</button>
@@ -2651,6 +2691,19 @@ function teacherScript() {
   function toast(m){const t=document.getElementById('toast');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2500);}
   function uid(){return 'q-'+Math.random().toString(36).slice(2,10);}
   async function api(path,opts){const r=await fetch(path,opts);return r.json();}
+  async function lbSave(key,value,silent){
+    try{
+      const d=await api('/api/teacher/lb-save',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({key,value})});
+      if(!silent){if(d.ok)toast('ذخیره شد');else toast(d.error||'خطا در ذخیره');}
+      return d.ok;
+    }catch(e){if(!silent)toast('خطا در ذخیره');return false;}
+  }
+  async function lbLoad(key){
+    try{
+      const d=await api('/api/teacher/lb-load?key='+encodeURIComponent(key));
+      return d.ok?d.value:null;
+    }catch(e){return null;}
+  }
 
   const savedTheme=localStorage.getItem('panelTheme')||'light';
   document.documentElement.setAttribute('data-theme',savedTheme);
@@ -4531,8 +4584,16 @@ function teacherScript() {
       document.getElementById('lb-menu').classList.add('hidden');
       const panel=document.getElementById('lb-panel-'+b.dataset.lb);
       if(panel)panel.classList.remove('hidden');
-      if(b.dataset.lb==='pacing')lbRenderPacing();
-      if(b.dataset.lb==='performance')lbRenderPerformance();
+      if(b.dataset.lb==='pacing'){lbRenderPacing();lbLoadPacingIfNeeded(lbSelectedGradeIdx());}
+      if(b.dataset.lb==='roster')lbLoadRosterIfNeeded();
+      if(b.dataset.lb==='absence')lbLoadAbsenceIfNeeded();
+      if(b.dataset.lb==='performance'){
+        document.getElementById('lbf-form-wrap').classList.add('hidden');
+        LB_PERF_CURRENT_UUID=null;
+        lbRenderPerfStudentList(lbSelectedPerfGradeIdx());
+      }
+      if(b.dataset.lb==='council')lbLoadCouncilIfNeeded();
+      if(b.dataset.lb==='meetings')lbLoadMeetingsIfNeeded();
     };
   });
   document.querySelectorAll('.lb-back-btn').forEach(function(b){
@@ -4662,6 +4723,23 @@ function teacherScript() {
     });
   }
 
+  // پر کردن جدول از داده‌های ذخیره‌شده (بازیابی از سرور)
+  function lbFillTableRows(tableId,dataRows){
+    var tableEl=document.getElementById(tableId);
+    if(!tableEl||!dataRows)return;
+    var trs=tableEl.querySelectorAll('tbody tr');
+    trs.forEach(function(tr,rIdx){
+      var row=dataRows[rIdx];
+      if(!row)return;
+      var tds=tr.querySelectorAll('td');
+      tds.forEach(function(td,cIdx){
+        if(cIdx===0)return;
+        var inp=td.querySelector('input,textarea');
+        if(inp && row[cIdx]!==undefined)inp.value=row[cIdx];
+      });
+    });
+  }
+
   // ===================== ۱. جدول بودجه‌بندی =====================
   var LB_GRADES=[
     {title:'پایه اول دبستان',subjects:['فارسی','نگارش فارسی','ریاضی','علوم تجربی','قرآن','هدیه‌های آسمان']},
@@ -4719,7 +4797,31 @@ function teacherScript() {
       });
     });
   }
-  document.getElementById('lbp-grade-select').addEventListener('change',lbRenderPacing);
+  var LB_PACING_LOADED={};
+  async function lbLoadPacingIfNeeded(idx){
+    if(LB_PACING_LOADED[idx])return;
+    LB_PACING_LOADED[idx]=true;
+    var saved=await lbLoad('pacing:'+idx);
+    if(saved){
+      if(saved.data)LB_PACING_DATA[idx]=saved.data;
+      if(saved.meta){
+        document.getElementById('lbp-school').value=saved.meta.school||'';
+        document.getElementById('lbp-teacher').value=saved.meta.teacher||'';
+        document.getElementById('lbp-year').value=saved.meta.year||'';
+      }
+      lbRenderPacing();
+    }
+  }
+  document.getElementById('lbp-grade-select').addEventListener('change',function(){
+    lbLoadPacingIfNeeded(lbSelectedGradeIdx()).then(lbRenderPacing);
+  });
+  document.getElementById('btn-lbp-save').onclick=function(){
+    var idx=lbSelectedGradeIdx();
+    lbSave('pacing:'+idx,{
+      meta:{school:document.getElementById('lbp-school').value,teacher:document.getElementById('lbp-teacher').value,year:document.getElementById('lbp-year').value},
+      data:LB_PACING_DATA[idx]||[]
+    });
+  };
   function lbPacingFullHtml(){
     var idx=lbSelectedGradeIdx();
     var grade=LB_GRADES[idx];
@@ -4768,6 +4870,28 @@ function teacherScript() {
       lbAddExcelSheet(wb,'لیست اسامی',lbTableToRows(document.getElementById('lbr-table')));
     });
   };
+  var LB_ROSTER_LOADED=false;
+  async function lbLoadRosterIfNeeded(){
+    if(LB_ROSTER_LOADED)return;
+    LB_ROSTER_LOADED=true;
+    var saved=await lbLoad('roster');
+    if(!saved)return;
+    if(saved.meta){
+      document.getElementById('lbr-school').value=saved.meta.school||'';
+      document.getElementById('lbr-teacher').value=saved.meta.teacher||'';
+      document.getElementById('lbr-grade').value=saved.meta.grade||'';
+      document.getElementById('lbr-year').value=saved.meta.year||'';
+    }
+    if(saved.rowCount){document.getElementById('lbr-rows').value=saved.rowCount;document.getElementById('btn-lbr-build').click();}
+    if(saved.rows)lbFillTableRows('lbr-table',saved.rows);
+  }
+  document.getElementById('btn-lbr-save').onclick=function(){
+    lbSave('roster',{
+      meta:{school:document.getElementById('lbr-school').value,teacher:document.getElementById('lbr-teacher').value,grade:document.getElementById('lbr-grade').value,year:document.getElementById('lbr-year').value},
+      rowCount:parseInt(document.getElementById('lbr-rows').value,10)||30,
+      rows:lbTableToRows(document.getElementById('lbr-table')).slice(1)
+    });
+  };
 
   // ===================== ۳. ثبت غیبت =====================
   document.getElementById('btn-lba-build').onclick=function(){
@@ -4796,49 +4920,91 @@ function teacherScript() {
       lbAddExcelSheet(wb,'ثبت غیبت',lbTableToRows(document.getElementById('lba-table')));
     });
   };
+  var LB_ABSENCE_LOADED=false;
+  async function lbLoadAbsenceIfNeeded(){
+    if(LB_ABSENCE_LOADED)return;
+    LB_ABSENCE_LOADED=true;
+    var saved=await lbLoad('absence');
+    if(!saved)return;
+    if(saved.meta){
+      document.getElementById('lba-school').value=saved.meta.school||'';
+      document.getElementById('lba-teacher').value=saved.meta.teacher||'';
+      document.getElementById('lba-grade').value=saved.meta.grade||'';
+      document.getElementById('lba-year').value=saved.meta.year||'';
+    }
+    if(saved.month)document.getElementById('lba-month').value=saved.month;
+    if(saved.days){document.getElementById('lba-days').value=saved.days;}
+    if(saved.rowCount){document.getElementById('lba-rows').value=saved.rowCount;}
+    if(saved.days||saved.rowCount)document.getElementById('btn-lba-build').click();
+    if(saved.rows)lbFillTableRows('lba-table',saved.rows);
+  }
+  document.getElementById('btn-lba-save').onclick=function(){
+    lbSave('absence',{
+      meta:{school:document.getElementById('lba-school').value,teacher:document.getElementById('lba-teacher').value,grade:document.getElementById('lba-grade').value,year:document.getElementById('lba-year').value},
+      month:document.getElementById('lba-month').value,
+      days:parseInt(document.getElementById('lba-days').value,10)||30,
+      rowCount:parseInt(document.getElementById('lba-rows').value,10)||30,
+      rows:lbTableToRows(document.getElementById('lba-table')).slice(1)
+    });
+  };
 
   // ===================== ۴. ثبت سطوح عملکرد دانش‌آموز (جدول شماره ۸) =====================
-  // تعداد ردیف هر درس متناسب با بزرگی و اهمیتش در نظر گرفته شده (قرآن بزرگ‌تر ... تا شایستگی‌های عمومی کوچک‌تر)
-  var LB_PERF_SUBJECTS=[
-    {name:'قرآن',rows:6},
-    {name:'هدیه‌های آسمان',rows:5},
-    {name:'فارسی',rows:5},
-    {name:'ریاضی',rows:5},
-    {name:'علوم',rows:4},
-    {name:'اجتماعی',rows:4},
-    {name:'تفکر و پژوهش',rows:2},
-    {name:'کار و فناوری',rows:2},
-    {name:'هنر',rows:2},
-    {name:'تربیت بدنی',rows:2},
-    {name:'شایستگی‌های عمومی',rows:2}
+  // انتظارات آموزشی واقعی هر درس به تفکیک پایه (طبق جدول شماره ۷) - مقدار null یعنی این درس در این پایه تدریس نمی‌شود
+  var LB_PERF_SUBJECTS_BY_GRADE=[
+    {name:"قرآن",grades:[["جمع‌خوانی","روخوانی","آداب قرآن خواندن","پیام قرآنی","داستان‌های قرآنی"],["روخوانی","قرائت","آداب قرآن خواندن","پیام قرآنی","داستان‌های قرآنی"],["روخوانی","قرائت","آداب قرآن خواندن","پیام قرآنی","داستان‌های قرآنی"],["روخوانی","قرائت","ترجمه کلمات و عبارات قرآنی","پیام قرآنی","داستان‌های قرآنی"],["روخوانی","قرائت","ترجمه کلمات و عبارات قرآنی","پیام قرآنی","داستان‌های قرآنی"],["روخوانی","قرائت","ترجمه کلمات و عبارات قرآنی","پیام قرآنی","داستان‌های قرآنی"]]},
+    {name:"هدیه‌های آسمان",grades:[null,["خداشناسی و تشکر از خدا","آشنایی با پیامبران و امامان","آشنایی با صفات و اخلاق خوب و مطلوب","آشنایی با وضو، نماز و انجام صحیح آن","توجه به مناسبت‌ها"],["تشکر از خدا","آشنایی با زندگی‌نامه پیامبران و امامان","آشنایی با روزه و نماز و جشن تکلیف","سرلوحه قرار دادن قرآن در زندگی"],["تشکر از خدا","آشنایی با زندگی‌نامه پیامبران و امامان","آشنایی با تیمم، نماز جماعت و نمازهای مناسبتی","قرآن در زندگی"],["تشکر از خدا و نظم در آفریده‌هایش","آشنایی با زندگی‌نامه پیامبران و امامان","آشنایی با صفات خوب و عمل به آن","نماز جمعه و تفاوت آن با سایر نمازهای روزانه","سرلوحه قرار دادن قرآن در زندگی"],["تشکر از خدا و نظم در آفریده‌هایش","آشنایی با زندگی‌نامه پیامبران و امامان","آشنایی با صفات خوب و عمل به آن","فروع دین، نماز مسافر و اعیاد مسلمانان","سرلوحه قرار دادن قرآن در زندگی"]]},
+    {name:"فارسی",grades:[["گوش دادن","سخن گفتن","تصویرخوانی","خواندن","زیبانویسی","درست‌نویسی","جمله‌سازی"],["گوش دادن","سخن گفتن","خواندن","درست‌نویسی و املا","جمله‌سازی"],["گوش دادن","سخن گفتن","خواندن","درست‌نویسی و املا","انشا و نگارش"],["گوش دادن","سخن گفتن","خواندن","درست‌نویسی و املا","انشا و نگارش"],["گوش دادن","سخن گفتن","خواندن","درست‌نویسی و املا","انشا و نگارش"],["گوش دادن","سخن گفتن","خواندن","درست‌نویسی و املا","انشا و نگارش"]]},
+    {name:"ریاضی",grades:[["شمارش تا اعداد سه رقمی","مقایسه اعداد","جمع و تفریق","موقعیت مکانی","اشکال هندسی","تقارن","طول","زمان","جرم","سرشماری و جدول داده‌ها","نمودار ستونی","راهبردهای حل مسئله","حل مسئله","مربع شگفت‌انگیز"],["شمارش تا عدد ۴ رقمی","پول و واحدهای آن","مقایسه اعداد","اعداد تقریبی","کسر","جمع و تفریق فرآیندی و تکنیکی","اشکال هندسی","تقارن","طول","زمان","آمار و سرشماری","رسم نمودار","احتمال","راهبردهای حل مسئله","حل مسئله"],["شمارش تا عدد ۵ رقمی","پول","مقایسه اعداد","اعداد تقریبی","کسر","مقایسه کسر","جمع","تفریق","ضرب","تقسیم","احجام","دایره","زاویه","خطوط","چندضلعی‌ها","تقارن","طول و محیط","مساحت","جرم","زمان","جدول داده‌ها","رسم نمودار","احتمال","راهبردهای حل مسئله","حل مسئله"],["الگوها","شمارش تا عدد ده رقمی","کسر و عدد مخلوط","عدد اعشاری تا یک رقم اعشار","مقایسه اعداد","مقایسه کسر و عدد مخلوط","جمع","تفریق","ضرب","تقسیم اعداد طبیعی","جمع، تفریق، ضرب کسر و اعداد مخلوط","بخش‌پذیری","محاسبه‌های تقریبی","زاویه","عمود و موازی","چهارضلعی‌ها","زاویه","زمان","طول و محیط","مساحت","نمودار خط شکسته","احتمال وقوع یک پیشامد","راهبردهای حل مسئله","حل مسئله","ترکیب راهبردها"],["الگوها","شمارش تا عدد سیزده رقمی","کسر و عدد مخلوط","عدد اعشاری تا یک رقم اعشار","مقایسه اعداد","اعداد مخلوط","اعداد اعشاری","جمع و تفریق عددهای مرکب، مخلوط و اعشاری","ضرب کسرها، اعداد مخلوط و اعداد اعشاری","تقسیم کسرها","نسبت و تناسب","درصد","تقارن محوری-مرکزی","نیمساز","خواص چندضلعی‌ها","محیط دایره","مساحت لوزی و ذوزنقه","حجم و گنجایش","جمع‌آوری داده‌ها و رسم نمودار","میانگین","احتمال","راهبردهای حل مسئله","حل مسئله"],["الگوها","شمارش تا عدد سیزده رقمی","کسر و عدد مخلوط","عدد اعشاری تا یک رقم اعشار","مقایسه اعداد صحیح","اعداد مخلوط","اعداد اعشاری","جمع، تفریق و ضرب عددهای صحیح، مخلوط و اعشاری","تقسیم کسرها، اعداد اعشاری","نسبت و تناسب","درصد","تقارن","دوران","مختصات","طول و سطح","جرم و حجم","خط و زاویه","راهبردهای حل مسئله","حل مسئله"]]},
+    {name:"علوم",grades:[["زنگ علوم","سلام به من نگاه کن","چه می‌خواهم بسازم","از گذشته تا آینده","سالم باش","دنیای جانوران","دنیای گیاهان","زمین خانه پرآب","سنگی، خاکی","ما در اطراف ما هوا وجود دارد","دنیای سرد و گرم","از خانه تا مدرسه","آهن‌ربای من"],["زنگ علوم","ساخت وسیله","نان","زندگی ما و گردش زمین","صدا","نور","سوخت‌ها","هوای سالم، آب سالم","سرگذشت دانه","درون آشیانه‌ها","تغییرات بدن","مواد پرکاربرد","تأثیر آب بر مواد"],["زنگ علوم","ساخت وسیله‌ای با سه آینه","روش‌های مختلف نگهداری مواد غذایی","آب ماده باارزش","زندگی ما و آب","نور","نیرو","خوراکی‌ها","گیاهان","جانوران","مواد اطراف ما","اندازه‌گیری مواد"],["زنگ علوم","سنگ‌ها","آسمان شب","انرژی","انرژی الکتریکی","گرما و ماده","آهن‌ربا در زندگی","بدن ما","بی‌مهره‌ها","گوناگونی گیاهان","زیستگاه","مخلوط‌ها"],["زنگ علوم","برگی از تاریخ","خاک باارزش","تجزیه نور و کاربرد عدسی","اهرم، ماشین‌های ساده و مرکب","حرکت بدن","ساختمان چشم و گوش","حواس","بکارید و بخورید","ریشه تا برگ","ماده تغییر می‌کند","ارتباط، احساسات و عواطف و ضرورت وجود و رعایت آنها در بین افراد جامعه"],["روش علمی","ساخت وسایل متحرک","تغییرات فناوری در طول زمان","سفر به اعماق زمین","زمین پویا","ورزش و نیرو","سفر انرژی","میکروسکوپ","شگفتی‌های برگ","جنگل","سالم بمانیم","سرگذشت دفتر من","کارخانه کاغذسازی"]]},
+    {name:"اجتماعی",grades:[null,null,["ضرورت نظم و مقررات در مکان‌های مختلف","نهادهای اجتماعی","شناخت فردی خود","آموزه‌های دینی و اخلاقی در مورد اعضای خانواده و مدرسه","تغییرات خود و محیط پیرامون","رابطه متقابل انسان و محیط","انواع مشاغل","منابع طبیعی","حقوق افراد"],["محله","شناخت نمادهای ملی","تقویم","ویژگی‌های شخصیتی امام خمینی","انواع زندگی","مورخان و باستان‌شناسان","سلسله‌های باستانی","ناهمواری‌ها","آب و هوا","امکانات عمومی محله","برنامه‌ریزی و خرید","پوشش گیاهی نواحی مختلف"],["مناسبت‌ها","شهرها و کشورهای مذهبی","ایران بعد از اسلام","آثار باستانی و شخصیت‌های ملی","آشنایی با همسایگان ایران","قاره‌ها","آشنایی با ایران به تفکیک سرفصل‌ها"],["تصمیم‌گیری","برنامه‌ریزی","دوست‌یابی","صفویه","دوره اسلامی","آداب و آموزه‌های دینی","استعمار","جنگ تحمیلی","تغییرات پدیده‌های زندگی","کشاورزی","دریاها و همسایگان ایران","مشاغل","تولید و مصرف","منابع انرژی"]]},
+    {name:"تفکر و پژوهش",grades:[null,null,null,null,null,["تصمیم‌گیری و انتخاب آگاهانه","آشنایی با روند انجام پژوهش","آشنایی با سیستم و اجرای آنها","تفکر در هویت و ارزش‌های ایرانی و ملی"]]},
+    {name:"کار و فناوری",grades:[null,null,null,null,null,["آشنایی با رایانه و استفاده مطلوب و بهینه از آن","دست‌ورزی و ارتباط آن با اقتصاد و درآمدزایی"]]},
+    {name:"هنر",grades:[["زیبایی‌شناسی","ارتباط با طبیعت","تولید و نقد هنری","آشنایی با میراث فرهنگی","کاربرد درست ابزار","رعایت ایمنی"],["زیبایی‌شناسی","ارتباط با طبیعت","تولید و نقد هنری","آشنایی با میراث فرهنگی","کاربرد درست ابزار","رعایت ایمنی"],["زیبایی‌شناسی","ارتباط با طبیعت","تولید و نقد هنری","آشنایی با میراث فرهنگی","کاربرد درست ابزار","رعایت ایمنی"],["زیبایی‌شناسی","ارتباط با طبیعت","تولید و نقد هنری","آشنایی با میراث فرهنگی","کاربرد درست ابزار","رعایت ایمنی"],["زیبایی‌شناسی","ارتباط با طبیعت","تولید و نقد هنری","آشنایی با میراث فرهنگی","کاربرد درست ابزار","رعایت ایمنی"],["زیبایی‌شناسی","ارتباط با طبیعت","تولید و نقد هنری","آشنایی با میراث فرهنگی","کاربرد درست ابزار","رعایت ایمنی"]]},
+    {name:"تربیت بدنی",grades:[["توسعه و بهبود عضلانی","تعادل","قلبی-عروقی","انعطاف‌پذیری","کسب مهارت در جهت‌یابی","راه رفتن، ایستادن و نشستن","دویدن","پرتاب و چرخیدن"],["توسعه و بهبود عضلانی","تعادل","قلبی-تنفسی","انعطاف‌پذیری","چابکی","کسب مهارت در خم و راست شدن","پریدن","به پهلو دویدن","پرتاب دو دست","لی‌لی کردن"],["توسعه و بهبود عضلانی","تعادل","قلبی-تنفسی","انعطاف‌پذیری","چابکی","کسب مهارت در خم و راست شدن","پریدن","به پهلو دویدن","پرتاب دو دست","لی‌لی"],["توسعه و بهبود قلبی-تنفسی","عضلانی","انعطاف‌پذیری","سرعت","بهداشت و ایمنی","کسب مهارت‌های فوتبال","والیبال","تنیس روی میز","طناب‌زنی","شرکت در فعالیت‌ها"],["توسعه و بهبود قلبی-تنفسی","انعطاف‌پذیری","سرعت","بهداشت و ایمنی در ورزش","کسب مهارت‌های بسکتبال","هندبال","بدمینتون","طناب‌زنی","شرکت در فعالیت‌ها"],["توسعه و بهبود قلبی-تنفسی","انعطاف‌پذیری","عضلانی","بهداشت و ایمنی در ورزش","کسب مهارت‌های دو سرعت و مارپیچ","پرش","پرتاب","بازی‌های بومی و محلی"]]},
+    {name:"شایستگی‌های عمومی",grades:[["رعایت بهداشت و ایمنی","رعایت آموخته‌های اخلاقی","مسئولیت‌پذیری","مشارکت در کار گروهی","احترام به ارزش‌های ملی و مذهبی","توجه به مطالعه و کتابخوانی","تلاش برای یادگیری بیشتر"],["رعایت بهداشت و ایمنی","توجه به مطالعه برای یادگیری بیشتر","رعایت آموخته‌های اخلاقی","مسئولیت‌پذیری","مشارکت در کار گروهی","احترام به ارزش‌ها"],["رعایت بهداشت و ایمنی","توجه به مطالعه و کتابخوانی","تلاش برای یادگیری بیشتر","رعایت آموخته‌های اخلاقی","مسئولیت‌پذیری","مشارکت در کار گروهی","احترام به ارزش‌های ملی و مذهبی"],["رعایت بهداشت و ایمنی","توجه به مطالعه برای یادگیری بیشتر","رعایت آموخته‌های اخلاقی","مشارکت","مسئولیت‌پذیری","احترام به ارزش‌ها"],["رعایت بهداشت","توجه به مطالعه","رعایت آموخته‌های اخلاقی","مشارکت","مسئولیت‌پذیری","احترام به ارزش‌ها"],["رعایت بهداشت","توجه به مطالعه","رعایت آموخته‌های اخلاقی","مشارکت","مسئولیت‌پذیری","احترام به ارزش‌ها"]]},
   ];
-  var LB_PERF_DATA={}; // { 'subjIdx-rowIdx': {expect:'', desc:'', cols:['','', ...]} } - نگه‌داری مقادیر تایپ‌شده در حافظه
+  var LB_PERF_DATA={}; // { 'subjectName-rowIdx': {expect:'', desc:'', cols:['','', ...]} } - داده‌های دانش‌آموزِ در حال ویرایش
+  var LB_PERF_CURRENT_UUID=null; // شناسه‌ی دانش‌آموزِ در حال ویرایش (null یعنی هنوز ذخیره نشده / جدید است)
   function lbPerfColsCount(){
-    return parseInt(document.getElementById('lbf-cols').value,10)||20;
+    return parseInt(document.getElementById('lbf-cols').value,10)||12;
+  }
+  function lbSelectedPerfGradeIdx(){
+    return parseInt(document.getElementById('lbf-grade-select').value,10)||0;
+  }
+  // فهرست دروس تدریس‌شده در پایه‌ی انتخاب‌شده، همراه با انتظارات آموزشی واقعی هر درس
+  function lbPerfActiveSubjects(gradeIdx){
+    var out=[];
+    LB_PERF_SUBJECTS_BY_GRADE.forEach(function(subj){
+      var items=subj.grades[gradeIdx];
+      if(items && items.length)out.push({name:subj.name,items:items});
+    });
+    return out;
   }
   function lbBuildPerformanceHtml(forExport,colsCount){
     var cols=colsCount||lbPerfColsCount();
+    var subjects=lbPerfActiveSubjects(lbSelectedPerfGradeIdx());
     var h='<table class="lb-table lb-table-tight"><thead>';
-    h+='<tr><th rowspan="2">نام درس</th><th rowspan="2">مهم‌ترین انتظارات آموزشی</th><th colspan="'+cols+'">ثبت عملکرد دانش‌آموزان</th><th rowspan="2">توصیف کوتاه موارد ضروری</th></tr>';
+    h+='<tr><th rowspan="2">نام درس</th><th rowspan="2">مهم‌ترین انتظارات آموزشی</th><th colspan="'+cols+'">ثبت عملکرد دانش‌آموز</th><th rowspan="2">توصیف کوتاه موارد ضروری</th></tr>';
     h+='<tr>';
     for(var c=0;c<cols;c++){
       h+=forExport?'<th style="min-width:22px">'+(c+1)+'</th>':'<th style="min-width:34px">'+(c+1)+'</th>';
     }
     h+='</tr></thead><tbody id="lb-perf-tbody">';
-    LB_PERF_SUBJECTS.forEach(function(subj,sIdx){
-      for(var r=0;r<subj.rows;r++){
-        var key=sIdx+'-'+r;
+    subjects.forEach(function(subj){
+      subj.items.forEach(function(itemText,r){
+        var key=subj.name+'-'+r;
         var saved=LB_PERF_DATA[key]||{};
-        h+='<tr data-subj="'+sIdx+'" data-row="'+r+'">';
-        if(r===0)h+='<td rowspan="'+subj.rows+'" style="font-weight:700;background:#f1f5f9">'+esc(subj.name)+'</td>';
-        h+=forExport?'<td>'+esc(saved.expect||'').replace(/\\n/g,'<br>')+'</td>':'<td><textarea class="lb-perf-expect" data-key="'+key+'" rows="2" placeholder="انتظار آموزشی">'+esc(saved.expect||'')+'</textarea></td>';
+        var expectVal=(saved.expect!==undefined)?saved.expect:itemText;
+        h+='<tr data-subj="'+esc(subj.name)+'" data-row="'+r+'">';
+        if(r===0)h+='<td rowspan="'+subj.items.length+'" style="font-weight:700;background:#f1f5f9">'+esc(subj.name)+'</td>';
+        h+=forExport?'<td>'+esc(expectVal).replace(/\\n/g,'<br>')+'</td>':'<td><textarea class="lb-perf-expect" data-key="'+key+'" rows="2" placeholder="انتظار آموزشی">'+esc(expectVal)+'</textarea></td>';
         for(var c2=0;c2<cols;c2++){
           var v=(saved.cols&&saved.cols[c2])||'';
           h+=forExport?'<td>'+esc(v)+'</td>':'<td><input type="text" class="lb-perf-cell" data-key="'+key+'" data-col="'+c2+'" value="'+esc(v)+'"></td>';
         }
         h+=forExport?'<td>'+esc(saved.desc||'').replace(/\\n/g,'<br>')+'</td>':'<td><textarea class="lb-perf-desc" data-key="'+key+'" rows="2" placeholder="توضیح کوتاه">'+esc(saved.desc||'')+'</textarea></td>';
         h+='</tr>';
-      }
+      });
     });
     h+='</tbody></table>';
     return h;
@@ -4871,8 +5037,89 @@ function teacherScript() {
     lbBindPerformanceInputs(el);
   }
   document.getElementById('btn-lbf-build').onclick=lbRenderPerformance;
+
+  // --- لیست دانش‌آموزانِ ثبت‌شده برای پایه‌ی انتخاب‌شده ---
+  async function lbRenderPerfStudentList(gradeIdx){
+    var wrap=document.getElementById('lbf-student-list');
+    wrap.innerHTML='<span class="muted">در حال بارگذاری...</span>';
+    var list=(await lbLoad('performance:list:'+gradeIdx))||[];
+    wrap.innerHTML='';
+    if(!list.length){wrap.innerHTML='<span class="muted">هنوز دانش‌آموزی برای این پایه ثبت نشده</span>';return;}
+    list.forEach(function(s){
+      var b=document.createElement('button');
+      b.type='button';
+      b.className='btn sm gray';
+      b.textContent='👤 '+s.name;
+      b.onclick=function(){lbPerfLoadStudent(s.uuid);};
+      wrap.appendChild(b);
+    });
+  }
+  async function lbUpdatePerfListEntry(gradeIdx,uuidStr,name){
+    var key='performance:list:'+gradeIdx;
+    var list=(await lbLoad(key))||[];
+    var idx=list.findIndex(function(s){return s.uuid===uuidStr;});
+    if(idx>=0)list[idx].name=name;else list.push({uuid:uuidStr,name:name});
+    await lbSave(key,list,true);
+  }
+  // --- دانش‌آموز جدید: فرم خالی نشان داده می‌شود تا معلم نام را وارد کند ---
+  function lbPerfNew(){
+    LB_PERF_CURRENT_UUID=null;
+    LB_PERF_DATA={};
+    document.getElementById('lbf-student-name').value='';
+    document.getElementById('lbf-cols').value=12;
+    document.getElementById('lbf-form-wrap').classList.remove('hidden');
+    lbRenderPerformance();
+  }
+  document.getElementById('btn-lbf-new').onclick=lbPerfNew;
+  // --- بارگذاری سطح عملکرد یک دانش‌آموز خاص با کلیک روی نامش ---
+  async function lbPerfLoadStudent(uuidStr){
+    var rec=await lbLoad('performance:student:'+uuidStr);
+    if(!rec){toast('اطلاعات این دانش‌آموز پیدا نشد');return;}
+    LB_PERF_CURRENT_UUID=uuidStr;
+    LB_PERF_DATA=rec.data||{};
+    document.getElementById('lbf-student-name').value=rec.name||'';
+    document.getElementById('lbf-cols').value=rec.cols||12;
+    if(rec.meta){
+      document.getElementById('lbf-school').value=rec.meta.school||'';
+      document.getElementById('lbf-teacher').value=rec.meta.teacher||'';
+      document.getElementById('lbf-year').value=rec.meta.year||'';
+    }
+    document.getElementById('lbf-form-wrap').classList.remove('hidden');
+    lbRenderPerformance();
+  }
+  // --- ذخیره‌ی سطح عملکرد دانش‌آموزِ در حال ویرایش ---
+  document.getElementById('btn-lbf-save').onclick=async function(){
+    var name=document.getElementById('lbf-student-name').value.trim();
+    if(!name){toast('لطفاً ابتدا نام دانش‌آموز را وارد کنید');return;}
+    var gradeIdx=lbSelectedPerfGradeIdx();
+    if(!LB_PERF_CURRENT_UUID)LB_PERF_CURRENT_UUID=uid();
+    var rec={
+      uuid:LB_PERF_CURRENT_UUID,
+      name:name,
+      grade:gradeIdx,
+      cols:lbPerfColsCount(),
+      meta:{school:document.getElementById('lbf-school').value,teacher:document.getElementById('lbf-teacher').value,year:document.getElementById('lbf-year').value},
+      data:LB_PERF_DATA
+    };
+    var ok=await lbSave('performance:student:'+LB_PERF_CURRENT_UUID,rec,true);
+    if(ok){
+      await lbUpdatePerfListEntry(gradeIdx,LB_PERF_CURRENT_UUID,name);
+      lbRenderPerfStudentList(gradeIdx);
+      toast('سطح عملکرد «'+name+'» ذخیره شد');
+    }else{
+      toast('خطا در ذخیره اطلاعات');
+    }
+  };
+  // --- تغییر پایه: لیست دانش‌آموزان به‌روزرسانی می‌شود و فرم تا انتخاب/ساخت جدید مخفی می‌ماند ---
+  document.getElementById('lbf-grade-select').addEventListener('change',function(){
+    document.getElementById('lbf-form-wrap').classList.add('hidden');
+    LB_PERF_CURRENT_UUID=null;
+    lbRenderPerfStudentList(lbSelectedPerfGradeIdx());
+  });
   function lbPerformanceExportHtml(){
-    var meta=lbMetaBlock([['نام مدرسه','lbf-school'],['نام آموزگار','lbf-teacher'],['پایه تحصیلی','lbf-grade'],['سال تحصیلی','lbf-year']]);
+    var gradeText=document.getElementById('lbf-grade-select').selectedOptions[0].textContent;
+    var meta=lbMetaBlock([['نام مدرسه','lbf-school'],['نام آموزگار','lbf-teacher'],['سال تحصیلی','lbf-year'],['نام دانش‌آموز','lbf-student-name']]);
+    meta='<p class="lb-meta"><b>پایه تحصیلی:</b> '+esc(gradeText)+'</p>'+meta;
     var table=lbBuildPerformanceHtml(true,lbPerfColsCount());
     var note='<p style="margin-top:14px" class="muted">لازم به ذکر است انتظارات آموزشی تمامی پایه‌ها در جدول شماره ۸ ارائه گردیده. آموزگاران بر پایه بر انتظارات پیش‌بینی شده نسبت به تکمیل جدول اقدام می‌نمایند.</p>';
     return meta+table+note;
@@ -4881,24 +5128,28 @@ function teacherScript() {
   document.getElementById('btn-lb-performance-pdf').onclick=function(){lbPrintExport('جدول شماره ۸: ثبت سطوح عملکرد دانش‌آموز',lbPerformanceExportHtml(),true);};
   document.getElementById('btn-lb-performance-excel').onclick=function(){
     var cols=lbPerfColsCount();
-    lbExcelExport('ثبت-سطوح-عملکرد-دانش-آموز',function(wb){
+    var studentName=document.getElementById('lbf-student-name').value||'دانش‌آموز';
+    var subjects=lbPerfActiveSubjects(lbSelectedPerfGradeIdx());
+    lbExcelExport('ثبت-سطوح-عملکرد-'+studentName,function(wb){
       var header=['نام درس','مهم‌ترین انتظارات آموزشی'];
       for(var c=0;c<cols;c++)header.push(String(c+1));
       header.push('توصیف کوتاه موارد ضروری');
       var rows=[header];
-      LB_PERF_SUBJECTS.forEach(function(subj,sIdx){
-        for(var r=0;r<subj.rows;r++){
-          var key=sIdx+'-'+r;
+      subjects.forEach(function(subj){
+        subj.items.forEach(function(itemText,r){
+          var key=subj.name+'-'+r;
           var saved=LB_PERF_DATA[key]||{};
-          var row=[r===0?subj.name:'',saved.expect||''];
+          var expectVal=(saved.expect!==undefined)?saved.expect:itemText;
+          var row=[r===0?subj.name:'',expectVal];
           for(var c2=0;c2<cols;c2++)row.push((saved.cols&&saved.cols[c2])||'');
           row.push(saved.desc||'');
           rows.push(row);
-        }
+        });
       });
       lbAddExcelSheet(wb,'سطوح عملکرد',rows);
     });
   };
+
 
   // ===================== ۵. صورتجلسه شورای آموزشی اولیا =====================
   var LB_COUNCIL_HEADERS=['ردیف','نام و نام خانوادگی','سمت / نقش','امضاء'];
@@ -4934,6 +5185,32 @@ function teacherScript() {
       ws.columns.forEach(function(c){c.width=28;});
     });
   };
+  var LB_COUNCIL_LOADED=false;
+  async function lbLoadCouncilIfNeeded(){
+    if(LB_COUNCIL_LOADED)return;
+    LB_COUNCIL_LOADED=true;
+    var saved=await lbLoad('council');
+    if(!saved)return;
+    if(saved.meta){
+      document.getElementById('lbc-date').value=saved.meta.date||'';
+      document.getElementById('lbc-topic').value=saved.meta.topic||'';
+      document.getElementById('lbc-num').value=saved.meta.num||'';
+      document.getElementById('lbc-time').value=saved.meta.time||'';
+    }
+    document.getElementById('lbc-summary').value=saved.summary||'';
+    document.getElementById('lbc-decisions').value=saved.decisions||'';
+    if(saved.rowCount){document.getElementById('lbc-rows').value=saved.rowCount;document.getElementById('btn-lbc-build').click();}
+    if(saved.rows)lbFillTableRows('lbc-table',saved.rows);
+  }
+  document.getElementById('btn-lbc-save').onclick=function(){
+    lbSave('council',{
+      meta:{date:document.getElementById('lbc-date').value,topic:document.getElementById('lbc-topic').value,num:document.getElementById('lbc-num').value,time:document.getElementById('lbc-time').value},
+      summary:document.getElementById('lbc-summary').value,
+      decisions:document.getElementById('lbc-decisions').value,
+      rowCount:parseInt(document.getElementById('lbc-rows').value,10)||10,
+      rows:lbTableToRows(document.getElementById('lbc-table')).slice(1)
+    });
+  };
 
   // ===================== ۶. جلسات فردی با اولیا =====================
   var LB_MEET_HEADERS=['ردیف','نام و نام خانوادگی ولی','نسبت با دانش‌آموز','تاریخ دیدار','موضوع دیدار','نتایج (تصمیمات، راهکارها، پیگیری)'];
@@ -4953,6 +5230,28 @@ function teacherScript() {
   document.getElementById('btn-lb-meetings-excel').onclick=function(){
     lbExcelExport('جلسات-فردی-با-اولیا',function(wb){
       lbAddExcelSheet(wb,'جلسات فردی',lbTableToRows(document.getElementById('lbm-table')));
+    });
+  };
+  var LB_MEETINGS_LOADED=false;
+  async function lbLoadMeetingsIfNeeded(){
+    if(LB_MEETINGS_LOADED)return;
+    LB_MEETINGS_LOADED=true;
+    var saved=await lbLoad('meetings');
+    if(!saved)return;
+    if(saved.meta){
+      document.getElementById('lbm-school').value=saved.meta.school||'';
+      document.getElementById('lbm-teacher').value=saved.meta.teacher||'';
+      document.getElementById('lbm-grade').value=saved.meta.grade||'';
+      document.getElementById('lbm-year').value=saved.meta.year||'';
+    }
+    if(saved.rowCount){document.getElementById('lbm-rows').value=saved.rowCount;document.getElementById('btn-lbm-build').click();}
+    if(saved.rows)lbFillTableRows('lbm-table',saved.rows);
+  }
+  document.getElementById('btn-lbm-save').onclick=function(){
+    lbSave('meetings',{
+      meta:{school:document.getElementById('lbm-school').value,teacher:document.getElementById('lbm-teacher').value,grade:document.getElementById('lbm-grade').value,year:document.getElementById('lbm-year').value},
+      rowCount:parseInt(document.getElementById('lbm-rows').value,10)||15,
+      rows:lbTableToRows(document.getElementById('lbm-table')).slice(1)
     });
   };
   // ===================== پایان دفتر مدیریت کلاسی =====================
