@@ -2571,7 +2571,7 @@ function teacherPage() {
           </div>
           <div id="lbf-form-wrap" class="hidden">
             <div class="row" style="align-items:center;gap:14px;margin:10px 0">
-              <img id="lbf-photo-preview" class="hidden" style="width:76px;height:76px;border-radius:50%;object-fit:cover;border:1px solid var(--line)">
+              <img id="lbf-photo-preview" class="hidden" style="width:58px;height:58px;border-radius:50%;object-fit:cover;border:1px solid var(--line)">
               <label class="btn sm sec" style="cursor:pointer">📷 عکس پروفایل دانش‌آموز<input type="file" accept="image/*" id="lbf-photo-input" style="display:none"></label>
               <button class="btn sm gray hidden" id="btn-lbf-photo-remove">🗑️ حذف عکس</button>
             </div>
@@ -5157,12 +5157,12 @@ function teacherScript() {
   function lbPerformanceExportHtml(){
     var gradeText=document.getElementById('lbf-grade-select').selectedOptions[0].textContent;
     var studentName=document.getElementById('lbf-student-name').value||'';
-    var photoHtml=LB_PERF_PHOTO?('<div style="text-align:center;margin-bottom:10px"><img src="'+LB_PERF_PHOTO+'" style="width:96px;height:96px;border-radius:50%;object-fit:cover;border:2px solid #94a3b8"></div>'):'';
+    var photoHtml=LB_PERF_PHOTO?('<img src="'+LB_PERF_PHOTO+'" style="float:left;width:58px;height:58px;border-radius:50%;object-fit:cover;border:1px solid #94a3b8;margin:0 0 8px 10px">'):'';
     var meta=lbMetaBlock([['نام مدرسه','lbf-school'],['نام آموزگار','lbf-teacher'],['سال تحصیلی','lbf-year'],['نام دانش‌آموز','lbf-student-name']]);
-    meta='<p class="lb-meta"><b>پایه تحصیلی:</b> '+esc(gradeText)+'</p>'+meta;
+    meta=photoHtml+'<p class="lb-meta"><b>پایه تحصیلی:</b> '+esc(gradeText)+'</p>'+meta+'<div style="clear:both"></div>';
     var table=lbBuildPerformanceHtml(true,lbPerfColsCount());
     var note='<p style="margin-top:14px" class="muted">لازم به ذکر است انتظارات آموزشی تمامی پایه‌ها در جدول شماره ۸ ارائه گردیده. آموزگاران بر پایه بر انتظارات پیش‌بینی شده نسبت به تکمیل جدول اقدام می‌نمایند.</p>';
-    return photoHtml+meta+table+note;
+    return meta+table+note;
   }
   document.getElementById('btn-lb-performance-word').onclick=function(){lbWordExport('جدول شماره ۸: ثبت سطوح عملکرد دانش‌آموز',lbPerformanceExportHtml(),'ثبت-سطوح-عملکرد-دانش-آموز',true);};
   document.getElementById('btn-lb-performance-pdf').onclick=function(){lbPrintExport('جدول شماره ۸: ثبت سطوح عملکرد دانش‌آموز',lbPerformanceExportHtml(),true);};
