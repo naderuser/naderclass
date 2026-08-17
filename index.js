@@ -2459,6 +2459,7 @@ function teacherPage() {
             <button class="lb-menu-btn" data-lb="performance"><span class="lb-ico">📈</span><span class="lb-t">ثبت سطوح عملکرد دانش‌آموز</span></button>
             <button class="lb-menu-btn" data-lb="council"><span class="lb-ico">🗣️</span><span class="lb-t">صورتجلسه شورای آموزشی اولیا</span></button>
             <button class="lb-menu-btn" data-lb="meetings"><span class="lb-ico">🤝</span><span class="lb-t">جلسات فردی با اولیا</span></button>
+            <button class="lb-menu-btn" data-lb="weekly"><span class="lb-ico">📅</span><span class="lb-t">برنامه درسی هفتگی (چندپایه)</span></button>
           </div>
         </div>
 
@@ -2571,7 +2572,7 @@ function teacherPage() {
           </div>
           <div id="lbf-form-wrap" class="hidden">
             <div class="row" style="align-items:center;gap:14px;margin:10px 0">
-              <img id="lbf-photo-preview" class="hidden" style="width:58px;height:58px;border-radius:50%;object-fit:cover;border:1px solid var(--line)">
+              <img id="lbf-photo-preview" class="hidden" style="width:44px;height:44px;border-radius:50%;object-fit:cover;border:1px solid var(--line)">
               <label class="btn sm sec" style="cursor:pointer">📷 عکس پروفایل دانش‌آموز<input type="file" accept="image/*" id="lbf-photo-input" style="display:none"></label>
               <button class="btn sm gray hidden" id="btn-lbf-photo-remove">🗑️ حذف عکس</button>
             </div>
@@ -2648,6 +2649,23 @@ function teacherPage() {
             <button class="btn gray" id="btn-lb-meetings-pdf">🖨️ چاپ / دانلود PDF</button>
           </div>
         </div>
+
+        <!-- ===== ۷. برنامه درسی هفتگی (ویژه چندپایه) ===== -->
+        <div class="lb-panel hidden" id="lb-panel-weekly">
+          <button class="btn sm gray lb-back-btn">← بازگشت به دفتر</button>
+          <h3>📅 جدول ۱-۳-۱ ـ برنامه درسی هفتگی (ویژه چندپایه)</h3>
+          <div class="lb-meta-form">
+            <div><label>کلاس</label><input id="lbw-class" placeholder="......................."></div>
+          </div>
+          <div class="lb-preview" id="lb-weekly-preview"></div>
+          <div class="row" style="margin-top:12px">
+            <button class="btn primary" id="btn-lbw-save">💾 ذخیره</button>
+            <button class="btn primary" id="btn-lb-weekly-word">📄 دانلود Word</button>
+            <button class="btn sec" id="btn-lb-weekly-excel">📊 دانلود Excel</button>
+            <button class="btn gray" id="btn-lb-weekly-pdf">🖨️ چاپ / دانلود PDF</button>
+          </div>
+        </div>
+
 
       </div>
 
@@ -4601,6 +4619,7 @@ function teacherScript() {
       }
       if(b.dataset.lb==='council')lbLoadCouncilIfNeeded();
       if(b.dataset.lb==='meetings')lbLoadMeetingsIfNeeded();
+      if(b.dataset.lb==='weekly')lbLoadWeeklyIfNeeded();
     };
   });
   document.querySelectorAll('.lb-back-btn').forEach(function(b){
@@ -4991,7 +5010,7 @@ function teacherScript() {
     var cols=colsCount||lbPerfColsCount();
     var subjects=lbPerfActiveSubjects(lbSelectedPerfGradeIdx());
     var h='<table class="lb-table lb-table-tight"><thead>';
-    h+='<tr><th rowspan="2">نام درس</th><th rowspan="2">مهم‌ترین انتظارات آموزشی</th><th colspan="'+cols+'">ثبت عملکرد دانش‌آموز</th><th rowspan="2">توصیف کوتاه موارد ضروری</th></tr>';
+    h+='<tr><th rowspan="2">نام درس</th><th rowspan="2">مهم‌ترین انتظارات آموزشی</th><th colspan="'+cols+'">ثبت عملکرد دانش‌آموز</th><th rowspan="2" style="width:70px;max-width:70px">توصیف کوتاه موارد ضروری</th></tr>';
     h+='<tr>';
     for(var c=0;c<cols;c++){
       h+=forExport?'<th style="min-width:22px">'+(c+1)+'</th>':'<th style="min-width:34px">'+(c+1)+'</th>';
@@ -5000,17 +5019,16 @@ function teacherScript() {
     subjects.forEach(function(subj){
       var key=subj.name;
       var saved=LB_PERF_DATA[key]||{};
-      var defaultExpect=subj.items.join('\\n');
+      var defaultExpect=subj.items.join('، ');
       var expectVal=(saved.expect!==undefined)?saved.expect:defaultExpect;
-      var rowsCount=Math.max(subj.items.length,1);
       h+='<tr data-subj="'+esc(subj.name)+'">';
       h+='<td style="font-weight:700;background:#f1f5f9">'+esc(subj.name)+'</td>';
-      h+=forExport?'<td>'+esc(expectVal).replace(/\\n/g,'<br>')+'</td>':'<td><textarea class="lb-perf-expect" data-key="'+key+'" rows="'+Math.min(rowsCount,8)+'" placeholder="انتظار آموزشی">'+esc(expectVal)+'</textarea></td>';
+      h+=forExport?'<td style="text-align:right">'+esc(expectVal)+'</td>':'<td><textarea class="lb-perf-expect" data-key="'+key+'" rows="3" placeholder="انتظار آموزشی">'+esc(expectVal)+'</textarea></td>';
       for(var c2=0;c2<cols;c2++){
         var v=(saved.cols&&saved.cols[c2])||'';
         h+=forExport?'<td>'+esc(v)+'</td>':'<td><input type="text" class="lb-perf-cell" data-key="'+key+'" data-col="'+c2+'" value="'+esc(v)+'"></td>';
       }
-      h+=forExport?'<td>'+esc(saved.desc||'').replace(/\\n/g,'<br>')+'</td>':'<td><textarea class="lb-perf-desc" data-key="'+key+'" rows="'+Math.min(rowsCount,8)+'" placeholder="توضیح کوتاه">'+esc(saved.desc||'')+'</textarea></td>';
+      h+=forExport?'<td style="width:70px;max-width:70px;font-size:10px">'+esc(saved.desc||'')+'</td>':'<td style="width:70px;max-width:70px"><textarea class="lb-perf-desc" data-key="'+key+'" rows="3" style="width:70px" placeholder="توضیح کوتاه">'+esc(saved.desc||'')+'</textarea></td>';
       h+='</tr>';
     });
     h+='</tbody></table>';
@@ -5157,7 +5175,7 @@ function teacherScript() {
   function lbPerformanceExportHtml(){
     var gradeText=document.getElementById('lbf-grade-select').selectedOptions[0].textContent;
     var studentName=document.getElementById('lbf-student-name').value||'';
-    var photoHtml=LB_PERF_PHOTO?('<img src="'+LB_PERF_PHOTO+'" style="float:left;width:58px;height:58px;border-radius:50%;object-fit:cover;border:1px solid #94a3b8;margin:0 0 8px 10px">'):'';
+    var photoHtml=LB_PERF_PHOTO?('<img src="'+LB_PERF_PHOTO+'" style="float:left;width:36px;height:36px;border-radius:50%;object-fit:cover;border:1px solid #94a3b8;margin:0 8px 6px 0">'):'';
     var meta=lbMetaBlock([['نام مدرسه','lbf-school'],['نام آموزگار','lbf-teacher'],['سال تحصیلی','lbf-year'],['نام دانش‌آموز','lbf-student-name']]);
     meta=photoHtml+'<p class="lb-meta"><b>پایه تحصیلی:</b> '+esc(gradeText)+'</p>'+meta+'<div style="clear:both"></div>';
     var table=lbBuildPerformanceHtml(true,lbPerfColsCount());
@@ -5178,7 +5196,7 @@ function teacherScript() {
       subjects.forEach(function(subj){
         var key=subj.name;
         var saved=LB_PERF_DATA[key]||{};
-        var expectVal=(saved.expect!==undefined)?saved.expect:subj.items.join('\\n');
+        var expectVal=(saved.expect!==undefined)?saved.expect:subj.items.join('، ');
         var row=[subj.name,expectVal];
         for(var c2=0;c2<cols;c2++)row.push((saved.cols&&saved.cols[c2])||'');
         row.push(saved.desc||'');
@@ -5290,6 +5308,73 @@ function teacherScript() {
       meta:{school:document.getElementById('lbm-school').value,teacher:document.getElementById('lbm-teacher').value,grade:document.getElementById('lbm-grade').value,year:document.getElementById('lbm-year').value},
       rowCount:parseInt(document.getElementById('lbm-rows').value,10)||15,
       rows:lbTableToRows(document.getElementById('lbm-table')).slice(1)
+    });
+  };
+
+  // ===================== ۷. برنامه درسی هفتگی (ویژه چندپایه) - جدول ۱-۳-۱ =====================
+  var LB_WEEKLY_DAYS=['شنبه','یکشنبه','دوشنبه','سه‌شنبه','چهارشنبه'];
+  var LB_WEEKLY_GRADES_FA=['۱','۲','۳','۴','۵','۶'];
+  var LB_WEEKLY_DATA={}; // key: 'dayIdx-gradeIdx-sessionIdx' -> مقدار سلول
+  function lbBuildWeeklyHtml(forExport){
+    var h='<p style="font-weight:700;margin-bottom:8px">برنامه درسی چندپایه</p>';
+    LB_WEEKLY_DAYS.forEach(function(day,dIdx){
+      h+='<table class="lb-table lb-table-tight" style="margin-bottom:14px"><thead><tr><th>روز</th><th>پایه</th><th>جلسه اول</th><th>جلسه دوم</th><th>جلسه سوم</th><th>جلسه چهارم</th><th>جلسه پنجم</th></tr></thead><tbody>';
+      LB_WEEKLY_GRADES_FA.forEach(function(gLabel,gIdx){
+        h+='<tr>';
+        if(gIdx===0)h+='<td rowspan="6" style="font-weight:700;background:#f1f5f9">'+esc(day)+'</td>';
+        h+='<td style="font-weight:700">'+gLabel+'</td>';
+        for(var s=0;s<5;s++){
+          var key=dIdx+'-'+gIdx+'-'+s;
+          var v=LB_WEEKLY_DATA[key]||'';
+          h+=forExport?'<td>'+esc(v)+'</td>':'<td><input type="text" class="lb-weekly-cell" data-key="'+key+'" value="'+esc(v)+'"></td>';
+        }
+        h+='</tr>';
+      });
+      h+='</tbody></table>';
+    });
+    return h;
+  }
+  function lbBindWeeklyInputs(el){
+    el.querySelectorAll('.lb-weekly-cell').forEach(function(inp){
+      inp.addEventListener('input',function(){LB_WEEKLY_DATA[inp.dataset.key]=inp.value;});
+    });
+  }
+  function lbRenderWeekly(){
+    var el=document.getElementById('lb-weekly-preview');
+    el.innerHTML=lbBuildWeeklyHtml(false);
+    lbBindWeeklyInputs(el);
+  }
+  var LB_WEEKLY_LOADED=false;
+  async function lbLoadWeeklyIfNeeded(){
+    if(LB_WEEKLY_LOADED){lbRenderWeekly();return;}
+    LB_WEEKLY_LOADED=true;
+    var saved=await lbLoad('weekly');
+    if(saved){
+      document.getElementById('lbw-class').value=saved.className||'';
+      if(saved.data)LB_WEEKLY_DATA=saved.data;
+    }
+    lbRenderWeekly();
+  }
+  document.getElementById('btn-lbw-save').onclick=function(){
+    lbSave('weekly',{className:document.getElementById('lbw-class').value,data:LB_WEEKLY_DATA});
+  };
+  function lbWeeklyExportHtml(){
+    var meta='<p class="lb-meta"><b>کلاس:</b> '+esc(document.getElementById('lbw-class').value)+'</p>';
+    return meta+lbBuildWeeklyHtml(true);
+  }
+  document.getElementById('btn-lb-weekly-word').onclick=function(){lbWordExport('جدول ۱-۳-۱ ـ برنامه درسی هفتگی (ویژه چندپایه)',lbWeeklyExportHtml(),'برنامه-درسی-هفتگی',false);};
+  document.getElementById('btn-lb-weekly-pdf').onclick=function(){lbPrintExport('جدول ۱-۳-۱ ـ برنامه درسی هفتگی (ویژه چندپایه)',lbWeeklyExportHtml(),false);};
+  document.getElementById('btn-lb-weekly-excel').onclick=function(){
+    lbExcelExport('برنامه-درسی-هفتگی',function(wb){
+      var rows=[['روز','پایه','جلسه اول','جلسه دوم','جلسه سوم','جلسه چهارم','جلسه پنجم']];
+      LB_WEEKLY_DAYS.forEach(function(day,dIdx){
+        LB_WEEKLY_GRADES_FA.forEach(function(gLabel,gIdx){
+          var row=[gIdx===0?day:'',gLabel];
+          for(var s=0;s<5;s++)row.push(LB_WEEKLY_DATA[dIdx+'-'+gIdx+'-'+s]||'');
+          rows.push(row);
+        });
+      });
+      lbAddExcelSheet(wb,'برنامه هفتگی',rows);
     });
   };
   // ===================== پایان دفتر مدیریت کلاسی =====================
