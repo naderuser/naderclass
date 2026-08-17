@@ -1051,6 +1051,9 @@ const SHARED_CSS = `
   .lb-table input,.lb-table textarea{width:100%;border:none;background:transparent;text-align:center;font-family:inherit;font-size:12px;padding:2px}
   .lb-table-tight th,.lb-table-tight td{padding:3px 4px;font-size:11px}
   .lb-table-tight input{min-width:22px}
+  .lb-diag-cell{position:relative;background:linear-gradient(to top left, transparent calc(50% - 1px), #94a3b8 calc(50% - 1px), #94a3b8 calc(50% + 1px), transparent calc(50% + 1px))!important;padding:0!important;height:44px;min-width:70px}
+  .lb-diag-cell .lb-diag-top{position:absolute;top:2px;left:6px;font-size:10px;font-weight:700}
+  .lb-diag-cell .lb-diag-bottom{position:absolute;bottom:2px;right:6px;font-size:10px;font-weight:700}
   .lb-pacing-table{width:max-content;min-width:100%;border-collapse:collapse;font-size:11px;margin-bottom:22px}
   .lb-pacing-table th,.lb-pacing-table td{border:1px solid #94a3b8;padding:4px 6px;text-align:center}
   .lb-pacing-table th{background:#dbeafe}
@@ -2460,6 +2463,7 @@ function teacherPage() {
             <button class="lb-menu-btn" data-lb="council"><span class="lb-ico">🗣️</span><span class="lb-t">صورتجلسه شورای آموزشی اولیا</span></button>
             <button class="lb-menu-btn" data-lb="meetings"><span class="lb-ico">🤝</span><span class="lb-t">جلسات فردی با اولیا</span></button>
             <button class="lb-menu-btn" data-lb="weekly"><span class="lb-ico">📅</span><span class="lb-t">برنامه درسی هفتگی (چندپایه)</span></button>
+            <button class="lb-menu-btn" data-lb="weekly2"><span class="lb-ico">🗓️</span><span class="lb-t">برنامه درسی هفتگی (تک‌پایه)</span></button>
           </div>
         </div>
 
@@ -2666,8 +2670,26 @@ function teacherPage() {
           </div>
         </div>
 
+        <!-- ===== ۸. برنامه درسی هفتگی (کلاس تک‌پایه) ===== -->
+        <div class="lb-panel hidden" id="lb-panel-weekly2">
+          <button class="btn sm gray lb-back-btn">← بازگشت به دفتر</button>
+          <h3>🗓️ جدول ۳- برنامه درسی هفتگی (کلاس تک پایه)</h3>
+          <div class="lb-meta-form">
+            <div><label>برنامه درسی پایه</label><input id="lbw2-grade" placeholder="......................."></div>
+            <div><label>کلاس</label><input id="lbw2-class" placeholder="......................."></div>
+          </div>
+          <div class="lb-preview" id="lb-weekly2-preview"></div>
+          <div class="row" style="margin-top:12px">
+            <button class="btn primary" id="btn-lbw2-save">💾 ذخیره</button>
+            <button class="btn primary" id="btn-lb-weekly2-word">📄 دانلود Word</button>
+            <button class="btn sec" id="btn-lb-weekly2-excel">📊 دانلود Excel</button>
+            <button class="btn gray" id="btn-lb-weekly2-pdf">🖨️ چاپ / دانلود PDF</button>
+          </div>
+        </div>
+
 
       </div>
+
 
       <div class="card tab-content hidden" id="tab-settings">
         <h3>🌙 تم</h3>
@@ -4620,6 +4642,7 @@ function teacherScript() {
       if(b.dataset.lb==='council')lbLoadCouncilIfNeeded();
       if(b.dataset.lb==='meetings')lbLoadMeetingsIfNeeded();
       if(b.dataset.lb==='weekly')lbLoadWeeklyIfNeeded();
+      if(b.dataset.lb==='weekly2')lbLoadWeekly2IfNeeded();
     };
   });
   document.querySelectorAll('.lb-back-btn').forEach(function(b){
@@ -5375,6 +5398,81 @@ function teacherScript() {
         });
       });
       lbAddExcelSheet(wb,'برنامه هفتگی',rows);
+    });
+  };
+
+  // ===================== ۸. برنامه درسی هفتگی (کلاس تک‌پایه) - جدول ۳ =====================
+  var LB_WEEKLY2_DAYS=['شنبه','یکشنبه','دوشنبه','سه‌شنبه','چهارشنبه'];
+  var LB_WEEKLY2_SESSIONS=['جلسه اول','جلسه دوم','سوم','چهارم','پنجم'];
+  var LB_WEEKLY2_DATA={}; // key: 'dayIdx-sessionIdx'
+  function lbWeekly2DiagCellHtml(forExport){
+    if(forExport){
+      // استایل inline کامل تا در فایل Word/چاپ هم (بدون وابستگی به استایل صفحه) درست دیده شود
+      return '<th style="position:relative;padding:0;height:44px;min-width:70px;'
+        +'background:linear-gradient(to top left, transparent calc(50% - 1px), #94a3b8 calc(50% - 1px), #94a3b8 calc(50% + 1px), transparent calc(50% + 1px))">'
+        +'<span style="position:absolute;top:2px;left:6px;font-size:10px;font-weight:700">جلسه</span>'
+        +'<span style="position:absolute;bottom:2px;right:6px;font-size:10px;font-weight:700">روز</span>'
+        +'</th>';
+    }
+    return '<th class="lb-diag-cell"><span class="lb-diag-top">جلسه</span><span class="lb-diag-bottom">روز</span></th>';
+  }
+  function lbBuildWeekly2Html(forExport){
+    var h='<table class="lb-table lb-table-tight" style="width:100%"><thead><tr>';
+    h+=lbWeekly2DiagCellHtml(forExport);
+    LB_WEEKLY2_SESSIONS.forEach(function(s){h+='<th>'+esc(s)+'</th>';});
+    h+='</tr></thead><tbody>';
+    LB_WEEKLY2_DAYS.forEach(function(day,dIdx){
+      h+='<tr><td style="font-weight:700;background:#f1f5f9">'+esc(day)+'</td>';
+      LB_WEEKLY2_SESSIONS.forEach(function(s,sIdx){
+        var key=dIdx+'-'+sIdx;
+        var v=LB_WEEKLY2_DATA[key]||'';
+        h+=forExport?'<td>'+esc(v)+'</td>':'<td><input type="text" class="lb-weekly2-cell" data-key="'+key+'" value="'+esc(v)+'"></td>';
+      });
+      h+='</tr>';
+    });
+    h+='</tbody></table>';
+    return h;
+  }
+  function lbBindWeekly2Inputs(el){
+    el.querySelectorAll('.lb-weekly2-cell').forEach(function(inp){
+      inp.addEventListener('input',function(){LB_WEEKLY2_DATA[inp.dataset.key]=inp.value;});
+    });
+  }
+  function lbRenderWeekly2(){
+    var el=document.getElementById('lb-weekly2-preview');
+    el.innerHTML=lbBuildWeekly2Html(false);
+    lbBindWeekly2Inputs(el);
+  }
+  var LB_WEEKLY2_LOADED=false;
+  async function lbLoadWeekly2IfNeeded(){
+    if(LB_WEEKLY2_LOADED){lbRenderWeekly2();return;}
+    LB_WEEKLY2_LOADED=true;
+    var saved=await lbLoad('weekly2');
+    if(saved){
+      document.getElementById('lbw2-grade').value=saved.grade||'';
+      document.getElementById('lbw2-class').value=saved.className||'';
+      if(saved.data)LB_WEEKLY2_DATA=saved.data;
+    }
+    lbRenderWeekly2();
+  }
+  document.getElementById('btn-lbw2-save').onclick=function(){
+    lbSave('weekly2',{grade:document.getElementById('lbw2-grade').value,className:document.getElementById('lbw2-class').value,data:LB_WEEKLY2_DATA});
+  };
+  function lbWeekly2ExportHtml(){
+    var meta='<p class="lb-meta"><b>برنامه درسی پایه:</b> '+esc(document.getElementById('lbw2-grade').value)+' &nbsp;&nbsp;&nbsp; <b>کلاس:</b> '+esc(document.getElementById('lbw2-class').value)+'</p>';
+    return meta+lbBuildWeekly2Html(true);
+  }
+  document.getElementById('btn-lb-weekly2-word').onclick=function(){lbWordExport('جدول ۳- برنامه درسی هفتگی (کلاس تک پایه)',lbWeekly2ExportHtml(),'برنامه-درسی-هفتگی-تک-پایه',false);};
+  document.getElementById('btn-lb-weekly2-pdf').onclick=function(){lbPrintExport('جدول ۳- برنامه درسی هفتگی (کلاس تک پایه)',lbWeekly2ExportHtml(),false);};
+  document.getElementById('btn-lb-weekly2-excel').onclick=function(){
+    lbExcelExport('برنامه-درسی-هفتگی-تک-پایه',function(wb){
+      var rows=[['روز'].concat(LB_WEEKLY2_SESSIONS)];
+      LB_WEEKLY2_DAYS.forEach(function(day,dIdx){
+        var row=[day];
+        LB_WEEKLY2_SESSIONS.forEach(function(s,sIdx){row.push(LB_WEEKLY2_DATA[dIdx+'-'+sIdx]||'');});
+        rows.push(row);
+      });
+      lbAddExcelSheet(wb,'برنامه هفتگی تک‌پایه',rows);
     });
   };
   // ===================== پایان دفتر مدیریت کلاسی =====================
