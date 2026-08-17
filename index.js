@@ -4991,20 +4991,20 @@ function teacherScript() {
     }
     h+='</tr></thead><tbody id="lb-perf-tbody">';
     subjects.forEach(function(subj){
-      subj.items.forEach(function(itemText,r){
-        var key=subj.name+'-'+r;
-        var saved=LB_PERF_DATA[key]||{};
-        var expectVal=(saved.expect!==undefined)?saved.expect:itemText;
-        h+='<tr data-subj="'+esc(subj.name)+'" data-row="'+r+'">';
-        if(r===0)h+='<td rowspan="'+subj.items.length+'" style="font-weight:700;background:#f1f5f9">'+esc(subj.name)+'</td>';
-        h+=forExport?'<td>'+esc(expectVal).replace(/\\n/g,'<br>')+'</td>':'<td><textarea class="lb-perf-expect" data-key="'+key+'" rows="2" placeholder="انتظار آموزشی">'+esc(expectVal)+'</textarea></td>';
-        for(var c2=0;c2<cols;c2++){
-          var v=(saved.cols&&saved.cols[c2])||'';
-          h+=forExport?'<td>'+esc(v)+'</td>':'<td><input type="text" class="lb-perf-cell" data-key="'+key+'" data-col="'+c2+'" value="'+esc(v)+'"></td>';
-        }
-        h+=forExport?'<td>'+esc(saved.desc||'').replace(/\\n/g,'<br>')+'</td>':'<td><textarea class="lb-perf-desc" data-key="'+key+'" rows="2" placeholder="توضیح کوتاه">'+esc(saved.desc||'')+'</textarea></td>';
-        h+='</tr>';
-      });
+      var key=subj.name;
+      var saved=LB_PERF_DATA[key]||{};
+      var defaultExpect=subj.items.join('\\n');
+      var expectVal=(saved.expect!==undefined)?saved.expect:defaultExpect;
+      var rowsCount=Math.max(subj.items.length,1);
+      h+='<tr data-subj="'+esc(subj.name)+'">';
+      h+='<td style="font-weight:700;background:#f1f5f9">'+esc(subj.name)+'</td>';
+      h+=forExport?'<td>'+esc(expectVal).replace(/\\n/g,'<br>')+'</td>':'<td><textarea class="lb-perf-expect" data-key="'+key+'" rows="'+Math.min(rowsCount,8)+'" placeholder="انتظار آموزشی">'+esc(expectVal)+'</textarea></td>';
+      for(var c2=0;c2<cols;c2++){
+        var v=(saved.cols&&saved.cols[c2])||'';
+        h+=forExport?'<td>'+esc(v)+'</td>':'<td><input type="text" class="lb-perf-cell" data-key="'+key+'" data-col="'+c2+'" value="'+esc(v)+'"></td>';
+      }
+      h+=forExport?'<td>'+esc(saved.desc||'').replace(/\\n/g,'<br>')+'</td>':'<td><textarea class="lb-perf-desc" data-key="'+key+'" rows="'+Math.min(rowsCount,8)+'" placeholder="توضیح کوتاه">'+esc(saved.desc||'')+'</textarea></td>';
+      h+='</tr>';
     });
     h+='</tbody></table>';
     return h;
@@ -5136,15 +5136,13 @@ function teacherScript() {
       header.push('توصیف کوتاه موارد ضروری');
       var rows=[header];
       subjects.forEach(function(subj){
-        subj.items.forEach(function(itemText,r){
-          var key=subj.name+'-'+r;
-          var saved=LB_PERF_DATA[key]||{};
-          var expectVal=(saved.expect!==undefined)?saved.expect:itemText;
-          var row=[r===0?subj.name:'',expectVal];
-          for(var c2=0;c2<cols;c2++)row.push((saved.cols&&saved.cols[c2])||'');
-          row.push(saved.desc||'');
-          rows.push(row);
-        });
+        var key=subj.name;
+        var saved=LB_PERF_DATA[key]||{};
+        var expectVal=(saved.expect!==undefined)?saved.expect:subj.items.join('\\n');
+        var row=[subj.name,expectVal];
+        for(var c2=0;c2<cols;c2++)row.push((saved.cols&&saved.cols[c2])||'');
+        row.push(saved.desc||'');
+        rows.push(row);
       });
       lbAddExcelSheet(wb,'سطوح عملکرد',rows);
     });
