@@ -4183,22 +4183,41 @@ function teacherScript() {
     document.getElementById('pdf2word-status').textContent='';
   };
 
-  // استخراج متن هر صفحه به‌صورت خط به خط (بر اساس مختصات Y) برای حفظ حداکثری چیدمان پاراگراف‌ها
+  // استخراج متن هر صفحه با حفظ ترتیب اصلی pdf.js (بدون مرتب‌سازی x که باعث به‌هم‌ریختن کلمات فارسی/راست‌به‌چپ می‌شود)
+  // و تشخیص فاصله بین کلمات بر اساس فاصلهٔ واقعی بین گلیف‌ها
   async function extractPdfPageLines(pageNum){
     const page=await pdf2wordDoc.getPage(pageNum);
     const content=await page.getTextContent();
     const items=content.items.filter(it=>it.str!==undefined);
     if(items.length===0)return[];
-    const lines=[];
-    const yTolerance=3;
+    const rawLines=[];
+    let current=[];
     items.forEach(it=>{
-      const y=it.transform[5];
-      let line=lines.find(l=>Math.abs(l.y-y)<=yTolerance);
-      if(!line){line={y,parts:[]};lines.push(line);}
-      line.parts.push({x:it.transform[4],str:it.str});
+      current.push(it);
+      if(it.hasEOL){rawLines.push(current);current=[];}
     });
-    lines.sort((a,b)=>b.y-a.y);
-    return lines.map(l=>l.parts.sort((a,b)=>a.x-b.x).map(p=>p.str).join(''));
+    if(current.length)rawLines.push(current);
+
+    return rawLines.map(parts=>{
+      let text='';
+      let prevItem=null;
+      parts.forEach(p=>{
+        const str=p.str;
+        if(str==='' ){prevItem=p;return;}
+        const x=p.transform[4];
+        const fontSize=Math.abs(p.transform[3])||Math.abs(p.transform[0])||10;
+        if(prevItem){
+          const prevX=prevItem.transform[4];
+          const prevWidth=Math.abs(prevItem.width||0);
+          const gap=Math.abs(x-prevX)-prevWidth;
+          const alreadyHasSpace=text.endsWith(' ')||str.startsWith(' ');
+          if(gap>fontSize*0.15 && !alreadyHasSpace){text+=' ';}
+        }
+        text+=str;
+        prevItem=p;
+      });
+      return text;
+    });
   }
 
   function escapeHtml(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
