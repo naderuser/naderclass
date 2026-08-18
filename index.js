@@ -4183,23 +4183,29 @@ function teacherScript() {
     document.getElementById('pdf2word-status').textContent='';
   };
 
-  // استخراج متن هر صفحه با حفظ ترتیب اصلی pdf.js (بدون مرتب‌سازی x که باعث به‌هم‌ریختن کلمات فارسی/راست‌به‌چپ می‌شود)
-  // هر تکهٔ متنی که pdf.js جدا برمی‌گردونه معمولاً یک واحد معنادار (کلمه/عبارت) است، پس با فاصله به هم وصل می‌شوند
+  // استخراج متن هر صفحه بر اساس موقعیت واقعی روی صفحه (نه ترتیب خام فایل PDF)
+  // چون در فرم‌ها/جدول‌ها (مثل برگه امتحان) ترتیب رسم عناصر در فایل PDF لزوماً با چیدمان بصری یکی نیست
   async function extractPdfPageLines(pageNum){
     const page=await pdf2wordDoc.getPage(pageNum);
     const content=await page.getTextContent();
-    const items=content.items.filter(it=>it.str!==undefined);
+    const items=content.items.filter(it=>it.str!==undefined && it.str!=='');
     if(items.length===0)return[];
-    const rawLines=[];
-    let current=[];
+    // گروه‌بندی آیتم‌ها به ردیف‌ها بر اساس مختصات Y (آیتم‌های هم‌ردیف روی یک خط افقی هستند)
+    const lines=[];
     items.forEach(it=>{
-      current.push(it);
-      if(it.hasEOL){rawLines.push(current);current=[];}
+      const y=it.transform[5];
+      const fontSize=Math.abs(it.transform[3])||Math.abs(it.transform[0])||10;
+      const tol=Math.max(2,fontSize*0.35);
+      let line=lines.find(l=>Math.abs(l.y-y)<=tol);
+      if(!line){line={y,items:[]};lines.push(line);}
+      line.items.push(it);
     });
-    if(current.length)rawLines.push(current);
-
-    return rawLines.map(parts=>{
-      const text=parts.map(p=>p.str).filter(s=>s!=='').join(' ');
+    // ردیف‌ها از بالای صفحه به پایین (در PDF مقدار Y بزرگ‌تر = بالاتر)
+    lines.sort((a,b)=>b.y-a.y);
+    return lines.map(l=>{
+      // داخل هر ردیف، از راست به چپ مرتب می‌شود (X نزولی) چون خواندن فارسی راست‌به‌چپ است
+      const sorted=[...l.items].sort((a,b)=>b.transform[4]-a.transform[4]);
+      const text=sorted.map(it=>it.str).join(' ');
       return text.replace(/\s+/g,' ').replace(/\s+([.,،؛:؟!])/g,'$1').trim();
     });
   }
