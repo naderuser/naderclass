@@ -2230,6 +2230,7 @@ function teacherPage() {
           <div class="subtab" data-subtab="resize">🗜️ کاهش حجم</div>
           <div class="subtab" data-subtab="crop">✂️ برش عکس</div>
           <div class="subtab" data-subtab="pdf2img">📄 PDF به عکس</div>
+          <div class="subtab" data-subtab="pdf2word">📝 PDF به Word</div>
         </div>
 
       <div class="subtab-content" id="tab-scan">
@@ -2341,6 +2342,27 @@ function teacherPage() {
           </div>
           <div class="pdf-preview" id="pdf-preview" style="margin-bottom:16px"></div>
           <div class="pdf-toolbar"><button class="btn primary" id="btn-pdf-render-all">⚡ رندر همه صفحات</button><button class="btn secondary" id="btn-pdf-download-zip">📦 دانلود ZIP</button><button class="btn gray" id="btn-pdf-clear-previews">🗑️ پاک کردن پیش‌نمایش‌ها</button></div>
+        </div>
+      </div>
+
+      <div class="subtab-content hidden" id="tab-pdf2word">
+        <h3>📝 تبدیل PDF به Word (قابل ویرایش)</h3>
+        <p class="muted">متن PDF استخراج و در قالب یک فایل Word قابل‌ویرایش (.doc) قرار می‌گیرد. توجه: چون PDF ساختار متنی استاندارد ندارد، ممکن است چیدمان دقیق صفحه (جدول‌ها، ستون‌بندی، تصاویر) کاملاً حفظ نشود؛ اما متن به‌صورت کامل و قابل ویرایش استخراج می‌شود.</p>
+        <div class="upload-zone" id="pdf2word-drop-zone">
+          <input type="file" accept="application/pdf" id="pdf2word-file" class="hidden">
+          <div class="upload-icon">📝</div>
+          <p>فایل PDF را اینجا رها کنید یا کلیک کنید</p>
+          <span class="muted">فایل PDF برای تبدیل به Word انتخاب کنید</span>
+        </div>
+        <div id="pdf2word-controls" class="hidden">
+          <div class="pdf-info" style="margin-bottom:16px;padding:12px;background:#f0f9ff;border-radius:8px">
+            <div style="display:flex;justify-content:space-between;align-items:center">
+              <div><strong id="pdf2word-name">فایل PDF</strong><span class="muted" style="margin-right:12px">تعداد صفحات: <strong id="pdf2word-pages-count">0</strong></span></div>
+              <button class="btn sm danger" id="pdf2word-remove">🗑️ حذف</button>
+            </div>
+          </div>
+          <div id="pdf2word-status" class="muted" style="margin-bottom:12px"></div>
+          <div class="pdf-toolbar"><button class="btn primary" id="btn-pdf2word-convert">⚡ استخراج و ساخت Word</button><button class="btn success hidden" id="btn-pdf2word-download">💾 دانلود فایل Word</button></div>
         </div>
       </div>
 
@@ -4132,6 +4154,101 @@ function teacherScript() {
     }finally{
       btn.disabled=false;btn.textContent=origText;
     }
+  };
+
+  // ===== PDF به Word (متن قابل ویرایش) =====
+  let pdf2wordDoc=null,pdf2wordFileName='',pdf2wordBlob=null;
+  const pdf2wordDropZone=document.getElementById('pdf2word-drop-zone');const pdf2wordFileInput=document.getElementById('pdf2word-file');
+  pdf2wordDropZone.onclick=()=>pdf2wordFileInput.click();
+  pdf2wordDropZone.addEventListener('dragover',e=>{e.preventDefault();pdf2wordDropZone.style.borderColor='#667eea';});
+  pdf2wordDropZone.addEventListener('dragleave',()=>{pdf2wordDropZone.style.borderColor='#ccc';});
+  pdf2wordDropZone.addEventListener('drop',e=>{e.preventDefault();pdf2wordDropZone.style.borderColor='#ccc';if(e.dataTransfer.files[0])loadPdf2WordFile(e.dataTransfer.files[0]);});
+  pdf2wordFileInput.addEventListener('change',e=>{if(e.target.files[0])loadPdf2WordFile(e.target.files[0]);});
+
+  async function loadPdf2WordFile(file){
+    if(file.type!=='application/pdf'){toast('فقط فایل PDF مجاز است');return;}
+    pdf2wordFileName=file.name;pdf2wordBlob=null;
+    const arrayBuffer=await file.arrayBuffer();
+    pdf2wordDoc=await pdfjsLib.getDocument({data:arrayBuffer}).promise;
+    document.getElementById('pdf2word-name').textContent=file.name;
+    document.getElementById('pdf2word-pages-count').textContent=pdf2wordDoc.numPages;
+    document.getElementById('pdf2word-controls').classList.remove('hidden');
+    document.getElementById('pdf2word-status').textContent='';
+    document.getElementById('btn-pdf2word-download').classList.add('hidden');
+  }
+
+  document.getElementById('pdf2word-remove').onclick=()=>{
+    pdf2wordDoc=null;pdf2wordFileName='';pdf2wordBlob=null;
+    document.getElementById('pdf2word-controls').classList.add('hidden');
+    document.getElementById('pdf2word-status').textContent='';
+  };
+
+  // استخراج متن هر صفحه به‌صورت خط به خط (بر اساس مختصات Y) برای حفظ حداکثری چیدمان پاراگراف‌ها
+  async function extractPdfPageLines(pageNum){
+    const page=await pdf2wordDoc.getPage(pageNum);
+    const content=await page.getTextContent();
+    const items=content.items.filter(it=>it.str!==undefined);
+    if(items.length===0)return[];
+    const lines=[];
+    const yTolerance=3;
+    items.forEach(it=>{
+      const y=it.transform[5];
+      let line=lines.find(l=>Math.abs(l.y-y)<=yTolerance);
+      if(!line){line={y,parts:[]};lines.push(line);}
+      line.parts.push({x:it.transform[4],str:it.str});
+    });
+    lines.sort((a,b)=>b.y-a.y);
+    return lines.map(l=>l.parts.sort((a,b)=>a.x-b.x).map(p=>p.str).join(''));
+  }
+
+  function escapeHtml(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+
+  document.getElementById('btn-pdf2word-convert').onclick=async()=>{
+    if(!pdf2wordDoc){toast('فایل PDF انتخاب نشده');return;}
+    const btn=document.getElementById('btn-pdf2word-convert');btn.disabled=true;const origText=btn.textContent;
+    const statusEl=document.getElementById('pdf2word-status');
+    try{
+      let bodyHtml='';
+      for(let i=1;i<=pdf2wordDoc.numPages;i++){
+        statusEl.textContent='در حال استخراج متن صفحه '+i+' از '+pdf2wordDoc.numPages+'...';
+        btn.textContent='⏳ '+i+'/'+pdf2wordDoc.numPages;
+        const lines=await extractPdfPageLines(i);
+        const pageBreak=i>1?'style="page-break-before:always"':'';
+        bodyHtml+='<div '+pageBreak+'>';
+        if(lines.length===0){
+          bodyHtml+='<p style="color:#999">[این صفحه متن قابل استخراج ندارد — احتمالاً عکس یا اسکن است]</p>';
+        }else{
+          lines.forEach(ln=>{
+            const t=ln.trim();
+            bodyHtml+='<p style="margin:0 0 6px 0">'+(t?escapeHtml(t):'&nbsp;')+'</p>';
+          });
+        }
+        bodyHtml+='</div>';
+      }
+      const htmlDoc='<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">'+
+        '<head><meta charset="utf-8"><title>'+escapeHtml(pdf2wordFileName)+'</title>'+
+        '<!--[if gte mso 9]><xml><w:WordDocument><w:View>Print</w:View><w:Zoom>100</w:Zoom></w:WordDocument></xml><![endif]-->'+
+        '<style>@page{size:21cm 29.7cm;margin:2cm}body{font-family:"B Nazanin","Vazirmatn","Tahoma",sans-serif;font-size:14pt;direction:rtl;text-align:right}p{margin:0 0 6px 0}</style>'+
+        '</head><body dir="rtl">'+bodyHtml+'</body></html>';
+      pdf2wordBlob=new Blob(['\ufeff'+htmlDoc],{type:'application/msword'});
+      statusEl.textContent='✅ تبدیل انجام شد — '+pdf2wordDoc.numPages+' صفحه استخراج شد.';
+      document.getElementById('btn-pdf2word-download').classList.remove('hidden');
+      toast('فایل Word آماده شد ✅');
+    }catch(e){
+      statusEl.textContent='';
+      toast('خطا در تبدیل PDF به Word');
+    }finally{
+      btn.disabled=false;btn.textContent=origText;
+    }
+  };
+
+  document.getElementById('btn-pdf2word-download').onclick=()=>{
+    if(!pdf2wordBlob){toast('ابتدا تبدیل را انجام دهید');return;}
+    const a=document.createElement('a');
+    a.href=URL.createObjectURL(pdf2wordBlob);
+    a.download=pdf2wordFileName.replace(/\.pdf$/i,'')+'.doc';
+    a.click();
+    toast('فایل Word دانلود شد ✅');
   };
 
   // ===== ترجمه =====
