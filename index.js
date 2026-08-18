@@ -960,6 +960,9 @@ const SHARED_CSS = `
   .tab{padding:9px 16px;border-radius:10px;background:#e2e8f0;cursor:pointer;font-weight:600;font-size:14px}
   [data-theme="dark"] .tab{background:#334155;color:#e2e8f0}
   .tab.active{background:var(--primary);color:#fff}
+  .subtab{padding:8px 14px;border-radius:8px;background:#e2e8f0;cursor:pointer;font-weight:600;font-size:13px}
+  [data-theme="dark"] .subtab{background:#334155;color:#e2e8f0}
+  .subtab.active{background:var(--primary);color:#fff}
   .hidden{display:none}
   .toast{position:fixed;bottom:18px;right:18px;background:#0f172a;color:#fff;padding:12px 18px;border-radius:10px;opacity:0;transition:.3s;z-index:50}
   .toast.show{opacity:1}
@@ -2048,10 +2051,7 @@ function teacherPage() {
         <div class="tab" data-tab="answers">✅ تصحیح و پاسخنامه‌ها</div>
         <div class="tab" data-tab="schedule">📅 برنامه هفتگی</div>
         <div class="tab" data-tab="tables">📊 جدول‌ساز</div>
-        <div class="tab" data-tab="scan">📷 اسکنر</div>
-        <div class="tab" data-tab="resize">🗜️ کاهش حجم</div>
-        <div class="tab" data-tab="crop">✂️ برش عکس</div>
-        <div class="tab" data-tab="pdf2img">📄 PDF به عکس</div>
+        <div class="tab" data-tab="imgtools">🖼️ ابزار عکس</div>
         <div class="tab" data-tab="translate">🌐 ترجمه</div>
         <div class="tab" data-tab="ai">🤖 هوش مصنوعی</div>
         <div class="tab" data-tab="classroom">🖥️ کلاس آنلاین</div>
@@ -2222,7 +2222,17 @@ function teacherPage() {
         </div>
       </div>
 
-      <div class="card tab-content hidden" id="tab-scan">
+      <div class="card tab-content hidden" id="tab-imgtools">
+        <h3>🖼️ ابزار عکس</h3>
+        <p class="muted">اسکنر، کاهش حجم، برش و تبدیل PDF به عکس — همه در یک‌جا</p>
+        <div class="subtabs" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;border-bottom:2px solid #e2e8f0;padding-bottom:12px">
+          <div class="subtab active" data-subtab="scan">📷 اسکنر</div>
+          <div class="subtab" data-subtab="resize">🗜️ کاهش حجم</div>
+          <div class="subtab" data-subtab="crop">✂️ برش عکس</div>
+          <div class="subtab" data-subtab="pdf2img">📄 PDF به عکس</div>
+        </div>
+
+      <div class="subtab-content" id="tab-scan">
         <h3>📷 اسکنر حرفه‌ای (مشابه CamScanner)</h3>
         <p class="muted">عکس‌های خود را با کیفیت بالا اسکن کنید</p>
         <div class="upload-zone" id="scan-drop-zone">
@@ -2261,7 +2271,7 @@ function teacherPage() {
         </div>
       </div>
 
-      <div class="card tab-content hidden" id="tab-resize">
+      <div class="subtab-content hidden" id="tab-resize">
         <h3>🗜️ کاهش حجم عکس</h3>
         <p class="muted">عکس‌ها را با کیفیت دلخواه فشرده کنید</p>
         <div class="upload-zone" id="resize-drop-zone">
@@ -2282,7 +2292,7 @@ function teacherPage() {
         </div>
       </div>
 
-      <div class="card tab-content hidden" id="tab-crop">
+      <div class="subtab-content hidden" id="tab-crop">
         <h3>✂️ برش عکس</h3>
         <p class="muted">عکس‌های خود را برش بزنید و دانلود کنید (قابل استفاده در گوشی و کامپیوتر)</p>
         <div class="upload-zone" id="crop-drop-zone">
@@ -2308,7 +2318,7 @@ function teacherPage() {
         </div>
       </div>
 
-      <div class="card tab-content hidden" id="tab-pdf2img">
+      <div class="subtab-content hidden" id="tab-pdf2img">
         <h3>📄 تبدیل PDF به عکس</h3>
         <p class="muted">صفحات PDF را به تصاویر با کیفیت تبدیل کنید</p>
         <div class="upload-zone" id="pdf-drop-zone">
@@ -2332,6 +2342,8 @@ function teacherPage() {
           <div class="pdf-preview" id="pdf-preview" style="margin-bottom:16px"></div>
           <div class="pdf-toolbar"><button class="btn primary" id="btn-pdf-render-all">⚡ رندر همه صفحات</button><button class="btn secondary" id="btn-pdf-download-zip">📦 دانلود ZIP</button><button class="btn gray" id="btn-pdf-clear-previews">🗑️ پاک کردن پیش‌نمایش‌ها</button></div>
         </div>
+      </div>
+
       </div>
 
       <div class="card tab-content hidden" id="tab-translate">
@@ -2827,6 +2839,13 @@ function teacherScript() {
     if(t.dataset.tab==='schedule'){document.getElementById('btn-gen-schedule').click();}
     if(t.dataset.tab==='questions'){updateDurationDisplay();}
     if(t.dataset.tab==='classroom'){renderClassLinks();setTimeout(function(){if(typeof clsResizeBoard==='function')clsResizeBoard();},50);}
+  });
+
+  document.querySelectorAll('.subtab[data-subtab]').forEach(t=>t.onclick=()=>{
+    document.querySelectorAll('.subtab[data-subtab]').forEach(x=>x.classList.remove('active'));
+    t.classList.add('active');
+    document.querySelectorAll('.subtab-content').forEach(c=>c.classList.add('hidden'));
+    document.getElementById('tab-'+t.dataset.subtab).classList.remove('hidden');
   });
 
   // ===== دانش‌آموزان =====
