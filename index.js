@@ -4184,7 +4184,7 @@ function teacherScript() {
   };
 
   // استخراج متن هر صفحه با حفظ ترتیب اصلی pdf.js (بدون مرتب‌سازی x که باعث به‌هم‌ریختن کلمات فارسی/راست‌به‌چپ می‌شود)
-  // و تشخیص فاصله بین کلمات بر اساس فاصلهٔ واقعی بین گلیف‌ها
+  // هر تکهٔ متنی که pdf.js جدا برمی‌گردونه معمولاً یک واحد معنادار (کلمه/عبارت) است، پس با فاصله به هم وصل می‌شوند
   async function extractPdfPageLines(pageNum){
     const page=await pdf2wordDoc.getPage(pageNum);
     const content=await page.getTextContent();
@@ -4199,24 +4199,8 @@ function teacherScript() {
     if(current.length)rawLines.push(current);
 
     return rawLines.map(parts=>{
-      let text='';
-      let prevItem=null;
-      parts.forEach(p=>{
-        const str=p.str;
-        if(str==='' ){prevItem=p;return;}
-        const x=p.transform[4];
-        const fontSize=Math.abs(p.transform[3])||Math.abs(p.transform[0])||10;
-        if(prevItem){
-          const prevX=prevItem.transform[4];
-          const prevWidth=Math.abs(prevItem.width||0);
-          const gap=Math.abs(x-prevX)-prevWidth;
-          const alreadyHasSpace=text.endsWith(' ')||str.startsWith(' ');
-          if(gap>fontSize*0.15 && !alreadyHasSpace){text+=' ';}
-        }
-        text+=str;
-        prevItem=p;
-      });
-      return text;
+      const text=parts.map(p=>p.str).filter(s=>s!=='').join(' ');
+      return text.replace(/\s+/g,' ').replace(/\s+([.,،؛:؟!])/g,'$1').trim();
     });
   }
 
