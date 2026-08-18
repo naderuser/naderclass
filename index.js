@@ -2659,7 +2659,19 @@ function teacherPage() {
           <button class="btn sm gray lb-back-btn">← بازگشت به دفتر</button>
           <h3>📅 جدول ۱-۳-۱ ـ برنامه درسی هفتگی (ویژه چندپایه)</h3>
           <div class="lb-meta-form">
+            <div><label>نام مدرسه</label><input id="lbw-school" placeholder="......................."></div>
+            <div><label>نام آموزگار</label><input id="lbw-teacher" placeholder="......................."></div>
             <div><label>کلاس</label><input id="lbw-class" placeholder="......................."></div>
+          </div>
+          <div class="row" style="flex-wrap:wrap;gap:10px;align-items:center">
+            <label style="flex:0 0 auto">پایه‌هایی که تدریس می‌کنید:</label>
+            <label style="flex:0 0 auto"><input type="checkbox" class="lbw-grade-chk" checked> اول</label>
+            <label style="flex:0 0 auto"><input type="checkbox" class="lbw-grade-chk" checked> دوم</label>
+            <label style="flex:0 0 auto"><input type="checkbox" class="lbw-grade-chk" checked> سوم</label>
+            <label style="flex:0 0 auto"><input type="checkbox" class="lbw-grade-chk" checked> چهارم</label>
+            <label style="flex:0 0 auto"><input type="checkbox" class="lbw-grade-chk" checked> پنجم</label>
+            <label style="flex:0 0 auto"><input type="checkbox" class="lbw-grade-chk" checked> ششم</label>
+            <button class="btn sm sec" id="btn-lbw-build">🔄 ساخت جدول</button>
           </div>
           <div class="lb-preview" id="lb-weekly-preview"></div>
           <div class="row" style="margin-top:12px">
@@ -5336,16 +5348,25 @@ function teacherScript() {
 
   // ===================== ۷. برنامه درسی هفتگی (ویژه چندپایه) - جدول ۱-۳-۱ =====================
   var LB_WEEKLY_DAYS=['شنبه','یکشنبه','دوشنبه','سه‌شنبه','چهارشنبه'];
-  var LB_WEEKLY_GRADES_FA=['۱','۲','۳','۴','۵','۶'];
-  var LB_WEEKLY_DATA={}; // key: 'dayIdx-gradeIdx-sessionIdx' -> مقدار سلول
+  var LB_WEEKLY_GRADE_NAMES=['اول','دوم','سوم','چهارم','پنجم','ششم'];
+  var LB_WEEKLY_DATA={}; // key: 'dayIdx-gradeIdx-sessionIdx' -> مقدار سلول (gradeIdx همیشه بر اساس شماره‌ی واقعی پایه ۰ تا ۵ است، حتی اگر آن پایه فعلاً انتخاب نشده باشد)
+  function lbSelectedWeeklyGrades(){
+    var out=[];
+    document.querySelectorAll('.lbw-grade-chk').forEach(function(chk,idx){
+      if(chk.checked)out.push(idx);
+    });
+    return out;
+  }
   function lbBuildWeeklyHtml(forExport){
+    var grades=lbSelectedWeeklyGrades();
+    if(!grades.length)grades=[0,1,2,3,4,5];
     var h='<p style="font-weight:700;margin-bottom:6px">برنامه درسی چندپایه</p>';
-    h+='<table class="lb-table lb-table-tight" style="width:100%"><thead><tr><th>روز</th><th>پایه</th><th>جلسه اول</th><th>جلسه دوم</th><th>جلسه سوم</th><th>جلسه چهارم</th><th>جلسه پنجم</th></tr></thead><tbody>';
+    h+='<table class="lb-table lb-table-tight" style="width:100%"><thead><tr><th>روز</th><th>پایه</th><th>زنگ اول</th><th>زنگ دوم</th><th>زنگ سوم</th><th>زنگ چهارم</th><th>زنگ پنجم</th></tr></thead><tbody>';
     LB_WEEKLY_DAYS.forEach(function(day,dIdx){
-      LB_WEEKLY_GRADES_FA.forEach(function(gLabel,gIdx){
+      grades.forEach(function(gIdx,i){
         h+='<tr>';
-        if(gIdx===0)h+='<td rowspan="6" style="font-weight:700;background:#f1f5f9">'+esc(day)+'</td>';
-        h+='<td style="font-weight:700">'+gLabel+'</td>';
+        if(i===0)h+='<td rowspan="'+grades.length+'" style="font-weight:700;background:#f1f5f9">'+esc(day)+'</td>';
+        h+='<td style="font-weight:700">'+LB_WEEKLY_GRADE_NAMES[gIdx]+'</td>';
         for(var s=0;s<5;s++){
           var key=dIdx+'-'+gIdx+'-'+s;
           var v=LB_WEEKLY_DATA[key]||'';
@@ -5367,32 +5388,54 @@ function teacherScript() {
     el.innerHTML=lbBuildWeeklyHtml(false);
     lbBindWeeklyInputs(el);
   }
+  document.getElementById('btn-lbw-build').onclick=lbRenderWeekly;
   var LB_WEEKLY_LOADED=false;
   async function lbLoadWeeklyIfNeeded(){
     if(LB_WEEKLY_LOADED){lbRenderWeekly();return;}
     LB_WEEKLY_LOADED=true;
     var saved=await lbLoad('weekly');
     if(saved){
+      document.getElementById('lbw-school').value=saved.school||'';
+      document.getElementById('lbw-teacher').value=saved.teacher||'';
       document.getElementById('lbw-class').value=saved.className||'';
       if(saved.data)LB_WEEKLY_DATA=saved.data;
+      if(saved.grades&&saved.grades.length){
+        document.querySelectorAll('.lbw-grade-chk').forEach(function(chk,idx){
+          chk.checked=saved.grades.indexOf(idx)>=0;
+        });
+      }
     }
     lbRenderWeekly();
   }
   document.getElementById('btn-lbw-save').onclick=function(){
-    lbSave('weekly',{className:document.getElementById('lbw-class').value,data:LB_WEEKLY_DATA});
+    lbSave('weekly',{
+      school:document.getElementById('lbw-school').value,
+      teacher:document.getElementById('lbw-teacher').value,
+      className:document.getElementById('lbw-class').value,
+      grades:lbSelectedWeeklyGrades(),
+      data:LB_WEEKLY_DATA
+    });
   };
+  function lbWeeklySignatureFooterHtml(){
+    return '<table style="width:100%;border:none;margin-top:46px"><tr>'
+      +'<td style="border:none;width:50%;text-align:center;vertical-align:top;padding:0 10px">نام مدیر مدرسه: .......................................<br><br><br>مهر و امضا</td>'
+      +'<td style="border:none;width:50%;text-align:center;vertical-align:top;padding:0 10px">نام کارشناس آموزش منطقه: .......................................<br><br><br>مهر و امضا</td>'
+      +'</tr></table>';
+  }
   function lbWeeklyExportHtml(){
-    var meta='<p class="lb-meta"><b>کلاس:</b> '+esc(document.getElementById('lbw-class').value)+'</p>';
-    return meta+lbBuildWeeklyHtml(true);
+    var meta='<p class="lb-meta"><b>نام مدرسه:</b> '+esc(document.getElementById('lbw-school').value)+'&nbsp;&nbsp;&nbsp;&nbsp;<b>نام آموزگار:</b> '+esc(document.getElementById('lbw-teacher').value)+'&nbsp;&nbsp;&nbsp;&nbsp;<b>کلاس:</b> '+esc(document.getElementById('lbw-class').value)+'</p>';
+    return meta+lbBuildWeeklyHtml(true)+lbWeeklySignatureFooterHtml();
   }
   document.getElementById('btn-lb-weekly-word').onclick=function(){lbWordExport('جدول ۱-۳-۱ ـ برنامه درسی هفتگی (ویژه چندپایه)',lbWeeklyExportHtml(),'برنامه-درسی-هفتگی',false);};
   document.getElementById('btn-lb-weekly-pdf').onclick=function(){lbPrintExport('جدول ۱-۳-۱ ـ برنامه درسی هفتگی (ویژه چندپایه)',lbWeeklyExportHtml(),false);};
   document.getElementById('btn-lb-weekly-excel').onclick=function(){
+    var grades=lbSelectedWeeklyGrades();
+    if(!grades.length)grades=[0,1,2,3,4,5];
     lbExcelExport('برنامه-درسی-هفتگی',function(wb){
-      var rows=[['روز','پایه','جلسه اول','جلسه دوم','جلسه سوم','جلسه چهارم','جلسه پنجم']];
+      var rows=[['روز','پایه','زنگ اول','زنگ دوم','زنگ سوم','زنگ چهارم','زنگ پنجم']];
       LB_WEEKLY_DAYS.forEach(function(day,dIdx){
-        LB_WEEKLY_GRADES_FA.forEach(function(gLabel,gIdx){
-          var row=[gIdx===0?day:'',gLabel];
+        grades.forEach(function(gIdx,i){
+          var row=[i===0?day:'',LB_WEEKLY_GRADE_NAMES[gIdx]];
           for(var s=0;s<5;s++)row.push(LB_WEEKLY_DATA[dIdx+'-'+gIdx+'-'+s]||'');
           rows.push(row);
         });
@@ -5403,18 +5446,18 @@ function teacherScript() {
 
   // ===================== ۸. برنامه درسی هفتگی (کلاس تک‌پایه) - جدول ۳ =====================
   var LB_WEEKLY2_DAYS=['شنبه','یکشنبه','دوشنبه','سه‌شنبه','چهارشنبه'];
-  var LB_WEEKLY2_SESSIONS=['جلسه اول','جلسه دوم','سوم','چهارم','پنجم'];
+  var LB_WEEKLY2_SESSIONS=['زنگ اول','زنگ دوم','سوم','چهارم','پنجم'];
   var LB_WEEKLY2_DATA={}; // key: 'dayIdx-sessionIdx'
   function lbWeekly2DiagCellHtml(forExport){
     if(forExport){
       // استایل inline کامل تا در فایل Word/چاپ هم (بدون وابستگی به استایل صفحه) درست دیده شود
       return '<th style="position:relative;padding:0;height:44px;min-width:70px;'
         +'background:linear-gradient(to top left, transparent calc(50% - 1px), #94a3b8 calc(50% - 1px), #94a3b8 calc(50% + 1px), transparent calc(50% + 1px))">'
-        +'<span style="position:absolute;top:2px;left:6px;font-size:10px;font-weight:700">جلسه</span>'
+        +'<span style="position:absolute;top:2px;left:6px;font-size:10px;font-weight:700">زنگ</span>'
         +'<span style="position:absolute;bottom:2px;right:6px;font-size:10px;font-weight:700">روز</span>'
         +'</th>';
     }
-    return '<th class="lb-diag-cell"><span class="lb-diag-top">جلسه</span><span class="lb-diag-bottom">روز</span></th>';
+    return '<th class="lb-diag-cell"><span class="lb-diag-top">زنگ</span><span class="lb-diag-bottom">روز</span></th>';
   }
   function lbBuildWeekly2Html(forExport){
     var h='<table class="lb-table lb-table-tight" style="width:100%"><thead><tr>';
