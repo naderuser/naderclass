@@ -4452,6 +4452,23 @@ function teacherScript() {
     return{hLines,vLines};
   }
 
+  // اتصال هوشمند تکه‌های متن: فقط وقتی فاصلهٔ واقعی بین دو تکه به‌اندازهٔ کافی بزرگ باشد یک space درج می‌شود
+  // (وگرنه دو تکه بخشی از یک کلمهٔ واحدند و نباید فاصله بینشان بیفتد — مثل «دبستا»+«ن» که باید «دبستان» شود)
+  function pdf2wordJoinItems(sortedItems){
+    let text='';
+    let prevItem=null;
+    sortedItems.forEach(it=>{
+      if(prevItem){
+        const gap=prevItem.transform[4]-it.transform[4];
+        const fontSize=Math.abs(it.transform[3])||Math.abs(it.transform[0])||10;
+        if(gap/fontSize>0.7 && !text.endsWith(' '))text+=' ';
+      }
+      text+=it.str;
+      prevItem=it;
+    });
+    return text;
+  }
+
   // متن یک بلوک از آیتم‌ها را با فاصله‌گذاری درست و حفظ خط‌های داخلی می‌سازد
   function pdf2wordBuildCellText(cellItems){
     const microLines=[];
@@ -4464,7 +4481,7 @@ function teacherScript() {
     microLines.sort((a,b)=>b.y-a.y);
     return microLines.map(ml=>{
       const sorted=[...ml.items].sort((a,b)=>b.transform[4]-a.transform[4]);
-      return sorted.map(it=>it.str).join(' ').replace(/\s+/g,' ').replace(/\s+([.,،؛:؟!])/g,'$1').trim();
+      return pdf2wordJoinItems(sorted).replace(/\s+/g,' ').replace(/\s+([.,،؛:؟!])/g,'$1').trim();
     }).filter(t=>t!=='');
   }
 
@@ -4491,7 +4508,7 @@ function teacherScript() {
       lines.sort((a,b)=>b.y-a.y);
       return lines.map(l=>{
         const sorted=[...l.items].sort((a,b)=>b.transform[4]-a.transform[4]);
-        return sorted.map(it=>it.str).join(' ').replace(/\s+/g,' ').replace(/\s+([.,،؛:؟!])/g,'$1').trim();
+        return pdf2wordJoinItems(sorted).replace(/\s+/g,' ').replace(/\s+([.,،؛:؟!])/g,'$1').trim();
       }).filter(t=>t!=='').map(t=>({type:'para',text:t}));
     };
 
