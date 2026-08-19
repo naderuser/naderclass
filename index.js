@@ -2242,6 +2242,24 @@ function teacherPage() {
           <p>عکس را اینجا رها کنید یا کلیک کنید</p>
           <span class="muted">فرمت‌های مجاز: JPG, PNG, WEBP</span>
         </div>
+        <div id="scan-warp-stage" class="hidden">
+          <div id="scan-warp-wrapper" style="position:relative;max-width:100%;display:inline-block;touch-action:none;user-select:none">
+            <img id="scan-warp-img" src="" style="width:100%;max-width:500px;display:block;border-radius:8px" draggable="false">
+            <svg id="scan-warp-svg" style="position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none">
+              <polygon id="scan-warp-poly" points="" style="fill:rgba(102,126,234,0.25);stroke:#667eea;stroke-width:2"></polygon>
+            </svg>
+            <div class="scan-warp-handle" data-corner="tl" style="position:absolute;width:26px;height:26px;margin:-13px;border-radius:50%;background:#667eea;border:3px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.4);cursor:grab;touch-action:none"></div>
+            <div class="scan-warp-handle" data-corner="tr" style="position:absolute;width:26px;height:26px;margin:-13px;border-radius:50%;background:#667eea;border:3px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.4);cursor:grab;touch-action:none"></div>
+            <div class="scan-warp-handle" data-corner="br" style="position:absolute;width:26px;height:26px;margin:-13px;border-radius:50%;background:#667eea;border:3px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.4);cursor:grab;touch-action:none"></div>
+            <div class="scan-warp-handle" data-corner="bl" style="position:absolute;width:26px;height:26px;margin:-13px;border-radius:50%;background:#667eea;border:3px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.4);cursor:grab;touch-action:none"></div>
+          </div>
+          <p class="muted" style="margin-top:8px">۴ گوشهٔ آبی رو دقیقاً روی ۴ گوشهٔ سند بکشید تا بعد از برش، سند کاملاً صاف و بدون کجی دربیاد.</p>
+          <div class="scan-toolbar">
+            <button class="btn secondary" id="btn-scan-autodetect">🔍 تشخیص خودکار لبه‌ها</button>
+            <button class="btn primary" id="btn-scan-warp-apply">✅ برش و صاف‌کردن سند</button>
+            <button class="btn gray" id="btn-scan-warp-skip">➡️ رد شدن (بدون برش)</button>
+          </div>
+        </div>
         <div id="scan-controls" class="hidden">
           <div class="filter-presets">
             <button class="filter-btn active" data-filter="original">اصلی</button>
@@ -2262,11 +2280,13 @@ function teacherPage() {
           </div>
           <div class="scan-preview"><canvas id="scan-canvas"></canvas></div>
           <div class="scan-toolbar">
+            <button class="btn secondary" id="btn-rescan-warp">🔲 برش مجدد سند</button>
             <button class="btn secondary" id="btn-rotate-l">↶ چرخش چپ</button>
             <button class="btn secondary" id="btn-rotate-r">↷ چرخش راست</button>
+            <div class="setting-group" style="display:inline-flex;align-items:center;gap:6px;margin:0 8px"><label style="margin:0">📦 کیفیت خروجی</label><input type="range" id="scan-out-quality" min="30" max="100" value="90" style="width:100px"><span class="setting-value" id="scan-out-quality-val">90%</span></div>
             <button class="btn primary" id="btn-dl-img">💾 دانلود عکس</button>
             <button class="btn success" id="btn-dl-pdf">📄 دانلود PDF</button>
-            <button class="btn secondary" id="btn-reset-scan">🔄 بازنشانی</button>
+            <button class="btn secondary" id="btn-reset-scan">🔄 بازنشانی فیلترها</button>
             <button class="btn danger" id="btn-remove-scan">🗑️ حذف عکس</button>
           </div>
         </div>
@@ -3637,10 +3657,203 @@ function teacherScript() {
 
   function loadScanImg(file){
     const rd=new FileReader();
-    rd.onload=ev=>{const img=new Image();img.onload=()=>{SCANIMG=img;SCANORIG=img;scanRotation=0;document.getElementById('scan-controls').classList.remove('hidden');scanDropZone.classList.add('hidden');applyScan();};img.onerror=()=>{toast('فایل عکس معتبر نیست');};img.src=ev.target.result;};
+    rd.onload=ev=>{const img=new Image();img.onload=()=>{
+      scanDropZone.classList.add('hidden');
+      scanWarpOriginalImg=img;
+      openScanWarpStage(img);
+    };img.onerror=()=>{toast('فایل عکس معتبر نیست');};img.src=ev.target.result;};
     rd.onerror=()=>{toast('خطا در خواندن فایل');};
     rd.readAsDataURL(file);
   }
+
+  // ===== برش پرسپکتیو (صاف‌کردن سند مثل CamScanner) =====
+  let scanWarpOriginalImg=null;
+  let scanWarpCorners={tl:{x:0.08,y:0.08},tr:{x:0.92,y:0.08},br:{x:0.92,y:0.92},bl:{x:0.08,y:0.92}};
+
+  function openScanWarpStage(img){
+    document.getElementById('scan-warp-img').src=img.src;
+    document.getElementById('scan-warp-stage').classList.remove('hidden');
+    document.getElementById('scan-controls').classList.add('hidden');
+    scanWarpCorners={tl:{x:0.08,y:0.08},tr:{x:0.92,y:0.08},br:{x:0.92,y:0.92},bl:{x:0.08,y:0.92}};
+    scanRenderWarpHandles();
+  }
+
+  function scanRenderWarpHandles(){
+    const wrapper=document.getElementById('scan-warp-wrapper');
+    ['tl','tr','br','bl'].forEach(k=>{
+      const h=wrapper.querySelector('.scan-warp-handle[data-corner="'+k+'"]');
+      h.style.left=(scanWarpCorners[k].x*100)+'%';
+      h.style.top=(scanWarpCorners[k].y*100)+'%';
+    });
+    const pts=['tl','tr','br','bl'].map(k=>(scanWarpCorners[k].x*100)+'%,'+(scanWarpCorners[k].y*100)+'%').join(' ');
+    document.getElementById('scan-warp-poly').setAttribute('points',pts);
+  }
+
+  function scanMakeDraggable(handle,corner){
+    handle.addEventListener('pointerdown',e=>{
+      e.preventDefault();
+      handle.setPointerCapture(e.pointerId);
+      const wrapper=document.getElementById('scan-warp-wrapper');
+      function move(ev){
+        const rect=wrapper.getBoundingClientRect();
+        let px=(ev.clientX-rect.left)/rect.width, py=(ev.clientY-rect.top)/rect.height;
+        px=Math.min(1,Math.max(0,px));py=Math.min(1,Math.max(0,py));
+        scanWarpCorners[corner]={x:px,y:py};
+        scanRenderWarpHandles();
+      }
+      function up(){
+        handle.releasePointerCapture(e.pointerId);
+        handle.removeEventListener('pointermove',move);
+        handle.removeEventListener('pointerup',up);
+      }
+      handle.addEventListener('pointermove',move);
+      handle.addEventListener('pointerup',up);
+    });
+  }
+  document.querySelectorAll('.scan-warp-handle').forEach(h=>scanMakeDraggable(h,h.dataset.corner));
+
+  // تشخیص تقریبیِ لبه‌های سند (بر پایهٔ تغییرات شدید رنگ/روشنایی نسبت به پس‌زمینه)
+  function scanAutoDetectEdges(img){
+    const maxDim=400;
+    const w=img.naturalWidth,h=img.naturalHeight;
+    const scale=Math.min(1,maxDim/Math.max(w,h));
+    const cw=Math.max(2,Math.round(w*scale)),ch=Math.max(2,Math.round(h*scale));
+    const cv=document.createElement('canvas');cv.width=cw;cv.height=ch;
+    const ctx=cv.getContext('2d');ctx.drawImage(img,0,0,cw,ch);
+    const d=ctx.getImageData(0,0,cw,ch).data;
+    const gray=new Float32Array(cw*ch);
+    for(let i=0;i<cw*ch;i++){const p=i*4;gray[i]=0.299*d[p]+0.587*d[p+1]+0.114*d[p+2];}
+    const rowScore=new Float32Array(ch),colScore=new Float32Array(cw);
+    for(let y=1;y<ch-1;y++){
+      for(let x=1;x<cw-1;x++){
+        const gx=gray[y*cw+x+1]-gray[y*cw+x-1];
+        const gy=gray[(y+1)*cw+x]-gray[(y-1)*cw+x];
+        const mag=Math.abs(gx)+Math.abs(gy);
+        rowScore[y]+=mag;colScore[x]+=mag;
+      }
+    }
+    let rMax=0,cMax=0;
+    for(let i=0;i<ch;i++)if(rowScore[i]>rMax)rMax=rowScore[i];
+    for(let i=0;i<cw;i++)if(colScore[i]>cMax)cMax=colScore[i];
+    const rThresh=rMax*0.15,cThresh=cMax*0.15;
+    let top=0,bottom=ch-1,left=0,right=cw-1;
+    for(let y=0;y<ch;y++){if(rowScore[y]>rThresh){top=y;break;}}
+    for(let y=ch-1;y>=0;y--){if(rowScore[y]>rThresh){bottom=y;break;}}
+    for(let x=0;x<cw;x++){if(colScore[x]>cThresh){left=x;break;}}
+    for(let x=cw-1;x>=0;x--){if(colScore[x]>cThresh){right=x;break;}}
+    if(right-left<cw*0.2||bottom-top<ch*0.2)return null; // تشخیص نامطمئن بود
+    return{left:left/cw,top:top/ch,right:right/cw,bottom:bottom/ch};
+  }
+
+  document.getElementById('btn-scan-autodetect').onclick=()=>{
+    if(!scanWarpOriginalImg)return;
+    const box=scanAutoDetectEdges(scanWarpOriginalImg);
+    if(!box){toast('تشخیص خودکار مطمئن نبود — لطفاً گوشه‌ها را دستی تنظیم کنید');return;}
+    scanWarpCorners={tl:{x:box.left,y:box.top},tr:{x:box.right,y:box.top},br:{x:box.right,y:box.bottom},bl:{x:box.left,y:box.bottom}};
+    scanRenderWarpHandles();
+    toast('لبه‌های سند تشخیص داده شد — در صورت نیاز گوشه‌ها را دقیق‌تر کنید');
+  };
+
+  // محاسبهٔ ماتریس هوموگرافی (تبدیل پرسپکتیو) از ۴ نقطهٔ متناظر
+  function scanComputeHomography(from,to){
+    const A=[],n=8;
+    for(let i=0;i<4;i++){
+      const{x,y}=from[i],X=to[i].x,Y=to[i].y;
+      A.push([x,y,1,0,0,0,-x*X,-y*X,X]);
+      A.push([0,0,0,x,y,1,-x*Y,-y*Y,Y]);
+    }
+    for(let col=0;col<n;col++){
+      let maxRow=col;
+      for(let r=col+1;r<n;r++)if(Math.abs(A[r][col])>Math.abs(A[maxRow][col]))maxRow=r;
+      const tmp=A[col];A[col]=A[maxRow];A[maxRow]=tmp;
+      const pivot=A[col][col];
+      if(Math.abs(pivot)<1e-12)continue;
+      for(let r=0;r<n;r++){
+        if(r===col)continue;
+        const factor=A[r][col]/pivot;
+        for(let c=col;c<=n;c++)A[r][c]-=factor*A[col][c];
+      }
+    }
+    const hArr=new Array(n);
+    for(let i=0;i<n;i++)hArr[i]=A[i][n]/A[i][i];
+    return hArr;
+  }
+
+  function scanWarpPerspective(img,srcCorners,outW,outH){
+    const srcCanvas=document.createElement('canvas');
+    srcCanvas.width=img.naturalWidth;srcCanvas.height=img.naturalHeight;
+    const sctx=srcCanvas.getContext('2d');sctx.drawImage(img,0,0);
+    const sw=srcCanvas.width,sh=srcCanvas.height;
+    const srcData=sctx.getImageData(0,0,sw,sh).data;
+    const dst=[{x:0,y:0},{x:outW,y:0},{x:outW,y:outH},{x:0,y:outH}];
+    const h=scanComputeHomography(dst,srcCorners);
+    const outCanvas=document.createElement('canvas');
+    outCanvas.width=outW;outCanvas.height=outH;
+    const octx=outCanvas.getContext('2d');
+    const outImgData=octx.createImageData(outW,outH);
+    const od=outImgData.data;
+    for(let Y=0;Y<outH;Y++){
+      for(let X=0;X<outW;X++){
+        const denom=h[6]*X+h[7]*Y+1;
+        const sx=(h[0]*X+h[1]*Y+h[2])/denom;
+        const sy=(h[3]*X+h[4]*Y+h[5])/denom;
+        const oi=(Y*outW+X)*4;
+        if(sx<0||sy<0||sx>=sw-1||sy>=sh-1){od[oi]=255;od[oi+1]=255;od[oi+2]=255;od[oi+3]=255;continue;}
+        const x0=Math.floor(sx),y0=Math.floor(sy),fx=sx-x0,fy=sy-y0;
+        const i00=(y0*sw+x0)*4,i10=(y0*sw+x0+1)*4,i01=((y0+1)*sw+x0)*4,i11=((y0+1)*sw+x0+1)*4;
+        for(let c=0;c<3;c++){
+          const top=srcData[i00+c]*(1-fx)+srcData[i10+c]*fx;
+          const bot=srcData[i01+c]*(1-fx)+srcData[i11+c]*fx;
+          od[oi+c]=top*(1-fy)+bot*fy;
+        }
+        od[oi+3]=255;
+      }
+    }
+    octx.putImageData(outImgData,0,0);
+    return outCanvas;
+  }
+
+  function scanFinishToFilterStage(img){
+    SCANIMG=img;SCANORIG=img;scanRotation=0;
+    document.getElementById('scan-warp-stage').classList.add('hidden');
+    document.getElementById('scan-controls').classList.remove('hidden');
+    applyScan();
+  }
+
+  document.getElementById('btn-scan-warp-skip').onclick=()=>{
+    scanFinishToFilterStage(scanWarpOriginalImg);
+  };
+
+  document.getElementById('btn-scan-warp-apply').onclick=async()=>{
+    if(!scanWarpOriginalImg)return;
+    const btn=document.getElementById('btn-scan-warp-apply');const origText=btn.textContent;
+    btn.disabled=true;btn.textContent='⏳ در حال صاف‌کردن...';
+    await new Promise(r=>setTimeout(r,30)); // فرصت برای رندر لودینگ
+    try{
+      const img=scanWarpOriginalImg;
+      const iw=img.naturalWidth,ih=img.naturalHeight;
+      const src=['tl','tr','br','bl'].map(k=>({x:scanWarpCorners[k].x*iw,y:scanWarpCorners[k].y*ih}));
+      const wTop=Math.hypot(src[1].x-src[0].x,src[1].y-src[0].y);
+      const wBot=Math.hypot(src[2].x-src[3].x,src[2].y-src[3].y);
+      const hLeft=Math.hypot(src[3].x-src[0].x,src[3].y-src[0].y);
+      const hRight=Math.hypot(src[2].x-src[1].x,src[2].y-src[1].y);
+      const outW=Math.round(Math.max(wTop,wBot));
+      const outH=Math.round(Math.max(hLeft,hRight));
+      const canvas=scanWarpPerspective(img,src,outW,outH);
+      const flatImg=new Image();
+      flatImg.onload=()=>{scanFinishToFilterStage(flatImg);btn.disabled=false;btn.textContent=origText;};
+      flatImg.src=canvas.toDataURL('image/png');
+    }catch(e){
+      toast('خطا در صاف‌کردن سند');btn.disabled=false;btn.textContent=origText;
+    }
+  };
+
+  document.getElementById('btn-rescan-warp').onclick=()=>{
+    if(!scanWarpOriginalImg)return;
+    openScanWarpStage(scanWarpOriginalImg);
+  };
+
+  document.getElementById('scan-out-quality').addEventListener('input',function(){document.getElementById('scan-out-quality-val').textContent=this.value+'%';});
 
   const FILTERS={
     original:()=>{document.getElementById('scan-bright').value=0;document.getElementById('scan-contrast').value=0;document.getElementById('scan-saturation').value=0;document.getElementById('scan-sharp').value=0;},
@@ -3698,8 +3911,8 @@ function teacherScript() {
 
 
   document.getElementById('btn-reset-scan').onclick=()=>{SCANORIG=SCANIMG;scanRotation=0;document.getElementById('scan-bright').value=0;document.getElementById('scan-contrast').value=0;document.getElementById('scan-sharp').value=0;document.getElementById('scan-saturation').value=0;updateFilterValues();document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));document.querySelector('.filter-btn[data-filter="original"]').classList.add('active');applyScan();};
-  document.getElementById('btn-remove-scan').onclick=()=>{if(!confirm('عکس فعلی حذف شود؟'))return;SCANIMG=null;SCANORIG=null;scanRotation=0;document.getElementById('scan-controls').classList.add('hidden');document.getElementById('scan-drop-zone').classList.remove('hidden');document.getElementById('scan-file').value='';document.getElementById('scan-bright').value=0;document.getElementById('scan-contrast').value=0;document.getElementById('scan-sharp').value=0;document.getElementById('scan-saturation').value=0;updateFilterValues();document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));document.querySelector('.filter-btn[data-filter="original"]').classList.add('active');};
-  document.getElementById('btn-dl-img').onclick=()=>{if(!SCANORIG){toast('ابتدا عکس را انتخاب کنید');return;}const cv=document.getElementById('scan-canvas');cv.toBlob(blob=>{const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='اسکن.png';document.body.appendChild(a);a.click();a.remove();},'image/png');};
+  document.getElementById('btn-remove-scan').onclick=()=>{if(!confirm('عکس فعلی حذف شود؟'))return;SCANIMG=null;SCANORIG=null;scanWarpOriginalImg=null;scanRotation=0;document.getElementById('scan-controls').classList.add('hidden');document.getElementById('scan-warp-stage').classList.add('hidden');document.getElementById('scan-drop-zone').classList.remove('hidden');document.getElementById('scan-file').value='';document.getElementById('scan-bright').value=0;document.getElementById('scan-contrast').value=0;document.getElementById('scan-sharp').value=0;document.getElementById('scan-saturation').value=0;updateFilterValues();document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));document.querySelector('.filter-btn[data-filter="original"]').classList.add('active');};
+  document.getElementById('btn-dl-img').onclick=()=>{if(!SCANORIG){toast('ابتدا عکس را انتخاب کنید');return;}const cv=document.getElementById('scan-canvas');const q=parseInt(document.getElementById('scan-out-quality').value,10)/100;cv.toBlob(blob=>{const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='اسکن.jpg';document.body.appendChild(a);a.click();a.remove();toast('عکس دانلود شد ✅ (حجم فایل حدود '+(blob.size/1024).toFixed(0)+' کیلوبایت)');},'image/jpeg',q);};
   document.getElementById('btn-dl-pdf').onclick=()=>{if(!SCANORIG){toast('ابتدا عکس را انتخاب کنید');return;}if(!window.jspdf){toast('کتابخانه PDF در دسترس نیست');return;}const cv=document.getElementById('scan-canvas');const img=cv.toDataURL('image/jpeg',0.92);const jsPDF=window.jspdf.jsPDF;const pdf=new jsPDF({orientation:cv.width>=cv.height?'l':'p',unit:'pt',format:'a4'});const pw=pdf.internal.pageSize.getWidth(),ph=pdf.internal.pageSize.getHeight();const m=24,aw=pw-2*m,ah=ph-2*m;let iw=cv.width,ih=cv.height;const ratio=Math.min(aw/iw,ah/ih);iw*=ratio;ih*=ratio;pdf.addImage(img,'JPEG',(pw-iw)/2,(ph-ih)/2,iw,ih);pdf.save('اسکن.pdf');toast('فایل PDF ساخته شد ✅');};
 
   // ===== کاهش حجم =====
@@ -4183,31 +4396,141 @@ function teacherScript() {
     document.getElementById('pdf2word-status').textContent='';
   };
 
-  // استخراج متن هر صفحه بر اساس موقعیت واقعی روی صفحه (نه ترتیب خام فایل PDF)
-  // چون در فرم‌ها/جدول‌ها (مثل برگه امتحان) ترتیب رسم عناصر در فایل PDF لزوماً با چیدمان بصری یکی نیست
-  async function extractPdfPageLines(pageNum){
+  // استخراج متن هر صفحه بر اساس موقعیت واقعی روی صفحه + تشخیص خطوط واقعی جدول (رسم‌شده در PDF)
+  // این روش دقیق‌تر از حدس‌زدن بر اساس فاصلهٔ متن‌هاست، چون از خود مرزهای جدول در فایل PDF استفاده می‌کند
+  function pdf2wordCleanStr(s){return s.replace(/[\uE000-\uF8FF]/g,'');} // حذف کاراکترهای ناحیهٔ اختصاصی فونت (نامرئی/بی‌معنی)
+
+  function pdf2wordClusterValues(vals,tol){
+    const sorted=[...vals].sort((a,b)=>a-b);
+    const clusters=[];
+    sorted.forEach(v=>{
+      if(clusters.length && v-clusters[clusters.length-1].vals[clusters[clusters.length-1].vals.length-1]<=tol){
+        clusters[clusters.length-1].vals.push(v);
+      }else{clusters.push({vals:[v]});}
+    });
+    return clusters.map(c=>c.vals.reduce((a,b)=>a+b,0)/c.vals.length);
+  }
+
+  // خطوط افقی/عمودی واقعی رسم‌شده در صفحه (مرزهای جدول) را با خواندن دستورهای گرافیکی PDF پیدا می‌کند
+  async function pdf2wordExtractGridLines(page){
+    const OPS=pdfjsLib.OPS;
+    const opList=await page.getOperatorList();
+    let curMatrix=[1,0,0,1,0,0];
+    const matStack=[];
+    const applyM=(m,p)=>[m[0]*p[0]+m[2]*p[1]+m[4], m[1]*p[0]+m[3]*p[1]+m[5]];
+    const hLines=[],vLines=[];
+    for(let i=0;i<opList.fnArray.length;i++){
+      const fn=opList.fnArray[i],args=opList.argsArray[i];
+      if(fn===OPS.save){matStack.push(curMatrix);}
+      else if(fn===OPS.restore){curMatrix=matStack.pop()||curMatrix;}
+      else if(fn===OPS.transform){
+        const[a,b,c,d,e,f]=args,m=curMatrix;
+        curMatrix=[a*m[0]+b*m[2],a*m[1]+b*m[3],c*m[0]+d*m[2],c*m[1]+d*m[3],e*m[0]+f*m[2]+m[4],e*m[1]+f*m[3]+m[5]];
+      }else if(fn===OPS.constructPath){
+        const[subOps,subArgs]=args;let ai=0,cx=0,cy=0,sx=0,sy=0;
+        for(const op of subOps){
+          if(op===OPS.moveTo){cx=subArgs[ai++];cy=subArgs[ai++];sx=cx;sy=cy;}
+          else if(op===OPS.lineTo){
+            const nx=subArgs[ai++],ny=subArgs[ai++];
+            const p1=applyM(curMatrix,[cx,cy]),p2=applyM(curMatrix,[nx,ny]);
+            const dx=Math.abs(p2[0]-p1[0]),dy=Math.abs(p2[1]-p1[1]);
+            if(dy<0.5&&dx>10)hLines.push({x1:Math.min(p1[0],p2[0]),x2:Math.max(p1[0],p2[0]),y:(p1[1]+p2[1])/2});
+            else if(dx<0.5&&dy>10)vLines.push({y1:Math.min(p1[1],p2[1]),y2:Math.max(p1[1],p2[1]),x:(p1[0]+p2[0])/2});
+            cx=nx;cy=ny;
+          }else if(op===OPS.curveTo){ai+=6;cx=subArgs[ai-2];cy=subArgs[ai-1];}
+          else if(op===OPS.closePath){cx=sx;cy=sy;}
+          else if(op===OPS.rectangle){
+            const rx=subArgs[ai++],ry=subArgs[ai++],rw=subArgs[ai++],rh=subArgs[ai++];
+            const p1=applyM(curMatrix,[rx,ry]),p2=applyM(curMatrix,[rx+rw,ry+rh]);
+            const w=Math.abs(p2[0]-p1[0]),h=Math.abs(p2[1]-p1[1]);
+            if(h<2&&w>10)hLines.push({x1:Math.min(p1[0],p2[0]),x2:Math.max(p1[0],p2[0]),y:(p1[1]+p2[1])/2});
+            else if(w<2&&h>10)vLines.push({y1:Math.min(p1[1],p2[1]),y2:Math.max(p1[1],p2[1]),x:(p1[0]+p2[0])/2});
+          }
+        }
+      }
+    }
+    return{hLines,vLines};
+  }
+
+  // متن یک بلوک از آیتم‌ها را با فاصله‌گذاری درست و حفظ خط‌های داخلی می‌سازد
+  function pdf2wordBuildCellText(cellItems){
+    const microLines=[];
+    cellItems.forEach(it=>{
+      const y=it.transform[5];
+      let ml=microLines.find(m=>Math.abs(m.y-y)<=3);
+      if(!ml){ml={y,items:[]};microLines.push(ml);}
+      ml.items.push(it);
+    });
+    microLines.sort((a,b)=>b.y-a.y);
+    return microLines.map(ml=>{
+      const sorted=[...ml.items].sort((a,b)=>b.transform[4]-a.transform[4]);
+      return sorted.map(it=>it.str).join(' ').replace(/\s+/g,' ').replace(/\s+([.,،؛:؟!])/g,'$1').trim();
+    }).filter(t=>t!=='');
+  }
+
+  // خروجی هر صفحه: آرایه‌ای از بلوک‌ها — {type:'table', rows:[[متن سلول‌ها به ترتیب راست‌به‌چپ],...]} یا {type:'para', lines:[...]}
+  async function extractPdfPageBlocks(pageNum){
     const page=await pdf2wordDoc.getPage(pageNum);
     const content=await page.getTextContent();
-    const items=content.items.filter(it=>it.str!==undefined && it.str!=='');
+    const items=content.items.filter(it=>it.str!==undefined).map(it=>({...it,str:pdf2wordCleanStr(it.str)})).filter(it=>it.str.trim()!=='');
     if(items.length===0)return[];
-    // گروه‌بندی آیتم‌ها به ردیف‌ها بر اساس مختصات Y (آیتم‌های هم‌ردیف روی یک خط افقی هستند)
-    const lines=[];
-    items.forEach(it=>{
-      const y=it.transform[5];
-      const fontSize=Math.abs(it.transform[3])||Math.abs(it.transform[0])||10;
-      const tol=Math.max(2,fontSize*0.35);
-      let line=lines.find(l=>Math.abs(l.y-y)<=tol);
-      if(!line){line={y,items:[]};lines.push(line);}
-      line.items.push(it);
-    });
-    // ردیف‌ها از بالای صفحه به پایین (در PDF مقدار Y بزرگ‌تر = بالاتر)
-    lines.sort((a,b)=>b.y-a.y);
-    return lines.map(l=>{
-      // داخل هر ردیف، از راست به چپ مرتب می‌شود (X نزولی) چون خواندن فارسی راست‌به‌چپ است
-      const sorted=[...l.items].sort((a,b)=>b.transform[4]-a.transform[4]);
-      const text=sorted.map(it=>it.str).join(' ');
-      return text.replace(/\s+/g,' ').replace(/\s+([.,،؛:؟!])/g,'$1').trim();
-    });
+
+    const{hLines,vLines}=await pdf2wordExtractGridLines(page);
+
+    // بدون خط جدول: همهٔ متن به‌صورت پاراگراف معمولی (بر اساس ردیف Y + راست‌به‌چپ)
+    const buildPlainParas=(itemList)=>{
+      const lines=[];
+      itemList.forEach(it=>{
+        const y=it.transform[5];
+        const fontSize=Math.abs(it.transform[3])||Math.abs(it.transform[0])||10;
+        const tol=Math.max(2,fontSize*0.35);
+        let line=lines.find(l=>Math.abs(l.y-y)<=tol);
+        if(!line){line={y,items:[]};lines.push(line);}
+        line.items.push(it);
+      });
+      lines.sort((a,b)=>b.y-a.y);
+      return lines.map(l=>{
+        const sorted=[...l.items].sort((a,b)=>b.transform[4]-a.transform[4]);
+        return sorted.map(it=>it.str).join(' ').replace(/\s+/g,' ').replace(/\s+([.,،؛:؟!])/g,'$1').trim();
+      }).filter(t=>t!=='').map(t=>({type:'para',text:t}));
+    };
+
+    if(hLines.length<2)return buildPlainParas(items);
+
+    const rowBounds=pdf2wordClusterValues(hLines.map(l=>l.y),2).sort((a,b)=>b-a);
+    const yTopMost=rowBounds[0],yBotMost=rowBounds[rowBounds.length-1];
+    const blocks=[];
+
+    // متن‌های بالاتر از جدول (پاراگراف)
+    const aboveItems=items.filter(it=>it.transform[5]>yTopMost+1);
+    blocks.push(...buildPlainParas(aboveItems));
+
+    const tableRows=[];
+    for(let r=0;r<rowBounds.length-1;r++){
+      const yTop=rowBounds[r],yBot=rowBounds[r+1];
+      const bandVX=vLines.filter(v=>v.y1<=yTop-1&&v.y2>=yBot+1).map(v=>v.x);
+      let colBounds=pdf2wordClusterValues(bandVX,2).sort((a,b)=>a-b);
+      const bandItems=items.filter(it=>{const y=it.transform[5];return y<=yTop+1&&y>=yBot-1;});
+      if(colBounds.length<2){
+        if(bandItems.length===0)continue;
+        tableRows.push([pdf2wordBuildCellText(bandItems)]);
+        continue;
+      }
+      const cols=[];
+      for(let c=colBounds.length-2;c>=0;c--){
+        const xL=colBounds[c],xR=colBounds[c+1];
+        const cellItems=bandItems.filter(it=>{const x=it.transform[4];return x>=xL-1&&x<=xR+1;});
+        cols.push(pdf2wordBuildCellText(cellItems));
+      }
+      tableRows.push(cols);
+    }
+    if(tableRows.length>0)blocks.push({type:'table',rows:tableRows});
+
+    // متن‌های پایین‌تر از جدول (پاراگراف)
+    const belowItems=items.filter(it=>it.transform[5]<yBotMost-1);
+    blocks.push(...buildPlainParas(belowItems));
+
+    return blocks;
   }
 
   function escapeHtml(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
@@ -4221,15 +4544,28 @@ function teacherScript() {
       for(let i=1;i<=pdf2wordDoc.numPages;i++){
         statusEl.textContent='در حال استخراج متن صفحه '+i+' از '+pdf2wordDoc.numPages+'...';
         btn.textContent='⏳ '+i+'/'+pdf2wordDoc.numPages;
-        const lines=await extractPdfPageLines(i);
+        const blocks=await extractPdfPageBlocks(i);
         const pageBreak=i>1?'style="page-break-before:always"':'';
         bodyHtml+='<div '+pageBreak+'>';
-        if(lines.length===0){
+        if(blocks.length===0){
           bodyHtml+='<p style="color:#999">[این صفحه متن قابل استخراج ندارد — احتمالاً عکس یا اسکن است]</p>';
         }else{
-          lines.forEach(ln=>{
-            const t=ln.trim();
-            bodyHtml+='<p style="margin:0 0 6px 0">'+(t?escapeHtml(t):'&nbsp;')+'</p>';
+          blocks.forEach(block=>{
+            if(block.type==='table'){
+              bodyHtml+='<table style="width:100%;border-collapse:collapse" dir="rtl"><tbody>';
+              block.rows.forEach(cells=>{
+                bodyHtml+='<tr>';
+                cells.forEach(cellLines=>{
+                  const isNarrow=cells.length>1&&cellLines.length===1&&cellLines[0].length<=3;
+                  const cellHtml=cellLines.length>0?cellLines.map(l=>escapeHtml(l)).join('<br>'):'&nbsp;';
+                  bodyHtml+='<td style="border:1px solid #333;padding:5px 8px;vertical-align:top;'+(isNarrow?'width:36px;text-align:center':'')+'">'+cellHtml+'</td>';
+                });
+                bodyHtml+='</tr>';
+              });
+              bodyHtml+='</tbody></table>';
+            }else{
+              bodyHtml+='<p style="margin:0 0 6px 0">'+(block.text?escapeHtml(block.text):'&nbsp;')+'</p>';
+            }
           });
         }
         bodyHtml+='</div>';
@@ -4237,7 +4573,7 @@ function teacherScript() {
       const htmlDoc='<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">'+
         '<head><meta charset="utf-8"><title>'+escapeHtml(pdf2wordFileName)+'</title>'+
         '<!--[if gte mso 9]><xml><w:WordDocument><w:View>Print</w:View><w:Zoom>100</w:Zoom></w:WordDocument></xml><![endif]-->'+
-        '<style>@page{size:21cm 29.7cm;margin:2cm}body{font-family:"B Nazanin","Vazirmatn","Tahoma",sans-serif;font-size:14pt;direction:rtl;text-align:right}p{margin:0 0 6px 0}</style>'+
+        '<style>@page{size:21cm 29.7cm;margin:2cm}body{font-family:"B Nazanin","Vazirmatn","Tahoma",sans-serif;font-size:14pt;direction:rtl;text-align:right}p{margin:0 0 6px 0}table{margin:0 0 6px 0}</style>'+
         '</head><body dir="rtl">'+bodyHtml+'</body></html>';
       pdf2wordBlob=new Blob(['\ufeff'+htmlDoc],{type:'application/msword'});
       statusEl.textContent='✅ تبدیل انجام شد — '+pdf2wordDoc.numPages+' صفحه استخراج شد.';
