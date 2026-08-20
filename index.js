@@ -1063,6 +1063,29 @@ const SHARED_CSS = `
   .lb-pacing-table th,.lb-pacing-table td{border:1px solid #94a3b8;padding:4px 6px;text-align:center}
   .lb-pacing-table th{background:#dbeafe}
   [data-theme="dark"] .lb-pacing-table th{background:#1e3a5f}
+
+  /* ---- آمار دانش‌آموزان به تفکیک جنسیت ---- */
+  .lbg-sheet{max-width:720px;margin:18px auto 0;background:#fff;border:1px solid #e2e8f0;border-radius:16px;padding:28px 24px;box-shadow:0 4px 18px rgba(0,0,0,.05)}
+  [data-theme="dark"] .lbg-sheet{background:#0f172a;border-color:#334155}
+  .lbg-title{text-align:center;font-size:17px;line-height:2.1;font-weight:700;margin:0 0 20px}
+  .lbg-inline-input{display:inline-block;padding:4px 8px;border:none;border-bottom:2px solid var(--primary);background:transparent;font-family:inherit;font-weight:700;text-align:center;color:inherit;font-size:15px}
+  .lbg-inline-input:focus{outline:none;background:rgba(102,126,234,.06)}
+  .lbg-table{font-size:14px}
+  .lbg-table th,.lbg-table td{padding:10px 12px;font-size:14px}
+  .lbg-table th{background:#eef2ff}
+  [data-theme="dark"] .lbg-table th{background:#1e2a4a}
+  .lbg-table input{font-size:14px;font-weight:600;text-align:center}
+  .lbg-sum{font-weight:700;background:#f8fafc}
+  [data-theme="dark"] .lbg-sum{background:#1a2437}
+  .lbg-total-row td{font-weight:800;background:#eef2ff;border-top:2px solid #94a3b8}
+  [data-theme="dark"] .lbg-total-row td{background:#1e2a4a}
+  .lbg-boxes{display:flex;gap:14px;justify-content:center;flex-wrap:wrap;margin-top:24px}
+  .lbg-box{flex:1 1 180px;max-width:220px;background:#f8fafc;border:1px solid #dbe2ea;border-radius:12px;padding:16px 10px;text-align:center}
+  [data-theme="dark"] .lbg-box{background:#1a2437;border-color:#334155}
+  .lbg-box-main{background:#eef2ff;border-color:var(--primary)}
+  [data-theme="dark"] .lbg-box-main{background:#1e2a4a}
+  .lbg-box-label{display:block;font-size:12.5px;color:var(--muted);margin-bottom:8px;font-weight:600}
+  .lbg-box-val{display:block;font-size:26px;font-weight:800;color:var(--primary)}
   .lb-pacing-table td.lb-subject{background:#f1f5f9;font-weight:700;white-space:nowrap;padding:4px 10px}
   [data-theme="dark"] .lb-pacing-table td.lb-subject{background:#0f172a}
   .lb-pacing-table td.lb-cell{min-width:100px;padding:2px}
@@ -2532,6 +2555,7 @@ function teacherPage() {
           <div class="lb-menu-grid">
             <button class="lb-menu-btn" data-lb="pacing"><span class="lb-ico">📊</span><span class="lb-t">جدول بودجه‌بندی آموزشی</span><small>پایه‌های اول تا ششم</small></button>
             <button class="lb-menu-btn" data-lb="roster"><span class="lb-ico">👨‍🎓</span><span class="lb-t">لیست اسامی دانش‌آموزان</span></button>
+            <button class="lb-menu-btn" data-lb="genderstats"><span class="lb-ico">📊</span><span class="lb-t">آمار دانش‌آموزان</span><small>به تفکیک جنسیت</small></button>
             <button class="lb-menu-btn" data-lb="absence"><span class="lb-ico">📋</span><span class="lb-t">ثبت غیبت دانش‌آموزان</span></button>
             <button class="lb-menu-btn" data-lb="performance"><span class="lb-ico">📈</span><span class="lb-t">ثبت سطوح عملکرد دانش‌آموز</span></button>
             <button class="lb-menu-btn" data-lb="council"><span class="lb-ico">🗣️</span><span class="lb-t">صورتجلسه شورای آموزشی اولیا</span></button>
@@ -2593,6 +2617,43 @@ function teacherPage() {
             <button class="btn primary" id="btn-lb-roster-word">📄 دانلود Word</button>
             <button class="btn sec" id="btn-lb-roster-excel">📊 دانلود Excel</button>
             <button class="btn gray" id="btn-lb-roster-pdf">🖨️ چاپ / دانلود PDF</button>
+          </div>
+        </div>
+
+        <!-- ===== آمار دانش‌آموزان به تفکیک جنسیت ===== -->
+        <div class="lb-panel hidden" id="lb-panel-genderstats">
+          <button class="btn sm gray lb-back-btn">← بازگشت به دفتر</button>
+          <div class="lbg-sheet">
+            <h3 class="lbg-title">آمار دانش‌آموزان مدرسه
+              <input id="lbg-school" class="lbg-inline-input" placeholder="......................." style="width:180px">
+              به تفکیک جنسیت سال تحصیلی
+              <input id="lbg-year" class="lbg-inline-input" placeholder="......................." style="width:110px">
+            </h3>
+            <div class="lb-preview">
+              <table class="lb-table lbg-table" id="lbg-table">
+                <thead><tr><th>پایه</th><th>پسر</th><th>دختر</th><th>مجموع</th></tr></thead>
+                <tbody>
+                  <tr><td>اول</td><td><input type="number" min="0" class="lbg-boy" data-grade="1"></td><td><input type="number" min="0" class="lbg-girl" data-grade="1"></td><td class="lbg-sum" data-grade="1">۰</td></tr>
+                  <tr><td>دوم</td><td><input type="number" min="0" class="lbg-boy" data-grade="2"></td><td><input type="number" min="0" class="lbg-girl" data-grade="2"></td><td class="lbg-sum" data-grade="2">۰</td></tr>
+                  <tr><td>سوم</td><td><input type="number" min="0" class="lbg-boy" data-grade="3"></td><td><input type="number" min="0" class="lbg-girl" data-grade="3"></td><td class="lbg-sum" data-grade="3">۰</td></tr>
+                  <tr><td>چهارم</td><td><input type="number" min="0" class="lbg-boy" data-grade="4"></td><td><input type="number" min="0" class="lbg-girl" data-grade="4"></td><td class="lbg-sum" data-grade="4">۰</td></tr>
+                  <tr><td>پنجم</td><td><input type="number" min="0" class="lbg-boy" data-grade="5"></td><td><input type="number" min="0" class="lbg-girl" data-grade="5"></td><td class="lbg-sum" data-grade="5">۰</td></tr>
+                  <tr><td>ششم</td><td><input type="number" min="0" class="lbg-boy" data-grade="6"></td><td><input type="number" min="0" class="lbg-girl" data-grade="6"></td><td class="lbg-sum" data-grade="6">۰</td></tr>
+                </tbody>
+                <tfoot><tr class="lbg-total-row"><td>مجموع کل</td><td id="lbg-foot-boy">۰</td><td id="lbg-foot-girl">۰</td><td id="lbg-foot-all">۰</td></tr></tfoot>
+              </table>
+            </div>
+            <div class="lbg-boxes">
+              <div class="lbg-box"><span class="lbg-box-label">تعداد دانش‌آموزان پسر</span><span class="lbg-box-val" id="lbg-total-boy">۰</span></div>
+              <div class="lbg-box"><span class="lbg-box-label">تعداد دانش‌آموزان دختر</span><span class="lbg-box-val" id="lbg-total-girl">۰</span></div>
+              <div class="lbg-box lbg-box-main"><span class="lbg-box-label">تعداد کل دانش‌آموزان مدرسه</span><span class="lbg-box-val" id="lbg-total-all">۰</span></div>
+            </div>
+          </div>
+          <div class="row" style="margin-top:16px">
+            <button class="btn primary" id="btn-lbg-save">💾 ذخیره</button>
+            <button class="btn primary" id="btn-lbg-word">📄 دانلود Word</button>
+            <button class="btn sec" id="btn-lbg-excel">📊 دانلود Excel</button>
+            <button class="btn gray" id="btn-lbg-pdf">🖨️ چاپ / دانلود PDF</button>
           </div>
         </div>
 
@@ -5234,6 +5295,7 @@ function teacherScript() {
       if(panel)panel.classList.remove('hidden');
       if(b.dataset.lb==='pacing'){lbRenderPacing();lbLoadPacingIfNeeded(lbSelectedGradeIdx());}
       if(b.dataset.lb==='roster')lbLoadRosterIfNeeded();
+      if(b.dataset.lb==='genderstats')lbLoadGenderStatsIfNeeded();
       if(b.dataset.lb==='absence')lbLoadAbsenceIfNeeded();
       if(b.dataset.lb==='performance'){
         document.getElementById('lbf-form-wrap').classList.add('hidden');
@@ -5355,6 +5417,47 @@ function teacherScript() {
     for(var c=1;c<colCount;c++)html+='<td><input type="text"></td>';
     tr.innerHTML=html;
     tbody.appendChild(tr);
+  }
+  // چسباندن هوشمند (مثل اکسل): چند مقدار کپی‌شده از یک ستون (یا چند ستون) را در خانه‌های زیرین/کناری پخش می‌کند
+  // و در صورت نیاز، بدون پاک‌کردن داده‌های موجود، ردیف‌های جدید هم اضافه می‌کند
+  function lbEnablePaste(tableId){
+    var tableEl=document.getElementById(tableId);
+    if(!tableEl)return;
+    tableEl.addEventListener('paste',function(e){
+      var target=e.target;
+      if(!target||target.tagName!=='INPUT')return;
+      var td=target.closest('td');var tr=td.closest('tr');var tbody=tr.parentElement;
+      var tds=Array.from(tr.children);
+      var colIdx=tds.indexOf(td);
+      var rows=Array.from(tbody.children);
+      var rowIdx=rows.indexOf(tr);
+      var text=(e.clipboardData||window.clipboardData).getData('text');
+      if(!text)return;
+      var lines=text.replace(/\\r/g,'').split('\\n');
+      while(lines.length>1&&lines[lines.length-1]==='')lines.pop();
+      var grid=lines.map(function(l){return l.split('\\t');});
+      var isMulti=grid.length>1||(grid[0]&&grid[0].length>1);
+      if(!isMulti)return;
+      e.preventDefault();
+      var colCount=tds.length;
+      var neededRows=rowIdx+grid.length;
+      while(rows.length<neededRows){
+        lbAddSimpleRow(tableId,colCount);
+        rows=Array.from(tbody.children);
+      }
+      grid.forEach(function(rowArr,ri){
+        var targetTr=rows[rowIdx+ri];
+        if(!targetTr)return;
+        var targetTds=Array.from(targetTr.children);
+        rowArr.forEach(function(val,ci){
+          var cc=colIdx+ci;
+          if(cc>=targetTds.length||cc===0)return;
+          var inp=targetTds[cc].querySelector('input,textarea');
+          if(inp)inp.value=val.trim();
+        });
+      });
+      toast('چسبانده شد: '+grid.length+' ردیف ✅');
+    });
   }
   // ساخت دوباره‌ی جدول (مثلاً با تعداد ردیف جدید) بدون پاک شدن اطلاعاتی که قبلاً تایپ شده
   function lbRebuildPreserving(tableId,headers,rowCount){
@@ -5509,6 +5612,7 @@ function teacherScript() {
   };
   document.getElementById('btn-lbr-addrow').onclick=function(){lbAddSimpleRow('lbr-table',LB_ROSTER_HEADERS.length);};
   document.getElementById('btn-lbr-build').click();
+  lbEnablePaste('lbr-table');
   function lbRosterExportHtml(){
     var meta=lbMetaBlock([['نام مدرسه','lbr-school'],['نام آموزگار','lbr-teacher'],['پایه تحصیلی','lbr-grade'],['سال تحصیلی','lbr-year']]);
     var rows=lbTableToRows(document.getElementById('lbr-table'));
@@ -5541,6 +5645,94 @@ function teacherScript() {
       meta:{school:document.getElementById('lbr-school').value,teacher:document.getElementById('lbr-teacher').value,grade:document.getElementById('lbr-grade').value,year:document.getElementById('lbr-year').value},
       rowCount:parseInt(document.getElementById('lbr-rows').value,10)||30,
       rows:lbTableToRows(document.getElementById('lbr-table')).slice(1)
+    });
+  };
+
+  // ===================== آمار دانش‌آموزان به تفکیک جنسیت =====================
+  var LBG_GRADE_NAMES=['اول','دوم','سوم','چهارم','پنجم','ششم'];
+  function lbgRecalc(){
+    var totalBoy=0,totalGirl=0;
+    for(var g=1;g<=6;g++){
+      var boyInp=document.querySelector('.lbg-boy[data-grade="'+g+'"]');
+      var girlInp=document.querySelector('.lbg-girl[data-grade="'+g+'"]');
+      var sumCell=document.querySelector('.lbg-sum[data-grade="'+g+'"]');
+      var b=parseInt(boyInp.value,10)||0;
+      var gi=parseInt(girlInp.value,10)||0;
+      sumCell.textContent=toFaDigits(b+gi);
+      totalBoy+=b;totalGirl+=gi;
+    }
+    document.getElementById('lbg-foot-boy').textContent=toFaDigits(totalBoy);
+    document.getElementById('lbg-foot-girl').textContent=toFaDigits(totalGirl);
+    document.getElementById('lbg-foot-all').textContent=toFaDigits(totalBoy+totalGirl);
+    document.getElementById('lbg-total-boy').textContent=toFaDigits(totalBoy);
+    document.getElementById('lbg-total-girl').textContent=toFaDigits(totalGirl);
+    document.getElementById('lbg-total-all').textContent=toFaDigits(totalBoy+totalGirl);
+  }
+  document.getElementById('lbg-table').addEventListener('input',function(e){
+    if(e.target && (e.target.classList.contains('lbg-boy')||e.target.classList.contains('lbg-girl')))lbgRecalc();
+  });
+
+  var LB_GENDERSTATS_LOADED=false;
+  async function lbLoadGenderStatsIfNeeded(){
+    if(LB_GENDERSTATS_LOADED)return;
+    LB_GENDERSTATS_LOADED=true;
+    var saved=await lbLoad('genderstats');
+    if(!saved)return;
+    document.getElementById('lbg-school').value=saved.school||'';
+    document.getElementById('lbg-year').value=saved.year||'';
+    if(saved.grades){
+      saved.grades.forEach(function(row,idx){
+        var g=idx+1;
+        var boyInp=document.querySelector('.lbg-boy[data-grade="'+g+'"]');
+        var girlInp=document.querySelector('.lbg-girl[data-grade="'+g+'"]');
+        if(boyInp)boyInp.value=row.boy||'';
+        if(girlInp)girlInp.value=row.girl||'';
+      });
+    }
+    lbgRecalc();
+  }
+  document.getElementById('btn-lbg-save').onclick=function(){
+    var grades=[];
+    for(var g=1;g<=6;g++){
+      var boyInp=document.querySelector('.lbg-boy[data-grade="'+g+'"]');
+      var girlInp=document.querySelector('.lbg-girl[data-grade="'+g+'"]');
+      grades.push({boy:boyInp.value,girl:girlInp.value});
+    }
+    lbSave('genderstats',{school:document.getElementById('lbg-school').value,year:document.getElementById('lbg-year').value,grades:grades});
+  };
+  function lbgExportHtml(){
+    var school=document.getElementById('lbg-school').value||'.......................';
+    var year=document.getElementById('lbg-year').value||'.......................';
+    var h='<p style="text-align:center;font-weight:bold;font-size:15px">آمار دانش‌آموزان مدرسه '+esc(school)+' به تفکیک جنسیت سال تحصیلی '+esc(year)+'</p>';
+    h+='<table><tr><th>پایه</th><th>پسر</th><th>دختر</th><th>مجموع</th></tr>';
+    var totalBoy=0,totalGirl=0;
+    LBG_GRADE_NAMES.forEach(function(name,idx){
+      var g=idx+1;
+      var b=parseInt(document.querySelector('.lbg-boy[data-grade="'+g+'"]').value,10)||0;
+      var gi=parseInt(document.querySelector('.lbg-girl[data-grade="'+g+'"]').value,10)||0;
+      totalBoy+=b;totalGirl+=gi;
+      h+='<tr><td>'+name+'</td><td>'+b+'</td><td>'+gi+'</td><td>'+(b+gi)+'</td></tr>';
+    });
+    h+='<tr style="font-weight:bold;background:#dbeafe"><td>مجموع کل</td><td>'+totalBoy+'</td><td>'+totalGirl+'</td><td>'+(totalBoy+totalGirl)+'</td></tr>';
+    h+='</table>';
+    h+='<p style="margin-top:16px">تعداد دانش‌آموزان پسر: <b>'+totalBoy+'</b>&nbsp;&nbsp;&nbsp;&nbsp;تعداد دانش‌آموزان دختر: <b>'+totalGirl+'</b>&nbsp;&nbsp;&nbsp;&nbsp;تعداد کل دانش‌آموزان مدرسه: <b>'+(totalBoy+totalGirl)+'</b></p>';
+    return h;
+  }
+  document.getElementById('btn-lbg-word').onclick=function(){lbWordExport('آمار دانش‌آموزان به تفکیک جنسیت',lbgExportHtml(),'آمار-دانش-آموزان',false);};
+  document.getElementById('btn-lbg-pdf').onclick=function(){lbPrintExport('آمار دانش‌آموزان به تفکیک جنسیت',lbgExportHtml(),false);};
+  document.getElementById('btn-lbg-excel').onclick=function(){
+    lbExcelExport('آمار-دانش-آموزان',function(wb){
+      var rows=[['پایه','پسر','دختر','مجموع']];
+      var totalBoy=0,totalGirl=0;
+      LBG_GRADE_NAMES.forEach(function(name,idx){
+        var g=idx+1;
+        var b=parseInt(document.querySelector('.lbg-boy[data-grade="'+g+'"]').value,10)||0;
+        var gi=parseInt(document.querySelector('.lbg-girl[data-grade="'+g+'"]').value,10)||0;
+        totalBoy+=b;totalGirl+=gi;
+        rows.push([name,b,gi,b+gi]);
+      });
+      rows.push(['مجموع کل',totalBoy,totalGirl,totalBoy+totalGirl]);
+      lbAddExcelSheet(wb,'آمار دانش‌آموزان',rows);
     });
   };
 
