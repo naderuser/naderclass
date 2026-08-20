@@ -3545,9 +3545,9 @@ function teacherScript() {
     if(!target || target.tagName!=='INPUT' || !target.dataset.r)return;
     const text=(e.clipboardData||window.clipboardData).getData('text');
     if(!text)return;
-    const lines=text.replace(/\r/g,'').split('\n');
+    const lines=text.replace(/\\r/g,'').split('\\n');
     while(lines.length>1 && lines[lines.length-1]==='')lines.pop();
-    const grid=lines.map(l=>l.split('\t'));
+    const grid=lines.map(l=>l.split('\\t'));
     const isMulti=grid.length>1||(grid[0]&&grid[0].length>1);
     if(!isMulti)return; // فقط یک مقدار تکی است؛ رفتار پیش‌فرض مرورگر کافی است
     e.preventDefault();
