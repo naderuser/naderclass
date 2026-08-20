@@ -2046,14 +2046,11 @@ function teacherPage() {
 
     <div id="dash" class="hidden">
       <div class="tabs">
-        <div class="tab active" data-tab="students">👨‍🎓 دانش‌آموزان</div>
-        <div class="tab" data-tab="questions">📝 طراحی سوالات</div>
-        <div class="tab" data-tab="answers">✅ تصحیح و پاسخنامه‌ها</div>
+        <div class="tab active" data-tab="examonline">🎓 آزمون آنلاین</div>
         <div class="tab" data-tab="schedule">📅 برنامه هفتگی</div>
         <div class="tab" data-tab="tables">📊 جدول‌ساز</div>
         <div class="tab" data-tab="imgtools">🖼️ ابزار عکس</div>
-        <div class="tab" data-tab="translate">🌐 ترجمه</div>
-        <div class="tab" data-tab="ai">🤖 هوش مصنوعی</div>
+        <div class="tab" data-tab="translateai">🌐🤖 ترجمه و هوش مصنوعی</div>
         <div class="tab" data-tab="classroom">🖥️ کلاس آنلاین</div>
         <div class="tab" data-tab="logbook">📔 دفتر مدیریت کلاسی</div>
         <div class="tab" data-tab="settings">⚙️ تنظیمات</div>
@@ -2061,7 +2058,16 @@ function teacherPage() {
         <div class="tab" id="btn-logout" style="background:#fee2e2;color:#991b1b">🚪 خروج</div>
       </div>
 
-      <div class="card tab-content" id="tab-students">
+      <div class="card tab-content" id="tab-examonline">
+        <h3>🎓 آزمون آنلاین</h3>
+        <p class="muted">دانش‌آموزان، طراحی سوالات، و تصحیح و پاسخنامه‌ها — همه در یک‌جا</p>
+        <div class="subtabs" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;border-bottom:2px solid #e2e8f0;padding-bottom:12px">
+          <div class="subtab active" data-subtab="students">👨‍🎓 دانش‌آموزان</div>
+          <div class="subtab" data-subtab="questions">📝 طراحی سوالات</div>
+          <div class="subtab" data-subtab="answers">✅ تصحیح و پاسخنامه‌ها</div>
+        </div>
+
+      <div class="subtab-content" id="tab-students">
         <h3>👨‍🎓 ساخت دانش‌آموز جدید</h3>
         <div class="row" style="align-items:center">
           <input id="new-label" placeholder="نام دانش‌آموز (اختیاری)">
@@ -2073,7 +2079,7 @@ function teacherPage() {
         <div id="students-list"></div>
       </div>
 
-      <div class="card tab-content hidden" id="tab-questions">
+      <div class="subtab-content hidden" id="tab-questions">
         <h3>📝 سربرگ آزمون</h3>
         <div class="row">
           <div><label>🏫 نام مدرسه</label><input id="m-school" placeholder="نام مدرسه"></div>
@@ -2116,6 +2122,24 @@ function teacherPage() {
         </div>
       </div>
 
+      <div class="subtab-content hidden" id="tab-answers">
+        <h3>✅ تصحیح و پاسخنامه‌ها</h3>
+        <div class="grading-type-selector" style="margin-bottom:16px;padding:12px;background:#f0f9ff;border-radius:8px;">
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
+            <input type="radio" name="grading-type" value="descriptive" checked style="width:auto">
+            <span>📝 تصحیح توصیفی (ابتدایی)</span>
+          </label>
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin-top:8px">
+            <input type="radio" name="grading-type" value="numeric" style="width:auto">
+            <span>🔢 تصحیح نمره‌ای (متوسطه اول و دوم)</span>
+          </label>
+        </div>
+        <button class="btn gray sm" id="btn-refresh-ans">🔄 به‌روزرسانی</button>
+        <div id="answers-list"></div>
+      </div>
+
+      </div>
+
       <div id="mt-modal-overlay" class="mt-modal-overlay hidden">
         <div class="mt-modal">
           <div class="mt-modal-head">
@@ -2150,22 +2174,6 @@ function teacherPage() {
             <button class="btn gray" onclick="document.getElementById('mt-canvas').innerHTML=''">🗑️ پاک کردن فرمول</button>
           </div>
         </div>
-      </div>
-
-      <div class="card tab-content hidden" id="tab-answers">
-        <h3>✅ تصحیح و پاسخنامه‌ها</h3>
-        <div class="grading-type-selector" style="margin-bottom:16px;padding:12px;background:#f0f9ff;border-radius:8px;">
-          <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
-            <input type="radio" name="grading-type" value="descriptive" checked style="width:auto">
-            <span>📝 تصحیح توصیفی (ابتدایی)</span>
-          </label>
-          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin-top:8px">
-            <input type="radio" name="grading-type" value="numeric" style="width:auto">
-            <span>🔢 تصحیح نمره‌ای (متوسطه اول و دوم)</span>
-          </label>
-        </div>
-        <button class="btn gray sm" id="btn-refresh-ans">🔄 به‌روزرسانی</button>
-        <div id="answers-list"></div>
       </div>
 
       <div class="card tab-content hidden" id="tab-schedule">
@@ -2358,7 +2366,8 @@ function teacherPage() {
           <div class="pdf-options" style="margin-bottom:16px">
             <div class="pdf-option-group"><label>انتخاب صفحات:</label><div class="pdf-page-select"><button class="pdf-select-btn active" data-pages="all">همه صفحات</button><button class="pdf-select-btn" data-pages="odd">صفحات فرد</button><button class="pdf-select-btn" data-pages="even">صفحات زوج</button><button class="pdf-select-btn" data-pages="range">محدوده</button></div><input type="text" id="pdf-range" placeholder="مثال: 1,3,5-10" style="margin-top:8px" class="hidden"></div>
             <div class="pdf-option-group" style="margin-top:12px"><label>DPI (کیفیت تصویر):</label><div class="pdf-dpi-select"><button class="pdf-dpi-btn" data-dpi="72">72 DPI<small>پیش‌نمایش</small></button><button class="pdf-dpi-btn active" data-dpi="150">150 DPI<small>متوسط</small></button><button class="pdf-dpi-btn" data-dpi="300">300 DPI<small>بالا</small></button></div></div>
-            <div class="pdf-option-group" style="margin-top:12px"><label>فرمت خروجی:</label><div class="pdf-format-select"><button class="pdf-format-btn active" data-format="png">PNG</button><button class="pdf-format-btn" data-format="jpeg">JPEG</button></div><div id="jpeg-quality-group" class="hidden" style="margin-top:8px"><label>کیفیت JPEG:</label><input type="range" id="jpeg-quality" min="50" max="100" value="85" style="width:150px"><span id="jpeg-quality-val">85%</span></div></div>
+            <div class="pdf-option-group" style="margin-top:12px"><label>🔄 چرخش تصویر:</label><div class="pdf-rotate-select"><button class="btn sm secondary" id="btn-pdf-rotate-l">↶ چرخش چپ</button><button class="btn sm secondary" id="btn-pdf-rotate-r">↷ چرخش راست</button><span class="muted" style="margin-right:8px">زاویهٔ فعلی: <strong id="pdf-rotate-val">۰</strong> درجه</span></div></div>
+            <div class="pdf-option-group" style="margin-top:12px"><label>فرمت خروجی:</label><div class="pdf-format-select"><button class="pdf-format-btn" data-format="png">PNG</button><button class="pdf-format-btn active" data-format="jpeg">JPEG</button></div><div id="jpeg-quality-group" style="margin-top:8px"><label>📦 کیفیت خروجی:</label><input type="range" id="jpeg-quality" min="50" max="100" value="85" style="width:150px"><span id="jpeg-quality-val">85%</span></div></div>
           </div>
           <div class="pdf-preview" id="pdf-preview" style="margin-bottom:16px"></div>
           <div class="pdf-toolbar"><button class="btn primary" id="btn-pdf-render-all">⚡ رندر همه صفحات</button><button class="btn secondary" id="btn-pdf-download-zip">📦 دانلود ZIP</button><button class="btn gray" id="btn-pdf-clear-previews">🗑️ پاک کردن پیش‌نمایش‌ها</button></div>
@@ -2388,7 +2397,14 @@ function teacherPage() {
 
       </div>
 
-      <div class="card tab-content hidden" id="tab-translate">
+      <div class="card tab-content hidden" id="tab-translateai">
+        <h3>🌐🤖 ترجمه و هوش مصنوعی</h3>
+        <div class="subtabs" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;border-bottom:2px solid #e2e8f0;padding-bottom:12px">
+          <div class="subtab active" data-subtab="translate">🌐 ترجمه</div>
+          <div class="subtab" data-subtab="ai">🤖 هوش مصنوعی</div>
+        </div>
+
+      <div class="subtab-content" id="tab-translate">
         <h3>🌐 ترجمه متن (با هوش مصنوعی)</h3>
         <p class="muted">متن را بین زبان‌های مختلف ترجمه کنید — ترجمه طبیعی و روان با هوش مصنوعی</p>
         <div class="tl-lang-row">
@@ -2421,7 +2437,7 @@ function teacherPage() {
         </div>
       </div>
 
-      <div class="card tab-content hidden" id="tab-ai">
+      <div class="subtab-content hidden" id="tab-ai">
         <div class="ai-chat-container">
           <div class="ai-header">
             <div class="ai-avatar">🤖</div>
@@ -2445,6 +2461,8 @@ function teacherPage() {
             <button class="btn primary ai-send-btn" id="btn-ai-send"><span>➤</span></button>
           </div>
         </div>
+      </div>
+
       </div>
 
       <div class="card tab-content hidden" id="tab-classroom">
@@ -2876,10 +2894,8 @@ function teacherScript() {
     t.classList.add('active');
     document.querySelectorAll('.tab-content').forEach(c=>c.classList.add('hidden'));
     document.getElementById('tab-'+t.dataset.tab).classList.remove('hidden');
-    if(t.dataset.tab==='answers')loadAnswers();
     if(t.dataset.tab==='tables')renderTables();
     if(t.dataset.tab==='schedule'){document.getElementById('btn-gen-schedule').click();}
-    if(t.dataset.tab==='questions'){updateDurationDisplay();}
     if(t.dataset.tab==='classroom'){renderClassLinks();setTimeout(function(){if(typeof clsResizeBoard==='function')clsResizeBoard();},50);}
   });
 
@@ -2888,6 +2904,8 @@ function teacherScript() {
     t.classList.add('active');
     document.querySelectorAll('.subtab-content').forEach(c=>c.classList.add('hidden'));
     document.getElementById('tab-'+t.dataset.subtab).classList.remove('hidden');
+    if(t.dataset.subtab==='answers')loadAnswers();
+    if(t.dataset.subtab==='questions'){updateDurationDisplay();}
   });
 
   // ===== دانش‌آموزان =====
@@ -3041,21 +3059,10 @@ function teacherScript() {
   
   function escA(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
   function qHtml(q){return q.rich?(q.text||''):esc(q.text);}
-  function symBar(i){
-    const mk=(arr,fn)=>arr.map(s=>'<button type="button" onmousedown="event.preventDefault()" onclick="'+fn+'('+i+',\\''+escA(s)+'\\')">'+escA(s)+'</button>').join('');
-    let h='<div class="toolbar"><span class="grp-label">علائم ریاضی:</span>'+mk(MATH,'insSym')+
-      '<button type="button" class="mt-open-btn" onmousedown="event.preventDefault()" onclick="openMathBuilder('+i+')">🧮 فرمول‌ساز (کسر، توان، رادیکال، ماتریس، تقسیم چکشی، جمع، انتگرال...)</button></div>';
-    h+='<div class="toolbar"><span class="grp-label">اشکال هندسی:</span>'+
-      '<span class="grp-label">اندازه:</span><input type="range" min="14" max="140" value="40" id="ssz-'+i+'" style="width:110px;vertical-align:middle" oninput="resizeSel('+i+')"> '+
-      mk(SHAPES,'insShape')+
-      SVG_SHAPES.map((s,si)=>'<button type="button" title="'+escA(s.name)+'" onmousedown="event.preventDefault()" onclick="insSvg('+i+','+si+')">'+escA(s.name)+'</button>').join('')+'</div>'+
-      '<p class="muted" style="margin:2px 0 0">برای تغییر اندازه‌ی یک شکل، ابتدا روی آن کلیک کنید سپس نوار «اندازه» را بکشید.</p>';
-    return h;
-  }
   function qBlock(q,i){
     let body;
     if(q.type==='descriptive'){
-      body='<label>متن سوال</label>'+symBar(i)+
+      body='<label>متن سوال</label>'+
         '<div class="rich" data-qd="'+i+'" contenteditable="true" oninput="updHtml('+i+')">'+qHtml(q)+'</div>';
     }else{
       body='<label>متن سوال</label><textarea data-qd="'+i+'" oninput="upd('+i+',\\'text\\',this.value)">'+esc(q.text)+'</textarea>';
@@ -3449,7 +3456,7 @@ function teacherScript() {
   }
 
   document.getElementById('btn-print-schedule').onclick=function(){const w=window.open('','_blank');w.document.write(getScheduleHtmlForExport());w.document.close();setTimeout(function(){w.print();},500);};
-  document.getElementById('btn-word-schedule').onclick=function(){const blob=new Blob([getScheduleHtmlForExport()],{type:'application/msword'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='برنامه-هفتگی.doc';a.click();};
+  document.getElementById('btn-word-schedule').onclick=function(){const blob=new Blob([getScheduleHtmlForExport()],{type:'application/msword'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='برنامه-هفتگی.doc';document.body.appendChild(a);a.click();a.remove();};
   document.getElementById('btn-pdf-schedule').onclick=function(){const w=window.open('','_blank');w.document.write(getScheduleHtmlForExport());w.document.close();setTimeout(function(){w.print();},500);};
   
   document.getElementById('btn-save-schedule').onclick=async function(){
@@ -3514,6 +3521,51 @@ function teacherScript() {
     if(e.target && e.target.tagName==='INPUT' && document.getElementById('tbl-avg-check').checked) calcAndShowAvg();
   });
 
+  // در صورت نیاز، بدون پاک‌کردن داده‌های موجود، ردیف‌های بیشتری به جدول اضافه می‌کند
+  function xlsEnsureRows(newRowCount){
+    const rowsInput=document.getElementById('tbl-rows');
+    const currentRows=parseInt(rowsInput.value)||0;
+    if(newRowCount<=currentRows)return;
+    const cols=parseInt(document.getElementById('tbl-cols').value)||4;
+    const tbody=document.getElementById('custom-table-body');
+    for(let r=currentRows+1;r<=newRowCount;r++){
+      const tr=document.createElement('tr');
+      let html='<td class="xls-rowhead">'+r+'</td>';
+      for(let c=1;c<=cols;c++){html+='<td><input type="text" id="'+xlsCellId(r,c)+'" data-r="'+r+'" data-c="'+c+'"></td>';}
+      tr.innerHTML=html;
+      tbody.appendChild(tr);
+    }
+    rowsInput.value=newRowCount;
+  }
+
+  // چسباندن هوشمند (مثل اکسل): وقتی چند اسم/کد را که از یک ستون کپی کرده‌اید در یک خانه پیست می‌کنید،
+  // به‌صورت خودکار هرکدام در خانه‌ی زیرین خودش قرار می‌گیرد (و در صورت نیاز، ردیف جدید هم اضافه می‌شود)
+  document.getElementById('custom-table-body').addEventListener('paste',function(e){
+    const target=e.target;
+    if(!target || target.tagName!=='INPUT' || !target.dataset.r)return;
+    const text=(e.clipboardData||window.clipboardData).getData('text');
+    if(!text)return;
+    const lines=text.replace(/\r/g,'').split('\n');
+    while(lines.length>1 && lines[lines.length-1]==='')lines.pop();
+    const grid=lines.map(l=>l.split('\t'));
+    const isMulti=grid.length>1||(grid[0]&&grid[0].length>1);
+    if(!isMulti)return; // فقط یک مقدار تکی است؛ رفتار پیش‌فرض مرورگر کافی است
+    e.preventDefault();
+    const startR=parseInt(target.dataset.r),startC=parseInt(target.dataset.c);
+    const cols=parseInt(document.getElementById('tbl-cols').value)||4;
+    xlsEnsureRows(startR+grid.length-1);
+    grid.forEach((rowArr,ri)=>{
+      rowArr.forEach((val,ci)=>{
+        const rr=startR+ri,cc=startC+ci;
+        if(cc>cols)return;
+        const cell=document.getElementById(xlsCellId(rr,cc));
+        if(cell)cell.value=val.trim();
+      });
+    });
+    if(document.getElementById('tbl-avg-check').checked)calcAndShowAvg();
+    toast('چسبانده شد: '+grid.length+' ردیف ✅');
+  });
+
   function xlsGetData(){
     const rows=parseInt(document.getElementById('tbl-rows').value)||5;
     const cols=parseInt(document.getElementById('tbl-cols').value)||4;
@@ -3546,7 +3598,7 @@ function teacherScript() {
     }
     h+='</table>';
     const blob=new Blob(['<html><head><meta charset="utf-8">'+style+'</head><body>'+h+'</body></html>'],{type:'application/msword'});
-    const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=title+'.doc';a.click();
+    const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=title+'.doc';document.body.appendChild(a);a.click();a.remove();
   };
 
   let exceljsLoading=null;
@@ -3635,7 +3687,7 @@ function teacherScript() {
 
       const buf=await wb.xlsx.writeBuffer();
       const blob=new Blob([buf], {type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
-      const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=title+'.xlsx'; a.click();
+      const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=title+'.xlsx'; document.body.appendChild(a); a.click(); a.remove();
       toast('فایل Excel ساخته شد ✅');
     }catch(err){
       toast('خطا در ساخت فایل Excel — اتصال اینترنت را بررسی کنید');
@@ -4019,7 +4071,7 @@ function teacherScript() {
         zip.file('عکس_'+(i+1)+'_'+w+'x'+h+'.'+ext, blob);
       }
       const zipBlob=await zip.generateAsync({type:'blob'});
-      const a=document.createElement('a');a.href=URL.createObjectURL(zipBlob);a.download='عکس‌های_فشرده.zip';a.click();
+      const a=document.createElement('a');a.href=URL.createObjectURL(zipBlob);a.download='عکس‌های_فشرده.zip';document.body.appendChild(a);a.click();a.remove();
       toast(failCount?('ZIP ساخته شد (برخی عکس‌ها با خطا مواجه شدند)'):'فایل ZIP دانلود شد ✅');
     }catch(e){
       toast('خطا در ساخت فایل ZIP');
@@ -4169,15 +4221,20 @@ function teacherScript() {
     const sw = cropState.w * (img.naturalWidth / parseFloat(img.style.width));
     const sh = cropState.h * (img.naturalHeight / parseFloat(img.style.height));
     const canvas = document.createElement('canvas');
-    canvas.width = sw;
-    canvas.height = sh;
+    canvas.width = Math.round(sw);
+    canvas.height = Math.round(sh);
     const ctx = canvas.getContext('2d');
-    ctx.drawImage(img, sx, sy, sw, sh, 0, 0, sw, sh);
-    const a = document.createElement('a');
-    a.href = canvas.toDataURL('image/png', 1.0);
-    a.download = cropFileName.replace(/\.[^.]+$/, '_cropped.png');
-    a.click();
-    toast('عکس برش‌خورده دانلود شد ✅');
+    ctx.drawImage(img, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height);
+    canvas.toBlob(blob => {
+      if (!blob) { toast('خطا در ساخت فایل عکس'); return; }
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = cropFileName.replace(/\.[^.]+$/, '_cropped.png');
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      toast('عکس برش‌خورده دانلود شد ✅');
+    }, 'image/png', 1.0);
   };
 
   // ===== رویدادهای موس (برای کامپیوتر) =====
@@ -4335,11 +4392,15 @@ function teacherScript() {
 
   async function loadPdfFile(file){if(file.type!=='application/pdf'){toast('فقط فایل PDF مجاز است');return;}pdfFileName=file.name;const arrayBuffer=await file.arrayBuffer();pdfDoc=await pdfjsLib.getDocument({data:arrayBuffer}).promise;document.getElementById('pdf-name').textContent=file.name;document.getElementById('pdf-pages-count').textContent=pdfDoc.numPages;document.getElementById('pdf-controls').classList.remove('hidden');document.getElementById('pdf-preview').innerHTML='';pdfRenderedPages=[];renderPdfPage(1);}
 
-  async function renderPdfPage(pageNum){if(!pdfDoc)return;const page=await pdfDoc.getPage(pageNum);const dpi=parseInt(document.querySelector('.pdf-dpi-btn.active')?.dataset.dpi)||150;const scale=dpi/72;const viewport=page.getViewport({scale});const canvas=document.createElement('canvas');canvas.width=viewport.width;canvas.height=viewport.height;const ctx=canvas.getContext('2d');await page.render({canvasContext:ctx,viewport}).promise;const format=document.querySelector('.pdf-format-btn.active')?.dataset.format||'png';const dataUrl=canvas.toDataURL('image/'+format,format==='jpeg'?parseInt(document.getElementById('jpeg-quality')?.value||85)/100:undefined);const previewDiv=document.getElementById('pdf-preview');const pageDiv=document.createElement('div');pageDiv.className='pdf-page-preview';pageDiv.style.cssText='display:inline-block;margin:8px;text-align:center;background:#fff;border:1px solid #ddd;border-radius:8px;padding:8px;box-shadow:0 2px 8px rgba(0,0,0,0.1)';pageDiv.innerHTML='<div style="font-weight:bold;margin-bottom:8px">صفحه '+pageNum+'</div><img src="'+dataUrl+'" style="max-width:200px;max-height:280px;border:1px solid #eee"><div style="margin-top:8px"><button class="btn sm primary" onclick="downloadPdfPage('+pageNum+')">📥 دانلود</button></div>';previewDiv.appendChild(pageDiv);pdfRenderedPages.push({pageNum,canvas,dataUrl});return canvas;}
-  window.downloadPdfPage=function(pageNum){const rp=pdfRenderedPages.find(p=>p.pageNum===pageNum);if(!rp){toast('صفحه رندر نشده');return;}const format=document.querySelector('.pdf-format-btn.active')?.dataset.format||'png';const ext=format==='jpeg'?'jpg':format;const a=document.createElement('a');a.href=rp.dataUrl;a.download=pdfFileName.replace('.pdf','_page_'+pageNum+'.'+ext);a.click();toast('صفحه '+pageNum+' دانلود شد ✅');};
-  document.getElementById('pdf-remove').onclick=()=>{pdfDoc=null;pdfFileName='';pdfRenderedPages=[];document.getElementById('pdf-controls').classList.add('hidden');document.getElementById('pdf-preview').innerHTML='';};
+  async function renderPdfPage(pageNum){if(!pdfDoc)return;const page=await pdfDoc.getPage(pageNum);const dpi=parseInt(document.querySelector('.pdf-dpi-btn.active')?.dataset.dpi)||150;const scale=dpi/72;const viewport=page.getViewport({scale,rotation:pdfRotation});const canvas=document.createElement('canvas');canvas.width=viewport.width;canvas.height=viewport.height;const ctx=canvas.getContext('2d');await page.render({canvasContext:ctx,viewport}).promise;const format=document.querySelector('.pdf-format-btn.active')?.dataset.format||'png';const dataUrl=canvas.toDataURL('image/'+format,format==='jpeg'?parseInt(document.getElementById('jpeg-quality')?.value||85)/100:undefined);const previewDiv=document.getElementById('pdf-preview');const pageDiv=document.createElement('div');pageDiv.className='pdf-page-preview';pageDiv.style.cssText='display:inline-block;margin:8px;text-align:center;background:#fff;border:1px solid #ddd;border-radius:8px;padding:8px;box-shadow:0 2px 8px rgba(0,0,0,0.1)';pageDiv.innerHTML='<div style="font-weight:bold;margin-bottom:8px">صفحه '+pageNum+'</div><img src="'+dataUrl+'" style="max-width:200px;max-height:280px;border:1px solid #eee"><div style="margin-top:8px"><button class="btn sm primary" onclick="downloadPdfPage('+pageNum+')">📥 دانلود</button></div>';previewDiv.appendChild(pageDiv);pdfRenderedPages.push({pageNum,canvas,dataUrl});return canvas;}
+  window.downloadPdfPage=function(pageNum){const rp=pdfRenderedPages.find(p=>p.pageNum===pageNum);if(!rp){toast('صفحه رندر نشده');return;}const format=document.querySelector('.pdf-format-btn.active')?.dataset.format||'png';const ext=format==='jpeg'?'jpg':format;const a=document.createElement('a');a.href=rp.dataUrl;a.download=pdfFileName.replace('.pdf','_page_'+pageNum+'.'+ext);document.body.appendChild(a);a.click();a.remove();toast('صفحه '+pageNum+' دانلود شد ✅');};
+  document.getElementById('pdf-remove').onclick=()=>{pdfDoc=null;pdfFileName='';pdfRenderedPages=[];pdfRotation=0;updatePdfRotateDisplay();document.getElementById('pdf-controls').classList.add('hidden');document.getElementById('pdf-preview').innerHTML='';};
   document.querySelectorAll('.pdf-select-btn').forEach(btn=>{btn.onclick=()=>{document.querySelectorAll('.pdf-select-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');const type=btn.dataset.pages;document.getElementById('pdf-range').classList.toggle('hidden',type!=='range');};});
   document.querySelectorAll('.pdf-dpi-btn').forEach(btn=>{btn.onclick=()=>{document.querySelectorAll('.pdf-dpi-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');};});
+  let pdfRotation=0;
+  function updatePdfRotateDisplay(){const fa=['۰','۹۰','۱۸۰','۲۷۰'][(pdfRotation/90+4)%4];document.getElementById('pdf-rotate-val').textContent=fa;}
+  document.getElementById('btn-pdf-rotate-l').onclick=()=>{pdfRotation=(pdfRotation-90+360)%360;updatePdfRotateDisplay();toast('برای اعمال چرخش، دوباره «رندر همه صفحات» را بزنید');};
+  document.getElementById('btn-pdf-rotate-r').onclick=()=>{pdfRotation=(pdfRotation+90)%360;updatePdfRotateDisplay();toast('برای اعمال چرخش، دوباره «رندر همه صفحات» را بزنید');};
   document.querySelectorAll('.pdf-format-btn').forEach(btn=>{btn.onclick=()=>{document.querySelectorAll('.pdf-format-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');const format=btn.dataset.format;document.getElementById('jpeg-quality-group').classList.toggle('hidden',format!=='jpeg');};});
   document.getElementById('jpeg-quality').oninput=function(){document.getElementById('jpeg-quality-val').textContent=this.value+'%';};
   
@@ -4360,7 +4421,7 @@ function teacherScript() {
         zip.file(pdfFileName.replace(/\.pdf$/i,'')+'_page_'+rp.pageNum+'.'+ext, base64, {base64:true});
       });
       const blob=await zip.generateAsync({type:'blob'});
-      const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=pdfFileName.replace(/\.pdf$/i,'')+'_pages.zip';a.click();
+      const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=pdfFileName.replace(/\.pdf$/i,'')+'_pages.zip';document.body.appendChild(a);a.click();a.remove();
       toast('فایل ZIP شامل '+pdfRenderedPages.length+' صفحه دانلود شد ✅');
     }catch(e){
       toast('خطا در ساخت فایل ZIP');
@@ -4569,13 +4630,17 @@ function teacherScript() {
         }else{
           blocks.forEach(block=>{
             if(block.type==='table'){
-              bodyHtml+='<table style="width:100%;border-collapse:collapse" dir="rtl"><tbody>';
+              const maxCols=Math.max(...block.rows.map(r=>r.length));
+              bodyHtml+='<table style="width:100%;border-collapse:collapse;table-layout:fixed" dir="rtl"><tbody>';
               block.rows.forEach(cells=>{
                 bodyHtml+='<tr>';
-                cells.forEach(cellLines=>{
-                  const isNarrow=cells.length>1&&cellLines.length===1&&cellLines[0].length<=3;
+                cells.forEach((cellLines,idx)=>{
+                  // فقط سلول اول (راست‌ترین) در ردیف‌های چندستونی ممکن است ستون «شماره» باشد — بقیهٔ سلول‌های کوتاه نباید باریک/وسط‌چین شوند
+                  const isNarrow=idx===0&&cells.length>1&&maxCols>2&&cellLines.length===1&&cellLines[0].length<=3;
+                  const isLast=idx===cells.length-1;
+                  const colspan=isLast&&cells.length<maxCols?' colspan="'+(maxCols-cells.length+1)+'"':'';
                   const cellHtml=cellLines.length>0?cellLines.map(l=>escapeHtml(l)).join('<br>'):'&nbsp;';
-                  bodyHtml+='<td style="border:1px solid #333;padding:5px 8px;vertical-align:top;'+(isNarrow?'width:36px;text-align:center':'')+'">'+cellHtml+'</td>';
+                  bodyHtml+='<td'+colspan+' style="border:1px solid #333;padding:5px 8px;vertical-align:top;'+(isNarrow?'width:36px;text-align:center':'')+'">'+cellHtml+'</td>';
                 });
                 bodyHtml+='</tr>';
               });
@@ -4609,7 +4674,9 @@ function teacherScript() {
     const a=document.createElement('a');
     a.href=URL.createObjectURL(pdf2wordBlob);
     a.download=pdf2wordFileName.replace(/\.pdf$/i,'')+'.doc';
+    document.body.appendChild(a);
     a.click();
+    a.remove();
     toast('فایل Word دانلود شد ✅');
   };
 
@@ -5201,7 +5268,7 @@ function teacherScript() {
       : '@page Section1 {size:21cm 29.7cm;margin:1.5cm} div.Section1{page:Section1}';
     var style='<style>'+pageCss+' body{direction:rtl;font-family:tahoma,Arial;padding:6px}h1,h2,h3{text-align:center}table{width:100%;border-collapse:collapse;margin:10px 0}th,td{border:1px solid #333;padding:'+(landscape?'4px':'6px')+';text-align:center;font-size:'+(landscape?'10px':'12px')+'}th{background:#dbeafe}.lb-meta{margin-bottom:14px;font-size:14px}.lb-nowruz{background:#16a34a;color:#fff;font-weight:bold}.lb-table-zebra tbody tr:nth-child(odd){background:#f4f6f8}</style>';
     var blob=new Blob(['<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word"><head><meta charset="utf-8">'+style+'<title>'+esc(title)+'</title></head><body><div class="Section1"><h2>'+esc(title)+'</h2>'+bodyHtml+'</div></body></html>'],{type:'application/msword'});
-    var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=filename+'.doc';a.click();
+    var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=filename+'.doc';document.body.appendChild(a);a.click();a.remove();
   }
   function lbPrintExport(title,bodyHtml,landscape){
     var style='<style>@page{size:A4 '+(landscape===false?'portrait':'landscape')+';margin:8mm}body{direction:rtl;font-family:tahoma,Arial;padding:6px}h1,h2,h3{text-align:center}table{width:100%;border-collapse:collapse;margin:8px 0}th,td{border:1px solid #333;padding:4px;text-align:center;font-size:10px}th{background:#dbeafe}.lb-meta{margin-bottom:10px;font-size:12px}.lb-nowruz{background:#16a34a;color:#fff;font-weight:bold}.lb-table-zebra tbody tr:nth-child(odd){background:#f4f6f8}</style>';
@@ -5218,7 +5285,7 @@ function teacherScript() {
       await buildFn(wb);
       var buf=await wb.xlsx.writeBuffer();
       var blob=new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
-      var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=filename+'.xlsx';a.click();
+      var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=filename+'.xlsx';document.body.appendChild(a);a.click();a.remove();
       toast('فایل اکسل ساخته شد ✅');
     }catch(e){toast('خطا در ساخت فایل اکسل');}
   }
