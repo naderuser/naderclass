@@ -4105,7 +4105,7 @@ function teacherScript() {
       '<td><input type="text" data-f="post" value="'+esc(data.post||'')+'"></td>'+
       '<td><input type="text" data-f="address" value="'+esc(data.address||'')+'"></td>'+
       '<td><input type="text" data-f="phone" value="'+esc(data.phone||'')+'"></td>'+
-      '<td><button type="button" class="btn danger" style="padding:4px 10px" onclick="this.closest(\'tr\').remove();orgRenumberStaff();">🗑️</button></td>';
+      '<td><button type="button" class="btn danger" style="padding:4px 10px" onclick="this.closest(\\'tr\\').remove();orgRenumberStaff();">🗑️</button></td>';
     tbody.appendChild(tr);
     orgRenumberStaff();
   }
