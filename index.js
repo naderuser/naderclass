@@ -2314,11 +2314,27 @@ function teacherPage() {
             <button class="btn secondary" id="btn-rescan-warp">🔲 برش مجدد سند</button>
             <button class="btn secondary" id="btn-rotate-l">↶ چرخش چپ</button>
             <button class="btn secondary" id="btn-rotate-r">↷ چرخش راست</button>
+            <button class="btn secondary" id="btn-scan-autoenhance">✨ روشن‌سازی خودکار</button>
+            <button class="btn secondary" id="btn-scan-crop-open">✂️ برش عکس</button>
             <div class="setting-group" style="display:inline-flex;align-items:center;gap:6px;margin:0 8px"><label style="margin:0">📦 کیفیت خروجی</label><input type="range" id="scan-out-quality" min="30" max="100" value="90" style="width:100px"><span class="setting-value" id="scan-out-quality-val">90%</span></div>
             <button class="btn primary" id="btn-dl-img">💾 دانلود عکس</button>
             <button class="btn success" id="btn-dl-pdf">📄 دانلود PDF</button>
             <button class="btn secondary" id="btn-reset-scan">🔄 بازنشانی فیلترها</button>
             <button class="btn danger" id="btn-remove-scan">🗑️ حذف عکس</button>
+          </div>
+
+          <div id="scan-cropstage" class="hidden" style="margin-top:16px">
+            <div id="scan-crop-wrapper" style="position:relative;max-width:100%;display:inline-block;touch-action:none;user-select:none">
+              <img id="scan-crop-img" src="" style="width:100%;max-width:500px;display:block;border-radius:8px" draggable="false">
+              <div id="scan-crop-rect" style="position:absolute;border:2px solid #667eea;background:rgba(102,126,234,.15);box-sizing:border-box;pointer-events:none"></div>
+              <div class="scan-warp-handle" data-corner="tl" id="scan-crop-h-tl" style="position:absolute;width:24px;height:24px;margin:-12px;border-radius:50%;background:#667eea;border:3px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.4);cursor:grab;touch-action:none"></div>
+              <div class="scan-warp-handle" data-corner="br" id="scan-crop-h-br" style="position:absolute;width:24px;height:24px;margin:-12px;border-radius:50%;background:#667eea;border:3px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.4);cursor:grab;touch-action:none"></div>
+            </div>
+            <p class="muted" style="margin-top:8px">دو گوشهٔ آبی (بالا‌چپ و پایین‌راست) را بکشید تا کادر برش را تنظیم کنید.</p>
+            <div class="scan-toolbar">
+              <button class="btn primary" id="btn-scan-crop-apply">✅ اعمال برش</button>
+              <button class="btn gray" id="btn-scan-crop-cancel">✖️ انصراف</button>
+            </div>
           </div>
         </div>
       </div>
@@ -2633,12 +2649,12 @@ function teacherPage() {
               <table class="lb-table lbg-table" id="lbg-table">
                 <thead><tr><th>پایه</th><th>پسر</th><th>دختر</th><th>مجموع</th></tr></thead>
                 <tbody>
-                  <tr><td>اول</td><td><input type="number" min="0" class="lbg-boy" data-grade="1"></td><td><input type="number" min="0" class="lbg-girl" data-grade="1"></td><td class="lbg-sum" data-grade="1">۰</td></tr>
-                  <tr><td>دوم</td><td><input type="number" min="0" class="lbg-boy" data-grade="2"></td><td><input type="number" min="0" class="lbg-girl" data-grade="2"></td><td class="lbg-sum" data-grade="2">۰</td></tr>
-                  <tr><td>سوم</td><td><input type="number" min="0" class="lbg-boy" data-grade="3"></td><td><input type="number" min="0" class="lbg-girl" data-grade="3"></td><td class="lbg-sum" data-grade="3">۰</td></tr>
-                  <tr><td>چهارم</td><td><input type="number" min="0" class="lbg-boy" data-grade="4"></td><td><input type="number" min="0" class="lbg-girl" data-grade="4"></td><td class="lbg-sum" data-grade="4">۰</td></tr>
-                  <tr><td>پنجم</td><td><input type="number" min="0" class="lbg-boy" data-grade="5"></td><td><input type="number" min="0" class="lbg-girl" data-grade="5"></td><td class="lbg-sum" data-grade="5">۰</td></tr>
-                  <tr><td>ششم</td><td><input type="number" min="0" class="lbg-boy" data-grade="6"></td><td><input type="number" min="0" class="lbg-girl" data-grade="6"></td><td class="lbg-sum" data-grade="6">۰</td></tr>
+                  <tr><td>اول</td><td><input type="text" inputmode="numeric" maxlength="3" class="lbg-boy" data-grade="1"></td><td><input type="text" inputmode="numeric" maxlength="3" class="lbg-girl" data-grade="1"></td><td class="lbg-sum" data-grade="1">۰</td></tr>
+                  <tr><td>دوم</td><td><input type="text" inputmode="numeric" maxlength="3" class="lbg-boy" data-grade="2"></td><td><input type="text" inputmode="numeric" maxlength="3" class="lbg-girl" data-grade="2"></td><td class="lbg-sum" data-grade="2">۰</td></tr>
+                  <tr><td>سوم</td><td><input type="text" inputmode="numeric" maxlength="3" class="lbg-boy" data-grade="3"></td><td><input type="text" inputmode="numeric" maxlength="3" class="lbg-girl" data-grade="3"></td><td class="lbg-sum" data-grade="3">۰</td></tr>
+                  <tr><td>چهارم</td><td><input type="text" inputmode="numeric" maxlength="3" class="lbg-boy" data-grade="4"></td><td><input type="text" inputmode="numeric" maxlength="3" class="lbg-girl" data-grade="4"></td><td class="lbg-sum" data-grade="4">۰</td></tr>
+                  <tr><td>پنجم</td><td><input type="text" inputmode="numeric" maxlength="3" class="lbg-boy" data-grade="5"></td><td><input type="text" inputmode="numeric" maxlength="3" class="lbg-girl" data-grade="5"></td><td class="lbg-sum" data-grade="5">۰</td></tr>
+                  <tr><td>ششم</td><td><input type="text" inputmode="numeric" maxlength="3" class="lbg-boy" data-grade="6"></td><td><input type="text" inputmode="numeric" maxlength="3" class="lbg-girl" data-grade="6"></td><td class="lbg-sum" data-grade="6">۰</td></tr>
                 </tbody>
                 <tfoot><tr class="lbg-total-row"><td>مجموع کل</td><td id="lbg-foot-boy">۰</td><td id="lbg-foot-girl">۰</td><td id="lbg-foot-all">۰</td></tr></tfoot>
               </table>
@@ -3230,6 +3246,7 @@ function teacherScript() {
   // تبدیل خودکار اعداد انگلیسی به فارسی، فقط در گره‌های متنی (بدون دست‌زدن به attribute ها مثل style/data تا ساختار خراب نشود)
   const FA_DIGITS=['۰','۱','۲','۳','۴','۵','۶','۷','۸','۹'];
   function toFaDigits(s){return String(s==null?'':s).replace(/[0-9]/g,d=>FA_DIGITS[+d]);}
+  function toEnDigits(s){return String(s==null?'':s).replace(/[۰-۹]/g,d=>FA_DIGITS.indexOf(d));}
   function convertDigitsInElement(el){
     if(!el)return;
     const walker=document.createTreeWalker(el,NodeFilter.SHOW_TEXT,null);
@@ -4022,6 +4039,133 @@ function teacherScript() {
   document.getElementById('btn-rotate-l').onclick=()=>{if(!SCANORIG){toast('ابتدا عکس را انتخاب کنید');return;}scanRotation--;applyScan();};
   document.getElementById('btn-rotate-r').onclick=()=>{if(!SCANORIG){toast('ابتدا عکس را انتخاب کنید');return;}scanRotation++;applyScan();};
 
+  // ===== روشن‌سازی خودکار (شبیه حالت Auto در CamScanner) =====
+  // با تحلیل هیستوگرام روشنایی تصویر، بازه واقعی روشنایی را پیدا کرده و مستقیماً (بدون محدودیت اسلایدرها) آن را به بازهٔ کامل ۰ تا ۲۵۵ کش می‌دهد
+  document.getElementById('btn-scan-autoenhance').onclick=()=>{
+    if(!SCANORIG){toast('ابتدا عکس را انتخاب کنید');return;}
+    const mw=300;
+    let w=SCANORIG.width,h=SCANORIG.height;
+    const scale=Math.min(1,mw/Math.max(w,h));
+    const sw=Math.max(2,Math.round(w*scale)),sh=Math.max(2,Math.round(h*scale));
+    const tmp=document.createElement('canvas');tmp.width=sw;tmp.height=sh;
+    const tctx=tmp.getContext('2d');tctx.drawImage(SCANORIG,0,0,sw,sh);
+    const data=tctx.getImageData(0,0,sw,sh).data;
+    const hist=new Array(256).fill(0);
+    let total=0;
+    for(let i=0;i<data.length;i+=4){
+      const lum=Math.round(0.299*data[i]+0.587*data[i+1]+0.114*data[i+2]);
+      hist[lum]++;total++;
+    }
+    const lowCut=total*0.02,highCutFromTop=total*0.02;
+    let cum=0,lowP=0,highP=255;
+    for(let v=0;v<256;v++){cum+=hist[v];if(cum>=lowCut){lowP=v;break;}}
+    cum=0;
+    for(let v=255;v>=0;v--){cum+=hist[v];if(cum>=highCutFromTop){highP=v;break;}}
+    if(highP-lowP<20){toast('تصویر نیازی به بهبود خودکار ندارد');return;}
+    const a=255/(highP-lowP);
+    const b=-a*lowP;
+    // این ضرایب مستقیماً روی تصویر اصلی اعمال می‌شوند (بدون واسطهٔ اسلایدرهای روشنایی/کنتراست که ممکن است رنجشان کافی نباشد)
+    const fullCanvas=document.createElement('canvas');
+    fullCanvas.width=SCANORIG.width;fullCanvas.height=SCANORIG.height;
+    const fctx=fullCanvas.getContext('2d');
+    fctx.drawImage(SCANORIG,0,0);
+    const im=fctx.getImageData(0,0,fullCanvas.width,fullCanvas.height);const d=im.data;
+    for(let p=0;p<d.length;p+=4){
+      d[p]=Math.min(255,Math.max(0,a*d[p]+b));
+      d[p+1]=Math.min(255,Math.max(0,a*d[p+1]+b));
+      d[p+2]=Math.min(255,Math.max(0,a*d[p+2]+b));
+    }
+    fctx.putImageData(im,0,0);
+    const enhancedImg=new Image();
+    enhancedImg.onload=()=>{
+      SCANORIG=enhancedImg;SCANIMG=enhancedImg;
+      document.getElementById('scan-bright').value=0;
+      document.getElementById('scan-contrast').value=0;
+      document.querySelectorAll('.filter-btn').forEach(fb=>fb.classList.remove('active'));
+      updateFilterValues();
+      applyScan();
+      toast('روشنایی تصویر به‌صورت خودکار بهبود یافت ✅');
+    };
+    enhancedImg.src=fullCanvas.toDataURL('image/png');
+  };
+
+  // ===== برش مستطیلی عکس (داخل اسکنر) =====
+  let scanCropRect={x:0.05,y:0.05,w:0.9,h:0.9};
+  function scanRenderCropRect(){
+    const wrapper=document.getElementById('scan-crop-wrapper');
+    const rectEl=document.getElementById('scan-crop-rect');
+    rectEl.style.left=(scanCropRect.x*100)+'%';
+    rectEl.style.top=(scanCropRect.y*100)+'%';
+    rectEl.style.width=(scanCropRect.w*100)+'%';
+    rectEl.style.height=(scanCropRect.h*100)+'%';
+    document.getElementById('scan-crop-h-tl').style.left=(scanCropRect.x*100)+'%';
+    document.getElementById('scan-crop-h-tl').style.top=(scanCropRect.y*100)+'%';
+    document.getElementById('scan-crop-h-br').style.left=((scanCropRect.x+scanCropRect.w)*100)+'%';
+    document.getElementById('scan-crop-h-br').style.top=((scanCropRect.y+scanCropRect.h)*100)+'%';
+  }
+  function scanMakeCropDraggable(handle,corner){
+    handle.addEventListener('pointerdown',e=>{
+      e.preventDefault();
+      handle.setPointerCapture(e.pointerId);
+      const wrapper=document.getElementById('scan-crop-wrapper');
+      function move(ev){
+        const rect=wrapper.getBoundingClientRect();
+        let px=(ev.clientX-rect.left)/rect.width,py=(ev.clientY-rect.top)/rect.height;
+        px=Math.min(1,Math.max(0,px));py=Math.min(1,Math.max(0,py));
+        if(corner==='tl'){
+          scanCropRect.w=(scanCropRect.x+scanCropRect.w)-px;
+          scanCropRect.h=(scanCropRect.y+scanCropRect.h)-py;
+          scanCropRect.x=px;scanCropRect.y=py;
+        }else{
+          scanCropRect.w=px-scanCropRect.x;
+          scanCropRect.h=py-scanCropRect.y;
+        }
+        if(scanCropRect.w>0.02&&scanCropRect.h>0.02)scanRenderCropRect();
+      }
+      function up(){handle.releasePointerCapture(e.pointerId);handle.removeEventListener('pointermove',move);handle.removeEventListener('pointerup',up);}
+      handle.addEventListener('pointermove',move);
+      handle.addEventListener('pointerup',up);
+    });
+  }
+  scanMakeCropDraggable(document.getElementById('scan-crop-h-tl'),'tl');
+  scanMakeCropDraggable(document.getElementById('scan-crop-h-br'),'br');
+
+  document.getElementById('btn-scan-crop-open').onclick=()=>{
+    if(!SCANORIG){toast('ابتدا عکس را انتخاب کنید');return;}
+    const cv=document.getElementById('scan-canvas');
+    document.getElementById('scan-crop-img').src=cv.toDataURL('image/png');
+    scanCropRect={x:0.05,y:0.05,w:0.9,h:0.9};
+    scanRenderCropRect();
+    document.getElementById('scan-cropstage').classList.remove('hidden');
+    document.getElementById('scan-controls').classList.add('hidden');
+  };
+  document.getElementById('btn-scan-crop-cancel').onclick=()=>{
+    document.getElementById('scan-cropstage').classList.add('hidden');
+    document.getElementById('scan-controls').classList.remove('hidden');
+  };
+  document.getElementById('btn-scan-crop-apply').onclick=()=>{
+    const cv=document.getElementById('scan-canvas');
+    const sx=scanCropRect.x*cv.width,sy=scanCropRect.y*cv.height;
+    const sw=scanCropRect.w*cv.width,sh=scanCropRect.h*cv.height;
+    const outCanvas=document.createElement('canvas');
+    outCanvas.width=Math.max(1,Math.round(sw));outCanvas.height=Math.max(1,Math.round(sh));
+    const octx=outCanvas.getContext('2d');
+    octx.drawImage(cv,sx,sy,sw,sh,0,0,outCanvas.width,outCanvas.height);
+    const croppedImg=new Image();
+    croppedImg.onload=()=>{
+      SCANORIG=croppedImg;SCANIMG=croppedImg;scanRotation=0;
+      document.getElementById('scan-bright').value=0;
+      document.getElementById('scan-contrast').value=0;
+      document.getElementById('scan-sharp').value=0;
+      document.getElementById('scan-saturation').value=0;
+      updateFilterValues();
+      document.getElementById('scan-cropstage').classList.add('hidden');
+      document.getElementById('scan-controls').classList.remove('hidden');
+      applyScan();
+      toast('برش اعمال شد ✅');
+    };
+    croppedImg.src=outCanvas.toDataURL('image/png');
+  };
 
   document.getElementById('btn-reset-scan').onclick=()=>{SCANORIG=SCANIMG;scanRotation=0;document.getElementById('scan-bright').value=0;document.getElementById('scan-contrast').value=0;document.getElementById('scan-sharp').value=0;document.getElementById('scan-saturation').value=0;updateFilterValues();document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));document.querySelector('.filter-btn[data-filter="original"]').classList.add('active');applyScan();};
   document.getElementById('btn-remove-scan').onclick=()=>{if(!confirm('عکس فعلی حذف شود؟'))return;SCANIMG=null;SCANORIG=null;scanWarpOriginalImg=null;scanRotation=0;document.getElementById('scan-controls').classList.add('hidden');document.getElementById('scan-warp-stage').classList.add('hidden');document.getElementById('scan-drop-zone').classList.remove('hidden');document.getElementById('scan-file').value='';document.getElementById('scan-bright').value=0;document.getElementById('scan-contrast').value=0;document.getElementById('scan-sharp').value=0;document.getElementById('scan-saturation').value=0;updateFilterValues();document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));document.querySelector('.filter-btn[data-filter="original"]').classList.add('active');};
@@ -5656,8 +5800,8 @@ function teacherScript() {
       var boyInp=document.querySelector('.lbg-boy[data-grade="'+g+'"]');
       var girlInp=document.querySelector('.lbg-girl[data-grade="'+g+'"]');
       var sumCell=document.querySelector('.lbg-sum[data-grade="'+g+'"]');
-      var b=parseInt(boyInp.value,10)||0;
-      var gi=parseInt(girlInp.value,10)||0;
+      var b=parseInt(toEnDigits(boyInp.value),10)||0;
+      var gi=parseInt(toEnDigits(girlInp.value),10)||0;
       sumCell.textContent=toFaDigits(b+gi);
       totalBoy+=b;totalGirl+=gi;
     }
@@ -5669,7 +5813,12 @@ function teacherScript() {
     document.getElementById('lbg-total-all').textContent=toFaDigits(totalBoy+totalGirl);
   }
   document.getElementById('lbg-table').addEventListener('input',function(e){
-    if(e.target && (e.target.classList.contains('lbg-boy')||e.target.classList.contains('lbg-girl')))lbgRecalc();
+    if(e.target && (e.target.classList.contains('lbg-boy')||e.target.classList.contains('lbg-girl'))){
+      // فقط رقم مجاز است؛ هر عددی که تایپ می‌شود بلافاصله به رقم فارسی تبدیل می‌شود
+      var cleaned=toEnDigits(e.target.value).replace(/[^0-9]/g,'').slice(0,3);
+      e.target.value=toFaDigits(cleaned);
+      lbgRecalc();
+    }
   });
 
   var LB_GENDERSTATS_LOADED=false;
@@ -5685,8 +5834,8 @@ function teacherScript() {
         var g=idx+1;
         var boyInp=document.querySelector('.lbg-boy[data-grade="'+g+'"]');
         var girlInp=document.querySelector('.lbg-girl[data-grade="'+g+'"]');
-        if(boyInp)boyInp.value=row.boy||'';
-        if(girlInp)girlInp.value=row.girl||'';
+        if(boyInp)boyInp.value=toFaDigits(toEnDigits(row.boy||''));
+        if(girlInp)girlInp.value=toFaDigits(toEnDigits(row.girl||''));
       });
     }
     lbgRecalc();
@@ -5708,8 +5857,8 @@ function teacherScript() {
     var totalBoy=0,totalGirl=0;
     LBG_GRADE_NAMES.forEach(function(name,idx){
       var g=idx+1;
-      var b=parseInt(document.querySelector('.lbg-boy[data-grade="'+g+'"]').value,10)||0;
-      var gi=parseInt(document.querySelector('.lbg-girl[data-grade="'+g+'"]').value,10)||0;
+      var b=parseInt(toEnDigits(document.querySelector('.lbg-boy[data-grade="'+g+'"]').value),10)||0;
+      var gi=parseInt(toEnDigits(document.querySelector('.lbg-girl[data-grade="'+g+'"]').value),10)||0;
       totalBoy+=b;totalGirl+=gi;
       h+='<tr><td>'+name+'</td><td>'+b+'</td><td>'+gi+'</td><td>'+(b+gi)+'</td></tr>';
     });
@@ -5726,8 +5875,8 @@ function teacherScript() {
       var totalBoy=0,totalGirl=0;
       LBG_GRADE_NAMES.forEach(function(name,idx){
         var g=idx+1;
-        var b=parseInt(document.querySelector('.lbg-boy[data-grade="'+g+'"]').value,10)||0;
-        var gi=parseInt(document.querySelector('.lbg-girl[data-grade="'+g+'"]').value,10)||0;
+        var b=parseInt(toEnDigits(document.querySelector('.lbg-boy[data-grade="'+g+'"]').value),10)||0;
+        var gi=parseInt(toEnDigits(document.querySelector('.lbg-girl[data-grade="'+g+'"]').value),10)||0;
         totalBoy+=b;totalGirl+=gi;
         rows.push([name,b,gi,b+gi]);
       });
