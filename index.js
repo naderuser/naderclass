@@ -2237,6 +2237,11 @@ function teacherPage() {
           <input type="checkbox" id="tbl-avg-check" checked>
           <span>📈 محاسبه خودکار میانگین (ستون‌های عددی) — به‌صورت زنده و با فرمول واقعی اکسل</span>
         </label>
+        <div class="row" style="margin-bottom:12px">
+          <input type="file" id="tbl-pdf-file" accept="application/pdf" class="hidden">
+          <button class="btn secondary" id="btn-tbl-import-pdf">📥 وارد کردن جدول از PDF</button>
+          <span class="muted" id="tbl-pdf-status"></span>
+        </div>
         <div class="xls-wrap">
           <div class="xls-scroll">
             <table class="xls-grid" id="custom-table">
@@ -2971,7 +2976,6 @@ function teacherScript() {
     t.classList.add('active');
     document.querySelectorAll('.tab-content').forEach(c=>c.classList.add('hidden'));
     document.getElementById('tab-'+t.dataset.tab).classList.remove('hidden');
-    if(t.dataset.tab==='tables')renderTables();
     if(t.dataset.tab==='schedule'){document.getElementById('btn-gen-schedule').click();}
     if(t.dataset.tab==='classroom'){renderClassLinks();setTimeout(function(){if(typeof clsResizeBoard==='function')clsResizeBoard();},50);}
   });
@@ -3593,6 +3597,54 @@ function teacherScript() {
     for(let c=1;c<=cols;c++){f+='<td>'+avgCells[c-1]+'</td>';}
     f+='</tr>';tfoot.innerHTML=f;
   }
+
+  // ===== وارد کردن جدول از فایل PDF (با تشخیص خطوط واقعی جدول، مثل بخش PDF به Word) =====
+  document.getElementById('btn-tbl-import-pdf').onclick=()=>{document.getElementById('tbl-pdf-file').click();};
+  document.getElementById('tbl-pdf-file').addEventListener('change',async function(e){
+    const file=e.target.files[0];
+    if(!file)return;
+    const statusEl=document.getElementById('tbl-pdf-status');
+    statusEl.textContent='در حال خواندن فایل PDF...';
+    try{
+      const buf=await file.arrayBuffer();
+      const doc=await pdfjsLib.getDocument({data:buf}).promise;
+      let allRows=[];
+      for(let p=1;p<=doc.numPages;p++){
+        statusEl.textContent='در حال استخراج جدول از صفحه '+p+' از '+doc.numPages+'...';
+        const blocks=await extractPdfPageBlocks(p,doc);
+        blocks.forEach(block=>{
+          if(block.type==='table'){
+            block.rows.forEach(cells=>{
+              allRows.push(cells.map(cellLines=>cellLines.join(' ')));
+            });
+          }
+        });
+      }
+      if(allRows.length===0){
+        statusEl.textContent='';
+        toast('هیچ جدول واقعی (با خط‌کشی) در این PDF پیدا نشد');
+        e.target.value='';
+        return;
+      }
+      const maxCols=Math.max(...allRows.map(r=>r.length));
+      document.getElementById('tbl-rows').value=allRows.length;
+      document.getElementById('tbl-cols').value=maxCols;
+      document.getElementById('btn-gen-table').click();
+      allRows.forEach((rowArr,ri)=>{
+        rowArr.forEach((val,ci)=>{
+          const cell=document.getElementById(xlsCellId(ri+1,ci+1));
+          if(cell)cell.value=val;
+        });
+      });
+      if(document.getElementById('tbl-avg-check').checked)calcAndShowAvg();
+      statusEl.textContent='';
+      toast('جدول با '+allRows.length+' ردیف از PDF وارد شد ✅');
+    }catch(err){
+      statusEl.textContent='';
+      toast('خطا در خواندن یا تحلیل فایل PDF');
+    }
+    e.target.value='';
+  });
   document.getElementById('tbl-avg-check').onchange=function(){this.checked?calcAndShowAvg():document.getElementById('custom-table-foot').innerHTML='';};
   // محاسبه‌ی زنده‌ی میانگین با هر بار تایپ در سلول‌های عددی
   document.getElementById('custom-table-body').addEventListener('input',function(e){
@@ -4752,8 +4804,9 @@ function teacherScript() {
   }
 
   // خروجی هر صفحه: آرایه‌ای از بلوک‌ها — {type:'table', rows:[[متن سلول‌ها به ترتیب راست‌به‌چپ],...]} یا {type:'para', lines:[...]}
-  async function extractPdfPageBlocks(pageNum){
-    const page=await pdf2wordDoc.getPage(pageNum);
+  async function extractPdfPageBlocks(pageNum,docOverride){
+    const doc=docOverride||pdf2wordDoc;
+    const page=await doc.getPage(pageNum);
     const content=await page.getTextContent();
     const items=content.items.filter(it=>it.str!==undefined).map(it=>({...it,str:pdf2wordCleanStr(it.str)})).filter(it=>it.str.trim()!=='');
     if(items.length===0)return[];
