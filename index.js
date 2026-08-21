@@ -1163,6 +1163,8 @@ const SHARED_CSS = `
   [data-theme="dark"] .scan-preview{background:#1e293b;border-color:#475569}
   .scan-preview canvas{max-width:100%;border-radius:8px;box-shadow:0 4px 20px rgba(0,0,0,.1)}
   .scan-toolbar{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
+  .pdf-toolbar{display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin-top:10px}
+  .pdf-toolbar .btn{flex:0 0 auto}
   
   /* ---- کاهش حجم ---- */
   .resize-options{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:16px;margin-bottom:16px}
@@ -1246,15 +1248,15 @@ const SHARED_CSS = `
   .schedule-table-wrap{overflow-x:auto;border-radius:18px;background:#fff;margin-bottom:16px;box-shadow:0 10px 30px rgba(15,23,42,.10),0 2px 8px rgba(15,23,42,.06);border:1px solid #e2e8f0}
   [data-theme="dark"] .schedule-table-wrap{background:#1e293b;border-color:#334155;box-shadow:0 10px 30px rgba(0,0,0,.35)}
   .schedule-table{width:100%;border-collapse:separate;border-spacing:0}
-  .schedule-table th{padding:16px 10px;font-weight:800;text-align:center;font-size:14px;letter-spacing:.2px;border-bottom:2px solid #e2e8f0}
-  [data-theme="dark"] .schedule-table th{border-color:#334155}
+  .schedule-table th{padding:16px 10px;font-weight:800;text-align:center;font-size:14px;letter-spacing:.2px;border-bottom:2px solid #cbd5e1}
+  [data-theme="dark"] .schedule-table th{border-color:#475569}
   .schedule-table th.sch-corner{background:linear-gradient(135deg,#1e293b,#334155);color:#fff;border-radius:18px 0 0 0}
   [data-theme="dark"] .schedule-table th.sch-corner{background:linear-gradient(135deg,#0f172a,#1e293b)}
-  .schedule-table th.sch-period{background:#f8fafc;color:#334155;border-left:1px solid #e2e8f0}
-  [data-theme="dark"] .schedule-table th.sch-period{background:#0f172a;color:#e2e8f0;border-color:#334155}
+  .schedule-table th.sch-period{background:#f1f5f9;color:#334155;border-left:1px solid #cbd5e1}
+  [data-theme="dark"] .schedule-table th.sch-period{background:#0f172a;color:#e2e8f0;border-color:#475569}
   .schedule-table th.sch-period:last-child{border-radius:0 18px 0 0;border-left:none}
-  .schedule-table td{padding:12px 8px;text-align:center;font-weight:600;color:#1e293b;border-bottom:1px solid #eef2f6;border-left:1px solid #eef2f6}
-  [data-theme="dark"] .schedule-table td{color:#f1f5f9;border-color:#2d3b4e}
+  .schedule-table td{padding:12px 8px;text-align:center;font-weight:600;color:#1e293b;border-bottom:1.5px solid #cbd5e1;border-left:1.5px solid #cbd5e1}
+  [data-theme="dark"] .schedule-table td{color:#f1f5f9;border-color:#475569}
   .schedule-table tr:last-child td{border-bottom:none}
   .schedule-table tr:last-child td:first-child{border-radius:0 0 0 18px}
   .schedule-table tr:last-child td:last-child{border-radius:0 0 18px 0}
@@ -1275,6 +1277,34 @@ const SHARED_CSS = `
   [data-theme="dark"] .schedule-table td.sch-daylabel-doshshanbe,[data-theme="dark"] .schedule-table td.cell-doshshanbe{background:#18291f}
   [data-theme="dark"] .schedule-table td.sch-daylabel-seshshanbe,[data-theme="dark"] .schedule-table td.cell-seshshanbe{background:#241f33}
   [data-theme="dark"] .schedule-table td.sch-daylabel-chaharshanbe,[data-theme="dark"] .schedule-table td.cell-chaharshanbe{background:#17282a}
+
+  /* ---- سوییچ تم برنامهٔ هفتگی ---- */
+  .sch-theme-btn{opacity:.6;transition:opacity .15s,transform .15s}
+  .sch-theme-btn.active{opacity:1;transform:scale(1.05);box-shadow:0 2px 8px rgba(0,0,0,.15)}
+
+  /* تم پسرانه: آبی/فیروزه‌ای */
+  #schedule-table-wrap.theme-boy .schedule-table th.sch-corner{background:linear-gradient(135deg,#1e3a8a,#2563eb)}
+  #schedule-table-wrap.theme-boy .schedule-table th.sch-period{background:#eff6ff;color:#1e3a8a}
+  [data-theme="dark"] #schedule-table-wrap.theme-boy .schedule-table th.sch-period{background:#0f1f3d;color:#bfdbfe}
+  #schedule-table-wrap.theme-boy .sch-day-accent{background:#2563eb!important}
+  #schedule-table-wrap.theme-boy td.cell-shanbe{background:#dbeafe}
+  #schedule-table-wrap.theme-boy td.cell-yekshanbe{background:#e0f2fe}
+  #schedule-table-wrap.theme-boy td.cell-doshshanbe{background:#cffafe}
+  #schedule-table-wrap.theme-boy td.cell-seshshanbe{background:#e0e7ff}
+  #schedule-table-wrap.theme-boy td.cell-chaharshanbe{background:#dbeafe}
+  [data-theme="dark"] #schedule-table-wrap.theme-boy td.cell-shanbe,[data-theme="dark"] #schedule-table-wrap.theme-boy td.cell-yekshanbe,[data-theme="dark"] #schedule-table-wrap.theme-boy td.cell-doshshanbe,[data-theme="dark"] #schedule-table-wrap.theme-boy td.cell-seshshanbe,[data-theme="dark"] #schedule-table-wrap.theme-boy td.cell-chaharshanbe{background:#132743}
+
+  /* تم دخترانه: صورتی/بنفش */
+  #schedule-table-wrap.theme-girl .schedule-table th.sch-corner{background:linear-gradient(135deg,#9d174d,#db2777)}
+  #schedule-table-wrap.theme-girl .schedule-table th.sch-period{background:#fdf2f8;color:#9d174d}
+  [data-theme="dark"] #schedule-table-wrap.theme-girl .schedule-table th.sch-period{background:#3d0f27;color:#fbcfe8}
+  #schedule-table-wrap.theme-girl .sch-day-accent{background:#db2777!important}
+  #schedule-table-wrap.theme-girl td.cell-shanbe{background:#fce7f3}
+  #schedule-table-wrap.theme-girl td.cell-yekshanbe{background:#fdf2f8}
+  #schedule-table-wrap.theme-girl td.cell-doshshanbe{background:#fae8ff}
+  #schedule-table-wrap.theme-girl td.cell-seshshanbe{background:#f3e8ff}
+  #schedule-table-wrap.theme-girl td.cell-chaharshanbe{background:#ffe4e6}
+  [data-theme="dark"] #schedule-table-wrap.theme-girl td.cell-shanbe,[data-theme="dark"] #schedule-table-wrap.theme-girl td.cell-yekshanbe,[data-theme="dark"] #schedule-table-wrap.theme-girl td.cell-doshshanbe,[data-theme="dark"] #schedule-table-wrap.theme-girl td.cell-seshshanbe,[data-theme="dark"] #schedule-table-wrap.theme-girl td.cell-chaharshanbe{background:#3d1730}
   .schedule-table tr.sch-today td{box-shadow:inset 0 0 0 2px var(--primary)}
   .schedule-table tr.sch-today td:first-child .sch-today-badge{position:absolute;top:2px;left:6px;font-size:9px;background:var(--primary);color:#fff;padding:1px 7px;border-radius:8px;font-weight:700}
   .schedule-table textarea{background:transparent;border:none;width:100%;min-height:50px;text-align:center;font-family:inherit;font-size:13px;color:inherit;resize:vertical;line-height:1.5}
@@ -2201,6 +2231,12 @@ function teacherPage() {
 
       <div class="card tab-content hidden" id="tab-schedule">
         <h3>📅 برنامه هفتگی</h3>
+        <div class="row" style="margin-bottom:16px;align-items:center;gap:10px;flex-wrap:wrap">
+          <span style="font-weight:700">🎨 تم رنگی:</span>
+          <button class="btn sm sch-theme-btn active" data-theme="default">🌈 پیش‌فرض</button>
+          <button class="btn sm sch-theme-btn" data-theme="boy">💙 پسرانه</button>
+          <button class="btn sm sch-theme-btn" data-theme="girl">💗 دخترانه</button>
+        </div>
         <div class="row" style="margin-bottom:16px">
           <input id="sch-school" placeholder="نام مدرسه" style="flex:1">
           <input id="sch-year" placeholder="سال تحصیلی" style="flex:1">
@@ -2213,7 +2249,7 @@ function teacherPage() {
           <input id="sch-class" placeholder="نام کلاس" style="flex:1">
           <input id="sch-teacher" placeholder="نام آموزگار" style="flex:1">
         </div>
-        <div class="schedule-table-wrap">
+        <div class="schedule-table-wrap" id="schedule-table-wrap">
           <table class="schedule-table" id="schedule-table">
             <thead><tr><th class="sch-corner">روز / زنگ</th><th class="sch-period">🔔 زنگ اول</th><th class="sch-period">🔔 زنگ دوم</th><th class="sch-period">🔔 زنگ سوم</th><th class="sch-period">🔔 زنگ چهارم</th><th class="sch-period">🔔 زنگ پنجم</th></tr></thead>
             <tbody id="schedule-body"></tbody>
@@ -2253,6 +2289,7 @@ function teacherPage() {
         </div>
         <div class="row" style="margin-top:12px">
           <button class="btn primary" id="btn-gen-table">🔄 ساخت جدول</button>
+          <button class="btn success" id="btn-save-table">💾 ذخیره</button>
           <button class="btn sec" id="btn-word-table">📄 دانلود Word</button>
           <button class="btn gray" id="btn-excel-table">📊 دانلود Excel واقعی (xlsx)</button>
         </div>
@@ -2976,7 +3013,8 @@ function teacherScript() {
     t.classList.add('active');
     document.querySelectorAll('.tab-content').forEach(c=>c.classList.add('hidden'));
     document.getElementById('tab-'+t.dataset.tab).classList.remove('hidden');
-    if(t.dataset.tab==='schedule'){document.getElementById('btn-gen-schedule').click();}
+    if(t.dataset.tab==='tables'){if(typeof loadTableIfNeeded==='function')loadTableIfNeeded();}
+    if(t.dataset.tab==='schedule'){document.getElementById('btn-gen-schedule').click();if(typeof loadScheduleThemeIfNeeded==='function')loadScheduleThemeIfNeeded();}
     if(t.dataset.tab==='classroom'){renderClassLinks();setTimeout(function(){if(typeof clsResizeBoard==='function')clsResizeBoard();},50);}
   });
 
@@ -3484,6 +3522,29 @@ function teacherScript() {
     }
   }
 
+  // ===== سوییچ تم رنگی برنامهٔ هفتگی (پسرانه/دخترانه/پیش‌فرض) =====
+  document.querySelectorAll('.sch-theme-btn').forEach(btn=>{
+    btn.onclick=()=>{
+      document.querySelectorAll('.sch-theme-btn').forEach(b=>b.classList.remove('active'));
+      btn.classList.add('active');
+      const wrap=document.getElementById('schedule-table-wrap');
+      wrap.classList.remove('theme-boy','theme-girl');
+      if(btn.dataset.theme==='boy')wrap.classList.add('theme-boy');
+      if(btn.dataset.theme==='girl')wrap.classList.add('theme-girl');
+      lbSave('sch-theme',btn.dataset.theme,true);
+    };
+  });
+  let SCH_THEME_LOADED=false;
+  async function loadScheduleThemeIfNeeded(){
+    if(SCH_THEME_LOADED)return;
+    SCH_THEME_LOADED=true;
+    const saved=await lbLoad('sch-theme');
+    if(saved && saved!=='default'){
+      const btn=document.querySelector('.sch-theme-btn[data-theme="'+saved+'"]');
+      if(btn)btn.click();
+    }
+  }
+
   document.getElementById('btn-gen-schedule').onclick=function(){
     const body=document.getElementById('schedule-body');
     let html='';
@@ -3596,6 +3657,40 @@ function teacherScript() {
     let f='<tr class="xls-avgrow"><td>📈</td>';
     for(let c=1;c<=cols;c++){f+='<td>'+avgCells[c-1]+'</td>';}
     f+='</tr>';tfoot.innerHTML=f;
+  }
+
+  // ===== ذخیره/بارگذاری جدول‌ساز =====
+  document.getElementById('btn-save-table').onclick=async function(){
+    const rows=parseInt(document.getElementById('tbl-rows').value)||5;
+    const cols=parseInt(document.getElementById('tbl-cols').value)||4;
+    if(!document.getElementById(xlsCellId(1,1))){toast('ابتدا جدول را بسازید');return;}
+    const titles=[];
+    for(let c=1;c<=cols;c++){const el=document.getElementById(xlsTitleId(c));titles.push(el?el.value:'');}
+    const cells=[];
+    for(let r=1;r<=rows;r++){
+      const rowVals=[];
+      for(let c=1;c<=cols;c++){const el=document.getElementById(xlsCellId(r,c));rowVals.push(el?el.value:'');}
+      cells.push(rowVals);
+    }
+    await lbSave('customtable',{rows,cols,title:document.getElementById('tbl-title').value,avgCheck:document.getElementById('tbl-avg-check').checked,titles,cells});
+  };
+
+  let TABLE_LOADED=false;
+  async function loadTableIfNeeded(){
+    if(TABLE_LOADED)return;
+    TABLE_LOADED=true;
+    const saved=await lbLoad('customtable');
+    if(!saved)return;
+    document.getElementById('tbl-rows').value=saved.rows||5;
+    document.getElementById('tbl-cols').value=saved.cols||4;
+    document.getElementById('tbl-title').value=saved.title||'';
+    document.getElementById('tbl-avg-check').checked=saved.avgCheck!==false;
+    document.getElementById('btn-gen-table').click();
+    (saved.titles||[]).forEach((t,idx)=>{const el=document.getElementById(xlsTitleId(idx+1));if(el)el.value=t;});
+    (saved.cells||[]).forEach((rowVals,ri)=>{
+      rowVals.forEach((v,ci)=>{const el=document.getElementById(xlsCellId(ri+1,ci+1));if(el)el.value=v;});
+    });
+    if(document.getElementById('tbl-avg-check').checked)calcAndShowAvg();
   }
 
   // ===== وارد کردن جدول از فایل PDF (با تشخیص خطوط واقعی جدول، مثل بخش PDF به Word) =====
