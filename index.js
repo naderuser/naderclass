@@ -2264,12 +2264,6 @@ function teacherPage() {
 
       <div class="card tab-content hidden" id="tab-tables">
         <h3>📊 جدول‌ساز حرفه‌ای</h3>
-        <div class="row" style="margin-bottom:16px;gap:8px">
-          <button class="btn secondary" id="tblmode-btn-free">🧮 جدول ساز آزاد</button>
-          <button class="btn secondary" id="tblmode-btn-org">📋 فرم سازمان عملی</button>
-        </div>
-
-        <div id="tblmode-free">
         <div class="row" style="margin-bottom:16px">
           <div><label style="display:block;margin-bottom:4px">تعداد سطر:</label><input type="number" id="tbl-rows" value="5" min="1" max="50" style="width:100px;padding:8px;border:1px solid #ddd;border-radius:6px"></div>
           <div><label style="display:block;margin-bottom:4px">تعداد ستون:</label><input type="number" id="tbl-cols" value="4" min="1" max="20" style="width:100px;padding:8px;border:1px solid #ddd;border-radius:6px"></div>
@@ -2283,6 +2277,11 @@ function teacherPage() {
           <input type="file" id="tbl-pdf-file" accept="application/pdf" class="hidden">
           <button class="btn secondary" id="btn-tbl-import-pdf">📥 وارد کردن جدول از PDF</button>
           <span class="muted" id="tbl-pdf-status"></span>
+        </div>
+        <div class="card" style="background:#f8fafc;border:1px dashed #cbd5e1;margin-bottom:16px;padding:16px">
+          <h4 style="margin:0 0 6px">🏫 فرم سازمان عملی</h4>
+          <p class="muted" style="margin:0 0 12px">فایل اکسل رسمی دو-شیتی (مشخصات آموزشگاه + آمار پایه‌ها، و لیست اطلاعات نفرات) با فرمول خودکار، دراپ‌داون و هدر ثابت — دقیقاً یک کلیک.</p>
+          <button class="btn primary" id="btn-org-form">📥 ساخت و دانلود فرم سازمان عملی</button>
         </div>
         <div class="xls-wrap">
           <div class="xls-scroll">
@@ -2298,77 +2297,6 @@ function teacherPage() {
           <button class="btn success" id="btn-save-table">💾 ذخیره</button>
           <button class="btn sec" id="btn-word-table">📄 دانلود Word</button>
           <button class="btn gray" id="btn-excel-table">📊 دانلود Excel واقعی (xlsx)</button>
-        </div>
-        </div>
-
-        <div id="tblmode-org" class="hidden">
-          <p class="muted">مشخصات آموزشگاه، آمار دانش‌آموزان به تفکیک پایه و فهرست پرسنل را وارد کنید و در انتها خروجی Excel رسمی (مشابه فرم سازمان عملی) بگیرید.</p>
-
-          <div class="card" style="background:#f8fafc;border:1px solid #e2e8f0;margin-bottom:16px">
-            <h4 style="margin-top:0">🏫 مشخصات آموزشگاه</h4>
-            <div class="row" style="flex-wrap:wrap;gap:10px">
-              <div><label style="display:block;margin-bottom:4px">سال تحصیلی:</label><input type="text" id="org-year" placeholder="مثال: 1405-1404" style="width:150px;padding:8px;border:1px solid #ddd;border-radius:6px"></div>
-              <div><label style="display:block;margin-bottom:4px">فرم شماره:</label><input type="text" id="org-formno" placeholder="الف 1-1400/01" style="width:150px;padding:8px;border:1px solid #ddd;border-radius:6px"></div>
-              <div><label style="display:block;margin-bottom:4px">منطقه:</label><input type="text" id="org-region" style="width:150px;padding:8px;border:1px solid #ddd;border-radius:6px"></div>
-              <div><label style="display:block;margin-bottom:4px">نام آموزشگاه:</label><input type="text" id="org-school" style="width:220px;padding:8px;border:1px solid #ddd;border-radius:6px"></div>
-              <div><label style="display:block;margin-bottom:4px">کد آموزشگاه:</label><input type="text" id="org-schoolcode" style="width:150px;padding:8px;border:1px solid #ddd;border-radius:6px"></div>
-              <div><label style="display:block;margin-bottom:4px">نام مدیر:</label><input type="text" id="org-manager" style="width:180px;padding:8px;border:1px solid #ddd;border-radius:6px"></div>
-              <div><label style="display:block;margin-bottom:4px">نوع اداره:</label>
-                <select id="org-admintype" style="width:150px;padding:8px;border:1px solid #ddd;border-radius:6px">
-                  <option value="دولتی">دولتی</option><option value="غیردولتی">غیردولتی</option>
-                </select>
-              </div>
-              <div><label style="display:block;margin-bottom:4px">جنسیت:</label>
-                <select id="org-gender" style="width:130px;padding:8px;border:1px solid #ddd;border-radius:6px">
-                  <option value="دخترانه">دخترانه</option><option value="پسرانه">پسرانه</option><option value="مختلط">مختلط</option>
-                </select>
-              </div>
-              <div><label style="display:block;margin-bottom:4px">وضعیت ساختمان:</label>
-                <select id="org-buildingstatus" style="width:150px;padding:8px;border:1px solid #ddd;border-radius:6px">
-                  <option value="ملکی">ملکی</option><option value="استیجاری">استیجاری</option><option value="سایر">سایر</option>
-                </select>
-              </div>
-              <div><label style="display:block;margin-bottom:4px">وضعیت:</label>
-                <select id="org-status" style="width:130px;padding:8px;border:1px solid #ddd;border-radius:6px">
-                  <option value="فعال">فعال</option><option value="غیرفعال">غیرفعال</option>
-                </select>
-              </div>
-              <div><label style="display:block;margin-bottom:4px">نوع ساختمان:</label>
-                <select id="org-buildingtype" style="width:130px;padding:8px;border:1px solid #ddd;border-radius:6px">
-                  <option value="آجری">آجری</option><option value="بتنی">بتنی</option><option value="سایر">سایر</option>
-                </select>
-              </div>
-              <div><label style="display:block;margin-bottom:4px">شماره تلفن:</label><input type="text" id="org-phone" style="width:150px;padding:8px;border:1px solid #ddd;border-radius:6px"></div>
-            </div>
-            <div style="margin-top:10px"><label style="display:block;margin-bottom:4px">نشانی آموزشگاه:</label><textarea id="org-address" rows="2" style="width:100%;padding:8px;border:1px solid #ddd;border-radius:6px"></textarea></div>
-          </div>
-
-          <div class="card" style="background:#f8fafc;border:1px solid #e2e8f0;margin-bottom:16px">
-            <h4 style="margin-top:0">📈 آمار دانش‌آموزان به تفکیک پایه</h4>
-            <div class="xls-wrap"><div class="xls-scroll" id="org-grade-table-wrap"></div></div>
-          </div>
-
-          <div class="card" style="background:#f8fafc;border:1px solid #e2e8f0;margin-bottom:16px">
-            <h4 style="margin-top:0">👥 فهرست پرسنل</h4>
-            <div class="xls-wrap">
-              <div class="xls-scroll">
-                <table class="xls-grid" id="org-staff-table">
-                  <thead>
-                    <tr>
-                      <th>ردیف</th><th>کد پرسنلی</th><th>نام</th><th>نام خانوادگی</th><th>کد ملی</th><th>مدرک</th><th>رشته تحصیلی</th><th>سابقه</th><th>نوع استخدام</th><th>پست سازمانی</th><th>آدرس</th><th>تلفن</th><th></th>
-                    </tr>
-                  </thead>
-                  <tbody id="org-staff-body"></tbody>
-                </table>
-              </div>
-            </div>
-            <div class="row" style="margin-top:10px"><button class="btn secondary" id="btn-org-add-staff">➕ افزودن ردیف پرسنل</button></div>
-          </div>
-
-          <div class="row">
-            <button class="btn success" id="btn-org-save">💾 ذخیره</button>
-            <button class="btn gray" id="btn-org-excel">📊 دانلود Excel فرم سازمان عملی</button>
-          </div>
         </div>
       </div>
 
@@ -3998,334 +3926,195 @@ function teacherScript() {
     }
   };
 
-  // ===== سوییچ حالت جدول‌ساز: آزاد / فرم سازمان عملی =====
-  document.getElementById('tblmode-btn-free').onclick=function(){
-    document.getElementById('tblmode-free').classList.remove('hidden');
-    document.getElementById('tblmode-org').classList.add('hidden');
-    this.classList.add('primary'); document.getElementById('tblmode-btn-org').classList.remove('primary');
-  };
-  document.getElementById('tblmode-btn-org').onclick=function(){
-    document.getElementById('tblmode-free').classList.add('hidden');
-    document.getElementById('tblmode-org').classList.remove('hidden');
-    this.classList.add('primary'); document.getElementById('tblmode-btn-free').classList.remove('primary');
-    renderOrgGradeTable();
-    loadOrgFormIfNeeded();
-  };
-
-  // ===== فرم سازمان عملی (مشخصات آموزشگاه + آمار دانش‌آموزان + پرسنل) =====
-  const ORG_GRADES=['اول','دوم','سوم','چهارم','پنجم','ششم'];
-  function orgGradeId(i,field){return 'org-g'+i+'-'+field;}
-
-  function renderOrgGradeTable(){
-    const wrap=document.getElementById('org-grade-table-wrap');
-    if(wrap.dataset.built==='1')return;
-    wrap.dataset.built='1';
-    let h='<table class="xls-grid" id="org-grade-table">';
-    h+='<thead>';
-    h+='<tr><th rowspan="2">پایه</th><th colspan="3">دانش‌آموز</th><th colspan="4">کلاس</th><th rowspan="2">منتقل‌شده</th><th rowspan="2">ثبت‌نام جدید</th><th rowspan="2">جمع کل</th></tr>';
-    h+='<tr><th>پسر</th><th>دختر</th><th>جمع</th><th>پسر</th><th>دختر</th><th>مختلط</th><th>جمع</th></tr>';
-    h+='</thead><tbody>';
-    ORG_GRADES.forEach((g,i)=>{
-      h+='<tr><td class="xls-rowhead">پایه '+g+'</td>'+
-        '<td><input type="number" id="'+orgGradeId(i,'stB')+'"></td>'+
-        '<td><input type="number" id="'+orgGradeId(i,'stG')+'"></td>'+
-        '<td><span id="'+orgGradeId(i,'stT')+'">0</span></td>'+
-        '<td><input type="number" id="'+orgGradeId(i,'clB')+'"></td>'+
-        '<td><input type="number" id="'+orgGradeId(i,'clG')+'"></td>'+
-        '<td><input type="number" id="'+orgGradeId(i,'clM')+'"></td>'+
-        '<td><span id="'+orgGradeId(i,'clT')+'">0</span></td>'+
-        '<td><input type="number" id="'+orgGradeId(i,'moved')+'"></td>'+
-        '<td><input type="number" id="'+orgGradeId(i,'newreg')+'"></td>'+
-        '<td><span id="'+orgGradeId(i,'total')+'">0</span></td>'+
-        '</tr>';
-    });
-    h+='<tr class="xls-avgrow"><td>جمع کل</td>'+
-      '<td><span id="org-sum-stB">0</span></td><td><span id="org-sum-stG">0</span></td><td><span id="org-sum-stT">0</span></td>'+
-      '<td><span id="org-sum-clB">0</span></td><td><span id="org-sum-clG">0</span></td><td><span id="org-sum-clM">0</span></td><td><span id="org-sum-clT">0</span></td>'+
-      '<td><span id="org-sum-moved">0</span></td><td><span id="org-sum-newreg">0</span></td><td><span id="org-sum-total">0</span></td>'+
-      '</tr>';
-    h+='</tbody></table>';
-    wrap.innerHTML=h;
-    wrap.addEventListener('input',recalcOrgGradeTable);
-    recalcOrgGradeTable();
-  }
-
-  function recalcOrgGradeTable(){
-    const sums={stB:0,stG:0,stT:0,clB:0,clG:0,clM:0,clT:0,moved:0,newreg:0,total:0};
-    ORG_GRADES.forEach((g,i)=>{
-      const v=(f)=>{const el=document.getElementById(orgGradeId(i,f));const n=el?parseFloat(el.value):NaN;return isNaN(n)?0:n;};
-      const stB=v('stB'), stG=v('stG'), clB=v('clB'), clG=v('clG'), clM=v('clM'), moved=v('moved'), newreg=v('newreg');
-      const stT=stB+stG, clT=clB+clG+clM, total=stT;
-      document.getElementById(orgGradeId(i,'stT')).textContent=stT;
-      document.getElementById(orgGradeId(i,'clT')).textContent=clT;
-      document.getElementById(orgGradeId(i,'total')).textContent=total;
-      sums.stB+=stB; sums.stG+=stG; sums.stT+=stT; sums.clB+=clB; sums.clG+=clG; sums.clM+=clM; sums.clT+=clT; sums.moved+=moved; sums.newreg+=newreg; sums.total+=total;
-    });
-    Object.keys(sums).forEach(k=>{const el=document.getElementById('org-sum-'+k);if(el)el.textContent=sums[k];});
-  }
-
-  function orgCollectGradeData(){
-    return ORG_GRADES.map((g,i)=>{
-      const v=(f)=>{const el=document.getElementById(orgGradeId(i,f));return el?el.value:'';};
-      return {grade:g, stB:v('stB'), stG:v('stG'), clB:v('clB'), clG:v('clG'), clM:v('clM'), moved:v('moved'), newreg:v('newreg')};
-    });
-  }
-  function orgApplyGradeData(arr){
-    (arr||[]).forEach((row,i)=>{
-      if(i>=ORG_GRADES.length)return;
-      ['stB','stG','clB','clG','clM','moved','newreg'].forEach(f=>{
-        const el=document.getElementById(orgGradeId(i,f));
-        if(el && row[f]!==undefined) el.value=row[f];
-      });
-    });
-    recalcOrgGradeTable();
-  }
-
-  // ---- فهرست پرسنل ----
-  let orgStaffCounter=0;
-  function orgAddStaffRow(data){
-    data=data||{};
-    orgStaffCounter++;
-    const id=orgStaffCounter;
-    const tbody=document.getElementById('org-staff-body');
-    const tr=document.createElement('tr');
-    tr.dataset.rowid=id;
-    tr.innerHTML=
-      '<td class="xls-rowhead org-staff-rownum">'+'</td>'+
-      '<td><input type="text" data-f="code" value="'+esc(data.code||'')+'"></td>'+
-      '<td><input type="text" data-f="fname" value="'+esc(data.fname||'')+'"></td>'+
-      '<td><input type="text" data-f="lname" value="'+esc(data.lname||'')+'"></td>'+
-      '<td><input type="text" data-f="nid" value="'+esc(data.nid||'')+'"></td>'+
-      '<td><input type="text" data-f="degree" value="'+esc(data.degree||'')+'"></td>'+
-      '<td><input type="text" data-f="major" value="'+esc(data.major||'')+'"></td>'+
-      '<td><input type="text" data-f="years" value="'+esc(data.years||'')+'"></td>'+
-      '<td><select data-f="empType">'+
-        ['رسمی','پیمانی','حق‌التدریس','قراردادی','شرکتی'].map(o=>'<option'+(data.empType===o?' selected':'')+'>'+o+'</option>').join('')+
-        '</select></td>'+
-      '<td><input type="text" data-f="post" value="'+esc(data.post||'')+'"></td>'+
-      '<td><input type="text" data-f="address" value="'+esc(data.address||'')+'"></td>'+
-      '<td><input type="text" data-f="phone" value="'+esc(data.phone||'')+'"></td>'+
-      '<td><button type="button" class="btn danger" style="padding:4px 10px" onclick="this.closest(\\'tr\\').remove();orgRenumberStaff();">🗑️</button></td>';
-    tbody.appendChild(tr);
-    orgRenumberStaff();
-  }
-  function orgRenumberStaff(){
-    document.querySelectorAll('#org-staff-body tr').forEach((tr,idx)=>{
-      const c=tr.querySelector('.org-staff-rownum'); if(c)c.textContent=idx+1;
-    });
-  }
-  document.getElementById('btn-org-add-staff').onclick=()=>orgAddStaffRow();
-
-  function orgCollectStaffData(){
-    return Array.from(document.querySelectorAll('#org-staff-body tr')).map(tr=>{
-      const row={};
-      tr.querySelectorAll('[data-f]').forEach(el=>{row[el.dataset.f]=el.value;});
-      return row;
-    });
-  }
-
-  function orgCollectMeta(){
-    return {
-      year:document.getElementById('org-year').value,
-      formno:document.getElementById('org-formno').value,
-      region:document.getElementById('org-region').value,
-      school:document.getElementById('org-school').value,
-      schoolcode:document.getElementById('org-schoolcode').value,
-      manager:document.getElementById('org-manager').value,
-      adminType:document.getElementById('org-admintype').value,
-      gender:document.getElementById('org-gender').value,
-      buildingStatus:document.getElementById('org-buildingstatus').value,
-      status:document.getElementById('org-status').value,
-      buildingType:document.getElementById('org-buildingtype').value,
-      phone:document.getElementById('org-phone').value,
-      address:document.getElementById('org-address').value,
-    };
-  }
-  function orgApplyMeta(m){
-    if(!m)return;
-    const set=(id,v)=>{const el=document.getElementById(id); if(el && v!==undefined) el.value=v;};
-    set('org-year',m.year); set('org-formno',m.formno); set('org-region',m.region); set('org-school',m.school);
-    set('org-schoolcode',m.schoolcode); set('org-manager',m.manager); set('org-admintype',m.adminType);
-    set('org-gender',m.gender); set('org-buildingstatus',m.buildingStatus); set('org-status',m.status);
-    set('org-buildingtype',m.buildingType); set('org-phone',m.phone); set('org-address',m.address);
-  }
-
-  document.getElementById('btn-org-save').onclick=async function(){
-    const data={meta:orgCollectMeta(), grades:orgCollectGradeData(), staff:orgCollectStaffData()};
-    await lbSave('orgform',data);
-    toast('فرم سازمان عملی ذخیره شد ✅');
-  };
-
-  let ORGFORM_LOADED=false;
-  async function loadOrgFormIfNeeded(){
-    if(ORGFORM_LOADED)return;
-    ORGFORM_LOADED=true;
-    const saved=await lbLoad('orgform');
-    if(!saved){ if(!document.getElementById('org-staff-body').children.length) for(let i=0;i<3;i++) orgAddStaffRow(); return; }
-    orgApplyMeta(saved.meta);
-    orgApplyGradeData(saved.grades);
-    (saved.staff||[]).forEach(row=>orgAddStaffRow(row));
-    if(!document.getElementById('org-staff-body').children.length) orgAddStaffRow();
-  }
-
-  document.getElementById('btn-org-excel').onclick=async function(){
-    const btn=this; btn.disabled=true; const origText=btn.textContent; btn.textContent='⏳ در حال ساخت فایل...';
+  // ===== فرم سازمان عملی (فایل اکسل رسمی دو-شیتی مخصوص مدارس ابتدایی) =====
+  document.getElementById('btn-org-form').onclick=async function(){
+    const btn=this;btn.disabled=true;const origText=btn.textContent;btn.textContent='⏳ در حال ساخت فایل...';
     try{
       await loadExcelJS();
-      const meta=orgCollectMeta(), grades=orgCollectGradeData(), staff=orgCollectStaffData();
       const wb=new ExcelJS.Workbook();
-      wb.creator=${JSON.stringify(APP_TITLE)};
+      wb.creator='پنل مدیریت کلاسی';
 
-      /* ---------- شیت ۱: مشخصات و آمار دانش‌آموزان ---------- */
-      const ws1=wb.addWorksheet('مشخصات و آمار', { views:[{ rightToLeft:true }] });
-      ws1.mergeCells(1,1,1,11);
-      const t1=ws1.getCell(1,1);
-      t1.value='سازمان عملی دوره تحصیلی ابتدایی'+(meta.formno?'  —  فرم: '+meta.formno:'');
-      t1.font={ size:16, bold:true, color:{argb:'FF1E293B'} };
-      t1.alignment={ horizontal:'center', vertical:'middle' };
+      const thin={style:'thin',color:{argb:'FFB7B7B7'}};
+      const borderAll={top:thin,left:thin,right:thin,bottom:thin};
+      const headerFill={type:'pattern',pattern:'solid',fgColor:{argb:'FFD9E2F3'}};
+      const inputFill={type:'pattern',pattern:'solid',fgColor:{argb:'FFFFF6DC'}};
+      const groupFill={type:'pattern',pattern:'solid',fgColor:{argb:'FF4472C4'}};
+
+      // ---------- شیت ۱: مشخصات آموزشگاه و آمار دانش‌آموزان ----------
+      const ws1=wb.addWorksheet('مشخصات و آمار',{views:[{rightToLeft:true}],pageSetup:{orientation:'landscape',fitToPage:true,fitToWidth:1,fitToHeight:1}});
+      ws1.mergeCells('A1:N1');
+      ws1.getCell('A1').value='فرم سازمان عملی — سازمان ملی تعلیم و تربیت کودک / دوره ابتدایی';
+      ws1.getCell('A1').font={size:15,bold:true,color:{argb:'FF1E293B'}};
+      ws1.getCell('A1').alignment={horizontal:'center',vertical:'middle'};
       ws1.getRow(1).height=26;
 
-      const metaRows=[
-        ['سال تحصیلی', meta.year, 'منطقه', meta.region, 'نام آموزشگاه', meta.school],
-        ['کد آموزشگاه', meta.schoolcode, 'نام مدیر', meta.manager, 'نوع اداره', meta.adminType],
-        ['جنسیت', meta.gender, 'وضعیت ساختمان', meta.buildingStatus, 'وضعیت', meta.status],
-        ['نوع ساختمان', meta.buildingType, 'شماره تلفن', meta.phone, '', ''],
-      ];
-      let rIdx=3;
-      metaRows.forEach(rowArr=>{
-        for(let k=0;k<3;k++){
-          const labelCell=ws1.getCell(rIdx,k*4+1);
-          const valueCell=ws1.getCell(rIdx,k*4+2);
-          ws1.mergeCells(rIdx,k*4+2,rIdx,k*4+3);
-          labelCell.value=rowArr[k*2]; valueCell.value=rowArr[k*2+1];
-          labelCell.font={bold:true, color:{argb:'FF1E293B'}};
-          labelCell.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FFEDF2F7'}};
-          labelCell.alignment={horizontal:'center',vertical:'middle'};
-          valueCell.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FFFFFBEB'}};
-          valueCell.alignment={horizontal:'center',vertical:'middle'};
-          [labelCell,valueCell].forEach(c=>{c.border={top:{style:'thin',color:{argb:'FFB7B7B7'}},left:{style:'thin',color:{argb:'FFB7B7B7'}},right:{style:'thin',color:{argb:'FFB7B7B7'}},bottom:{style:'thin',color:{argb:'FFB7B7B7'}}};});
-        }
-        rIdx++;
-      });
-      rIdx++;
-      const addrLabel=ws1.getCell(rIdx,1); addrLabel.value='نشانی آموزشگاه';
-      addrLabel.font={bold:true}; addrLabel.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FFEDF2F7'}};
-      addrLabel.alignment={horizontal:'center',vertical:'middle'};
-      ws1.mergeCells(rIdx,2,rIdx,11);
-      const addrVal=ws1.getCell(rIdx,2); addrVal.value=meta.address||'';
-      addrVal.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FFFFFBEB'}};
-      addrVal.alignment={horizontal:'right',vertical:'middle'};
-      rIdx+=2;
+      ws1.mergeCells('A2:N2');
+      ws1.getCell('A2').value='مشخصات آموزشگاه';
+      ws1.getCell('A2').font={size:12,bold:true,color:{argb:'FFFFFFFF'}};
+      ws1.getCell('A2').fill=groupFill;
+      ws1.getCell('A2').alignment={horizontal:'center',vertical:'middle'};
+      ws1.getRow(2).height=20;
 
-      // جدول آمار دانش‌آموزان به تفکیک پایه
-      const gradeHeaderRow1=rIdx, gradeHeaderRow2=rIdx+1;
-      ws1.mergeCells(gradeHeaderRow1,1,gradeHeaderRow2,1);
-      ws1.getCell(gradeHeaderRow1,1).value='پایه';
-      ws1.mergeCells(gradeHeaderRow1,2,gradeHeaderRow1,4); ws1.getCell(gradeHeaderRow1,2).value='دانش‌آموز';
-      ws1.mergeCells(gradeHeaderRow1,5,gradeHeaderRow1,8); ws1.getCell(gradeHeaderRow1,5).value='کلاس';
-      ws1.mergeCells(gradeHeaderRow1,9,gradeHeaderRow2,9); ws1.getCell(gradeHeaderRow1,9).value='منتقل‌شده';
-      ws1.mergeCells(gradeHeaderRow1,10,gradeHeaderRow2,10); ws1.getCell(gradeHeaderRow1,10).value='ثبت‌نام جدید';
-      ws1.mergeCells(gradeHeaderRow1,11,gradeHeaderRow2,11); ws1.getCell(gradeHeaderRow1,11).value='جمع کل';
-      const sub2=['','پسر','دختر','جمع','پسر','دختر','مختلط','جمع','','',''];
-      for(let c=2;c<=8;c++) ws1.getCell(gradeHeaderRow2,c).value=sub2[c-1];
-      for(let r=gradeHeaderRow1;r<=gradeHeaderRow2;r++){
-        ws1.getRow(r).eachCell({includeEmpty:true},function(cell,colNum){
-          if(colNum>11)return;
-          cell.font={bold:true,color:{argb:'FFFFFFFF'}};
-          cell.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF4472C4'}};
+      // فیلدهای مشخصات آموزشگاه: [برچسب, نوع, لیست‌دراپ‌داون]
+      const infoFields=[
+        ['سال تحصیلی','text'],['فرم شماره','text'],
+        ['منطقه','text'],['نام آموزشگاه','text'],
+        ['کد آموزشگاه','text'],['نام مدیر','text'],
+        ['نوع اداره','list',['دولتی','غیردولتی']],['جنسیت','list',['پسر','دختر']],
+        ['وضعیت ساختمان','list',['ملکی','استیجاری','سایر']],['وضعیت','list',['فعال','غیرفعال']],
+        ['نوع ساختمان','list',['آجری','بتنی','سایر']],['شماره تلفن','text']
+      ];
+      let r=3;
+      for(let i=0;i<infoFields.length;i+=2){
+        const row=ws1.getRow(r);
+        row.getCell(1).value=infoFields[i][0]+':';
+        row.getCell(1).font={bold:true};
+        row.getCell(1).alignment={horizontal:'right',vertical:'middle'};
+        ws1.mergeCells(r,2,r,4);
+        row.getCell(2).fill=inputFill;
+        row.getCell(2).border=borderAll;
+        if(infoFields[i][1]==='list'){row.getCell(2).dataValidation={type:'list',allowBlank:true,formulae:['"'+infoFields[i][2].join(',')+'"']};}
+        if(infoFields[i+1]){
+          row.getCell(8).value=infoFields[i+1][0]+':';
+          row.getCell(8).font={bold:true};
+          row.getCell(8).alignment={horizontal:'right',vertical:'middle'};
+          ws1.mergeCells(r,9,r,11);
+          row.getCell(9).fill=inputFill;
+          row.getCell(9).border=borderAll;
+          if(infoFields[i+1][1]==='list'){row.getCell(9).dataValidation={type:'list',allowBlank:true,formulae:['"'+infoFields[i+1][2].join(',')+'"']};}
+        }
+        row.getCell(1).border=borderAll;row.getCell(8).border=borderAll;
+        row.height=20;
+        r++;
+      }
+      // ردیف «سازمان / دوره تحصیلی» ثابت
+      ws1.getCell('A'+r).value='سازمان / دوره تحصیلی:';
+      ws1.getCell('A'+r).font={bold:true};
+      ws1.mergeCells(r,2,r,11);
+      ws1.getCell('B'+r).value='سازمان ملی تعلیم و تربیت کودک / دوره ابتدایی';
+      ws1.getCell('B'+r).font={italic:true,color:{argb:'FF475569'}};
+      ws1.getCell('B'+r).alignment={horizontal:'right',vertical:'middle'};
+      r++;
+      // نشانی
+      ws1.getCell('A'+r).value='نشانی آموزشگاه:';
+      ws1.getCell('A'+r).font={bold:true};
+      ws1.mergeCells(r,2,r,11);
+      ws1.getCell('B'+r).fill=inputFill;
+      ws1.getCell('B'+r).border=borderAll;
+      ws1.getRow(r).height=22;
+      r+=2;
+
+      // ---------- جدول آمار دانش‌آموزان ----------
+      const statTop=r;
+      ws1.mergeCells(statTop,1,statTop,14);
+      ws1.getCell(statTop,1).value='آمار دانش‌آموزان و کلاس‌ها به تفکیک پایه';
+      ws1.getCell(statTop,1).font={size:12,bold:true,color:{argb:'FFFFFFFF'}};
+      ws1.getCell(statTop,1).fill=groupFill;
+      ws1.getCell(statTop,1).alignment={horizontal:'center',vertical:'middle'};
+      ws1.getRow(statTop).height=20;
+
+      const h1=statTop+1,h2=statTop+2;
+      ws1.mergeCells(h1,1,h2,1); ws1.getCell(h1,1).value='پایه';
+      ws1.mergeCells(h1,2,h1,4); ws1.getCell(h1,2).value='دانش‌آموزان';
+      ws1.mergeCells(h1,5,h1,8); ws1.getCell(h1,5).value='کلاس';
+      ws1.mergeCells(h1,9,h1,12); ws1.getCell(h1,9).value='ستون‌های تکمیلی';
+      const sub2=['پسر','دختر','جمع'], sub3=['پسر','دختر','مختلط','جمع'], sub4=['تعداد دانش‌آموزان','منتقل‌شده','ثبت‌نام جدید','جمع کل'];
+      sub2.forEach((t,i)=>{ws1.getCell(h2,2+i).value=t;});
+      sub3.forEach((t,i)=>{ws1.getCell(h2,5+i).value=t;});
+      sub4.forEach((t,i)=>{ws1.getCell(h2,9+i).value=t;});
+      for(let rr=h1;rr<=h2;rr++){
+        ws1.getRow(rr).eachCell({includeEmpty:true},function(cell,colNum){
+          if(colNum>12)return;
+          cell.font={bold:true,color:{argb:'FF1E3A8A'}};
+          cell.fill=headerFill;
           cell.alignment={horizontal:'center',vertical:'middle',wrapText:true};
-          cell.border={top:{style:'thin',color:{argb:'FFB7B7B7'}},left:{style:'thin',color:{argb:'FFB7B7B7'}},right:{style:'thin',color:{argb:'FFB7B7B7'}},bottom:{style:'thin',color:{argb:'FFB7B7B7'}}};
+          cell.border=borderAll;
         });
+        ws1.getRow(rr).height=20;
       }
-      let gr=gradeHeaderRow2+1;
-      const firstDataRow=gr;
-      grades.forEach(g=>{
-        const row=ws1.getRow(gr);
-        row.getCell(1).value='پایه '+g.grade;
-        row.getCell(2).value=parseFloat(g.stB)||0;
-        row.getCell(3).value=parseFloat(g.stG)||0;
-        row.getCell(4).value={formula:'SUM(B'+gr+':C'+gr+')'};
-        row.getCell(5).value=parseFloat(g.clB)||0;
-        row.getCell(6).value=parseFloat(g.clG)||0;
-        row.getCell(7).value=parseFloat(g.clM)||0;
-        row.getCell(8).value={formula:'SUM(E'+gr+':G'+gr+')'};
-        row.getCell(9).value=parseFloat(g.moved)||0;
-        row.getCell(10).value=parseFloat(g.newreg)||0;
-        row.getCell(11).value={formula:'D'+gr};
-        row.eachCell({includeEmpty:true},function(cell,colNum){
-          if(colNum>11)return;
+
+      const grades=['اول','دوم','سوم','چهارم','پنجم','ششم'];
+      const dataStart=h2+1;
+      grades.forEach((g,idx)=>{
+        const rr=dataStart+idx;
+        ws1.getCell(rr,1).value=g;
+        ws1.getCell(rr,4).value={formula:'SUM(B'+rr+':C'+rr+')'};
+        ws1.getCell(rr,8).value={formula:'SUM(E'+rr+':G'+rr+')'};
+        ws1.getCell(rr,12).value={formula:'SUM(I'+rr+':K'+rr+')'};
+        ws1.getRow(rr).eachCell({includeEmpty:true},function(cell,colNum){
+          if(colNum>12)return;
+          cell.border=borderAll;
           cell.alignment={horizontal:'center',vertical:'middle'};
-          cell.border={top:{style:'thin',color:{argb:'FFD4D4D4'}},left:{style:'thin',color:{argb:'FFD4D4D4'}},right:{style:'thin',color:{argb:'FFD4D4D4'}},bottom:{style:'thin',color:{argb:'FFD4D4D4'}}};
+          if([2,3,5,6,7,9,10,11].includes(colNum))cell.fill=inputFill;
         });
-        gr++;
+        ws1.getRow(rr).height=19;
       });
-      const lastDataRow=gr-1;
-      const totalRow=ws1.getRow(gr);
-      totalRow.getCell(1).value='جمع کل';
-      for(let c=2;c<=11;c++){
+      const totalRow=dataStart+grades.length;
+      ws1.getCell(totalRow,1).value='جمع کل';
+      ws1.getCell(totalRow,1).font={bold:true};
+      [2,3,4,5,6,7,8,9,10,11,12].forEach(function(c){
         const colL=colLetter(c);
-        totalRow.getCell(c).value={formula:'SUM('+colL+firstDataRow+':'+colL+lastDataRow+')'};
-      }
-      totalRow.eachCell({includeEmpty:true},function(cell,colNum){
-        if(colNum>11)return;
+        ws1.getCell(totalRow,c).value={formula:'SUM('+colL+dataStart+':'+colL+(totalRow-1)+')'};
+      });
+      ws1.getRow(totalRow).eachCell({includeEmpty:true},function(cell,colNum){
+        if(colNum>12)return;
         cell.font={bold:true,color:{argb:'FF375623'}};
         cell.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FFE2EFDA'}};
+        cell.border=borderAll;
         cell.alignment={horizontal:'center',vertical:'middle'};
-        cell.border={top:{style:'thin',color:{argb:'FFB7B7B7'}},left:{style:'thin',color:{argb:'FFB7B7B7'}},right:{style:'thin',color:{argb:'FFB7B7B7'}},bottom:{style:'thin',color:{argb:'FFB7B7B7'}}};
       });
-      ws1.getColumn(1).width=14;
-      for(let c=2;c<=11;c++) ws1.getColumn(c).width=11;
-      ws1.pageSetup={ orientation:'landscape', fitToPage:true, fitToWidth:1, fitToHeight:0, margins:{left:0.3,right:0.3,top:0.4,bottom:0.4,header:0.2,footer:0.2} };
+      ws1.getRow(totalRow).height=20;
 
-      /* ---------- شیت ۲: فهرست پرسنل ---------- */
-      const ws2=wb.addWorksheet('پرسنل', { views:[{ rightToLeft:true, state:'frozen', ySplit:1 }] });
-      const staffCols=['ردیف','کد پرسنلی','نام','نام خانوادگی','کد ملی','مدرک','رشته تحصیلی','سابقه','نوع استخدام','پست سازمانی','آدرس','تلفن'];
-      const headerRow2=ws2.getRow(1);
-      staffCols.forEach((title,i)=>headerRow2.getCell(i+1).value=title);
-      headerRow2.eachCell(function(cell){
+      ws1.getColumn(1).width=17;
+      ws1.getColumn(8).width=15;
+      for(let c=2;c<=12;c++){if(c!==8)ws1.getColumn(c).width=11;}
+
+      // ---------- شیت ۲: اطلاعات نفرات ----------
+      const ws2=wb.addWorksheet('اطلاعات نفرات',{views:[{rightToLeft:true,state:'frozen',ySplit:1}]});
+      const headers2=['ردیف','کد ملی','نام','نام خانوادگی','نام پدر','پایه تحصیلی','رشته تحصیلی','سابقه','نوع استخدام / وضعیت','پست سازمانی','آدرس','تلفن'];
+      const hdrRow2=ws2.getRow(1);
+      headers2.forEach((t,i)=>{hdrRow2.getCell(i+1).value=t;});
+      hdrRow2.eachCell(function(cell){
         cell.font={bold:true,color:{argb:'FFFFFFFF'}};
-        cell.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF4472C4'}};
-        cell.alignment={horizontal:'center',vertical:'middle'};
-        cell.border={top:{style:'thin',color:{argb:'FFB7B7B7'}},left:{style:'thin',color:{argb:'FFB7B7B7'}},right:{style:'thin',color:{argb:'FFB7B7B7'}},bottom:{style:'thin',color:{argb:'FFB7B7B7'}}};
+        cell.fill=groupFill;
+        cell.alignment={horizontal:'center',vertical:'middle',wrapText:true};
+        cell.border=borderAll;
       });
-      headerRow2.height=22;
-      const empTypeOptions='"رسمی,پیمانی,حق‌التدریس,قراردادی,شرکتی"';
-      staff.forEach((s,i)=>{
-        const row=ws2.getRow(i+2);
-        row.getCell(1).value=i+1;
-        row.getCell(2).value=s.code||'';
-        row.getCell(3).value=s.fname||'';
-        row.getCell(4).value=s.lname||'';
-        row.getCell(5).value=s.nid||'';
-        row.getCell(6).value=s.degree||'';
-        row.getCell(7).value=s.major||'';
-        row.getCell(8).value=s.years||'';
-        row.getCell(9).value=s.empType||'';
-        row.getCell(9).dataValidation={ type:'list', allowBlank:true, formulae:[empTypeOptions] };
-        row.getCell(10).value=s.post||'';
-        row.getCell(11).value=s.address||'';
-        row.getCell(12).value=s.phone||'';
-        row.eachCell({includeEmpty:true},function(cell,colNum){
-          if(colNum>12)return;
+      hdrRow2.height=26;
+
+      const gradeListFormula='"'+grades.join(',')+'"';
+      for(let rr=2;rr<=101;rr++){
+        ws2.getCell(rr,1).value={formula:'ROW()-1'};
+        for(let c=1;c<=12;c++){
+          const cell=ws2.getCell(rr,c);
+          cell.border=borderAll;
           cell.alignment={horizontal:'center',vertical:'middle'};
-          cell.border={top:{style:'thin',color:{argb:'FFD4D4D4'}},left:{style:'thin',color:{argb:'FFD4D4D4'}},right:{style:'thin',color:{argb:'FFD4D4D4'}},bottom:{style:'thin',color:{argb:'FFD4D4D4'}}};
-          if((i+2)%2===0) cell.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FFFAFBFC'}};
-        });
-      });
-      ws2.getColumn(1).width=6; ws2.getColumn(2).width=12; ws2.getColumn(3).width=12; ws2.getColumn(4).width=14;
-      ws2.getColumn(5).width=13; ws2.getColumn(6).width=10; ws2.getColumn(7).width=14; ws2.getColumn(8).width=8;
-      ws2.getColumn(9).width=13; ws2.getColumn(10).width=16; ws2.getColumn(11).width=18; ws2.getColumn(12).width=13;
-      ws2.pageSetup={ orientation:'landscape', fitToPage:true, fitToWidth:1, fitToHeight:0, margins:{left:0.3,right:0.3,top:0.4,bottom:0.4,header:0.2,footer:0.2} };
+          if(c!==1)cell.fill=inputFill;
+        }
+        ws2.getCell(rr,6).dataValidation={type:'list',allowBlank:true,formulae:[gradeListFormula]};
+      }
+      ws2.autoFilter={from:{row:1,column:1},to:{row:1,column:12}};
+      ws2.getColumn(1).width=7;
+      ws2.getColumn(2).width=14;
+      ws2.getColumn(3).width=12;
+      ws2.getColumn(4).width=14;
+      ws2.getColumn(5).width=12;
+      ws2.getColumn(6).width=11;
+      ws2.getColumn(7).width=13;
+      ws2.getColumn(8).width=8;
+      ws2.getColumn(9).width=15;
+      ws2.getColumn(10).width=13;
+      ws2.getColumn(11).width=18;
+      ws2.getColumn(12).width=13;
 
       const buf=await wb.xlsx.writeBuffer();
-      const blob=new Blob([buf], {type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
-      const fname=(meta.school?meta.school+' - ':'')+'فرم سازمان عملی.xlsx';
-      const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=fname; document.body.appendChild(a); a.click(); a.remove();
-      toast('فایل Excel فرم سازمان عملی ساخته شد ✅');
+      const blob=new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+      const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='فرم-سازمان-عملی.xlsx';document.body.appendChild(a);a.click();a.remove();
+      toast('فرم سازمان عملی ساخته شد ✅');
     }catch(err){
-      toast('خطا در ساخت فایل Excel — اتصال اینترنت را بررسی کنید');
+      toast('خطا در ساخت فایل — اتصال اینترنت را بررسی کنید');
     }finally{
-      btn.disabled=false; btn.textContent=origText;
+      btn.disabled=false;btn.textContent=origText;
     }
   };
 
