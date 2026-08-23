@@ -1173,6 +1173,19 @@ const SHARED_CSS = `
   [data-theme="dark"] .org-field input,[data-theme="dark"] .org-field select{background:#1a2437;border-color:#334155;color:#f1f5f9}
   #org-stat-table input,#org-staff-table input,#org-staff-table select,#org-hours-table input{width:100%;box-sizing:border-box;padding:5px 4px;border:1px solid #e2e8f0;border-radius:4px;text-align:center;font-family:inherit}
   #org-stat-table td,#org-staff-table td,#org-hours-table td{white-space:nowrap}
+
+  /* ---- چاپ فرم سازمان عملی: خط‌کشی مشکی و مقیاس مناسب کاغذ ---- */
+  @media print{
+    body *{visibility:hidden}
+    #tab-orgform, #tab-orgform *{visibility:visible}
+    #tab-orgform{position:absolute;top:0;right:0;left:0;width:100%}
+    .top-nav, .tabs, .subtabs, .row button, #btn-org-save, #btn-org-form, #btn-org-staff-addrow, #btn-org-hours-addrow{display:none!important}
+    @page{size:landscape;margin:8mm}
+    #org-stat-table, #org-staff-table, #org-hours-table, #org-special-table{font-size:9px;border-collapse:collapse!important}
+    #org-stat-table th, #org-stat-table td, #org-staff-table th, #org-staff-table td, #org-hours-table th, #org-hours-table td, #org-special-table td{border:1px solid #000!important;padding:2px 3px!important}
+    .xls-scroll{overflow:visible!important}
+    #org-stat-table input,#org-staff-table input,#org-hours-table input,#org-special-table input{border:none!important;font-size:9px!important;padding:0!important}
+  }
   
   /* ---- کاهش حجم ---- */
   .resize-options{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:16px;margin-bottom:16px}
@@ -1253,18 +1266,18 @@ const SHARED_CSS = `
   .crop-actions{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
   
   /* ---- برنامه هفتگی (نسخه‌ی پیشرفته: نوار رنگی کنار هر روز، تایپوگرافی بهتر، هایلایت امروز) ---- */
-  .schedule-table-wrap{overflow-x:auto;border-radius:18px;background:#fff;margin-bottom:16px;box-shadow:0 10px 30px rgba(15,23,42,.10),0 2px 8px rgba(15,23,42,.06);border:1px solid #e2e8f0}
-  [data-theme="dark"] .schedule-table-wrap{background:#1e293b;border-color:#334155;box-shadow:0 10px 30px rgba(0,0,0,.35)}
+  .schedule-table-wrap{overflow-x:auto;border-radius:18px;background:#fff;margin-bottom:16px;box-shadow:0 10px 30px rgba(15,23,42,.10),0 2px 8px rgba(15,23,42,.06);border:2px solid #000}
+  [data-theme="dark"] .schedule-table-wrap{background:#1e293b;border-color:#000;box-shadow:0 10px 30px rgba(0,0,0,.35)}
   .schedule-table{width:100%;border-collapse:separate;border-spacing:0}
-  .schedule-table th{padding:16px 10px;font-weight:800;text-align:center;font-size:14px;letter-spacing:.2px;border-bottom:2px solid #cbd5e1}
-  [data-theme="dark"] .schedule-table th{border-color:#475569}
+  .schedule-table th{padding:16px 10px;font-weight:800;text-align:center;font-size:14px;letter-spacing:.2px;border-bottom:2px solid #000}
+  [data-theme="dark"] .schedule-table th{border-color:#000}
   .schedule-table th.sch-corner{background:linear-gradient(135deg,#1e293b,#334155);color:#fff;border-radius:18px 0 0 0}
   [data-theme="dark"] .schedule-table th.sch-corner{background:linear-gradient(135deg,#0f172a,#1e293b)}
-  .schedule-table th.sch-period{background:#f1f5f9;color:#334155;border-left:1px solid #cbd5e1}
-  [data-theme="dark"] .schedule-table th.sch-period{background:#0f172a;color:#e2e8f0;border-color:#475569}
+  .schedule-table th.sch-period{background:#f1f5f9;color:#334155;border-left:2px solid #000}
+  [data-theme="dark"] .schedule-table th.sch-period{background:#0f172a;color:#e2e8f0;border-color:#000}
   .schedule-table th.sch-period:last-child{border-radius:0 18px 0 0;border-left:none}
-  .schedule-table td{padding:12px 8px;text-align:center;font-weight:600;color:#1e293b;border-bottom:1.5px solid #cbd5e1;border-left:1.5px solid #cbd5e1}
-  [data-theme="dark"] .schedule-table td{color:#f1f5f9;border-color:#475569}
+  .schedule-table td{padding:12px 8px;text-align:center;font-weight:600;color:#1e293b;border-bottom:2px solid #000;border-left:2px solid #000}
+  [data-theme="dark"] .schedule-table td{color:#f1f5f9;border-color:#000}
   .schedule-table tr:last-child td{border-bottom:none}
   .schedule-table tr:last-child td:first-child{border-radius:0 0 0 18px}
   .schedule-table tr:last-child td:last-child{border-radius:0 0 18px 0}
@@ -2268,6 +2281,16 @@ function teacherPage() {
 
       </div>
 
+      <div id="ans-photo-modal" class="mt-modal-overlay hidden" onclick="if(event.target===this)closeAnsPhoto()">
+        <div style="max-width:95vw;max-height:90vh;position:relative">
+          <button class="btn sm gray" style="position:absolute;top:-40px;left:0" onclick="closeAnsPhoto()">✖ بستن</button>
+          <img id="ans-photo-modal-img" src="" style="max-width:95vw;max-height:85vh;border-radius:8px;box-shadow:0 8px 30px rgba(0,0,0,.4)">
+          <div style="text-align:center;margin-top:10px">
+            <a id="ans-photo-modal-dl" href="" download="پاسخ.jpg" class="btn primary">⬇️ دانلود عکس</a>
+          </div>
+        </div>
+      </div>
+
       <div id="mt-modal-overlay" class="mt-modal-overlay hidden">
         <div class="mt-modal">
           <div class="mt-modal-head">
@@ -2389,7 +2412,7 @@ function teacherPage() {
           <div class="org-field"><label>نام آموزشگاه</label><input type="text" id="org-school"></div>
           <div class="org-field"><label>کد آموزشگاه</label><input type="text" id="org-schoolcode"></div>
           <div class="org-field"><label>نام مدیر</label><input type="text" id="org-principal"></div>
-          <div class="org-field"><label>جنسیت</label><select id="org-gender"><option value=""></option><option>پسر</option><option>دختر</option></select></div>
+          <div class="org-field"><label>جنسیت</label><select id="org-gender"><option value=""></option><option>پسر</option><option>دختر</option><option>مختلط</option></select></div>
           <div class="org-field"><label>مقطع</label><input type="text" id="org-level"></div>
           <div class="org-field"><label>کد فضا</label><input type="text" id="org-spacecode"></div>
           <div class="org-field"><label>نوع اداره</label><select id="org-adminType"><option value=""></option><option>دولتی</option><option>غیردولتی</option></select></div>
@@ -2448,6 +2471,7 @@ function teacherPage() {
         <div class="row" style="margin-top:20px">
           <button class="btn success" id="btn-org-save">💾 ذخیره</button>
           <button class="btn primary" id="btn-org-form">📥 ساخت و دانلود فرم سازمان عملی</button>
+          <button class="btn secondary" id="btn-org-print">🖨️ چاپ</button>
         </div>
       </div>
 
@@ -3605,6 +3629,15 @@ function teacherScript() {
     };
   });
   
+  window.openAnsPhoto=function(src){
+    document.getElementById('ans-photo-modal-img').src=src;
+    document.getElementById('ans-photo-modal-dl').href=src;
+    document.getElementById('ans-photo-modal').classList.remove('hidden');
+  };
+  window.closeAnsPhoto=function(){
+    document.getElementById('ans-photo-modal').classList.add('hidden');
+  };
+
   async function loadAnswers(){
     const d=await api('/api/teacher/submissions');
     SUBS=d.submissions||[];
@@ -3633,7 +3666,7 @@ function teacherScript() {
         }
         
         return '<tr><td>'+(i+1)+'</td><td>'+qHtml(q)+(q.image?'<br><img src="'+q.image+'" class="imgprev" style="max-width:'+(q.imageWidth||320)+'px;width:100%">':'')+'</td>'+
-          '<td>'+(ansText(q,ans)||(photoAns?'':'<i>بدون پاسخ</i>'))+(photoAns?'<br><a href="'+photoAns+'" target="_blank"><img src="'+photoAns+'" style="max-width:200px;width:100%;border:1px solid #ddd;border-radius:6px;margin-top:6px"></a>':'')+'</td>'+
+          '<td>'+(ansText(q,ans)||(photoAns?'':'<i>بدون پاسخ</i>'))+(photoAns?'<br><img src="'+photoAns+'" class="ans-photo-thumb" onclick="openAnsPhoto(this.src)" style="max-width:200px;width:100%;border:1px solid #ddd;border-radius:6px;margin-top:6px;cursor:zoom-in" title="برای بزرگ‌نمایی کلیک کنید"><br><a href="'+photoAns+'" download="پاسخ.jpg" class="btn sm secondary" style="margin-top:4px;display:inline-block">⬇️ دانلود عکس</a>':'')+'</td>'+
           '<td>'+gradeCell+'</td>'+
           '<td><input type="text" id="fb_'+s.uuid+'_'+q.id+'" value="'+esc(fb)+'" placeholder="بازخورد"></td></tr>';
       }).join('');
@@ -4126,7 +4159,7 @@ function teacherScript() {
   });
 
   // ===== تعداد دانش‌آموزان خاص =====
-  const ORG_SPECIAL_LABELS=['فرزندان شاهد','ملکی شاغل','ملکی شبانه','اتباع','اتباع بازمانده','دختر بازمانده'];
+  const ORG_SPECIAL_LABELS=['فرزندان شاهد','تلفیقی شدید','تلفیقی خفیف','تحت پوشش','اتباع خارجی','جذب بازمانده'];
   function orgRenderSpecialTable(){
     const body=document.getElementById('org-special-body');
     body.innerHTML=ORG_SPECIAL_LABELS.map((lab,idx)=>
@@ -4348,6 +4381,7 @@ function teacherScript() {
   document.getElementById('btn-org-save').onclick=async function(){
     await lbSave('orgform',orgGatherData());
   };
+  document.getElementById('btn-org-print').onclick=function(){window.print();};
 
   document.getElementById('btn-org-form').onclick=async function(){
     const btn=this;btn.disabled=true;const origText=btn.textContent;btn.textContent='⏳ در حال ساخت فایل...';
@@ -4383,7 +4417,7 @@ function teacherScript() {
         ['سال تحصیلی','text','year'],['فرم شماره','text','formno'],
         ['منطقه','text','region'],['نام آموزشگاه','text','school'],
         ['کد آموزشگاه','text','schoolcode'],['نام مدیر','text','principal'],
-        ['جنسیت','list','gender',['پسر','دختر']],['مقطع','text','level'],
+        ['جنسیت','list','gender',['پسر','دختر','مختلط']],['مقطع','text','level'],
         ['کد فضا','text','spacecode'],['نوع اداره','list','adminType',['دولتی','غیردولتی']],
         ['وضعیت ساختمان','list','buildingStatus',['ملکی','استیجاری','سایر']],['وضعیت','list','status',['فعال','غیرفعال']],
         ['نوع ساختمان','list','buildingType',['آجری','بتنی','سایر']],['شماره تلفن','text','phone']
@@ -4507,7 +4541,7 @@ function teacherScript() {
       ws1.getCell(sr,1).alignment={horizontal:'center',vertical:'middle'};
       ws1.getRow(sr).height=20;
       sr++;
-      const specialLabels=['فرزندان شاهد','ملکی شاغل','ملکی شبانه','اتباع','اتباع بازمانده','دختر بازمانده'];
+      const specialLabels=['فرزندان شاهد','تلفیقی شدید','تلفیقی خفیف','تحت پوشش','اتباع خارجی','جذب بازمانده'];
       specialLabels.forEach((lab,idx)=>{
         const rr=sr+idx;
         ws1.getCell(rr,1).value=lab+':';
