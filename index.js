@@ -4398,7 +4398,7 @@ function teacherScript() {
       const groupFill={type:'pattern',pattern:'solid',fgColor:{argb:'FF4472C4'}};
 
       // ---------- شیت ۱: مشخصات آموزشگاه و آمار دانش‌آموزان ----------
-      const ws1=wb.addWorksheet('مشخصات و آمار',{views:[{rightToLeft:true}],pageSetup:{orientation:'landscape',fitToPage:true,fitToWidth:1,fitToHeight:1}});
+      const ws1=wb.addWorksheet('مشخصات و آمار',{views:[{rightToLeft:true}],pageSetup:{paperSize:9,orientation:'landscape',fitToPage:true,fitToWidth:1,fitToHeight:1,margins:{left:0.3,right:0.3,top:0.4,bottom:0.4,header:0.2,footer:0.2},horizontalCentered:true}});
       ws1.mergeCells('A1:N1');
       ws1.getCell('A1').value='فرم سازمان عملی — سازمان ملی تعلیم و تربیت کودک / دوره ابتدایی';
       ws1.getCell('A1').font={size:15,bold:true,color:{argb:'FF1E293B'}};
@@ -4559,7 +4559,7 @@ function teacherScript() {
       for(let c=2;c<=8;c++)ws1.getColumn(c).width=11;
 
       // ---------- شیت ۲: اطلاعات پرسنل ----------
-      const ws2=wb.addWorksheet('اطلاعات پرسنل',{views:[{rightToLeft:true,state:'frozen',ySplit:1}]});
+      const ws2=wb.addWorksheet('اطلاعات پرسنل',{views:[{rightToLeft:true,state:'frozen',ySplit:1}],pageSetup:{paperSize:9,orientation:'landscape',fitToPage:true,fitToWidth:1,fitToHeight:0,margins:{left:0.3,right:0.3,top:0.4,bottom:0.4,header:0.2,footer:0.2},horizontalCentered:true}});
       const headers2=['ردیف','کد پرسنلی','نام','نام خانوادگی','کد ملی','مدرک','رشته تحصیلی','سابقه','نوع استخدام / وضعیت','پست سازمانی','آدرس','تلفن'];
       const hdrRow2=ws2.getRow(1);
       headers2.forEach((t,i)=>{hdrRow2.getCell(i+1).value=t;});
@@ -4597,7 +4597,7 @@ function teacherScript() {
       ws2.getColumn(12).width=13;
 
       // ---------- شیت ۳: ساعات موظف / غیرموظف به تفکیک پایه ----------
-      const ws3=wb.addWorksheet('ساعات موظف',{views:[{rightToLeft:true,state:'frozen',ySplit:2}]});
+      const ws3=wb.addWorksheet('ساعات موظف',{views:[{rightToLeft:true,state:'frozen',ySplit:2}],pageSetup:{paperSize:9,orientation:'landscape',fitToPage:true,fitToWidth:1,fitToHeight:0,margins:{left:0.25,right:0.25,top:0.35,bottom:0.35,header:0.15,footer:0.15},horizontalCentered:true}});
       const hg1=1,hg2=2;
       ws3.mergeCells(hg1,1,hg2,1); ws3.getCell(hg1,1).value='ردیف';
       ws3.mergeCells(hg1,2,hg2,2); ws3.getCell(hg1,2).value='کد پرسنلی';
