@@ -2173,6 +2173,7 @@ function teacherPage() {
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
   <script>pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';</script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
   </head>
   <body><div class="wrap">
     ${pageHeader()}
@@ -3922,7 +3923,7 @@ function teacherScript() {
       const doc=await pdfjsLib.getDocument({data:buf}).promise;
       let allRows=[];
       for(let p=1;p<=doc.numPages;p++){
-        statusEl.textContent='در حال استخراج جدول از صفحه '+p+' از '+doc.numPages+'...';
+        statusEl.textContent='در حال استخراج جدول از صفحه '+p+' از '+doc.numPages+'... (اگر فونت PDF غیراستاندارد باشد، تشخیص متن با OCR کمی بیشتر طول می‌کشد)';
         const blocks=await extractPdfPageBlocks(p,doc);
         blocks.forEach(block=>{
           if(block.type==='table'){
@@ -5641,6 +5642,71 @@ function teacherScript() {
   // این روش دقیق‌تر از حدس‌زدن بر اساس فاصلهٔ متن‌هاست، چون از خود مرزهای جدول در فایل PDF استفاده می‌کند
   function pdf2wordCleanStr(s){return s.replace(/[\uE000-\uF8FF]/g,'');} // حذف کاراکترهای ناحیهٔ اختصاصی فونت (نامرئی/بی‌معنی)
 
+  // ===== تشخیص و ترمیم PDFهایی با فونت فارسیِ خراب (نگاشت غلط ToUnicode) =====
+  // برخی نرم‌افزارها (مثل سامانه‌های آموزشی قدیمی که فونت‌هایی مثل «Wyekan» را جاسازی می‌کنند) متن را طوری در PDF
+  // ذخیره می‌کنند که ظاهر آن روی صفحه درست است، اما استخراج متن (کد کاراکترها) به‌هم‌ریخته و غیرقابل‌استفاده است،
+  // چون این کاراکترها به بازه‌های یونیکد نامرتبط (Variation Selector, Combining Half Mark, Small Form Variant, ...)
+  // نگاشت شده‌اند نه به حروف واقعی فارسی/عربی. برای این حالت، به‌جای تکیه بر متن استخراج‌شده، همان بخش از تصویر
+  // صفحه با OCR (تشخیص نوری کاراکتر) خوانده می‌شود که همیشه درست است چون شکل ظاهری حروف سالم است.
+  const BROKEN_GLYPH_RANGES=[[0xFE00,0xFE0F],[0xFE20,0xFE2F],[0xFE30,0xFE4F],[0xFE50,0xFE6F]];
+  function hasBrokenGlyphs(str){
+    for(let i=0;i<str.length;i++){
+      const cp=str.codePointAt(i);
+      for(const[lo,hi]of BROKEN_GLYPH_RANGES){if(cp>=lo&&cp<=hi)return true;}
+    }
+    return false;
+  }
+  let _ocrWorkerPromise=null;
+  function getOcrWorker(){
+    if(!_ocrWorkerPromise){
+      _ocrWorkerPromise=(typeof Tesseract!=='undefined')?Tesseract.createWorker('fas').catch(err=>{_ocrWorkerPromise=null;throw err;}):Promise.reject(new Error('Tesseract not loaded'));
+    }
+    return _ocrWorkerPromise;
+  }
+  // رندر کل صفحه با کیفیت بالا روی یک کنواس مخفی، فقط وقتی لازم باشد (یعنی متنِ خراب پیدا شده باشد)
+  async function renderPageForOcr(page){
+    const scale=3;
+    const viewport=page.getViewport({scale});
+    const canvas=document.createElement('canvas');
+    canvas.width=Math.ceil(viewport.width);
+    canvas.height=Math.ceil(viewport.height);
+    const ctx=canvas.getContext('2d');
+    await page.render({canvasContext:ctx,viewport}).promise;
+    return{canvas,viewport};
+  }
+  // خواندن متن یک مستطیل مشخص از صفحه (در مختصات PDF) با OCR
+  async function ocrRect(ocrCtx,xL,xR,yTop,yBot){
+    if(!ocrCtx)return '';
+    const{canvas,viewport}=ocrCtx;
+    const p1=viewport.convertToViewportPoint(xL,yTop);
+    const p2=viewport.convertToViewportPoint(xR,yBot);
+    const pad=5;
+    let x=Math.min(p1[0],p2[0])-pad,y=Math.min(p1[1],p2[1])-pad;
+    let w=Math.abs(p2[0]-p1[0])+pad*2,h=Math.abs(p2[1]-p1[1])+pad*2;
+    x=Math.max(0,x);y=Math.max(0,y);
+    w=Math.min(canvas.width-x,w);h=Math.min(canvas.height-y,h);
+    if(w<6||h<6)return '';
+    const crop=document.createElement('canvas');
+    crop.width=w;crop.height=h;
+    crop.getContext('2d').drawImage(canvas,x,y,w,h,0,0,w,h);
+    try{
+      const worker=await getOcrWorker();
+      const{data}=await worker.recognize(crop);
+      return(data.text||'').replace(/\s+/g,' ').trim();
+    }catch(err){return '';}
+  }
+  // محدودهٔ x/y یک مجموعه آیتم متنی (برای برش تصویر جهت OCR)
+  function itemsBBox(itemList){
+    let minX=Infinity,maxX=-Infinity,minY=Infinity,maxY=-Infinity;
+    itemList.forEach(it=>{
+      const fontSize=Math.abs(it.transform[3])||Math.abs(it.transform[0])||10;
+      const x0=it.transform[4],x1=it.transform[4]+(it.width||fontSize);
+      const y0=it.transform[5]-fontSize*0.3,y1=it.transform[5]+fontSize*0.85;
+      if(x0<minX)minX=x0;if(x1>maxX)maxX=x1;if(y0<minY)minY=y0;if(y1>maxY)maxY=y1;
+    });
+    return{xL:minX,xR:maxX,yBot:minY,yTop:maxY};
+  }
+
   function pdf2wordClusterValues(vals,tol){
     const sorted=[...vals].sort((a,b)=>a-b);
     const clusters=[];
@@ -5711,7 +5777,8 @@ function teacherScript() {
   }
 
   // متن یک بلوک از آیتم‌ها را با فاصله‌گذاری درست و حفظ خط‌های داخلی می‌سازد
-  function pdf2wordBuildCellText(cellItems){
+  // ocrCtx در صورت وجود، برای ترمیم خط‌هایی با کاراکترهای خراب (فونت غیراستاندارد) استفاده می‌شود
+  async function pdf2wordBuildCellText(cellItems,ocrCtx){
     const microLines=[];
     cellItems.forEach(it=>{
       const y=it.transform[5];
@@ -5720,10 +5787,18 @@ function teacherScript() {
       ml.items.push(it);
     });
     microLines.sort((a,b)=>b.y-a.y);
-    return microLines.map(ml=>{
+    const out=[];
+    for(const ml of microLines){
       const sorted=[...ml.items].sort((a,b)=>b.transform[4]-a.transform[4]);
-      return pdf2wordJoinItems(sorted).replace(/\s+/g,' ').replace(/\s+([.,،؛:؟!])/g,'$1').trim();
-    }).filter(t=>t!=='');
+      let text=pdf2wordJoinItems(sorted).replace(/\s+/g,' ').replace(/\s+([.,،؛:؟!])/g,'$1').trim();
+      if(text!==''&&ocrCtx&&hasBrokenGlyphs(text)){
+        const bb=itemsBBox(sorted);
+        const ocrText=await ocrRect(ocrCtx,bb.xL,bb.xR,bb.yTop,bb.yBot);
+        if(ocrText)text=ocrText;
+      }
+      if(text!=='')out.push(text);
+    }
+    return out;
   }
 
   // خروجی هر صفحه: آرایه‌ای از بلوک‌ها — {type:'table', rows:[[متن سلول‌ها به ترتیب راست‌به‌چپ],...]} یا {type:'para', lines:[...]}
@@ -5734,10 +5809,16 @@ function teacherScript() {
     const items=content.items.filter(it=>it.str!==undefined).map(it=>({...it,str:pdf2wordCleanStr(it.str)})).filter(it=>it.str.trim()!=='');
     if(items.length===0)return[];
 
+    // اگر PDF از فونتی با نگاشت خراب استفاده کند، صفحه یک‌بار برای استفادهٔ بعدی در OCR رندر می‌شود
+    let ocrCtx=null;
+    if(items.some(it=>hasBrokenGlyphs(it.str))){
+      try{ocrCtx=await renderPageForOcr(page);}catch(err){ocrCtx=null;}
+    }
+
     const{hLines,vLines}=await pdf2wordExtractGridLines(page);
 
     // بدون خط جدول: همهٔ متن به‌صورت پاراگراف معمولی (بر اساس ردیف Y + راست‌به‌چپ)
-    const buildPlainParas=(itemList)=>{
+    const buildPlainParas=async(itemList)=>{
       const lines=[];
       itemList.forEach(it=>{
         const y=it.transform[5];
@@ -5748,13 +5829,21 @@ function teacherScript() {
         line.items.push(it);
       });
       lines.sort((a,b)=>b.y-a.y);
-      return lines.map(l=>{
+      const out=[];
+      for(const l of lines){
         const sorted=[...l.items].sort((a,b)=>b.transform[4]-a.transform[4]);
-        return pdf2wordJoinItems(sorted).replace(/\s+/g,' ').replace(/\s+([.,،؛:؟!])/g,'$1').trim();
-      }).filter(t=>t!=='').map(t=>({type:'para',text:t}));
+        let text=pdf2wordJoinItems(sorted).replace(/\s+/g,' ').replace(/\s+([.,،؛:؟!])/g,'$1').trim();
+        if(text!==''&&ocrCtx&&hasBrokenGlyphs(text)){
+          const bb=itemsBBox(sorted);
+          const ocrText=await ocrRect(ocrCtx,bb.xL,bb.xR,bb.yTop,bb.yBot);
+          if(ocrText)text=ocrText;
+        }
+        if(text!=='')out.push({type:'para',text});
+      }
+      return out;
     };
 
-    if(hLines.length<2)return buildPlainParas(items);
+    if(hLines.length<2)return await buildPlainParas(items);
 
     const rowBounds=pdf2wordClusterValues(hLines.map(l=>l.y),2).sort((a,b)=>b-a);
     const yTopMost=rowBounds[0],yBotMost=rowBounds[rowBounds.length-1];
@@ -5762,7 +5851,7 @@ function teacherScript() {
 
     // متن‌های بالاتر از جدول (پاراگراف)
     const aboveItems=items.filter(it=>it.transform[5]>yTopMost+1);
-    blocks.push(...buildPlainParas(aboveItems));
+    blocks.push(...(await buildPlainParas(aboveItems)));
 
     const tableRows=[];
     for(let r=0;r<rowBounds.length-1;r++){
@@ -5772,14 +5861,14 @@ function teacherScript() {
       const bandItems=items.filter(it=>{const y=it.transform[5];return y<=yTop+1&&y>=yBot-1;});
       if(colBounds.length<2){
         if(bandItems.length===0)continue;
-        tableRows.push([pdf2wordBuildCellText(bandItems)]);
+        tableRows.push([await pdf2wordBuildCellText(bandItems,ocrCtx)]);
         continue;
       }
       const cols=[];
       for(let c=colBounds.length-2;c>=0;c--){
         const xL=colBounds[c],xR=colBounds[c+1];
         const cellItems=bandItems.filter(it=>{const x=it.transform[4];return x>=xL-1&&x<=xR+1;});
-        cols.push(pdf2wordBuildCellText(cellItems));
+        cols.push(await pdf2wordBuildCellText(cellItems,ocrCtx));
       }
       tableRows.push(cols);
     }
@@ -5787,7 +5876,7 @@ function teacherScript() {
 
     // متن‌های پایین‌تر از جدول (پاراگراف)
     const belowItems=items.filter(it=>it.transform[5]<yBotMost-1);
-    blocks.push(...buildPlainParas(belowItems));
+    blocks.push(...(await buildPlainParas(belowItems)));
 
     return blocks;
   }
