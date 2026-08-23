@@ -3818,6 +3818,7 @@ function teacherScript() {
 
     let ch='<tr><th class="xls-corner"></th>';
     for(let c=1;c<=cols;c++){ch+='<th class="xls-colhead">'+colLetter(c)+'</th>';}
+    ch+='<th class="xls-corner" rowspan="2">حذف</th>';
     ch+='</tr>';
     ch+='<tr class="xls-titlerow"><th class="xls-rowhead">#</th>';
     for(let c=1;c<=cols;c++){ch+='<th><input type="text" id="'+xlsTitleId(c)+'" placeholder="عنوان ستون '+c+'" value="ستون '+c+'"></th>';}
@@ -3828,12 +3829,37 @@ function teacherScript() {
     for(let r=1;r<=rows;r++){
       b+='<tr><td class="xls-rowhead">'+r+'</td>';
       for(let c=1;c<=cols;c++){b+='<td><input type="text" id="'+xlsCellId(r,c)+'" data-r="'+r+'" data-c="'+c+'"></td>';}
+      b+='<td class="org-row-del-cell"><button type="button" class="btn sm danger xls-row-del">✖</button></td>';
       b+='</tr>';
     }
     tbody.innerHTML=b;
     tfoot.innerHTML='';
     if(document.getElementById('tbl-avg-check').checked)calcAndShowAvg();
   };
+
+  function xlsDeleteRow(tr){
+    const tbody=document.getElementById('custom-table-body');
+    if(tbody.children.length<=1){toast('حداقل باید یک سطر باقی بماند');return;}
+    const cols=parseInt(document.getElementById('tbl-cols').value)||4;
+    tr.remove();
+    const trs=Array.from(tbody.children);
+    trs.forEach((row,idx)=>{
+      const r=idx+1;
+      row.children[0].textContent=r;
+      for(let c=1;c<=cols;c++){
+        const cell=row.children[c];
+        const input=cell?cell.querySelector('input'):null;
+        if(input){input.id=xlsCellId(r,c);input.dataset.r=r;input.dataset.c=c;}
+      }
+    });
+    document.getElementById('tbl-rows').value=trs.length;
+    if(document.getElementById('tbl-avg-check').checked)calcAndShowAvg();
+  }
+  document.getElementById('custom-table-body').addEventListener('click',function(e){
+    const btn=e.target.closest('.xls-row-del');
+    if(!btn)return;
+    xlsDeleteRow(btn.closest('tr'));
+  });
 
   function calcAndShowAvg(){
     const rows=parseInt(document.getElementById('tbl-rows').value)||5;
@@ -3948,6 +3974,7 @@ function teacherScript() {
       const tr=document.createElement('tr');
       let html='<td class="xls-rowhead">'+r+'</td>';
       for(let c=1;c<=cols;c++){html+='<td><input type="text" id="'+xlsCellId(r,c)+'" data-r="'+r+'" data-c="'+c+'"></td>';}
+      html+='<td class="org-row-del-cell"><button type="button" class="btn sm danger xls-row-del">✖</button></td>';
       tr.innerHTML=html;
       tbody.appendChild(tr);
     }
