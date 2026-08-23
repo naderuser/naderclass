@@ -3770,10 +3770,9 @@ function teacherScript() {
     style+='body{direction:rtl;font-family:"BNazanin",tahoma,Arial;padding:30px;background:#f8fafc}';
     style+='.header{text-align:center;padding:20px;background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;border-radius:20px;margin-bottom:20px}';
     style+='.header h1{font-size:24px;margin:0 0 10px;font-weight:800;letter-spacing:.3px}.header p{margin:5px 0;font-size:14px}';
-    style+='table{width:100%;border-collapse:separate;border-spacing:0;border-radius:18px;overflow:hidden;box-shadow:0 8px 24px rgba(15,23,42,.10);border:1px solid #e2e8f0}';
-    style+='th{padding:14px 8px;font-size:14px;font-weight:800;text-align:center;border-bottom:2px solid #e2e8f0;border-left:1px solid #e2e8f0}';
-    style+='td{padding:14px 10px;text-align:center;font-size:13px;min-height:50px;font-weight:600;color:#1e293b;border-bottom:1px solid #eef2f6;border-left:1px solid #eef2f6}';
-    style+='tr:last-child td{border-bottom:none}';
+    style+='table{width:100%;border-collapse:collapse;box-shadow:0 8px 24px rgba(15,23,42,.10);border:1.5px solid #1e293b}';
+    style+='th{padding:14px 8px;font-size:14px;font-weight:800;text-align:center;border:1px solid #1e293b}';
+    style+='td{padding:14px 10px;text-align:center;font-size:13px;min-height:50px;font-weight:600;color:#1e293b;border:1px solid #1e293b}';
     style+='.daylabel{border-right:5px solid;font-weight:800}';
     style+='.footer{text-align:center;margin-top:30px;padding:20px;border-top:2px dashed #ddd}</style>';
     let header='<div class="header"><h1>⭐ برنامه هفتگی کلاس ⭐</h1><p>🏫 '+esc(school)+' | سال تحصیلی: '+esc(year)+'</p><p>کلاس: '+esc(cls)+' | آموزگار: '+esc(teacher)+'</p></div>';
@@ -4391,6 +4390,36 @@ function teacherScript() {
       const wb=new ExcelJS.Workbook();
       wb.creator='پنل مدیریت کلاسی';
 
+      function numOrBlank(raw){
+        if(raw===undefined||raw===null||raw==='')return undefined;
+        const n=Number(raw);
+        return isNaN(n)?undefined:n;
+      }
+      // ردیف مهر و امضا در پایین هر شیت: مدیر مدرسه سمت راست، مسئول آموزش سمت چپ
+      function addSignatureFooter(ws,startCol,endCol,lastUsedRow){
+        const gap=lastUsedRow+2;
+        const total=endCol-startCol+1;
+        const half=Math.floor(total/2);
+        const rightEnd=startCol+half-1;
+        const leftStart=rightEnd+1;
+        const labelRow=gap;
+        ws.mergeCells(labelRow,startCol,labelRow,rightEnd);
+        ws.getCell(labelRow,startCol).value='مهر و امضا مدیر مدرسه';
+        ws.getCell(labelRow,startCol).font={bold:true,size:11};
+        ws.getCell(labelRow,startCol).alignment={horizontal:'center',vertical:'middle'};
+        ws.mergeCells(labelRow,leftStart,labelRow,endCol);
+        ws.getCell(labelRow,leftStart).value='مهر و امضا مسئول آموزش';
+        ws.getCell(labelRow,leftStart).font={bold:true,size:11};
+        ws.getCell(labelRow,leftStart).alignment={horizontal:'center',vertical:'middle'};
+        ws.getRow(labelRow).height=18;
+        const boxRow=labelRow+1;
+        ws.mergeCells(boxRow,startCol,boxRow,rightEnd);
+        ws.getCell(boxRow,startCol).border={top:{style:'thin',color:{argb:'FF94A3B8'}},left:{style:'thin',color:{argb:'FF94A3B8'}},right:{style:'thin',color:{argb:'FF94A3B8'}},bottom:{style:'thin',color:{argb:'FF94A3B8'}}};
+        ws.mergeCells(boxRow,leftStart,boxRow,endCol);
+        ws.getCell(boxRow,leftStart).border={top:{style:'thin',color:{argb:'FF94A3B8'}},left:{style:'thin',color:{argb:'FF94A3B8'}},right:{style:'thin',color:{argb:'FF94A3B8'}},bottom:{style:'thin',color:{argb:'FF94A3B8'}}};
+        ws.getRow(boxRow).height=55;
+        return boxRow;
+      }
       const thin={style:'thin',color:{argb:'FFB7B7B7'}};
       const borderAll={top:thin,left:thin,right:thin,bottom:thin};
       const headerFill={type:'pattern',pattern:'solid',fgColor:{argb:'FFD9E2F3'}};
@@ -4501,12 +4530,12 @@ function teacherScript() {
         const rr=dataStart+idx;
         const st=orgData.stats[idx]||{};
         ws1.getCell(rr,1).value=g==='چندپایه'?g:'پایه '+g;
-        ws1.getCell(rr,2).value=Number(st['cls-boy'])||0;
-        ws1.getCell(rr,3).value=Number(st['cls-girl'])||0;
-        ws1.getCell(rr,4).value=Number(st['cls-mixed'])||0;
+        ws1.getCell(rr,2).value=numOrBlank(st['cls-boy']);
+        ws1.getCell(rr,3).value=numOrBlank(st['cls-girl']);
+        ws1.getCell(rr,4).value=numOrBlank(st['cls-mixed']);
         ws1.getCell(rr,5).value={formula:'SUM(B'+rr+':D'+rr+')'};
-        ws1.getCell(rr,6).value=Number(st['stu-boy'])||0;
-        ws1.getCell(rr,7).value=Number(st['stu-girl'])||0;
+        ws1.getCell(rr,6).value=numOrBlank(st['stu-boy']);
+        ws1.getCell(rr,7).value=numOrBlank(st['stu-girl']);
         ws1.getCell(rr,8).value={formula:'SUM(F'+rr+':G'+rr+')'};
         ws1.getRow(rr).eachCell({includeEmpty:true},function(cell,colNum){
           if(colNum>8)return;
@@ -4548,12 +4577,14 @@ function teacherScript() {
         ws1.getCell(rr,1).font={bold:true};
         ws1.getCell(rr,1).alignment={horizontal:'right',vertical:'middle'};
         ws1.getCell(rr,1).border=borderAll;
-        ws1.getCell(rr,2).value=Number(orgData.special[idx])||0;
+        ws1.getCell(rr,2).value=numOrBlank(orgData.special[idx]);
         ws1.getCell(rr,2).fill=inputFill;
         ws1.getCell(rr,2).border=borderAll;
         ws1.getCell(rr,2).alignment={horizontal:'center',vertical:'middle'};
         ws1.getRow(rr).height=19;
       });
+
+      addSignatureFooter(ws1,1,8,sr+specialLabels.length-1);
 
       ws1.getColumn(1).width=17;
       for(let c=2;c<=8;c++)ws1.getColumn(c).width=11;
@@ -4583,6 +4614,7 @@ function teacherScript() {
         }
       }
       ws2.autoFilter={from:{row:1,column:1},to:{row:1,column:12}};
+      addSignatureFooter(ws2,1,12,staffRowCount+1);
       ws2.getColumn(1).width=7;
       ws2.getColumn(2).width=14;
       ws2.getColumn(3).width=12;
@@ -4634,8 +4666,8 @@ function teacherScript() {
         for(let gi=0;gi<gradeGroupCount;gi++){
           const c0=4+gi*3;
           const pair=hrow.g[gi]||{};
-          ws3.getCell(rr,c0).value=Number(pair.mo)||0;
-          ws3.getCell(rr,c0+1).value=Number(pair.gh)||0;
+          ws3.getCell(rr,c0).value=numOrBlank(pair.mo);
+          ws3.getCell(rr,c0+1).value=numOrBlank(pair.gh);
           ws3.getCell(rr,c0+2).value={formula:colLetter(c0)+rr+'+'+colLetter(c0+1)+rr};
           moColLetters.push(colLetter(c0));ghColLetters.push(colLetter(c0+1));
         }
@@ -4651,6 +4683,7 @@ function teacherScript() {
         });
         ws3.getRow(rr).height=19;
       }
+      addSignatureFooter(ws3,1,lastCol,hg2+hoursRowCount);
       ws3.getColumn(1).width=7;
       ws3.getColumn(2).width=13;
       ws3.getColumn(3).width=20;
