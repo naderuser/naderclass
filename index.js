@@ -1179,7 +1179,7 @@ const SHARED_CSS = `
     body *{visibility:hidden}
     #tab-orgform, #tab-orgform *{visibility:visible}
     #tab-orgform{position:absolute;top:0;right:0;left:0;width:100%}
-    .top-nav, .tabs, .subtabs, .row button, #btn-org-save, #btn-org-form, #btn-org-staff-addrow, #btn-org-hours-addrow{display:none!important}
+    .top-nav, .tabs, .subtabs, .row button, #btn-org-save, #btn-org-form, #btn-org-staff-addrow, #btn-org-hours-addrow, .org-row-del-cell{display:none!important}
     @page{size:landscape;margin:8mm}
     #org-stat-table, #org-staff-table, #org-hours-table, #org-special-table{font-size:9px;border-collapse:collapse!important}
     #org-stat-table th, #org-stat-table td, #org-staff-table th, #org-staff-table td, #org-hours-table th, #org-hours-table td, #org-special-table td{border:1px solid #000!important;padding:2px 3px!important}
@@ -2446,7 +2446,7 @@ function teacherPage() {
         <div class="xls-wrap">
           <div class="xls-scroll">
             <table class="xls-grid" id="org-staff-table">
-              <thead><tr><th>ردیف</th><th>کد پرسنلی</th><th>نام</th><th>نام خانوادگی</th><th>کد ملی</th><th>مدرک</th><th>رشته تحصیلی</th><th>سابقه</th><th>نوع استخدام / وضعیت</th><th>پست سازمانی</th><th>آدرس</th><th>تلفن</th></tr></thead>
+              <thead><tr><th>ردیف</th><th>کد پرسنلی</th><th>نام</th><th>نام خانوادگی</th><th>کد ملی</th><th>مدرک</th><th>رشته تحصیلی</th><th>سابقه</th><th>نوع استخدام / وضعیت</th><th>پست سازمانی</th><th>آدرس</th><th>تلفن</th><th>حذف</th></tr></thead>
               <tbody id="org-staff-body"></tbody>
             </table>
           </div>
@@ -2459,7 +2459,7 @@ function teacherPage() {
           <div class="xls-scroll">
             <table class="xls-grid" id="org-hours-table">
               <thead>
-                <tr><th rowspan="2">ردیف</th><th rowspan="2">کد پرسنلی</th><th rowspan="2">نام و نام خانوادگی</th><th colspan="3">پایه اول</th><th colspan="3">پایه دوم</th><th colspan="3">پایه سوم</th><th colspan="3">پایه چهارم</th><th colspan="3">پایه پنجم</th><th colspan="3">پایه ششم</th><th colspan="3">چندپایه</th><th colspan="3">جمع</th></tr>
+                <tr><th rowspan="2">ردیف</th><th rowspan="2">کد پرسنلی</th><th rowspan="2">نام و نام خانوادگی</th><th colspan="3">پایه اول</th><th colspan="3">پایه دوم</th><th colspan="3">پایه سوم</th><th colspan="3">پایه چهارم</th><th colspan="3">پایه پنجم</th><th colspan="3">پایه ششم</th><th colspan="3">چندپایه</th><th colspan="3">جمع</th><th rowspan="2">حذف</th></tr>
                 <tr><th>موظف</th><th>غ‌موظف</th><th>جمع</th><th>موظف</th><th>غ‌موظف</th><th>جمع</th><th>موظف</th><th>غ‌موظف</th><th>جمع</th><th>موظف</th><th>غ‌موظف</th><th>جمع</th><th>موظف</th><th>غ‌موظف</th><th>جمع</th><th>موظف</th><th>غ‌موظف</th><th>جمع</th><th>موظف</th><th>غ‌موظف</th><th>جمع</th><th>موظف</th><th>غ‌موظف</th><th>جمع</th></tr>
               </thead>
               <tbody id="org-hours-body"></tbody>
@@ -4172,6 +4172,12 @@ function teacherScript() {
     }
   });
 
+  function orgRenumberRows(tbodyId){
+    document.querySelectorAll('#'+tbodyId+' > tr').forEach((tr,idx)=>{
+      const firstCell=tr.children[0];
+      if(firstCell)firstCell.textContent=idx+1;
+    });
+  }
   function orgAddStaffRow(){
     const tbody=document.getElementById('org-staff-body');
     const rowNum=tbody.children.length+1;
@@ -4179,10 +4185,18 @@ function teacherScript() {
     tr.innerHTML='<td>'+rowNum+'</td>'+
       '<td><input type="text"></td><td><input type="text"></td><td><input type="text"></td><td><input type="text"></td>'+
       '<td><input type="text"></td>'+
-      '<td><input type="text"></td><td><input type="text"></td><td><input type="text"></td><td><input type="text"></td><td><input type="text"></td><td><input type="text"></td>';
+      '<td><input type="text"></td><td><input type="text"></td><td><input type="text"></td><td><input type="text"></td><td><input type="text"></td><td><input type="text"></td>'+
+      '<td class="org-row-del-cell"><button type="button" class="btn sm danger org-row-del">✖</button></td>';
     tbody.appendChild(tr);
   }
   document.getElementById('btn-org-staff-addrow').onclick=orgAddStaffRow;
+  document.getElementById('org-staff-body').addEventListener('click',function(e){
+    const btn=e.target.closest('.org-row-del');
+    if(!btn)return;
+    const tr=btn.closest('tr');
+    if(tr)tr.remove();
+    orgRenumberRows('org-staff-body');
+  });
   document.getElementById('org-staff-table').addEventListener('paste',function(e){
     const target=e.target;
     if(!target||(target.tagName!=='INPUT'&&target.tagName!=='SELECT'))return;
@@ -4225,10 +4239,18 @@ function teacherScript() {
             '<td class="org-hr-rowsum" data-g="'+g+'">۰</td>';
     }
     html+='<td class="org-hr-total-mo">۰</td><td class="org-hr-total-gh">۰</td><td class="org-hr-total-sum">۰</td>';
+    html+='<td class="org-row-del-cell"><button type="button" class="btn sm danger org-row-del">✖</button></td>';
     tr.innerHTML=html;
     tbody.appendChild(tr);
   }
   document.getElementById('btn-org-hours-addrow').onclick=orgAddHoursRow;
+  document.getElementById('org-hours-body').addEventListener('click',function(e){
+    const btn=e.target.closest('.org-row-del');
+    if(!btn)return;
+    const tr=btn.closest('tr');
+    if(tr)tr.remove();
+    orgRenumberRows('org-hours-body');
+  });
   function orgRecalcHoursRow(tr){
     let totalMo=0,totalGh=0;
     for(let g=1;g<=7;g++){
@@ -4284,8 +4306,8 @@ function teacherScript() {
   async function loadOrgFormIfNeeded(){
     orgRenderStatTable();
     orgRenderSpecialTable();
-    if(document.getElementById('org-staff-body').children.length===0){for(let i=0;i<10;i++)orgAddStaffRow();}
-    if(document.getElementById('org-hours-body').children.length===0){for(let i=0;i<10;i++)orgAddHoursRow();}
+    if(document.getElementById('org-staff-body').children.length===0){for(let i=0;i<3;i++)orgAddStaffRow();}
+    if(document.getElementById('org-hours-body').children.length===0){for(let i=0;i<3;i++)orgAddHoursRow();}
     if(ORG_FORM_LOADED)return;
     ORG_FORM_LOADED=true;
     const saved=await lbLoad('orgform');
@@ -4358,7 +4380,7 @@ function teacherScript() {
     document.querySelectorAll('.org-special-val').forEach(el=>{special.push(toEnDigits(el.value||''));});
     const staff=[];
     document.querySelectorAll('#org-staff-body tr').forEach(tr=>{
-      const cells=Array.from(tr.children).slice(1).map(td=>{
+      const cells=Array.from(tr.children).slice(1).filter(td=>!td.classList.contains('org-row-del-cell')).map(td=>{
         const el=td.querySelector('input,select');
         return el?el.value:'';
       });
