@@ -1696,6 +1696,16 @@ async function studentPage(env, id) {
     ${pageHeader()}
     <div class="card" id="hdr2"></div>
 
+    <!-- مرحله ۰: انتخاب آزمون یا کاربرگ -->
+    <div class="card hidden" id="step-choice">
+      <h3>👋 خوش آمدید</h3>
+      <p class="muted">یکی از گزینه‌های زیر را انتخاب کنید:</p>
+      <div class="row" style="gap:14px;flex-wrap:wrap">
+        <button class="btn" id="btn-choice-exam" style="flex:1;min-width:200px;padding:22px 16px;font-size:16px">📝 ورود به آزمون</button>
+        <button class="btn sec" id="btn-choice-worksheet" style="flex:1;min-width:200px;padding:22px 16px;font-size:16px">📓 ورود به کاربرگ</button>
+      </div>
+    </div>
+
     <!-- مرحله ۱: اطلاعات و سوال امنیتی -->
     <div class="card hidden" id="step-info">
       <h3>📝 اطلاعات دانش‌آموز</h3>
@@ -1809,14 +1819,24 @@ async function studentPage(env, id) {
         if(d.isExpired){
           toast('⏰ زمان آزمون به پایان رسیده است');
         }
-        renderResult(d.result);
-      } else {
-        document.getElementById('step-info').classList.remove('hidden');
-        try {
-          const now = new Date();
-          document.getElementById('f-date').value = now.toLocaleDateString('fa-IR', {year:'numeric', month:'2-digit', day:'2-digit'}).replace(/\\//g, '/');
-        } catch(e) {}
       }
+
+      document.getElementById('step-choice').classList.remove('hidden');
+      document.getElementById('btn-choice-exam').onclick=function(){
+        document.getElementById('step-choice').classList.add('hidden');
+        if (d.submitted) {
+          renderResult(d.result);
+        } else {
+          document.getElementById('step-info').classList.remove('hidden');
+          try {
+            const now = new Date();
+            document.getElementById('f-date').value = now.toLocaleDateString('fa-IR', {year:'numeric', month:'2-digit', day:'2-digit'}).replace(/\\//g, '/');
+          } catch(e) {}
+        }
+      };
+      document.getElementById('btn-choice-worksheet').onclick=function(){
+        location.href = '/w/' + encodeURIComponent(ID);
+      };
     }
 
     function renderResult(res){
@@ -2022,6 +2042,9 @@ async function studentPage(env, id) {
         nextStep.scrollIntoView({behavior:'smooth',block:'start'});
       }
       updateQProgress(idx+1);
+      if(idx+1===DATA.questions.length-1){
+        document.getElementById('btn-submit').classList.remove('hidden');
+      }
     });
 
     // ===== بارگذاری عکس پاسخ (برای سوالات تشریحی) با فشرده‌سازی خودکار زیر ۲ مگابایت =====
