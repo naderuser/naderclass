@@ -183,7 +183,7 @@ function getScheduleHtml(data) {
   }
   table += '</table>';
   
-  const footer = `<div class="footer"><p>امضای مدیر: ___________________</p><p>تاریخ: ___________________</p></div>`;
+  const footer = ``;
   return `<html><head><meta charset="utf-8">${style}</head><body>${header}${table}${footer}</body></html>`;
 }
 
@@ -726,14 +726,19 @@ async function handleApi(req, env, url, path) {
       const messages = body.messages || [];
       const apiKey = env.GROQ_API_KEY;
       if (!apiKey) return json({ error: "کلید GROQ_API_KEY تنظیم نشده" }, 500);
+      // اگر هر یک از پیام‌ها شامل تصویر باشد، به‌صورت خودکار به مدل چندرسانه‌ای (تصویر+متن) Groq سوییچ می‌کنیم
+      const hasImage = messages.some(m => Array.isArray(m.content) && m.content.some(c => c && c.type === "image_url"));
+      const model = hasImage ? "meta-llama/llama-4-scout-17b-16e-instruct" : "llama-3.3-70b-versatile";
+      // برای کارهایی مثل استخراج متن از عکس/PDF ممکن است متن خروجی طولانی‌تر از حد پیش‌فرض باشد
+      const maxTokens = Math.min(Math.max(parseInt(body.max_tokens, 10) || 1024, 256), 4096);
       try {
         const aiRes = await fetch("https://api.groq.com/openai/v1/chat/completions", {
           method: "POST",
           headers: { "Content-Type": "application/json", "Authorization": "Bearer " + apiKey },
           body: JSON.stringify({
-            model: "llama-3.3-70b-versatile",
+            model,
             messages: [{ role: "system", content: "You are a helpful assistant for Iranian teachers. Follow the system/user instructions provided about which language to respond in." }, ...messages.slice(-10)],
-            max_tokens: 1024
+            max_tokens: maxTokens
           })
         });
         if (!aiRes.ok) {
@@ -2670,35 +2675,91 @@ function teacherPage() {
 
       <div class="subtab-content" id="tab-translate">
         <h3>🌐 ترجمه متن (با هوش مصنوعی)</h3>
-        <p class="muted">متن را بین زبان‌های مختلف ترجمه کنید — ترجمه طبیعی و روان با هوش مصنوعی</p>
+        <p class="muted">ترجمه‌ی حرفه‌ای و طبیعی بین زبان‌ها — با تشخیص خودکار زبان، انتخاب لحن، و بازبینی کیفیت ترجمه</p>
         <div class="tl-lang-row">
           <select id="tl-from">
+            <option value="auto">🔍 تشخیص خودکار زبان</option>
             <option value="fa">فارسی</option>
             <option value="en">انگلیسی</option>
             <option value="ar">عربی</option>
             <option value="fr">فرانسوی</option>
             <option value="de">آلمانی</option>
-            <option value="tr">ترکی</option>
+            <option value="tr">ترکی استانبولی</option>
+            <option value="es">اسپانیایی</option>
+            <option value="it">ایتالیایی</option>
+            <option value="pt">پرتغالی</option>
+            <option value="ru">روسی</option>
+            <option value="zh">چینی</option>
+            <option value="ja">ژاپنی</option>
+            <option value="ko">کره‌ای</option>
+            <option value="ur">اردو</option>
+            <option value="hi">هندی</option>
+            <option value="ps">پشتو</option>
+            <option value="ku">کردی (سورانی)</option>
+            <option value="az">آذربایجانی</option>
+            <option value="hy">ارمنی</option>
           </select>
-          <button class="btn sm" onclick="tlSwap()">⇄</button>
+          <button class="btn sm" onclick="tlSwap()" title="جابه‌جایی زبان مبدا و مقصد">⇄</button>
           <select id="tl-to">
             <option value="en">انگلیسی</option>
             <option value="fa">فارسی</option>
             <option value="ar">عربی</option>
             <option value="fr">فرانسوی</option>
             <option value="de">آلمانی</option>
-            <option value="tr">ترکی</option>
+            <option value="tr">ترکی استانبولی</option>
+            <option value="es">اسپانیایی</option>
+            <option value="it">ایتالیایی</option>
+            <option value="pt">پرتغالی</option>
+            <option value="ru">روسی</option>
+            <option value="zh">چینی</option>
+            <option value="ja">ژاپنی</option>
+            <option value="ko">کره‌ای</option>
+            <option value="ur">اردو</option>
+            <option value="hi">هندی</option>
+            <option value="ps">پشتو</option>
+            <option value="ku">کردی (سورانی)</option>
+            <option value="az">آذربایجانی</option>
+            <option value="hy">ارمنی</option>
+          </select>
+          <select id="tl-tone" title="لحن ترجمه">
+            <option value="neutral">🎯 لحن عادی</option>
+            <option value="formal">🎩 رسمی / اداری</option>
+            <option value="informal">💬 محاوره‌ای</option>
+            <option value="academic">📘 علمی / آکادمیک</option>
+            <option value="simple">🧒 ساده و روان (کودکانه)</option>
           </select>
         </div>
+        <div style="margin-bottom:8px;display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+          <input type="file" id="tl-img-file" accept="image/*" class="hidden">
+          <input type="file" id="tl-pdf-file" accept="application/pdf" class="hidden">
+          <button class="btn sm sec" id="btn-tl-from-img">📷 گرفتن متن از عکس</button>
+          <button class="btn sm sec" id="btn-tl-from-pdf">📄 گرفتن متن از PDF</button>
+          <span class="muted" id="tl-extract-status" style="font-size:12px"></span>
+        </div>
         <div class="tl-grid">
-          <div><label>متن ورودی:</label><textarea id="tl-input" rows="8" dir="rtl" placeholder="متن خود را اینجا بنویسید..."></textarea></div>
-          <div><label>ترجمه:</label><textarea id="tl-output" rows="8" dir="ltr" readonly placeholder="ترجمه اینجا نمایش داده می‌شود..."></textarea></div>
+          <div>
+            <label>متن ورودی:</label>
+            <textarea id="tl-input" rows="9" dir="rtl" placeholder="متن خود را اینجا بنویسید یا بچسبانید، یا از عکس/PDF بگیرید..."></textarea>
+            <div class="muted" style="font-size:12px;margin-top:4px" id="tl-input-count">۰ کاراکتر</div>
+          </div>
+          <div>
+            <label>ترجمه:</label>
+            <textarea id="tl-output" rows="9" dir="ltr" readonly placeholder="ترجمه اینجا نمایش داده می‌شود..."></textarea>
+            <div class="muted" style="font-size:12px;margin-top:4px" id="tl-output-count">۰ کاراکتر</div>
+          </div>
         </div>
         <div style="margin-top:16px;display:flex;gap:10px;flex-wrap:wrap">
           <button class="btn primary" id="btn-translate">🌐 ترجمه کن</button>
+          <button class="btn sec" id="btn-translate-back">🔁 بازبینی (ترجمه معکوس)</button>
           <button class="btn" onclick="tlCopy()">📋 کپی ترجمه</button>
           <button class="btn gray" onclick="tlClear()">🗑️ پاک کردن</button>
         </div>
+        <div id="tl-back-box" class="hidden" style="margin-top:14px;padding:12px 14px;background:#f8fafc;border:1px dashed #cbd5e1;border-radius:10px">
+          <div style="font-size:12px;font-weight:700;color:#475569;margin-bottom:6px">🔁 بازترجمه به زبان مبدا (برای بررسی صحت و طبیعی‌بودن ترجمه)</div>
+          <div id="tl-back-text" style="font-size:14px;color:#334155"></div>
+        </div>
+        <p class="muted" style="font-size:12px;margin-top:10px">💡 نکته: اگر متن شامل اصطلاح تخصصی یا آموزشی خاصی است، آن را داخل پرانتز در متن ورودی توضیح بدهید تا ترجمه دقیق‌تر شود.</p>
+      </div>
       </div>
 
       <div class="subtab-content hidden" id="tab-ai">
@@ -2706,7 +2767,6 @@ function teacherPage() {
           <div class="ai-header">
             <div class="ai-avatar">🤖</div>
             <div class="ai-title"><h3>دستیار هوش مصنوعی</h3><span class="ai-status">آنلاین</span></div>
-            <div class="ai-mode-select"><select id="ai-mode"><option value="answer">💬 پاسخ به سوالات</option><option value="write">📝 نوشتن سوال</option><option value="correct">✏️ تصحیح متن</option><option value="translate">🌐 ترجمه</option></select></div>
           </div>
           <div id="ai-messages" class="ai-messages">
             <div class="ai-message ai"><div class="ai-message-avatar">🤖</div><div class="ai-message-content"><div class="ai-message-text">سلام! 👋 من دستیار هوش مصنوعی شما هستم. چطور می‌توانم کمکتان کنم؟</div></div></div>
@@ -2720,7 +2780,14 @@ function teacherPage() {
             <button class="quick-action-btn" data-prompt="یک برنامه تدریس هفتگی برای معلم پیشنهاد بده">📅 برنامه تدریس</button>
             <button class="quick-action-btn" data-prompt="ایده‌هایی برای فعالیت‌های کلاسی خلاقانه">🎨 ایده خلاقانه</button>
           </div>
+          <div id="ai-img-preview" class="hidden" style="display:flex;align-items:center;gap:8px;padding:6px 16px;background:#f1f5f9">
+            <img id="ai-img-preview-thumb" style="width:40px;height:40px;object-fit:cover;border-radius:6px">
+            <span style="font-size:12px;color:#475569;flex:1">تصویر ضمیمه شد</span>
+            <button type="button" id="btn-ai-img-remove" class="btn sm gray" style="padding:2px 8px">✕</button>
+          </div>
           <div class="ai-input-area">
+            <input type="file" id="ai-img-file" accept="image/*" class="hidden">
+            <button type="button" class="btn gray ai-send-btn" id="btn-ai-img-pick" title="پیوست عکس">📷</button>
             <textarea id="ai-input" placeholder="پیام خود را بنویسید..." rows="1"></textarea>
             <button class="btn primary ai-send-btn" id="btn-ai-send"><span>➤</span></button>
           </div>
@@ -3786,7 +3853,7 @@ function teacherScript() {
       table+='</tr>';
     }
     table+='</table>';
-    const footer='<div class="footer"><p>امضای مدیر: ___________________</p><p>تاریخ: ___________________</p></div>';
+    const footer='';
     return '<html><head><meta charset="utf-8">'+style+'</head><body>'+header+table+footer+'</body></html>';
   }
 
@@ -3918,6 +3985,7 @@ function teacherScript() {
     if(!file)return;
     const statusEl=document.getElementById('tbl-pdf-status');
     statusEl.textContent='در حال خواندن فایل PDF...';
+    ocrFixCount=0;ocrFailCount=0;
     try{
       const buf=await file.arrayBuffer();
       const doc=await pdfjsLib.getDocument({data:buf}).promise;
@@ -3951,7 +4019,11 @@ function teacherScript() {
       });
       if(document.getElementById('tbl-avg-check').checked)calcAndShowAvg();
       statusEl.textContent='';
-      toast('جدول با '+allRows.length+' ردیف از PDF وارد شد ✅');
+      let msg='جدول با '+allRows.length+' ردیف از PDF وارد شد ✅';
+      if(ocrFixCount>0)msg+=' ('+ocrFixCount+' سلول با فونت خراب توسط OCR ترمیم شد';
+      if(ocrFailCount>0)msg+=(ocrFixCount>0?'، ':' (')+ocrFailCount+' سلول هنوز نیاز به اصلاح دستی دارد';
+      if(ocrFixCount>0||ocrFailCount>0)msg+=')';
+      toast(msg);
     }catch(err){
       statusEl.textContent='';
       toast('خطا در خواندن یا تحلیل فایل PDF');
@@ -5648,24 +5720,37 @@ function teacherScript() {
   // چون این کاراکترها به بازه‌های یونیکد نامرتبط (Variation Selector, Combining Half Mark, Small Form Variant, ...)
   // نگاشت شده‌اند نه به حروف واقعی فارسی/عربی. برای این حالت، به‌جای تکیه بر متن استخراج‌شده، همان بخش از تصویر
   // صفحه با OCR (تشخیص نوری کاراکتر) خوانده می‌شود که همیشه درست است چون شکل ظاهری حروف سالم است.
-  const BROKEN_GLYPH_RANGES=[[0xFE00,0xFE0F],[0xFE20,0xFE2F],[0xFE30,0xFE4F],[0xFE50,0xFE6F]];
+  // به‌جای فهرست کردن بازه‌های «خراب» (که ممکن است ناقص باشد)، بازه‌های «سالمِ» مورد انتظار برای متن فارسی/عربی و
+  // انگلیسی/اعداد را مشخص می‌کنیم؛ هر کاراکتری بیرون از این بازه‌ها تقریباً همیشه نشانهٔ نگاشت خراب فونت است
+  const OK_RANGES=[[0x00,0x7F],[0x0600,0x06FF],[0x0750,0x077F],[0x08A0,0x08FF],[0xFB50,0xFDFF],[0xFE70,0xFEFF]];
   function hasBrokenGlyphs(str){
     for(let i=0;i<str.length;i++){
       const cp=str.codePointAt(i);
-      for(const[lo,hi]of BROKEN_GLYPH_RANGES){if(cp>=lo&&cp<=hi)return true;}
+      if(cp>0xFFFF)i++; // کاراکترهای بیرون از BMP را رد کن (نادر و بی‌ربط به این مشکل)
+      let ok=false;
+      for(const[lo,hi]of OK_RANGES){if(cp>=lo&&cp<=hi){ok=true;break;}}
+      if(!ok)return true;
     }
     return false;
   }
   let _ocrWorkerPromise=null;
-  function getOcrWorker(){
+  async function getOcrWorker(){
     if(!_ocrWorkerPromise){
-      _ocrWorkerPromise=(typeof Tesseract!=='undefined')?Tesseract.createWorker('fas').catch(err=>{_ocrWorkerPromise=null;throw err;}):Promise.reject(new Error('Tesseract not loaded'));
+      _ocrWorkerPromise=(async()=>{
+        if(typeof Tesseract==='undefined')throw new Error('Tesseract not loaded');
+        const worker=await Tesseract.createWorker('fas');
+        // حالت پیش‌فرض Tesseract («تحلیل کامل صفحه») برای تکه‌های کوچک بریده‌شده (یک نام یا یک عدد) خوب کار نمی‌کند
+        // و اغلب خروجی خالی می‌دهد؛ حالت «یک خط تکی» برای این کاربرد مناسب‌تر است
+        await worker.setParameters({tessedit_pageseg_mode:'7'});
+        return worker;
+      })().catch(err=>{_ocrWorkerPromise=null;throw err;});
     }
     return _ocrWorkerPromise;
   }
+  let ocrFixCount=0,ocrFailCount=0;
   // رندر کل صفحه با کیفیت بالا روی یک کنواس مخفی، فقط وقتی لازم باشد (یعنی متنِ خراب پیدا شده باشد)
   async function renderPageForOcr(page){
-    const scale=3;
+    const scale=4;
     const viewport=page.getViewport({scale});
     const canvas=document.createElement('canvas');
     canvas.width=Math.ceil(viewport.width);
@@ -5680,7 +5765,7 @@ function teacherScript() {
     const{canvas,viewport}=ocrCtx;
     const p1=viewport.convertToViewportPoint(xL,yTop);
     const p2=viewport.convertToViewportPoint(xR,yBot);
-    const pad=5;
+    const pad=8;
     let x=Math.min(p1[0],p2[0])-pad,y=Math.min(p1[1],p2[1])-pad;
     let w=Math.abs(p2[0]-p1[0])+pad*2,h=Math.abs(p2[1]-p1[1])+pad*2;
     x=Math.max(0,x);y=Math.max(0,y);
@@ -5691,9 +5776,18 @@ function teacherScript() {
     crop.getContext('2d').drawImage(canvas,x,y,w,h,0,0,w,h);
     try{
       const worker=await getOcrWorker();
-      const{data}=await worker.recognize(crop);
-      return(data.text||'').replace(/\s+/g,' ').trim();
-    }catch(err){return '';}
+      let{data}=await worker.recognize(crop);
+      let text=(data.text||'').replace(/\s+/g,' ').trim();
+      if(!text){
+        // اگر «یک خط» چیزی پیدا نکرد، شاید تکه فقط یک کلمهٔ تکی یا عدد کوتاه باشد
+        await worker.setParameters({tessedit_pageseg_mode:'8'});
+        ({data}=await worker.recognize(crop));
+        text=(data.text||'').replace(/\s+/g,' ').trim();
+        await worker.setParameters({tessedit_pageseg_mode:'7'});
+      }
+      if(text)ocrFixCount++;else ocrFailCount++;
+      return text;
+    }catch(err){ocrFailCount++;return '';}
   }
   // محدودهٔ x/y یک مجموعه آیتم متنی (برای برش تصویر جهت OCR)
   function itemsBBox(itemList){
@@ -5887,6 +5981,7 @@ function teacherScript() {
     if(!pdf2wordDoc){toast('فایل PDF انتخاب نشده');return;}
     const btn=document.getElementById('btn-pdf2word-convert');btn.disabled=true;const origText=btn.textContent;
     const statusEl=document.getElementById('pdf2word-status');
+    ocrFixCount=0;ocrFailCount=0;
     try{
       let bodyHtml='';
       for(let i=1;i<=pdf2wordDoc.numPages;i++){
@@ -5928,7 +6023,9 @@ function teacherScript() {
         '<style>@page{size:21cm 29.7cm;margin:2cm}body{font-family:"B Nazanin","Vazirmatn","Tahoma",sans-serif;font-size:14pt;direction:rtl;text-align:right}p{margin:0 0 6px 0}table{margin:0 0 6px 0}</style>'+
         '</head><body dir="rtl">'+bodyHtml+'</body></html>';
       pdf2wordBlob=new Blob(['\ufeff'+htmlDoc],{type:'application/msword'});
-      statusEl.textContent='✅ تبدیل انجام شد — '+pdf2wordDoc.numPages+' صفحه استخراج شد.';
+      let doneMsg='✅ تبدیل انجام شد — '+pdf2wordDoc.numPages+' صفحه استخراج شد.';
+      if(ocrFixCount>0)doneMsg+=' ('+ocrFixCount+' بخش با فونت خراب توسط OCR ترمیم شد'+(ocrFailCount>0?'، '+ocrFailCount+' مورد نیاز به بازبینی دستی دارد':'')+')';
+      statusEl.textContent=doneMsg;
       document.getElementById('btn-pdf2word-download').classList.remove('hidden');
       toast('فایل Word آماده شد ✅');
     }catch(e){
@@ -5952,49 +6049,208 @@ function teacherScript() {
 
   // ===== ترجمه =====
   document.getElementById('tl-from').onchange=function(){const f=this.value;const t=document.getElementById('tl-to');if(f===t.value){t.value=f==='fa'?'en':'fa';}};
-  const tlLangNames={fa:'فارسی',en:'انگلیسی',ar:'عربی',fr:'فرانسوی',de:'آلمانی',tr:'ترکی'};
-  const tlLangDir={fa:'rtl',ar:'rtl',en:'ltr',fr:'ltr',de:'ltr',tr:'ltr'};
+  const tlLangNames={auto:'زبان ورودی (تشخیص خودکار)',fa:'فارسی',en:'انگلیسی',ar:'عربی',fr:'فرانسوی',de:'آلمانی',tr:'ترکی استانبولی',es:'اسپانیایی',it:'ایتالیایی',pt:'پرتغالی',ru:'روسی',zh:'چینی',ja:'ژاپنی',ko:'کره‌ای',ur:'اردو',hi:'هندی',ps:'پشتو',ku:'کردی سورانی',az:'آذربایجانی',hy:'ارمنی'};
+  const tlLangDir={fa:'rtl',ar:'rtl',ur:'rtl',ps:'rtl',ku:'rtl',en:'ltr',fr:'ltr',de:'ltr',tr:'ltr',es:'ltr',it:'ltr',pt:'ltr',ru:'ltr',zh:'ltr',ja:'ltr',ko:'ltr',hi:'ltr',az:'ltr',hy:'ltr'};
+  const tlToneNames={neutral:'',formal:'Use a formal / official tone suitable for administrative and formal correspondence.',informal:'Use a casual, everyday conversational tone.',academic:'Use a formal academic/scientific tone suitable for educational and research texts.',simple:'Use very simple, easy words suitable for children or beginners.'};
   function tlUpdateDirs(){
-    document.getElementById('tl-input').dir=tlLangDir[document.getElementById('tl-from').value]||'rtl';
+    const fromVal=document.getElementById('tl-from').value;
+    document.getElementById('tl-input').dir=fromVal==='auto'?'auto':(tlLangDir[fromVal]||'rtl');
     document.getElementById('tl-output').dir=tlLangDir[document.getElementById('tl-to').value]||'ltr';
+  }
+  function tlUpdateCounts(){
+    const inLen=document.getElementById('tl-input').value.length;
+    const outLen=document.getElementById('tl-output').value.length;
+    document.getElementById('tl-input-count').textContent=inLen.toLocaleString('fa-IR')+' کاراکتر';
+    document.getElementById('tl-output-count').textContent=outLen.toLocaleString('fa-IR')+' کاراکتر';
   }
   document.getElementById('tl-from').addEventListener('change',tlUpdateDirs);
   document.getElementById('tl-to').addEventListener('change',tlUpdateDirs);
+  document.getElementById('tl-input').addEventListener('input',tlUpdateCounts);
   window.tlSwap=function(){
     const f=document.getElementById('tl-from');const t=document.getElementById('tl-to');
+    if(f.value==='auto'){toast('برای جابه‌جایی، ابتدا یک زبان مبدأ مشخص انتخاب کنید (نه تشخیص خودکار)');return;}
     const tmp=f.value;f.value=t.value;t.value=tmp;
     const inp=document.getElementById('tl-input');const out=document.getElementById('tl-output');
     const t2=inp.value;inp.value=out.value;out.value=t2;
-    tlUpdateDirs();
+    tlUpdateDirs();tlUpdateCounts();
+    document.getElementById('tl-back-box').classList.add('hidden');
   };
   window.tlCopy=function(){const txt=document.getElementById('tl-output').value;if(!txt){toast('متنی وارد نشده');return;}navigator.clipboard.writeText(txt).then(()=>toast('کپی شد ✅'));};
-  window.tlClear=function(){document.getElementById('tl-input').value='';document.getElementById('tl-output').value='';};
+  window.tlClear=function(){document.getElementById('tl-input').value='';document.getElementById('tl-output').value='';tlUpdateCounts();document.getElementById('tl-back-box').classList.add('hidden');};
+  async function tlCallAi(text,fromName,toName,toneInstruction,autoDetect){
+    const sys='You are a professional, experienced human translator. Translate the text the user sends '+
+      (autoDetect?'(automatically detect the source language) ':'from '+fromName+' ')+
+      'into '+toName+'. '+(toneInstruction||'')+' '+
+      'Preserve the original meaning, paragraph breaks, and any numbers/names exactly. '+
+      'Respond with ONLY the translation itself — natural, fluent, and idiomatic — no quotes, no explanations, no extra commentary, no original text repeated.';
+    const res=await fetch('/api/teacher/ai/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({messages:[{role:'system',content:sys},{role:'user',content:text}],max_tokens:4096})});
+    const data=await res.json();
+    if(data.error)throw new Error(data.error);
+    return (data.content||'').trim();
+  }
   document.getElementById('btn-translate').onclick=async function(){
     const text=document.getElementById('tl-input').value.trim();
     if(!text){toast('متنی وارد نشده');return;}
     const from=document.getElementById('tl-from').value, to=document.getElementById('tl-to').value;
     if(from===to){toast('زبان مبدا و مقصد یکسان است');return;}
+    const tone=document.getElementById('tl-tone').value;
     const btn=this;btn.disabled=true;btn.textContent='⏳ در حال ترجمه...';
+    document.getElementById('tl-back-box').classList.add('hidden');
     try{
-      const sys='You are a professional translator. Translate the text the user sends from '+tlLangNames[from]+' ('+from+') to '+tlLangNames[to]+' ('+to+'). '+
-        'Respond with ONLY the translation itself — natural and fluent, no quotes, no explanations, no extra commentary, no original text repeated.';
-      const res=await fetch('/api/teacher/ai/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({messages:[{role:'system',content:sys},{role:'user',content:text}]})});
-      const data=await res.json();
-      if(data.error){toast('خطا در ترجمه: '+data.error);}
-      else{document.getElementById('tl-output').value=(data.content||'').trim();tlUpdateDirs();toast('ترجمه شد ✅');}
-    }catch(e){toast('خطا در اتصال');}
+      const out=await tlCallAi(text,tlLangNames[from],tlLangNames[to],tlToneNames[tone],from==='auto');
+      document.getElementById('tl-output').value=out;
+      tlUpdateDirs();tlUpdateCounts();
+      toast('ترجمه شد ✅');
+    }catch(e){toast('خطا در ترجمه: '+e.message);}
     btn.disabled=false;btn.textContent='🌐 ترجمه کن';
   };
+  document.getElementById('btn-translate-back').onclick=async function(){
+    const out=document.getElementById('tl-output').value.trim();
+    if(!out){toast('ابتدا متن را ترجمه کنید');return;}
+    const from=document.getElementById('tl-from').value, to=document.getElementById('tl-to').value;
+    const targetLangForBack=from==='auto'?'fa':from; // اگر مبدا «تشخیص خودکار» بود، بازترجمه را به فارسی نشان می‌دهیم
+    const btn=this;btn.disabled=true;btn.textContent='⏳ در حال بازبینی...';
+    try{
+      const backText=await tlCallAi(out,tlLangNames[to],tlLangNames[targetLangForBack],'',false);
+      document.getElementById('tl-back-text').textContent=backText;
+      document.getElementById('tl-back-text').dir=tlLangDir[targetLangForBack]||'rtl';
+      document.getElementById('tl-back-box').classList.remove('hidden');
+    }catch(e){toast('خطا در بازبینی: '+e.message);}
+    btn.disabled=false;btn.textContent='🔁 بازبینی (ترجمه معکوس)';
+  };
+  document.getElementById('tl-input').addEventListener('keydown',function(e){
+    if(e.key==='Enter'&&(e.ctrlKey||e.metaKey)){e.preventDefault();document.getElementById('btn-translate').click();}
+  });
+  tlUpdateDirs();tlUpdateCounts();
+
+  // ===== گرفتن متن ورودی ترجمه از عکس (OCR با هوش مصنوعی تصویری) یا از فایل PDF =====
+  const tlExtractStatus=document.getElementById('tl-extract-status');
+  document.getElementById('btn-tl-from-img').onclick=()=>{document.getElementById('tl-img-file').click();};
+  document.getElementById('tl-img-file').addEventListener('change',async function(e){
+    const file=e.target.files[0];
+    if(!file)return;
+    if(!file.type.startsWith('image/')){toast('لطفاً یک فایل تصویری انتخاب کنید');e.target.value='';return;}
+    const btn=document.getElementById('btn-tl-from-img');btn.disabled=true;
+    tlExtractStatus.textContent='⏳ در حال خواندن متن از عکس...';
+    try{
+      const dataUrl=await new Promise((resolve,reject)=>{
+        const reader=new FileReader();
+        reader.onload=()=>resolve(reader.result);
+        reader.onerror=reject;
+        reader.readAsDataURL(file);
+      });
+      const sys='You are an OCR engine. Extract ALL text visible in the image EXACTLY as written, preserving line breaks and paragraph structure. Do NOT translate it. Do NOT add any commentary, headers, or explanation — output ONLY the extracted text, nothing else.';
+      const res=await fetch('/api/teacher/ai/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({messages:[{role:'system',content:sys},{role:'user',content:[{type:'text',text:'متن این تصویر را استخراج کن.'},{type:'image_url',image_url:{url:dataUrl}}]}],max_tokens:4096})});
+      const data=await res.json();
+      if(data.error)throw new Error(data.error);
+      const extracted=(data.content||'').trim();
+      if(!extracted){toast('متنی در عکس پیدا نشد');}
+      else{
+        document.getElementById('tl-input').value=extracted;
+        tlUpdateDirs();tlUpdateCounts();
+        toast('متن از عکس استخراج شد ✅ — حالا زبان و لحن را بررسی و ترجمه کنید');
+      }
+    }catch(err){toast('خطا در خواندن عکس: '+err.message);}
+    tlExtractStatus.textContent='';
+    btn.disabled=false;
+    e.target.value='';
+  });
+
+  document.getElementById('btn-tl-from-pdf').onclick=()=>{document.getElementById('tl-pdf-file').click();};
+  document.getElementById('tl-pdf-file').addEventListener('change',async function(e){
+    const file=e.target.files[0];
+    if(!file)return;
+    const btn=document.getElementById('btn-tl-from-pdf');btn.disabled=true;
+    tlExtractStatus.textContent='در حال خواندن فایل PDF...';
+    try{
+      const buf=await file.arrayBuffer();
+      const doc=await pdfjsLib.getDocument({data:buf}).promise;
+      const parts=[];
+      for(let p=1;p<=doc.numPages;p++){
+        tlExtractStatus.textContent='در حال استخراج متن صفحه '+p+' از '+doc.numPages+'...';
+        const blocks=await extractPdfPageBlocks(p,doc);
+        blocks.forEach(b=>{
+          if(b.type==='table'){
+            b.rows.forEach(cells=>{parts.push(cells.map(cellLines=>cellLines.join(' ')).join(' | '));});
+          }else if(b.type==='para'&&b.text){
+            parts.push(b.text);
+          }
+        });
+      }
+      const extracted=parts.join('\n').trim();
+      if(!extracted){toast('متنی در این PDF پیدا نشد (شاید فقط عکس/اسکن باشد)');}
+      else{
+        document.getElementById('tl-input').value=extracted;
+        tlUpdateDirs();tlUpdateCounts();
+        toast('متن از PDF استخراج شد ✅ ('+doc.numPages+' صفحه) — حالا زبان و لحن را بررسی و ترجمه کنید');
+      }
+    }catch(err){toast('خطا در خواندن فایل PDF: '+err.message);}
+    tlExtractStatus.textContent='';
+    btn.disabled=false;
+    e.target.value='';
+  });
 
   // ===== AI Chat =====
   let aiMessages=[{role:'system',content:'تو یک دستیار هوشمند برای معلمان هستی. به زبان فارسی پاسخ بده.'}];
+  let aiPendingImage=null; // dataURL تصویر ضمیمه‌شده (در صورت وجود) پیش از ارسال پیام بعدی
   document.querySelectorAll('.quick-action-btn').forEach(btn=>{btn.onclick=()=>{const prompt=btn.dataset.prompt;document.getElementById('ai-input').value=prompt;document.getElementById('btn-ai-send').click();};});
   const aiInput=document.getElementById('ai-input');
   aiInput.addEventListener('input',function(){this.style.height='auto';this.style.height=Math.min(this.scrollHeight,120)+'px';});
-  function addAiMessage(role,text){const box=document.getElementById('ai-messages');const isUser=role==='user';const html='<div class="ai-message '+(isUser?'user':'ai')+'"><div class="ai-message-avatar">'+(isUser?'👤':'🤖')+'</div><div class="ai-message-content"><div class="ai-message-text">'+esc(text)+'</div></div></div>';box.insertAdjacentHTML('beforeend',html);box.scrollTop=box.scrollHeight;}
+  document.getElementById('btn-ai-img-pick').onclick=()=>{document.getElementById('ai-img-file').click();};
+  document.getElementById('ai-img-file').addEventListener('change',function(e){
+    const file=e.target.files[0];
+    if(!file)return;
+    if(!file.type.startsWith('image/')){toast('لطفاً یک فایل تصویری انتخاب کنید');e.target.value='';return;}
+    const reader=new FileReader();
+    reader.onload=function(){
+      aiPendingImage=reader.result;
+      document.getElementById('ai-img-preview-thumb').src=aiPendingImage;
+      document.getElementById('ai-img-preview').classList.remove('hidden');
+    };
+    reader.readAsDataURL(file);
+    e.target.value='';
+  });
+  document.getElementById('btn-ai-img-remove').onclick=()=>{
+    aiPendingImage=null;
+    document.getElementById('ai-img-preview').classList.add('hidden');
+  };
+  function addAiMessage(role,text,imageUrl){
+    const box=document.getElementById('ai-messages');
+    const isUser=role==='user';
+    const imgHtml=imageUrl?'<img src="'+imageUrl+'" style="max-width:180px;max-height:180px;border-radius:8px;display:block;margin-bottom:6px">':'';
+    const html='<div class="ai-message '+(isUser?'user':'ai')+'"><div class="ai-message-avatar">'+(isUser?'👤':'🤖')+'</div><div class="ai-message-content"><div class="ai-message-text">'+imgHtml+esc(text)+'</div></div></div>';
+    box.insertAdjacentHTML('beforeend',html);
+    box.scrollTop=box.scrollHeight;
+  }
   function showTyping(){document.getElementById('ai-typing').classList.remove('hidden');document.getElementById('ai-messages').scrollTop=document.getElementById('ai-messages').scrollHeight;}
   function hideTyping(){document.getElementById('ai-typing').classList.add('hidden');}
-  document.getElementById('btn-ai-send').onclick=async()=>{const text=aiInput.value.trim();if(!text)return;aiInput.value='';aiInput.style.height='auto';addAiMessage('user',text);aiMessages.push({role:'user',content:text});showTyping();const box=document.getElementById('ai-messages');try{const mode=document.getElementById('ai-mode').value;let systemPrompt='تو یک دستیار هوشمند برای معلمان هستی. به زبان فارسی پاسخ بده.';if(mode==='write')systemPrompt='تو یک معلم باتجربه هستی. سوالات تستی و تشریحی باکیفیت بساز.';if(mode==='correct')systemPrompt='تو یک معلم باتجربه هستی. متون را تصحیح کن و پیشنهاد بده.';if(mode==='translate')systemPrompt='تو یک مترجم حرفه‌ای هستی. ترجمه‌ها را طبیعی و روان انجام بده.';const msgs=[{role:'system',content:systemPrompt},...aiMessages.slice(-10)];const res=await fetch('/api/teacher/ai/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({messages:msgs})});const d=await res.json();hideTyping();if(d.error){addAiMessage('ai','❌ خطا: '+d.error);return;}addAiMessage('ai',d.content);aiMessages.push({role:'assistant',content:d.content});}catch(e){hideTyping();addAiMessage('ai','❌ خطا در اتصال: '+e.message);}};
+  document.getElementById('btn-ai-send').onclick=async()=>{
+    const text=aiInput.value.trim();
+    const img=aiPendingImage;
+    if(!text&&!img)return;
+    aiInput.value='';aiInput.style.height='auto';
+    addAiMessage('user',text||'(بدون متن)',img);
+    if(img){
+      aiMessages.push({role:'user',content:[{type:'text',text:text||'این تصویر را توضیح بده'},{type:'image_url',image_url:{url:img}}]});
+    }else{
+      aiMessages.push({role:'user',content:text});
+    }
+    aiPendingImage=null;
+    document.getElementById('ai-img-preview').classList.add('hidden');
+    showTyping();
+    try{
+      const msgs=aiMessages.slice(-10);
+      const res=await fetch('/api/teacher/ai/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({messages:msgs})});
+      const d=await res.json();
+      hideTyping();
+      if(d.error){addAiMessage('ai','❌ خطا: '+d.error);return;}
+      addAiMessage('ai',d.content);
+      aiMessages.push({role:'assistant',content:d.content});
+    }catch(e){
+      hideTyping();
+      addAiMessage('ai','❌ خطا در اتصال: '+e.message);
+    }
+  };
   aiInput.onkeydown=e=>{ if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();document.getElementById('btn-ai-send').click();} };
 
   // ===== تغییر رمز عبور =====
