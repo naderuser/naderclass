@@ -687,6 +687,20 @@ async function handleApi(req, env, url, path) {
       return json({ ok: true });
     }
 
+    if (path.startsWith("/api/teacher/worksheet/") && method === "DELETE") {
+      const id = decodeURIComponent(path.slice("/api/teacher/worksheet/".length));
+      const raw = await env.EXAM_KV.get("worksheet:" + id);
+      if (raw) {
+        const rec = JSON.parse(raw);
+        delete rec.teacherFile;
+        delete rec.teacherFileName;
+        delete rec.teacherFileType;
+        delete rec.teacherUploadedAt;
+        await env.EXAM_KV.put("worksheet:" + id, JSON.stringify(rec));
+      }
+      return json({ ok: true });
+    }
+
     if (path === "/api/teacher/students" && method === "GET") {
       const students = await listStudents(env);
       const subs = await Promise.all(students.map((s) => env.EXAM_KV.get("submission:" + s.uuid)));
@@ -780,6 +794,7 @@ async function handleApi(req, env, url, path) {
         if (raw) {
           const sub = JSON.parse(raw);
           sub.label = s.label || "";
+          sub.studentPhoto = s.photo || "";
           out.push(sub);
         }
       }
@@ -1707,7 +1722,7 @@ async function studentPage(env, id) {
       </div>
     </div>
 
-    <!-- مرحله ۱: اطلاعات و سوال امنیتی -->
+    <!-- مرحله ۱: اطلاعات دانش‌آموز -->
     <div class="card hidden" id="step-info">
       <h3>📝 اطلاعات دانش‌آموز</h3>
       <div class="row">
@@ -1716,10 +1731,8 @@ async function studentPage(env, id) {
       </div>
       <div class="row">
         <div><label>کد ملی *</label><input id="f-nid" inputmode="numeric" autocomplete="off"></div>
-        <div><label>نام درس *</label><input id="f-course" autocomplete="off"></div>
         <div><label>تاریخ آزمون *</label><input id="f-date" autocomplete="off" placeholder="مثال: 1404/01/15"></div>
       </div>
-      <label>سوال امنیتی: <span id="sec-q"></span> *</label><input id="f-sec" inputmode="numeric" autocomplete="off">
       <p class="muted" id="info-err" style="color:var(--danger)"></p>
       <button class="btn" id="btn-enter">🚀 ورود به آزمون</button>
     </div>
@@ -1746,7 +1759,6 @@ async function studentPage(env, id) {
     let timerInterval = null;
     let remainingSeconds = 0;
     let isTimerExpired = false;
-    const a = Math.floor(Math.random()*8)+2, b = Math.floor(Math.random()*8)+2;
 
     function toast(m){const t=document.getElementById('toast');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2500);}
     function esc(s){const d=document.createElement('div');d.textContent=s==null?'':s;return d.innerHTML;}
@@ -2000,7 +2012,7 @@ async function studentPage(env, id) {
             '<div id="photopreview_'+q.id+'" style="margin-top:8px"></div>'+
             '</div>';
         }
-        const img=q.image?'<img src="'+q.image+'" class="imgprev" style="max-width:'+(q.imageWidth||320)+'px;width:100%">':'';
+        const img=q.image?'<div><img src="'+q.image+'" class="imgprev" style="max-width:'+(q.imageWidth||320)+'px;width:100%;cursor:zoom-in" onclick="window.open(this.src,\'_blank\')" title="برای بزرگ‌نمایی کلیک کنید"><div class="muted" style="font-size:11px;margin-top:2px">🔍 برای بزرگ‌نمایی روی عکس کلیک کنید</div></div>':'';
         const weightInfo = q.weight ? \`<span style="font-size:11px;color:#64748b;margin-right:8px">(وزن: \${q.weight})</span>\` : '';
         const isLast=i===DATA.questions.length-1;
         const nextBtn=isLast?'':'<div style="margin-top:14px"><button type="button" class="btn primary q-next-btn" data-qnext="'+i+'">✅ ثبت و ادامه</button></div>';
@@ -2154,13 +2166,11 @@ async function studentPage(env, id) {
       const name=document.getElementById('f-name').value.trim();
       const father=document.getElementById('f-father').value.trim();
       const nid=document.getElementById('f-nid').value.trim();
-      const course=document.getElementById('f-course').value.trim();
       const date=document.getElementById('f-date').value.trim();
-      const sec=document.getElementById('f-sec').value.trim();
       const err=document.getElementById('info-err');
-      if(!name||!father||!nid||!course||!date){err.textContent='لطفاً همه فیلدها را پر کنید.';return;}
-      if(parseInt(sec,10)!==a+b){err.textContent='پاسخ سوال امنیتی اشتباه است.';return;}
+      if(!name||!father||!nid||!date){err.textContent='لطفاً همه فیلدها را پر کنید.';return;}
       err.textContent='';
+      const course=(DATA && DATA.meta && DATA.meta.examName) || '';
       window._student={name,fatherName:father,nationalId:nid,courseName:course,examDate:date};
       document.getElementById('step-info').classList.add('hidden');
       document.getElementById('step-exam').classList.remove('hidden');
@@ -2177,7 +2187,6 @@ async function studentPage(env, id) {
       }
     };
 
-    document.getElementById('sec-q').textContent = a + ' + ' + b + ' = ؟';
     try{ 
       const now = new Date();
       document.getElementById('f-date').value = now.toLocaleDateString('fa-IR', {year:'numeric', month:'2-digit', day:'2-digit'}).replace(/\\//g, '/');
@@ -2756,15 +2765,27 @@ function teacherPage() {
             <span>🔢 تصحیح نمره‌ای (متوسطه اول و دوم)</span>
           </label>
         </div>
-        <button class="btn gray sm" id="btn-refresh-ans">🔄 به‌روزرسانی</button>
-        <div id="answers-list"></div>
+        <div class="row" style="align-items:center;flex-wrap:wrap;gap:10px">
+          <div style="flex:1;min-width:220px">
+            <label>👤 انتخاب دانش‌آموز</label>
+            <select id="ans-student-select"><option value="">— یک دانش‌آموز را انتخاب کنید —</option></select>
+          </div>
+          <button class="btn gray sm" id="btn-refresh-ans" style="flex:0 0 auto;margin-top:20px">🔄 به‌روزرسانی</button>
+        </div>
+        <div id="answers-list" style="margin-top:14px"></div>
       </div>
 
       <div class="subtab-content hidden" id="tab-worksheet">
         <h3>📓 کاربرگ</h3>
         <p class="muted">برای هر دانش‌آموز یک کاربرگ (عکس یا PDF) بارگذاری کنید. دانش‌آموز پس از انجام کاربرگ، عکس آن را برای شما ارسال می‌کند و شما می‌توانید زیر آن بازخورد بنویسید.</p>
-        <button class="btn gray sm" id="btn-refresh-ws">🔄 به‌روزرسانی</button>
-        <div id="worksheet-list"></div>
+        <div class="row" style="align-items:center;flex-wrap:wrap;gap:10px">
+          <div style="flex:1;min-width:220px">
+            <label>👤 انتخاب دانش‌آموز</label>
+            <select id="ws-student-select"><option value="">— یک دانش‌آموز را انتخاب کنید —</option></select>
+          </div>
+          <button class="btn gray sm" id="btn-refresh-ws" style="flex:0 0 auto;margin-top:20px">🔄 به‌روزرسانی</button>
+        </div>
+        <div id="worksheet-list" style="margin-top:14px"></div>
       </div>
 
       </div>
@@ -4204,10 +4225,12 @@ function teacherScript() {
     rd.onload=ev=>{
       const img=new Image();
       img.onload=()=>{
-        const c=document.createElement('canvas');const mw=800;let w=img.width,h=img.height;
+        const c=document.createElement('canvas');const mw=1600;let w=img.width,h=img.height;
         if(w>mw){h=Math.round(h*mw/w);w=mw;}
         c.width=w;c.height=h;c.getContext('2d').drawImage(img,0,0,w,h);
-        QUESTIONS[i].image=c.toDataURL('image/jpeg',0.85);renderQ();
+        QUESTIONS[i].image=c.toDataURL('image/jpeg',0.92);
+        if(QUESTIONS[i].imageAsQuestion && !QUESTIONS[i].imageWidth){QUESTIONS[i].imageWidth=500;}
+        renderQ();
       };img.src=ev.target.result;
     };rd.readAsDataURL(f);
   };
@@ -4271,7 +4294,8 @@ function teacherScript() {
   document.querySelectorAll('input[name="grading-type"]').forEach(radio => {
     radio.onchange = function() {
       GRADING_TYPE = this.value;
-      loadAnswers();
+      const sel=document.getElementById('ans-student-select');
+      if(sel.value)renderAnswerDetail(sel.value);
     };
   });
   
@@ -4287,48 +4311,76 @@ function teacherScript() {
   async function loadAnswers(){
     const d=await api('/api/teacher/submissions');
     SUBS=d.submissions||[];
+    const sel=document.getElementById('ans-student-select');
     const box=document.getElementById('answers-list');
-    if(!SUBS.length){box.innerHTML='<p class="muted">هنوز پاسخنامه‌ای ثبت نشده است.</p>';return;}
-    box.innerHTML=SUBS.map((s,si)=>{
-      const g=s.grading||{graded:false,feedback:{},marks:{},overall:''};
-      const isNumeric = GRADING_TYPE === 'numeric';
-      const rows=(s.questionsSnapshot||[]).map((q,i)=>{
-        const ans=s.answers?s.answers[q.id]:'';
-        const photoAns=s.photoAnswers?s.photoAnswers[q.id]:'';
-        const fb=(g.feedback&&g.feedback[q.id])||'';
-        const mk=(g.marks&&g.marks[q.id])||'';
-        const weight = q.weight || 1;
-        
-        let gradeCell;
-        if(isNumeric){
-          // محاسبه حداکثر نمره برای این سوال (بر اساس وزن)
-          const totalWeight = s.questionsSnapshot.reduce((sum, qq) => sum + (qq.weight || 1), 0) || 20;
-          const maxScore = (weight / totalWeight) * 20;
-          gradeCell='<input type="number" id="mk_'+s.uuid+'_'+q.id+'" value="'+esc(mk)+'" placeholder="نمره" min="0" max="'+maxScore.toFixed(1)+'" step="0.5" style="width:80px;padding:6px;border:1px solid #ddd;border-radius:4px">'+
-            '<span style="font-size:11px;color:#64748b;margin-right:4px">از '+maxScore.toFixed(1)+'</span>';
-        } else {
-          const opt=(v,t)=>'<option value="'+v+'" '+(mk===v?'selected':'')+'>'+t+'</option>';
-          gradeCell='<select id="mk_'+s.uuid+'_'+q.id+'"><option value="">—</option>'+opt('excellent','🌟 خیلی خوب')+opt('good','✅ خوب')+opt('acceptable','📌 قابل‌قبول')+opt('needs-improve','📖 نیاز به تلاش')+'</select>';
-        }
-        
-        return '<tr><td>'+(i+1)+'</td><td>'+qHtml(q)+(q.image?'<br><img src="'+q.image+'" class="imgprev" style="max-width:'+(q.imageWidth||320)+'px;width:100%">':'')+'</td>'+
-          '<td>'+(ansText(q,ans)||(photoAns?'':'<i>بدون پاسخ</i>'))+(photoAns?'<br><img src="'+photoAns+'" class="ans-photo-thumb" onclick="openAnsPhoto(this.src)" style="max-width:200px;width:100%;border:1px solid #ddd;border-radius:6px;margin-top:6px;cursor:zoom-in" title="برای بزرگ‌نمایی کلیک کنید"><br><a href="'+photoAns+'" download="پاسخ.jpg" class="btn sm secondary" style="margin-top:4px;display:inline-block">⬇️ دانلود عکس</a>':'')+'</td>'+
-          '<td>'+gradeCell+'</td>'+
-          '<td><input type="text" id="fb_'+s.uuid+'_'+q.id+'" value="'+esc(fb)+'" placeholder="بازخورد"></td></tr>';
-      }).join('');
-      const badge=g.graded?'<span class="pill ok">✅ تصحیح‌شده</span>':'<span class="pill gr">⏳ در انتظار تصحیح</span>';
-      
-      const statusHeader = isNumeric ? 'نمره' : 'وضعیت';
-      const feedbackLabel = isNumeric ? 'توضیحات (اختیاری)' : 'بازخورد';
-      
-      return '<div class="q-block"><div class="qhead"><b>'+esc(s.student.name)+'</b> '+badge+
-        ' <a class="btn sm sec" href="/api/teacher/word?type=answers&uuid='+s.uuid+'">📄 دانلود Word</a></div>'+
-        '<p class="muted">نام پدر: '+esc(s.student.fatherName)+' | کد ملی: '+esc(s.student.nationalId)+' | نام درس: '+esc(s.student.courseName||'')+' | تاریخ آزمون: '+esc(s.student.examDate||'')+' | ثبت: '+new Date(s.submittedAt).toLocaleString('fa-IR')+'</p>'+
-        '<table><tr><th>#</th><th>سوال</th><th>پاسخ دانش‌آموز</th><th>'+statusHeader+'</th><th>'+feedbackLabel+'</th></tr>'+rows+'</table>'+
-        '<label>'+feedbackLabel+' کلی</label><textarea id="ov_'+s.uuid+'">'+esc(g.overall||'')+'</textarea>'+
-        '<button class="btn" style="margin-top:8px" onclick="saveGrade(\\''+s.uuid+'\\')">ثبت تصحیح</button></div>';
+    if(!SUBS.length){
+      sel.innerHTML='<option value="">— پاسخنامه‌ای ثبت نشده —</option>';
+      box.innerHTML='<p class="muted">هنوز پاسخنامه‌ای ثبت نشده است.</p>';
+      return;
+    }
+    const prevVal=sel.value;
+    sel.innerHTML='<option value="">— یک دانش‌آموز را انتخاب کنید —</option>'+SUBS.map(function(s){
+      const g=s.grading||{graded:false};
+      const status=g.graded?' ✅ تصحیح‌شده':' ⏳ در انتظار تصحیح';
+      return '<option value="'+s.uuid+'">'+esc(s.student.name)+status+'</option>';
     }).join('');
+    if(prevVal && SUBS.some(function(s){return s.uuid===prevVal;})){
+      sel.value=prevVal;
+      renderAnswerDetail(prevVal);
+    }else{
+      box.innerHTML='<p class="muted">یک دانش‌آموز را از فهرست بالا انتخاب کنید تا پاسخنامه‌ی او نمایش داده شود.</p>';
+    }
   }
+
+  function renderAnswerDetail(uuid){
+    const box=document.getElementById('answers-list');
+    const s=SUBS.find(function(x){return x.uuid===uuid;});
+    if(!s){box.innerHTML='';return;}
+    const g=s.grading||{graded:false,feedback:{},marks:{},overall:''};
+    const isNumeric = GRADING_TYPE === 'numeric';
+    const rows=(s.questionsSnapshot||[]).map((q,i)=>{
+      const ans=s.answers?s.answers[q.id]:'';
+      const photoAns=s.photoAnswers?s.photoAnswers[q.id]:'';
+      const fb=(g.feedback&&g.feedback[q.id])||'';
+      const mk=(g.marks&&g.marks[q.id])||'';
+      const weight = q.weight || 1;
+      
+      let gradeCell;
+      if(isNumeric){
+        // محاسبه حداکثر نمره برای این سوال (بر اساس وزن)
+        const totalWeight = s.questionsSnapshot.reduce((sum, qq) => sum + (qq.weight || 1), 0) || 20;
+        const maxScore = (weight / totalWeight) * 20;
+        gradeCell='<input type="number" id="mk_'+s.uuid+'_'+q.id+'" value="'+esc(mk)+'" placeholder="نمره" min="0" max="'+maxScore.toFixed(1)+'" step="0.5" style="width:80px;padding:6px;border:1px solid #ddd;border-radius:4px">'+
+          '<span style="font-size:11px;color:#64748b;margin-right:4px">از '+maxScore.toFixed(1)+'</span>';
+      } else {
+        const opt=(v,t)=>'<option value="'+v+'" '+(mk===v?'selected':'')+'>'+t+'</option>';
+        gradeCell='<select id="mk_'+s.uuid+'_'+q.id+'"><option value="">—</option>'+opt('excellent','🌟 خیلی خوب')+opt('good','✅ خوب')+opt('acceptable','📌 قابل‌قبول')+opt('needs-improve','📖 نیاز به تلاش')+'</select>';
+      }
+      
+      return '<tr><td>'+(i+1)+'</td><td>'+qHtml(q)+(q.image?'<br><img src="'+q.image+'" class="imgprev" style="max-width:'+(q.imageWidth||320)+'px;width:100%;cursor:zoom-in" onclick="openAnsPhoto(this.src)" title="برای بزرگ‌نمایی کلیک کنید">':'')+'</td>'+
+        '<td>'+(ansText(q,ans)||(photoAns?'':'<i>بدون پاسخ</i>'))+(photoAns?'<br><img src="'+photoAns+'" class="ans-photo-thumb" onclick="openAnsPhoto(this.src)" style="max-width:200px;width:100%;border:1px solid #ddd;border-radius:6px;margin-top:6px;cursor:zoom-in" title="برای بزرگ‌نمایی کلیک کنید"><br><a href="'+photoAns+'" download="پاسخ.jpg" class="btn sm secondary" style="margin-top:4px;display:inline-block">⬇️ دانلود عکس</a>':'')+'</td>'+
+        '<td>'+gradeCell+'</td>'+
+        '<td><input type="text" id="fb_'+s.uuid+'_'+q.id+'" value="'+esc(fb)+'" placeholder="بازخورد"></td></tr>';
+    }).join('');
+    const badge=g.graded?'<span class="pill ok">✅ تصحیح‌شده</span>':'<span class="pill gr">⏳ در انتظار تصحیح</span>';
+    
+    const statusHeader = isNumeric ? 'نمره' : 'وضعیت';
+    const feedbackLabel = isNumeric ? 'توضیحات (اختیاری)' : 'بازخورد';
+    const avatar=s.studentPhoto?'<img src="'+s.studentPhoto+'" style="width:44px;height:44px;border-radius:50%;object-fit:cover">':'<div style="width:44px;height:44px;border-radius:50%;background:#e2e8f0;display:flex;align-items:center;justify-content:center;font-size:20px">🧑‍🎓</div>';
+    
+    box.innerHTML='<div class="q-block"><div class="qhead"><span style="display:flex;align-items:center;gap:8px">'+avatar+'<b>'+esc(s.student.name)+'</b> '+badge+'</span>'+
+      ' <a class="btn sm sec" href="/api/teacher/word?type=answers&uuid='+s.uuid+'">📄 دانلود Word</a></div>'+
+      '<p class="muted">نام پدر: '+esc(s.student.fatherName)+' | کد ملی: '+esc(s.student.nationalId)+' | نام درس: '+esc(s.student.courseName||'')+' | تاریخ آزمون: '+esc(s.student.examDate||'')+' | ثبت: '+new Date(s.submittedAt).toLocaleString('fa-IR')+'</p>'+
+      '<table><tr><th>#</th><th>سوال</th><th>پاسخ دانش‌آموز</th><th>'+statusHeader+'</th><th>'+feedbackLabel+'</th></tr>'+rows+'</table>'+
+      '<label>'+feedbackLabel+' کلی</label><textarea id="ov_'+s.uuid+'">'+esc(g.overall||'')+'</textarea>'+
+      '<button class="btn" style="margin-top:8px" onclick="saveGrade(\\''+s.uuid+'\\')">ثبت تصحیح</button></div>';
+  }
+
+  document.getElementById('ans-student-select').addEventListener('change', function(){
+    if(this.value)renderAnswerDetail(this.value);
+    else document.getElementById('answers-list').innerHTML='<p class="muted">یک دانش‌آموز را از فهرست بالا انتخاب کنید تا پاسخنامه‌ی او نمایش داده شود.</p>';
+  });
+
   window.saveGrade=async(uuid)=>{
     const sub=SUBS.find(x=>x.uuid===uuid);if(!sub)return;
     const feedback={},marks={};
@@ -4346,25 +4398,73 @@ function teacherScript() {
   // ===== کاربرگ =====
   let WORKSHEET_STUDENTS=[];
   async function loadWorksheetList(){
+    const sel=document.getElementById('ws-student-select');
     const box=document.getElementById('worksheet-list');
-    box.innerHTML='<p class="muted">در حال بارگذاری...</p>';
     const d=await api('/api/teacher/students');
-    if(!d.ok||!d.students||!d.students.length){box.innerHTML='<p class="muted">ابتدا از تب «دانش‌آموزان» یک دانش‌آموز بسازید.</p>';return;}
+    if(!d.ok||!d.students||!d.students.length){
+      sel.innerHTML='<option value="">— ابتدا دانش‌آموز بسازید —</option>';
+      box.innerHTML='<p class="muted">ابتدا از تب «دانش‌آموزان» یک دانش‌آموز بسازید.</p>';
+      return;
+    }
     WORKSHEET_STUDENTS=d.students;
-    box.innerHTML=d.students.map(function(s){
-      const avatar=s.photo?'<img src="'+s.photo+'" style="width:32px;height:32px;border-radius:50%;object-fit:cover">':'<div style="width:32px;height:32px;border-radius:50%;background:#e2e8f0;display:flex;align-items:center;justify-content:center;font-size:14px">🧑‍🎓</div>';
-      return '<div class="q-block" id="ws-row-'+s.uuid+'">'+
-        '<div class="row" style="align-items:center;flex-wrap:wrap">'+
-          avatar+
-          '<b style="flex:1">'+esc(s.label||'(بدون نام)')+'</b>'+
-          '<label class="btn sm sec" style="cursor:pointer;flex:0 0 auto">📄 بارگذاری/جایگزینی کاربرگ<input type="file" accept="image/*,application/pdf" class="hidden" data-ws-upload="'+s.uuid+'"></label>'+
-          '<button class="btn sm" style="flex:0 0 auto" data-ws-toggle="'+s.uuid+'">👁️ مشاهده و بازخورد</button>'+
-        '</div>'+
-        '<div class="hidden" id="ws-detail-'+s.uuid+'" style="margin-top:12px;padding-top:12px;border-top:1px solid var(--line)"></div>'+
-      '</div>';
+    const prevVal=sel.value;
+    sel.innerHTML='<option value="">— یک دانش‌آموز را انتخاب کنید —</option>'+d.students.map(function(s){
+      return '<option value="'+s.uuid+'">'+esc(s.label||'(بدون نام)')+'</option>';
     }).join('');
+    if(prevVal && d.students.some(function(s){return s.uuid===prevVal;})){
+      sel.value=prevVal;
+      renderWorksheetDetail(prevVal);
+    }else{
+      box.innerHTML='<p class="muted">یک دانش‌آموز را از فهرست بالا انتخاب کنید.</p>';
+    }
   }
   document.getElementById('btn-refresh-ws').onclick=loadWorksheetList;
+
+  async function renderWorksheetDetail(uuid){
+    const box=document.getElementById('worksheet-list');
+    const s=WORKSHEET_STUDENTS.find(function(x){return x.uuid===uuid;});
+    const avatar=(s&&s.photo)?'<img src="'+s.photo+'" style="width:40px;height:40px;border-radius:50%;object-fit:cover">':'<div style="width:40px;height:40px;border-radius:50%;background:#e2e8f0;display:flex;align-items:center;justify-content:center;font-size:18px">🧑‍🎓</div>';
+    box.innerHTML='<div class="q-block" id="ws-row-'+uuid+'">'+
+      '<div class="row" style="align-items:center;flex-wrap:wrap">'+
+        '<span style="display:flex;align-items:center;gap:8px;flex:1">'+avatar+'<b>'+esc(s?s.label:'')+'</b></span>'+
+        '<label class="btn sm sec" style="cursor:pointer;flex:0 0 auto">📄 بارگذاری/جایگزینی کاربرگ<input type="file" accept="image/*,application/pdf" class="hidden" data-ws-upload="'+uuid+'"></label>'+
+      '</div>'+
+      '<div id="ws-detail-'+uuid+'" style="margin-top:12px;padding-top:12px;border-top:1px solid var(--line)"><p class="muted">در حال بارگذاری...</p></div>'+
+    '</div>';
+    const detail=document.getElementById('ws-detail-'+uuid);
+    const d=await api('/api/teacher/worksheet/'+uuid);
+    if(!d.ok){detail.innerHTML='<p class="muted">خطا در بارگذاری</p>';return;}
+    const w=d.worksheet||{};
+    let html='';
+    if(w.teacherFile){
+      html+='<div style="margin-bottom:12px"><b style="font-size:13px">📄 کاربرگ ارسال‌شده:</b><br>';
+      if(w.teacherFileType==='pdf'){
+        html+='<a class="btn sm sec" href="'+w.teacherFile+'" download="'+(w.teacherFileName||'کاربرگ.pdf')+'" style="margin-top:6px;display:inline-block">⬇️ دانلود PDF ('+esc(w.teacherFileName||'')+')</a>';
+      }else{
+        html+='<img src="'+w.teacherFile+'" style="max-width:260px;border-radius:8px;border:1px solid #ddd;margin-top:6px;display:block;cursor:zoom-in" onclick="openAnsPhoto(this.src)" title="برای بزرگ‌نمایی کلیک کنید">';
+      }
+      html+='<button class="btn sm danger" type="button" style="margin-top:6px" data-ws-remove="'+uuid+'">🗑 حذف کاربرگ</button>';
+      html+='</div>';
+    }else{
+      html+='<p class="muted">هنوز کاربرگی برای این دانش‌آموز بارگذاری نکرده‌اید.</p>';
+    }
+    if(w.studentFiles&&w.studentFiles.length){
+      html+='<div style="margin-bottom:12px"><b style="font-size:13px">📷 عکس‌های ارسالی دانش‌آموز:</b><div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:6px">'+
+        w.studentFiles.map(function(p){return '<img src="'+p+'" style="width:100px;height:100px;object-fit:cover;border-radius:8px;border:1px solid #ddd;cursor:pointer" onclick="openAnsPhoto(this.src)">';}).join('')+
+      '</div></div>';
+    }else{
+      html+='<p class="muted">دانش‌آموز هنوز کاربرگ انجام‌شده را ارسال نکرده است.</p>';
+    }
+    html+='<div><label style="font-weight:600;font-size:13px">💬 بازخورد شما:</label>'+
+      '<textarea id="ws-fb-'+uuid+'" placeholder="بازخورد خود را برای دانش‌آموز بنویسید...">'+esc(w.feedback||'')+'</textarea>'+
+      '<button class="btn sm primary" style="margin-top:8px" data-ws-savefb="'+uuid+'">💾 ذخیره بازخورد</button></div>';
+    detail.innerHTML=html;
+  }
+
+  document.getElementById('ws-student-select').addEventListener('change', function(){
+    if(this.value)renderWorksheetDetail(this.value);
+    else document.getElementById('worksheet-list').innerHTML='<p class="muted">یک دانش‌آموز را از فهرست بالا انتخاب کنید.</p>';
+  });
 
   document.getElementById('worksheet-list').addEventListener('change',async function(e){
     const inp=e.target.closest('[data-ws-upload]');
@@ -4392,44 +4492,8 @@ function teacherScript() {
       }
       toast('در حال بارگذاری کاربرگ...');
       const d=await api('/api/teacher/worksheet/'+uuid,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({fileDataUrl,fileName})});
-      if(d.ok)toast('کاربرگ بارگذاری شد ✅');else toast(d.error||'خطا در بارگذاری');
+      if(d.ok){toast('کاربرگ بارگذاری شد ✅');renderWorksheetDetail(uuid);}else toast(d.error||'خطا در بارگذاری');
     }catch(err){toast(err.message||'خطا در پردازش فایل');}
-  });
-
-  document.getElementById('worksheet-list').addEventListener('click',async function(e){
-    const btn=e.target.closest('[data-ws-toggle]');
-    if(!btn)return;
-    const uuid=btn.dataset.wsToggle;
-    const detail=document.getElementById('ws-detail-'+uuid);
-    if(!detail.classList.contains('hidden')){detail.classList.add('hidden');return;}
-    detail.classList.remove('hidden');
-    detail.innerHTML='<p class="muted">در حال بارگذاری...</p>';
-    const d=await api('/api/teacher/worksheet/'+uuid);
-    if(!d.ok){detail.innerHTML='<p class="muted">خطا در بارگذاری</p>';return;}
-    const w=d.worksheet||{};
-    let html='';
-    if(w.teacherFile){
-      html+='<div style="margin-bottom:12px"><b style="font-size:13px">📄 کاربرگ ارسال‌شده:</b><br>';
-      if(w.teacherFileType==='pdf'){
-        html+='<a class="btn sm sec" href="'+w.teacherFile+'" download="'+(w.teacherFileName||'کاربرگ.pdf')+'" style="margin-top:6px;display:inline-block">⬇️ دانلود PDF ('+esc(w.teacherFileName||'')+')</a>';
-      }else{
-        html+='<img src="'+w.teacherFile+'" style="max-width:260px;border-radius:8px;border:1px solid #ddd;margin-top:6px;display:block">';
-      }
-      html+='</div>';
-    }else{
-      html+='<p class="muted">هنوز کاربرگی برای این دانش‌آموز بارگذاری نکرده‌اید.</p>';
-    }
-    if(w.studentFiles&&w.studentFiles.length){
-      html+='<div style="margin-bottom:12px"><b style="font-size:13px">📷 عکس‌های ارسالی دانش‌آموز:</b><div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:6px">'+
-        w.studentFiles.map(function(p){return '<img src="'+p+'" style="width:100px;height:100px;object-fit:cover;border-radius:8px;border:1px solid #ddd;cursor:pointer" onclick="openAnsPhoto(this.src)">';}).join('')+
-      '</div></div>';
-    }else{
-      html+='<p class="muted">دانش‌آموز هنوز کاربرگ انجام‌شده را ارسال نکرده است.</p>';
-    }
-    html+='<div><label style="font-weight:600;font-size:13px">💬 بازخورد شما:</label>'+
-      '<textarea id="ws-fb-'+uuid+'" placeholder="بازخورد خود را برای دانش‌آموز بنویسید...">'+esc(w.feedback||'')+'</textarea>'+
-      '<button class="btn sm primary" style="margin-top:8px" data-ws-savefb="'+uuid+'">💾 ذخیره بازخورد</button></div>';
-    detail.innerHTML=html;
   });
 
   document.getElementById('worksheet-list').addEventListener('click',async function(e){
@@ -4440,6 +4504,15 @@ function teacherScript() {
     const feedback=ta?ta.value:'';
     const d=await api('/api/teacher/worksheet/'+uuid+'/feedback',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({feedback})});
     if(d.ok)toast('بازخورد ذخیره شد ✅');else toast(d.error||'خطا در ذخیره بازخورد');
+  });
+
+  document.getElementById('worksheet-list').addEventListener('click',async function(e){
+    const btn=e.target.closest('[data-ws-remove]');
+    if(!btn)return;
+    const uuid=btn.dataset.wsRemove;
+    if(!confirm('آیا از حذف کاربرگ مطمئن هستید؟'))return;
+    const d=await api('/api/teacher/worksheet/'+uuid,{method:'DELETE'});
+    if(d.ok){toast('کاربرگ حذف شد ✅');renderWorksheetDetail(uuid);}else toast(d.error||'خطا در حذف');
   });
 
   // ===== برنامه هفتگی =====
