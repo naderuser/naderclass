@@ -6177,7 +6177,7 @@ function teacherScript() {
           }
         });
       }
-      const extracted=parts.join('\n').trim();
+      const extracted=parts.join('\\n').trim();
       if(!extracted){toast('متنی در این PDF پیدا نشد (شاید فقط عکس/اسکن باشد)');}
       else{
         document.getElementById('tl-input').value=extracted;
