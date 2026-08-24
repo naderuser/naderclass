@@ -1445,7 +1445,7 @@ const SHARED_CSS = `
   .ai-title h3{margin:0;font-size:16px;font-weight:700}
   .ai-status{font-size:12px;opacity:.8}
   .ai-mode-select select{padding:8px 12px;border-radius:8px;border:none;background:#fff;color:#333;font-size:13px;font-weight:600;cursor:pointer}
-  .ai-messages{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:12px}
+  .ai-messages{flex:1;min-height:0;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:12px}
   .ai-message{display:flex;gap:10px;max-width:85%}
   .ai-message.user{flex-direction:row-reverse;align-self:flex-end}
   .ai-message.ai{align-self:flex-start}
@@ -1454,7 +1454,15 @@ const SHARED_CSS = `
   .ai-message-content{background:#fff;border-radius:16px;padding:12px 16px;box-shadow:0 2px 8px rgba(0,0,0,.08);border:1px solid #e2e8f0}
   [data-theme="dark"] .ai-message-content{background:#1e293b;border-color:#475569;color:#e2e8f0}
   .ai-message.user .ai-message-content{background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;border-color:transparent}
-  .ai-message-text{line-height:1.7;font-size:14px;white-space:pre-wrap}
+  .ai-message-text{line-height:1.7;font-size:14px;white-space:pre-wrap;user-select:text}
+  .ai-copy-btn{display:inline-flex;align-items:center;gap:4px;margin-top:8px;padding:3px 10px;font-size:11px;font-weight:600;border-radius:999px;border:1px solid #e2e8f0;background:#f8fafc;color:#475569;cursor:pointer;transition:all .15s}
+  .ai-copy-btn:hover{background:#667eea;color:#fff;border-color:#667eea}
+  .ai-message.user .ai-copy-btn{background:rgba(255,255,255,.15);color:#fff;border-color:rgba(255,255,255,.3)}
+  .ai-message.user .ai-copy-btn:hover{background:#fff;color:#667eea}
+  .ai-del-btn{display:inline-flex;align-items:center;gap:4px;margin-top:8px;margin-inline-start:6px;padding:3px 10px;font-size:11px;font-weight:600;border-radius:999px;border:1px solid #fecaca;background:#fef2f2;color:#dc2626;cursor:pointer;transition:all .15s}
+  .ai-del-btn:hover{background:#dc2626;color:#fff;border-color:#dc2626}
+  .ai-message.user .ai-del-btn{background:rgba(255,255,255,.15);color:#fff;border-color:rgba(255,255,255,.3)}
+  .ai-message.user .ai-del-btn:hover{background:#fff;color:#dc2626}
   .ai-typing-dots{display:flex;gap:4px;padding:4px 0}
   .ai-typing-dots span{width:8px;height:8px;background:#667eea;border-radius:50%;animation:typingBounce 1.4s infinite ease-in-out}
   .ai-typing-dots span:nth-child(1){animation-delay:-.32s}
@@ -2822,13 +2830,13 @@ function teacherPage() {
         </div>
         <p class="muted" style="font-size:12px;margin-top:10px">💡 نکته: اگر متن شامل اصطلاح تخصصی یا آموزشی خاصی است، آن را داخل پرانتز در متن ورودی توضیح بدهید تا ترجمه دقیق‌تر شود.</p>
       </div>
-      </div>
 
       <div class="subtab-content hidden" id="tab-ai">
         <div class="ai-chat-container">
           <div class="ai-header">
             <div class="ai-avatar">🤖</div>
             <div class="ai-title"><h3>دستیار هوش مصنوعی</h3><span class="ai-status">آنلاین</span></div>
+            <button type="button" class="btn sm gray" id="btn-ai-clear" title="پاک کردن کل گفتگو" style="flex:0 0 auto">🗑️ پاک کردن گفتگو</button>
           </div>
           <div id="ai-messages" class="ai-messages">
             <div class="ai-message ai"><div class="ai-message-avatar">🤖</div><div class="ai-message-content"><div class="ai-message-text">سلام! 👋 من دستیار هوش مصنوعی شما هستم. چطور می‌توانم کمکتان کنم؟</div></div></div>
@@ -6292,14 +6300,38 @@ function teacherScript() {
     aiPendingImage=null;
     document.getElementById('ai-img-preview').classList.add('hidden');
   };
-  function addAiMessage(role,text,imageUrl){
+  function addAiMessage(role,text,imageUrl,msgId){
     const box=document.getElementById('ai-messages');
     const isUser=role==='user';
     const imgHtml=imageUrl?'<img src="'+imageUrl+'" style="max-width:180px;max-height:180px;border-radius:8px;display:block;margin-bottom:6px">':'';
-    const html='<div class="ai-message '+(isUser?'user':'ai')+'"><div class="ai-message-avatar">'+(isUser?'👤':'🤖')+'</div><div class="ai-message-content"><div class="ai-message-text">'+imgHtml+esc(text)+'</div></div></div>';
+    const id=msgId||('aimsg_'+Date.now()+'_'+Math.floor(Math.random()*10000));
+    const html='<div class="ai-message '+(isUser?'user':'ai')+'" data-msgid="'+id+'"><div class="ai-message-avatar">'+(isUser?'👤':'🤖')+'</div><div class="ai-message-content"><div class="ai-message-text" id="'+id+'">'+imgHtml+esc(text)+'</div><button type="button" class="ai-copy-btn" onclick="copyAiMsg(\\''+id+'\\',this)">📋 کپی</button><button type="button" class="ai-del-btn" onclick="deleteAiMsg(\\''+id+'\\')">🗑️ حذف</button></div></div>';
     box.insertAdjacentHTML('beforeend',html);
     box.scrollTop=box.scrollHeight;
+    return id;
   }
+  window.copyAiMsg=function(msgId,btn){
+    const el=document.getElementById(msgId);
+    if(!el)return;
+    const text=el.innerText||el.textContent||'';
+    navigator.clipboard.writeText(text).then(()=>{
+      const old=btn.innerHTML;
+      btn.innerHTML='✅ کپی شد';
+      setTimeout(()=>{btn.innerHTML=old;},1500);
+    }).catch(()=>{toast('کپی ناموفق بود');});
+  };
+  window.deleteAiMsg=function(msgId){
+    const bubble=document.querySelector('.ai-message[data-msgid="'+msgId+'"]');
+    if(bubble)bubble.remove();
+    aiMessages=aiMessages.filter(m=>m._id!==msgId);
+    toast('پیام حذف شد');
+  };
+  document.getElementById('btn-ai-clear').onclick=()=>{
+    if(!confirm('آیا از پاک کردن کل گفتگو مطمئن هستید؟ این کار قابل بازگشت نیست.'))return;
+    document.getElementById('ai-messages').innerHTML='<div class="ai-message ai"><div class="ai-message-avatar">🤖</div><div class="ai-message-content"><div class="ai-message-text">سلام! 👋 من دستیار هوش مصنوعی شما هستم. چطور می‌توانم کمکتان کنم؟</div></div></div>';
+    aiMessages=[{role:'system',content:'تو یک دستیار هوشمند برای معلمان هستی. به زبان فارسی پاسخ بده.'}];
+    toast('گفتگو پاک شد');
+  };
   function showTyping(){document.getElementById('ai-typing').classList.remove('hidden');document.getElementById('ai-messages').scrollTop=document.getElementById('ai-messages').scrollHeight;}
   function hideTyping(){document.getElementById('ai-typing').classList.add('hidden');}
   document.getElementById('btn-ai-send').onclick=async()=>{
@@ -6307,23 +6339,23 @@ function teacherScript() {
     const img=aiPendingImage;
     if(!text&&!img)return;
     aiInput.value='';aiInput.style.height='auto';
-    addAiMessage('user',text||'(بدون متن)',img);
+    const userMsgId=addAiMessage('user',text||'(بدون متن)',img);
     if(img){
-      aiMessages.push({role:'user',content:[{type:'text',text:text||'این تصویر را توضیح بده'},{type:'image_url',image_url:{url:img}}]});
+      aiMessages.push({role:'user',content:[{type:'text',text:text||'این تصویر را توضیح بده'},{type:'image_url',image_url:{url:img}}],_id:userMsgId});
     }else{
-      aiMessages.push({role:'user',content:text});
+      aiMessages.push({role:'user',content:text,_id:userMsgId});
     }
     aiPendingImage=null;
     document.getElementById('ai-img-preview').classList.add('hidden');
     showTyping();
     try{
-      const msgs=aiMessages.slice(-10);
+      const msgs=aiMessages.slice(-10).map(m=>({role:m.role,content:m.content}));
       const res=await fetch('/api/teacher/ai/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({messages:msgs,provider:getAiProvider()})});
       const d=await res.json();
       hideTyping();
       if(d.error){addAiMessage('ai','❌ خطا: '+d.error);return;}
-      addAiMessage('ai',d.content);
-      aiMessages.push({role:'assistant',content:d.content});
+      const aiMsgId=addAiMessage('ai',d.content);
+      aiMessages.push({role:'assistant',content:d.content,_id:aiMsgId});
     }catch(e){
       hideTyping();
       addAiMessage('ai','❌ خطا در اتصال: '+e.message);
