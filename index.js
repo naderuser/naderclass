@@ -6350,7 +6350,7 @@ function teacherScript() {
     showTyping();
     try{
       const msgs=aiMessages.slice(-10).map(m=>({role:m.role,content:m.content}));
-      const res=await fetch('/api/teacher/ai/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({messages:msgs,provider:getAiProvider()})});
+      const res=await fetch('/api/teacher/ai/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({messages:msgs,provider:getAiProvider(),max_tokens:4096})});
       const d=await res.json();
       hideTyping();
       if(d.error){addAiMessage('ai','❌ خطا: '+d.error);return;}
