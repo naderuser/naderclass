@@ -442,6 +442,14 @@ export class ClassRoom {
 async function handleApi(req, env, url, path) {
   const method = req.method;
 
+  /* --- تشخیصی موقت: بررسی وجود کلید GROQ (بدون افشای مقدار) --- */
+  if (path === "/api/debug/env-check" && method === "GET") {
+    return json({
+      hasGroqKey: typeof env.GROQ_API_KEY === "string" && env.GROQ_API_KEY.length > 0,
+      groqKeyLength: env.GROQ_API_KEY ? env.GROQ_API_KEY.length : 0,
+    });
+  }
+
   /* --- معلم: ورود/خروج --- */
   if (path === "/api/teacher/login" && method === "POST") {
     const body = await req.json().catch(() => ({}));
@@ -727,8 +735,9 @@ async function handleApi(req, env, url, path) {
       const apiKey = env.GROQ_API_KEY;
       if (!apiKey) return json({ error: "کلید GROQ_API_KEY تنظیم نشده" }, 500);
       // اگر هر یک از پیام‌ها شامل تصویر باشد، به‌صورت خودکار به مدل چندرسانه‌ای (تصویر+متن) Groq سوییچ می‌کنیم
+      // توجه: llama-3.3-70b-versatile و llama-4-scout توسط Groq بازنشسته شدند (۲۰۲۶)؛ جایگزین شد با gpt-oss-120b / qwen3.6-27b
       const hasImage = messages.some(m => Array.isArray(m.content) && m.content.some(c => c && c.type === "image_url"));
-      const model = hasImage ? "meta-llama/llama-4-scout-17b-16e-instruct" : "llama-3.3-70b-versatile";
+      const model = hasImage ? "qwen/qwen3.6-27b" : "openai/gpt-oss-120b";
       // برای کارهایی مثل استخراج متن از عکس/PDF ممکن است متن خروجی طولانی‌تر از حد پیش‌فرض باشد
       const maxTokens = Math.min(Math.max(parseInt(body.max_tokens, 10) || 1024, 256), 4096);
       try {
