@@ -759,6 +759,7 @@ async function handleApi(req, env, url, path) {
           correct: q.correct == null ? "" : q.correct,
           image: typeof q.image === "string" ? q.image : "",
           imageWidth: Number.isFinite(parseInt(q.imageWidth, 10)) ? Math.min(900, Math.max(80, parseInt(q.imageWidth, 10))) : 320,
+          imageAsQuestion: Boolean(q.imageAsQuestion),
           weight: Math.min(20, Math.max(0.5, parseFloat(q.weight) || 1)),
           order: i,
         };
@@ -3975,41 +3976,68 @@ function teacherScript() {
   function escA(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
   function qHtml(q){return q.rich?(q.text||''):esc(q.text);}
   function qBlock(q,i){
-    let body;
-    if(q.type==='descriptive'){
-      body='<label>متن سوال</label>'+
+    let body='';
+    const imgMode=Boolean(q.imageAsQuestion);
+
+    // ===== سوییچ: تایپ متن یا بارگذاری عکس سوال =====
+    body+='<div class="q-mode-toggle" style="margin-bottom:8px">'+
+      '<label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-weight:600">'+
+      '<input type="checkbox" '+(imgMode?'checked':'')+' onchange="toggleQImageMode('+i+',this.checked)"> '+
+      '🖼️ به‌جای تایپ متن، عکس سوال بارگذاری شود</label></div>';
+
+    if(imgMode){
+      // ===== حالت عکس سوال (بدون نیاز به تایپ متن) =====
+      body+='<label>🖼️ عکس سوال</label>';
+      if(q.image){
+        const w=q.imageWidth||320;
+        body+='<div><img src="'+q.image+'" class="imgprev" style="max-width:'+w+'px;width:100%"></div>'+
+          '<div class="row" style="align-items:center;margin-top:6px">'+
+          '<label style="flex:0 0 auto;margin:0">اندازه‌ی نمایش:</label>'+
+          '<select onchange="updImgSize('+i+',this.value)" style="flex:0 0 auto;width:auto">'+
+            [['180','کوچک'],['320','متوسط'],['500','بزرگ'],['800','تمام عرض برگه']].map(o=>'<option value="'+o[0]+'" '+(String(w)===o[0]?'selected':'')+'>'+o[1]+'</option>').join('')+
+          '</select>'+
+          '<button class="btn sm danger" type="button" onclick="rmImg('+i+')" style="flex:0 0 auto">حذف عکس</button></div>';
+      }else{
+        body+='<input type="file" accept="image/*" onchange="loadImg('+i+',this)">'+
+          '<p class="muted" style="font-size:12px;margin-top:4px">عکس سوال را انتخاب کنید؛ نیازی به تایپ متن نیست.</p>';
+      }
+    }else if(q.type==='descriptive'){
+      body+='<label>متن سوال</label>'+
         '<div class="rich" data-qd="'+i+'" contenteditable="true" oninput="updHtml('+i+')">'+qHtml(q)+'</div>';
     }else{
-      body='<label>متن سوال</label><textarea data-qd="'+i+'" oninput="upd('+i+',\\'text\\',this.value)">'+esc(q.text)+'</textarea>';
-      if(q.type==='multiple'){
-        body+='<label>گزینه صحیح</label><select onchange="upd('+i+',\\'correct\\',this.value)">'+
-          [0,1,2,3].map(n=>'<option value="'+n+'" '+(String(q.correct)===String(n)?'selected':'')+'>'+['الف','ب','ج','د'][n]+'</option>').join('')+'</select>';
-        body+='<label>گزینه‌ها</label>';
-        for(let oi=0;oi<4;oi++){
-          body+='<div class="opt-row"><span>'+['الف','ب','ج','د'][oi]+')</span><input type="text" value="'+esc((q.options&&q.options[oi])||'')+'" oninput="updOpt('+i+','+oi+',this.value)"></div>';
-        }
-      }else if(q.type==='truefalse'){
-        body+='<label>پاسخ صحیح</label><select onchange="upd('+i+',\\'correct\\',this.value)">'+
-          '<option value="true" '+(String(q.correct)==='true'?'selected':'')+'>صحیح</option>'+
-          '<option value="false" '+(String(q.correct)==='false'?'selected':'')+'>غلط</option></select>';
-      }else if(q.type==='short'){
-        body+='<label>پاسخ نمونه (اختیاری)</label><input type="text" value="'+esc(q.correct||'')+'" oninput="upd('+i+',\\'correct\\',this.value)">';
-      }
+      body+='<label>متن سوال</label><textarea data-qd="'+i+'" oninput="upd('+i+',\\'text\\',this.value)">'+esc(q.text)+'</textarea>';
     }
 
-    // ===== عکس / شکل (برای همه‌ی انواع سوال) =====
-    body+='<label>🖼️ عکس / شکل (اختیاری)</label>';
-    if(q.image){
-      const w=q.imageWidth||320;
-      body+='<div><img src="'+q.image+'" class="imgprev" style="max-width:'+w+'px;width:100%"></div>'+
-        '<div class="row" style="align-items:center;margin-top:6px">'+
-        '<label style="flex:0 0 auto;margin:0">اندازه‌ی نمایش:</label>'+
-        '<select onchange="updImgSize('+i+',this.value)" style="flex:0 0 auto;width:auto">'+
-          [['180','کوچک'],['320','متوسط'],['500','بزرگ'],['800','تمام عرض برگه']].map(o=>'<option value="'+o[0]+'" '+(String(w)===o[0]?'selected':'')+'>'+o[1]+'</option>').join('')+
-        '</select>'+
-        '<button class="btn sm danger" type="button" onclick="rmImg('+i+')" style="flex:0 0 auto">حذف عکس</button></div>';
-    }else{
-      body+='<input type="file" accept="image/*" onchange="loadImg('+i+',this)">';
+    if(q.type==='multiple'){
+      body+='<label>گزینه صحیح</label><select onchange="upd('+i+',\\'correct\\',this.value)">'+
+        [0,1,2,3].map(n=>'<option value="'+n+'" '+(String(q.correct)===String(n)?'selected':'')+'>'+['الف','ب','ج','د'][n]+'</option>').join('')+'</select>';
+      body+='<label>گزینه‌ها</label>';
+      for(let oi=0;oi<4;oi++){
+        body+='<div class="opt-row"><span>'+['الف','ب','ج','د'][oi]+')</span><input type="text" value="'+esc((q.options&&q.options[oi])||'')+'" oninput="updOpt('+i+','+oi+',this.value)"></div>';
+      }
+    }else if(q.type==='truefalse'){
+      body+='<label>پاسخ صحیح</label><select onchange="upd('+i+',\\'correct\\',this.value)">'+
+        '<option value="true" '+(String(q.correct)==='true'?'selected':'')+'>صحیح</option>'+
+        '<option value="false" '+(String(q.correct)==='false'?'selected':'')+'>غلط</option></select>';
+    }else if(q.type==='short'){
+      body+='<label>پاسخ نمونه (اختیاری)</label><input type="text" value="'+esc(q.correct||'')+'" oninput="upd('+i+',\\'correct\\',this.value)">';
+    }
+
+    // ===== عکس / شکل کمکی اضافی (فقط وقتی حالت «عکس سوال» فعال نیست) =====
+    if(!imgMode){
+      body+='<label>🖼️ عکس / شکل (اختیاری)</label>';
+      if(q.image){
+        const w=q.imageWidth||320;
+        body+='<div><img src="'+q.image+'" class="imgprev" style="max-width:'+w+'px;width:100%"></div>'+
+          '<div class="row" style="align-items:center;margin-top:6px">'+
+          '<label style="flex:0 0 auto;margin:0">اندازه‌ی نمایش:</label>'+
+          '<select onchange="updImgSize('+i+',this.value)" style="flex:0 0 auto;width:auto">'+
+            [['180','کوچک'],['320','متوسط'],['500','بزرگ'],['800','تمام عرض برگه']].map(o=>'<option value="'+o[0]+'" '+(String(w)===o[0]?'selected':'')+'>'+o[1]+'</option>').join('')+
+          '</select>'+
+          '<button class="btn sm danger" type="button" onclick="rmImg('+i+')" style="flex:0 0 auto">حذف عکس</button></div>';
+      }else{
+        body+='<input type="file" accept="image/*" onchange="loadImg('+i+',this)">';
+      }
     }
     
     // ===== بخش وزن (ضریب) هر سوال =====
@@ -4185,6 +4213,10 @@ function teacherScript() {
   };
   window.rmImg=(i)=>{QUESTIONS[i].image='';QUESTIONS[i].imageWidth=0;renderQ();};
   window.updImgSize=(i,val)=>{QUESTIONS[i].imageWidth=parseInt(val,10)||320;renderQ();};
+  window.toggleQImageMode=(i,checked)=>{
+    QUESTIONS[i].imageAsQuestion=checked;
+    renderQ();
+  };
   
   document.querySelectorAll('[data-add]').forEach(b=>b.onclick=()=>{
     const t=b.dataset.add;
