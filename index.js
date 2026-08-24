@@ -732,14 +732,67 @@ async function handleApi(req, env, url, path) {
     if (path === "/api/teacher/ai/chat" && method === "POST") {
       const body = await req.json().catch(() => ({}));
       const messages = body.messages || [];
+      const provider = body.provider === "gemini" ? "gemini" : "groq";
+      const maxTokens = Math.min(Math.max(parseInt(body.max_tokens, 10) || 1024, 256), 4096);
+      const hasImage = messages.some(m => Array.isArray(m.content) && m.content.some(c => c && c.type === "image_url"));
+
+      if (provider === "gemini") {
+        const geminiKey = env.GEMINI_API_KEY;
+        if (!geminiKey) return json({ error: "کلید GEMINI_API_KEY تنظیم نشده" }, 500);
+        // مدل فعلی: gemini-3.6-flash (نسخه‌ی پایدار/GA در سال ۲۰۲۶؛ در صورت بازنشستگی باید به‌روزرسانی شود)
+        const geminiModel = "gemini-3.6-flash";
+        // تبدیل قالب پیام‌های OpenAI-style به قالب contents مورد نیاز Gemini
+        let systemInstruction = "";
+        const contents = [];
+        for (const m of messages.slice(-10)) {
+          if (m.role === "system") { systemInstruction += (systemInstruction ? "\n" : "") + (typeof m.content === "string" ? m.content : ""); continue; }
+          const role = m.role === "assistant" ? "model" : "user";
+          const parts = [];
+          if (typeof m.content === "string") {
+            parts.push({ text: m.content });
+          } else if (Array.isArray(m.content)) {
+            for (const c of m.content) {
+              if (c.type === "text") parts.push({ text: c.text });
+              else if (c.type === "image_url" && c.image_url?.url) {
+                const durl = c.image_url.url;
+                const match = /^data:(.+?);base64,(.+)$/.exec(durl);
+                if (match) parts.push({ inline_data: { mime_type: match[1], data: match[2] } });
+              }
+            }
+          }
+          if (parts.length) contents.push({ role, parts });
+        }
+        try {
+          const aiRes = await fetch(
+            `https://generativelanguage.googleapis.com/v1beta/models/${geminiModel}:generateContent?key=${geminiKey}`,
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                contents,
+                systemInstruction: systemInstruction ? { parts: [{ text: systemInstruction }] } : undefined,
+                generationConfig: { maxOutputTokens: maxTokens }
+              })
+            }
+          );
+          if (!aiRes.ok) {
+            const errText = await aiRes.text();
+            return json({ error: "Gemini: " + errText }, aiRes.status);
+          }
+          const aiData = await aiRes.json();
+          const text = aiData.candidates?.[0]?.content?.parts?.map(p => p.text || "").join("") || "";
+          return json({ ok: true, content: text });
+        } catch (e) {
+          return json({ error: "Error: " + e.message }, 500);
+        }
+      }
+
+      // ===== Groq (پیش‌فرض) =====
       const apiKey = env.GROQ_API_KEY;
       if (!apiKey) return json({ error: "کلید GROQ_API_KEY تنظیم نشده" }, 500);
       // اگر هر یک از پیام‌ها شامل تصویر باشد، به‌صورت خودکار به مدل چندرسانه‌ای (تصویر+متن) Groq سوییچ می‌کنیم
       // توجه: llama-3.3-70b-versatile و llama-4-scout توسط Groq بازنشسته شدند (۲۰۲۶)؛ جایگزین شد با gpt-oss-120b / qwen3.6-27b
-      const hasImage = messages.some(m => Array.isArray(m.content) && m.content.some(c => c && c.type === "image_url"));
       const model = hasImage ? "qwen/qwen3.6-27b" : "openai/gpt-oss-120b";
-      // برای کارهایی مثل استخراج متن از عکس/PDF ممکن است متن خروجی طولانی‌تر از حد پیش‌فرض باشد
-      const maxTokens = Math.min(Math.max(parseInt(body.max_tokens, 10) || 1024, 256), 4096);
       try {
         const aiRes = await fetch("https://api.groq.com/openai/v1/chat/completions", {
           method: "POST",
@@ -3183,6 +3236,12 @@ function teacherPage() {
           <button class="theme-btn" data-theme="light" onclick="setTheme('light')">☀️ روشن</button>
           <button class="theme-btn" data-theme="dark" onclick="setTheme('dark')">🌙 تاریک</button>
         </div>
+        <h3>🤖 موتور هوش مصنوعی</h3>
+        <p class="muted" style="margin-bottom:8px">این انتخاب برای تمام قابلیت‌های هوش مصنوعی (ترجمه، استخراج متن از عکس/PDF و ...) اعمال می‌شود.</p>
+        <select id="ai-provider-select" style="max-width:320px;margin-bottom:20px">
+          <option value="groq">⚡ Groq (سریع‌تر)</option>
+          <option value="gemini">✨ Gemini (قوی‌تر، برای کارهای پیچیده‌تر بهتر)</option>
+        </select>
         <h3>🔐 تغییر رمز عبور</h3>
         <label>رمز عبور جدید</label><input id="new-pass" type="password" autocomplete="new-password">
         <p class="muted" id="pass-msg"></p>
@@ -3242,6 +3301,16 @@ function teacherScript() {
   document.documentElement.setAttribute('data-theme',savedTheme);
   setTimeout(()=>{document.querySelectorAll('.theme-btn').forEach(b=>b.classList.toggle('active',b.dataset.theme===savedTheme));},100);
   window.setTheme=function(t){document.documentElement.setAttribute('data-theme',t);localStorage.setItem('panelTheme',t);document.querySelectorAll('.theme-btn').forEach(b=>b.classList.toggle('active',b.dataset.theme===t));};
+
+  // ===== انتخاب موتور هوش مصنوعی (Groq / Gemini) =====
+  window.getAiProvider=function(){return localStorage.getItem('aiProvider')||'groq';};
+  setTimeout(()=>{
+    const sel=document.getElementById('ai-provider-select');
+    if(sel){
+      sel.value=getAiProvider();
+      sel.addEventListener('change',()=>{localStorage.setItem('aiProvider',sel.value);toast('موتور هوش مصنوعی تغییر کرد');});
+    }
+  },100);
 
   // ===== ورود =====
   async function checkAuth(){
@@ -6092,7 +6161,7 @@ function teacherScript() {
       'into '+toName+'. '+(toneInstruction||'')+' '+
       'Preserve the original meaning, paragraph breaks, and any numbers/names exactly. '+
       'Respond with ONLY the translation itself — natural, fluent, and idiomatic — no quotes, no explanations, no extra commentary, no original text repeated.';
-    const res=await fetch('/api/teacher/ai/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({messages:[{role:'system',content:sys},{role:'user',content:text}],max_tokens:4096})});
+    const res=await fetch('/api/teacher/ai/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({messages:[{role:'system',content:sys},{role:'user',content:text}],max_tokens:4096,provider:getAiProvider()})});
     const data=await res.json();
     if(data.error)throw new Error(data.error);
     return (data.content||'').trim();
@@ -6149,7 +6218,7 @@ function teacherScript() {
         reader.readAsDataURL(file);
       });
       const sys='You are an OCR engine. Extract ALL text visible in the image EXACTLY as written, preserving line breaks and paragraph structure. Do NOT translate it. Do NOT add any commentary, headers, or explanation — output ONLY the extracted text, nothing else.';
-      const res=await fetch('/api/teacher/ai/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({messages:[{role:'system',content:sys},{role:'user',content:[{type:'text',text:'متن این تصویر را استخراج کن.'},{type:'image_url',image_url:{url:dataUrl}}]}],max_tokens:4096})});
+      const res=await fetch('/api/teacher/ai/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({messages:[{role:'system',content:sys},{role:'user',content:[{type:'text',text:'متن این تصویر را استخراج کن.'},{type:'image_url',image_url:{url:dataUrl}}]}],max_tokens:4096,provider:getAiProvider()})});
       const data=await res.json();
       if(data.error)throw new Error(data.error);
       const extracted=(data.content||'').trim();
@@ -6249,7 +6318,7 @@ function teacherScript() {
     showTyping();
     try{
       const msgs=aiMessages.slice(-10);
-      const res=await fetch('/api/teacher/ai/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({messages:msgs})});
+      const res=await fetch('/api/teacher/ai/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({messages:msgs,provider:getAiProvider()})});
       const d=await res.json();
       hideTyping();
       if(d.error){addAiMessage('ai','❌ خطا: '+d.error);return;}
