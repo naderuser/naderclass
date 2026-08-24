@@ -2012,7 +2012,7 @@ async function studentPage(env, id) {
             '<div id="photopreview_'+q.id+'" style="margin-top:8px"></div>'+
             '</div>';
         }
-        const img=q.image?'<div><img src="'+q.image+'" class="imgprev" style="max-width:'+(q.imageWidth||320)+'px;width:100%;cursor:zoom-in" onclick="window.open(this.src,\'_blank\')" title="برای بزرگ‌نمایی کلیک کنید"><div class="muted" style="font-size:11px;margin-top:2px">🔍 برای بزرگ‌نمایی روی عکس کلیک کنید</div></div>':'';
+        const img=q.image?'<div><img src="'+q.image+'" class="imgprev" style="max-width:'+(q.imageWidth||320)+'px;width:100%;cursor:zoom-in" onclick="window.open(this.src)" title="برای بزرگ‌نمایی کلیک کنید"><div class="muted" style="font-size:11px;margin-top:2px">🔍 برای بزرگ‌نمایی روی عکس کلیک کنید</div></div>':'';
         const weightInfo = q.weight ? \`<span style="font-size:11px;color:#64748b;margin-right:8px">(وزن: \${q.weight})</span>\` : '';
         const isLast=i===DATA.questions.length-1;
         const nextBtn=isLast?'':'<div style="margin-top:14px"><button type="button" class="btn primary q-next-btn" data-qnext="'+i+'">✅ ثبت و ادامه</button></div>';
