@@ -217,6 +217,11 @@ export default {
         return await studentPage(env, id);
       }
 
+      if (path.startsWith("/w/")) {
+        const id = decodeURIComponent(path.slice(3));
+        return await workSheetPage(env, id);
+      }
+
       if (path.startsWith("/class/")) {
         const id = decodeURIComponent(path.slice(7));
         return await studentClassPage(env, id);
@@ -559,6 +564,49 @@ async function handleApi(req, env, url, path) {
     }
   }
 
+  /* --- کاربرگ دانش‌آموز (عمومی) --- */
+  if (path.startsWith("/api/worksheet/")) {
+    const rest = path.slice("/api/worksheet/".length);
+    const parts = rest.split("/");
+    const id = decodeURIComponent(parts[0] || "");
+    const studentRaw = await env.EXAM_KV.get("student:" + id);
+    if (!studentRaw) return json({ ok: false, error: "لینک نامعتبر است" }, 404);
+    const st = JSON.parse(studentRaw);
+
+    if (parts[1] === "submit" && method === "POST") {
+      const body = await req.json().catch(() => ({}));
+      const photos = Array.isArray(body.photos) ? body.photos.slice(0, 6) : [];
+      for (const p of photos) {
+        if (typeof p !== "string" || !p.startsWith("data:image/")) return json({ ok: false, error: "فرمت عکس نامعتبر است" }, 400);
+        if (p.length > 2_800_000) return json({ ok: false, error: "حجم یکی از عکس‌ها بیش از حد مجاز است (حداکثر ۲ مگابایت)" }, 400);
+      }
+      if (!photos.length) return json({ ok: false, error: "حداقل یک عکس باید بارگذاری شود" }, 400);
+      const raw = await env.EXAM_KV.get("worksheet:" + id);
+      const rec = raw ? JSON.parse(raw) : { uuid: id };
+      rec.studentFiles = photos;
+      rec.studentUploadedAt = Date.now();
+      await env.EXAM_KV.put("worksheet:" + id, JSON.stringify(rec));
+      return json({ ok: true });
+    }
+
+    if (method === "GET") {
+      const raw = await env.EXAM_KV.get("worksheet:" + id);
+      const rec = raw ? JSON.parse(raw) : {};
+      return json({
+        ok: true,
+        label: st.label || "",
+        teacherFile: rec.teacherFile || "",
+        teacherFileName: rec.teacherFileName || "",
+        teacherFileType: rec.teacherFileType || "",
+        teacherUploadedAt: rec.teacherUploadedAt || null,
+        studentFiles: rec.studentFiles || [],
+        studentUploadedAt: rec.studentUploadedAt || null,
+        feedback: rec.feedback || "",
+        feedbackAt: rec.feedbackAt || null,
+      });
+    }
+  }
+
   /* --- از این به بعد فقط معلم --- */
   if (path.startsWith("/api/teacher/")) {
     if (!(await isTeacher(req, env))) return json({ ok: false, error: "دسترسی غیرمجاز" }, 401);
@@ -597,6 +645,46 @@ async function handleApi(req, env, url, path) {
       if (!key) return json({ ok: false, error: "کلید نامعتبر است" }, 400);
       const raw = await env.EXAM_KV.get("lbdata:" + key);
       return json({ ok: true, value: raw ? JSON.parse(raw) : null });
+    }
+
+    if (path.startsWith("/api/teacher/worksheet/") && path.endsWith("/feedback") && method === "POST") {
+      const id = decodeURIComponent(path.slice("/api/teacher/worksheet/".length, -"/feedback".length));
+      const studentRaw = await env.EXAM_KV.get("student:" + id);
+      if (!studentRaw) return json({ ok: false, error: "دانش‌آموز پیدا نشد" }, 404);
+      const body = await req.json().catch(() => ({}));
+      const raw = await env.EXAM_KV.get("worksheet:" + id);
+      const rec = raw ? JSON.parse(raw) : { uuid: id };
+      rec.feedback = String(body.feedback || "").slice(0, 5000);
+      rec.feedbackAt = Date.now();
+      await env.EXAM_KV.put("worksheet:" + id, JSON.stringify(rec));
+      return json({ ok: true });
+    }
+
+    if (path.startsWith("/api/teacher/worksheet/") && method === "GET") {
+      const id = decodeURIComponent(path.slice("/api/teacher/worksheet/".length));
+      const raw = await env.EXAM_KV.get("worksheet:" + id);
+      const rec = raw ? JSON.parse(raw) : {};
+      return json({ ok: true, worksheet: rec });
+    }
+
+    if (path.startsWith("/api/teacher/worksheet/") && method === "POST") {
+      const id = decodeURIComponent(path.slice("/api/teacher/worksheet/".length));
+      const studentRaw = await env.EXAM_KV.get("student:" + id);
+      if (!studentRaw) return json({ ok: false, error: "دانش‌آموز پیدا نشد" }, 404);
+      const body = await req.json().catch(() => ({}));
+      const fileDataUrl = String(body.fileDataUrl || "");
+      if (!fileDataUrl.startsWith("data:image/") && !fileDataUrl.startsWith("data:application/pdf")) {
+        return json({ ok: false, error: "فرمت فایل باید عکس یا PDF باشد" }, 400);
+      }
+      if (fileDataUrl.length > 4_500_000) return json({ ok: false, error: "حجم فایل بیش از حد مجاز است (حداکثر حدود ۴ مگابایت)" }, 400);
+      const raw = await env.EXAM_KV.get("worksheet:" + id);
+      const rec = raw ? JSON.parse(raw) : { uuid: id };
+      rec.teacherFile = fileDataUrl;
+      rec.teacherFileName = String(body.fileName || "").slice(0, 200);
+      rec.teacherFileType = fileDataUrl.startsWith("data:application/pdf") ? "pdf" : "image";
+      rec.teacherUploadedAt = Date.now();
+      await env.EXAM_KV.put("worksheet:" + id, JSON.stringify(rec));
+      return json({ ok: true });
     }
 
     if (path === "/api/teacher/students" && method === "GET") {
@@ -732,9 +820,74 @@ async function handleApi(req, env, url, path) {
     if (path === "/api/teacher/ai/chat" && method === "POST") {
       const body = await req.json().catch(() => ({}));
       const messages = body.messages || [];
-      const provider = body.provider === "gemini" ? "gemini" : "groq";
+      const provider = ["gemini", "cloudflare", "mistral"].includes(body.provider) ? body.provider : "groq";
       const maxTokens = Math.min(Math.max(parseInt(body.max_tokens, 10) || 1024, 256), 4096);
       const hasImage = messages.some(m => Array.isArray(m.content) && m.content.some(c => c && c.type === "image_url"));
+
+      if (provider === "mistral") {
+        const mistralKey = env.MISTRAL_API_KEY;
+        if (!mistralKey) return json({ error: "کلید MISTRAL_API_KEY تنظیم نشده" }, 500);
+        // mistral-small-latest از نسخه‌ی Small 4 (مارس ۲۰۲۶) به بعد چندرسانه‌ای شده و از عکس هم پشتیبانی می‌کند
+        const mistralModel = "mistral-small-latest";
+        try {
+          const aiRes = await fetch("https://api.mistral.ai/v1/chat/completions", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "Authorization": "Bearer " + mistralKey },
+            body: JSON.stringify({
+              model: mistralModel,
+              messages: [{ role: "system", content: "You are a helpful assistant for Iranian teachers. Follow the system/user instructions provided about which language to respond in." }, ...messages.slice(-10)],
+              max_tokens: maxTokens
+            })
+          });
+          if (!aiRes.ok) {
+            const errText = await aiRes.text();
+            return json({ error: "Mistral: " + errText }, aiRes.status);
+          }
+          const aiData = await aiRes.json();
+          return json({ ok: true, content: aiData.choices?.[0]?.message?.content || "" });
+        } catch (e) {
+          return json({ error: "Error: " + e.message }, 500);
+        }
+      }
+
+      if (provider === "cloudflare") {
+        if (!env.AI) return json({ error: "AI binding تنظیم نشده. باید از داشبورد Cloudflare، Workers AI binding با نام AI به این Worker اضافه شود." }, 500);
+        try {
+          if (hasImage) {
+            // مدل تصویری Workers AI فقط یک تصویر در هر درخواست می‌پذیرد (به‌صورت فیلد جدا، نه داخل content)
+            let imageDataUrl = null;
+            const cfMessages = [];
+            for (const m of messages.slice(-10)) {
+              if (Array.isArray(m.content)) {
+                let textPart = "";
+                for (const c of m.content) {
+                  if (c.type === "text") textPart += (textPart ? " " : "") + c.text;
+                  else if (c.type === "image_url" && c.image_url?.url) imageDataUrl = c.image_url.url;
+                }
+                cfMessages.push({ role: m.role, content: textPart || "این تصویر را توضیح بده" });
+              } else {
+                cfMessages.push({ role: m.role, content: m.content });
+              }
+            }
+            if (!imageDataUrl) return json({ error: "تصویری برای پردازش یافت نشد" }, 400);
+            const cfRes = await env.AI.run("@cf/meta/llama-3.2-11b-vision-instruct", {
+              messages: cfMessages,
+              image: imageDataUrl,
+              max_tokens: maxTokens
+            });
+            return json({ ok: true, content: cfRes.response || cfRes.result?.response || "" });
+          } else {
+            const cfMessages = [{ role: "system", content: "You are a helpful assistant for Iranian teachers. Follow the system/user instructions provided about which language to respond in." }, ...messages.slice(-10)];
+            const cfRes = await env.AI.run("@cf/meta/llama-3.3-70b-instruct-fp8-fast", {
+              messages: cfMessages,
+              max_tokens: maxTokens
+            });
+            return json({ ok: true, content: cfRes.response || cfRes.result?.response || "" });
+          }
+        } catch (e) {
+          return json({ error: "Cloudflare AI: " + e.message }, 500);
+        }
+      }
 
       if (provider === "gemini") {
         const geminiKey = env.GEMINI_API_KEY;
@@ -1567,6 +1720,7 @@ async function studentPage(env, id) {
         <div class="timer-label">⏱️ زمان باقیمانده</div>
       </div>
       <h3>📝 سوالات آزمون</h3>
+      <div id="q-progress" class="muted" style="margin-bottom:10px;font-weight:600"></div>
       <div id="questions"></div>
       <button class="btn sec" id="btn-submit" style="margin-top:16px">✅ ثبت نهایی پاسخنامه</button>
     </div>
@@ -1807,7 +1961,7 @@ async function studentPage(env, id) {
 
     function renderQuestions(){
       const box=document.getElementById('questions');
-      if(!DATA.questions.length){box.innerHTML='<p class="muted">هنوز سوالی توسط معلم طراحی نشده است.</p>';return;}
+      if(!DATA.questions.length){box.innerHTML='<p class="muted">هنوز سوالی توسط معلم طراحی نشده است.</p>';document.getElementById('btn-submit').classList.add('hidden');return;}
       box.innerHTML = DATA.questions.map((q,i)=>{
         let body='';
         if(q.type==='multiple'){
@@ -1827,9 +1981,48 @@ async function studentPage(env, id) {
         }
         const img=q.image?'<img src="'+q.image+'" class="imgprev" style="max-width:'+(q.imageWidth||320)+'px;width:100%">':'';
         const weightInfo = q.weight ? \`<span style="font-size:11px;color:#64748b;margin-right:8px">(وزن: \${q.weight})</span>\` : '';
-        return '<div class="q-block"><div class="qhead"><b>'+(i+1)+'. '+qHtml(q)+'</b><span class="badge">'+typeLabel(q.type)+weightInfo+'</span></div>'+img+body+'</div>';
+        const isLast=i===DATA.questions.length-1;
+        const nextBtn=isLast?'':'<div style="margin-top:14px"><button type="button" class="btn primary q-next-btn" data-qnext="'+i+'">✅ ثبت و ادامه</button></div>';
+        return '<div class="q-block q-step" data-qindex="'+i+'" style="'+(i===0?'':'display:none')+'"><div class="qhead"><b>'+(i+1)+'. '+qHtml(q)+'</b><span class="badge">'+typeLabel(q.type)+weightInfo+'</span></div>'+img+body+nextBtn+'</div>';
       }).join('');
+      document.getElementById('btn-submit').classList.toggle('hidden', DATA.questions.length>1);
+      updateQProgress(0);
     }
+
+    function updateQProgress(curIdx){
+      const el=document.getElementById('q-progress');
+      if(!el)return;
+      el.textContent = DATA.questions.length>1 ? ('سوال '+(curIdx+1)+' از '+DATA.questions.length) : '';
+    }
+
+    function isQuestionAnswered(q){
+      if(q.type==='multiple'||q.type==='truefalse'){
+        return !!document.querySelector('input[name="q_'+q.id+'"]:checked');
+      }
+      const el=document.querySelector('[data-q="'+q.id+'"]');
+      const hasText = el && el.value.trim()!=='';
+      const hasPhoto = !!PHOTO_ANSWERS[q.id];
+      return hasText||hasPhoto;
+    }
+
+    document.getElementById('questions').addEventListener('click', function(e){
+      const btn=e.target.closest('.q-next-btn');
+      if(!btn)return;
+      const idx=parseInt(btn.dataset.qnext,10);
+      const q=DATA.questions[idx];
+      if(!isQuestionAnswered(q)){
+        toast('⚠️ لطفاً پیش از ادامه، به این سوال پاسخ دهید');
+        return;
+      }
+      const curStep=document.querySelector('.q-step[data-qindex="'+idx+'"]');
+      const nextStep=document.querySelector('.q-step[data-qindex="'+(idx+1)+'"]');
+      if(curStep)curStep.style.display='none';
+      if(nextStep){
+        nextStep.style.display='';
+        nextStep.scrollIntoView({behavior:'smooth',block:'start'});
+      }
+      updateQProgress(idx+1);
+    });
 
     // ===== بارگذاری عکس پاسخ (برای سوالات تشریحی) با فشرده‌سازی خودکار زیر ۲ مگابایت =====
     let PHOTO_ANSWERS={};
@@ -1965,6 +2158,193 @@ async function studentPage(env, id) {
       const now = new Date();
       document.getElementById('f-date').value = now.toLocaleDateString('fa-IR', {year:'numeric', month:'2-digit', day:'2-digit'}).replace(/\\//g, '/');
     }catch(e){}
+    load();
+  </script></body></html>`);
+}
+
+/* ------------------------- کاربرگ - صفحه دانش‌آموز ------------------------- */
+
+async function workSheetPage(env, id) {
+  const student = await env.EXAM_KV.get("student:" + id);
+  if (!student) {
+    return html(
+      `<!doctype html><html lang="fa" dir="rtl"><head><meta charset="utf-8">${FONT_LINK}<style>${SHARED_CSS}</style></head>
+      <body><div class="wrap">${pageHeader()}<div class="card"><h2>لینک نامعتبر است</h2>
+      <p class="muted">این لینک معتبر نیست یا حذف شده است. لطفاً با معلم خود تماس بگیرید.</p></div></div></body></html>`,
+      404
+    );
+  }
+
+  return html(`<!doctype html><html lang="fa" dir="rtl"><head><meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>کاربرگ</title>${FONT_LINK}<style>${SHARED_CSS}</style></head>
+  <body><div class="wrap">
+    ${pageHeader()}
+    <div class="card">
+      <h2>📓 کاربرگ</h2>
+      <div id="ws-label" class="muted" style="margin-bottom:14px"></div>
+
+      <div id="ws-teacher-file-box">
+        <h3>📄 کاربرگ ارسالی معلم</h3>
+        <div id="ws-teacher-file-content" class="muted">در حال بارگذاری...</div>
+      </div>
+
+      <hr style="border:none;border-top:1px solid var(--line);margin:18px 0">
+
+      <div id="ws-upload-box">
+        <h3>📷 ارسال کاربرگ انجام‌شده</h3>
+        <p class="muted">پس از انجام کاربرگ، از آن عکس بگیرید (می‌توانید چند عکس بفرستید) و اینجا بارگذاری کنید.</p>
+        <input type="file" id="ws-photo-file" accept="image/*" multiple class="hidden">
+        <label class="btn sec" for="ws-photo-file" style="cursor:pointer;display:inline-block">📷 انتخاب عکس(ها)</label>
+        <span class="muted" id="ws-photo-status" style="margin-right:8px"></span>
+        <div id="ws-photo-preview" style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap"></div>
+        <button class="btn primary" id="ws-btn-submit" style="margin-top:14px">✅ ارسال برای معلم</button>
+      </div>
+
+      <div id="ws-submitted-box" class="hidden" style="margin-top:18px">
+        <h3>✅ کاربرگ شما ارسال شد</h3>
+        <div id="ws-submitted-photos" style="display:flex;gap:8px;flex-wrap:wrap"></div>
+      </div>
+
+      <div id="ws-feedback-box" class="hidden" style="margin-top:18px;padding:14px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px">
+        <h3 style="margin-top:0">💬 بازخورد معلم</h3>
+        <div id="ws-feedback-text" style="white-space:pre-wrap;line-height:1.8"></div>
+      </div>
+    </div>
+  </div>
+  <div class="toast" id="toast"></div>
+  <script>
+    const ID=${JSON.stringify(id)};
+    function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.style.opacity='1';setTimeout(()=>t.style.opacity='0',2600);}
+    async function api(path,opts){const r=await fetch(path,opts);return r.json();}
+
+    let PENDING_PHOTOS=[];
+
+    function compressImageToUnder2MB(file){
+      return new Promise(function(resolve,reject){
+        const reader=new FileReader();
+        reader.onload=function(ev){
+          const img=new Image();
+          img.onload=function(){
+            let w=img.width,h=img.height;
+            const maxDim=2000;
+            if(Math.max(w,h)>maxDim){
+              const scale=maxDim/Math.max(w,h);
+              w=Math.round(w*scale);h=Math.round(h*scale);
+            }
+            const canvas=document.createElement('canvas');
+            canvas.width=w;canvas.height=h;
+            const ctx=canvas.getContext('2d');
+            ctx.fillStyle='#fff';ctx.fillRect(0,0,w,h);
+            ctx.drawImage(img,0,0,w,h);
+            let quality=0.9;
+            function tryCompress(){
+              canvas.toBlob(function(blob){
+                if(!blob){reject(new Error('خطا در فشرده‌سازی'));return;}
+                if(blob.size<=2*1024*1024||quality<=0.3){
+                  const fr=new FileReader();
+                  fr.onload=function(){resolve(fr.result);};
+                  fr.readAsDataURL(blob);
+                }else{
+                  quality-=0.1;
+                  tryCompress();
+                }
+              },'image/jpeg',quality);
+            }
+            tryCompress();
+          };
+          img.onerror=function(){reject(new Error('فایل عکس معتبر نیست'));};
+          img.src=ev.target.result;
+        };
+        reader.onerror=function(){reject(new Error('خطا در خواندن فایل'));};
+        reader.readAsDataURL(file);
+      });
+    }
+
+    function renderPendingPreview(){
+      const box=document.getElementById('ws-photo-preview');
+      box.innerHTML=PENDING_PHOTOS.map(function(p,i){
+        return '<div style="position:relative"><img src="'+p+'" style="width:90px;height:90px;object-fit:cover;border-radius:8px;border:1px solid #ddd">'+
+          '<button type="button" data-rm="'+i+'" style="position:absolute;top:-6px;left:-6px;background:#dc2626;color:#fff;border:none;border-radius:50%;width:22px;height:22px;cursor:pointer">✕</button></div>';
+      }).join('');
+    }
+    document.getElementById('ws-photo-preview').addEventListener('click',function(e){
+      const btn=e.target.closest('[data-rm]');
+      if(!btn)return;
+      PENDING_PHOTOS.splice(parseInt(btn.dataset.rm,10),1);
+      renderPendingPreview();
+    });
+    document.getElementById('ws-photo-file').addEventListener('change',async function(e){
+      const files=Array.from(e.target.files||[]);
+      if(!files.length)return;
+      const statusEl=document.getElementById('ws-photo-status');
+      statusEl.textContent='در حال فشرده‌سازی...';
+      try{
+        for(const f of files){
+          if(PENDING_PHOTOS.length>=6){toast('حداکثر ۶ عکس مجاز است');break;}
+          const dataUrl=await compressImageToUnder2MB(f);
+          PENDING_PHOTOS.push(dataUrl);
+        }
+        renderPendingPreview();
+        statusEl.textContent='آماده ✅';
+      }catch(err){
+        statusEl.textContent='خطا در پردازش عکس — لطفاً دوباره تلاش کنید';
+      }
+      e.target.value='';
+    });
+
+    document.getElementById('ws-btn-submit').onclick=async function(){
+      if(!PENDING_PHOTOS.length){toast('لطفاً حداقل یک عکس انتخاب کنید');return;}
+      const btn=document.getElementById('ws-btn-submit');
+      btn.disabled=true;btn.textContent='در حال ارسال...';
+      try{
+        const d=await api('/api/worksheet/'+encodeURIComponent(ID)+'/submit',{
+          method:'POST',headers:{'content-type':'application/json'},
+          body:JSON.stringify({photos:PENDING_PHOTOS})
+        });
+        if(d.ok){
+          toast('کاربرگ شما ارسال شد ✅');
+          document.getElementById('ws-upload-box').classList.add('hidden');
+          document.getElementById('ws-submitted-box').classList.remove('hidden');
+          document.getElementById('ws-submitted-photos').innerHTML=PENDING_PHOTOS.map(function(p){
+            return '<img src="'+p+'" style="width:110px;height:110px;object-fit:cover;border-radius:8px;border:1px solid #ddd">';
+          }).join('');
+        }else{
+          toast(d.error||'خطا در ارسال');
+          btn.disabled=false;btn.textContent='✅ ارسال برای معلم';
+        }
+      }catch(err){
+        toast('خطا در اتصال');
+        btn.disabled=false;btn.textContent='✅ ارسال برای معلم';
+      }
+    };
+
+    async function load(){
+      const d=await api('/api/worksheet/'+encodeURIComponent(ID));
+      if(!d.ok){document.getElementById('ws-teacher-file-content').textContent='خطا در بارگذاری اطلاعات';return;}
+      document.getElementById('ws-label').textContent=d.label?('دانش‌آموز: '+d.label):'';
+      const tBox=document.getElementById('ws-teacher-file-content');
+      if(d.teacherFile){
+        if(d.teacherFileType==='pdf'){
+          tBox.innerHTML='<a class="btn sec" href="'+d.teacherFile+'" download="'+(d.teacherFileName||'کاربرگ.pdf')+'">⬇️ دانلود فایل PDF کاربرگ ('+(d.teacherFileName||'')+')</a>';
+        }else{
+          tBox.innerHTML='<img src="'+d.teacherFile+'" style="max-width:100%;border-radius:10px;border:1px solid #ddd">';
+        }
+      }else{
+        tBox.textContent='هنوز کاربرگی توسط معلم ارسال نشده است.';
+      }
+      if(d.studentFiles&&d.studentFiles.length){
+        document.getElementById('ws-upload-box').classList.add('hidden');
+        document.getElementById('ws-submitted-box').classList.remove('hidden');
+        document.getElementById('ws-submitted-photos').innerHTML=d.studentFiles.map(function(p){
+          return '<img src="'+p+'" style="width:110px;height:110px;object-fit:cover;border-radius:8px;border:1px solid #ddd">';
+        }).join('');
+      }
+      if(d.feedback){
+        document.getElementById('ws-feedback-box').classList.remove('hidden');
+        document.getElementById('ws-feedback-text').textContent=d.feedback;
+      }
+    }
     load();
   </script></body></html>`);
 }
@@ -2282,6 +2662,7 @@ function teacherPage() {
           <div class="subtab active" data-subtab="students">👨‍🎓 دانش‌آموزان</div>
           <div class="subtab" data-subtab="questions">📝 طراحی سوالات</div>
           <div class="subtab" data-subtab="answers">✅ تصحیح و پاسخنامه‌ها</div>
+          <div class="subtab" data-subtab="worksheet">📓 کاربرگ</div>
         </div>
 
       <div class="subtab-content" id="tab-students">
@@ -2353,6 +2734,13 @@ function teacherPage() {
         </div>
         <button class="btn gray sm" id="btn-refresh-ans">🔄 به‌روزرسانی</button>
         <div id="answers-list"></div>
+      </div>
+
+      <div class="subtab-content hidden" id="tab-worksheet">
+        <h3>📓 کاربرگ</h3>
+        <p class="muted">برای هر دانش‌آموز یک کاربرگ (عکس یا PDF) بارگذاری کنید. دانش‌آموز پس از انجام کاربرگ، عکس آن را برای شما ارسال می‌کند و شما می‌توانید زیر آن بازخورد بنویسید.</p>
+        <button class="btn gray sm" id="btn-refresh-ws">🔄 به‌روزرسانی</button>
+        <div id="worksheet-list"></div>
       </div>
 
       </div>
@@ -2855,9 +3243,16 @@ function teacherPage() {
             <span style="font-size:12px;color:#475569;flex:1">تصویر ضمیمه شد</span>
             <button type="button" id="btn-ai-img-remove" class="btn sm gray" style="padding:2px 8px">✕</button>
           </div>
+          <div id="ai-pdf-preview" class="hidden" style="display:flex;align-items:center;gap:8px;padding:6px 16px;background:#f1f5f9">
+            <span style="font-size:18px">📄</span>
+            <span id="ai-pdf-preview-name" style="font-size:12px;color:#475569;flex:1">فایل PDF ضمیمه شد</span>
+            <button type="button" id="btn-ai-pdf-remove" class="btn sm gray" style="padding:2px 8px">✕</button>
+          </div>
           <div class="ai-input-area">
             <input type="file" id="ai-img-file" accept="image/*" class="hidden">
+            <input type="file" id="ai-pdf-file" accept="application/pdf" class="hidden">
             <button type="button" class="btn gray ai-send-btn" id="btn-ai-img-pick" title="پیوست عکس">📷</button>
+            <button type="button" class="btn gray ai-send-btn" id="btn-ai-pdf-pick" title="پیوست PDF">📄</button>
             <textarea id="ai-input" placeholder="پیام خود را بنویسید..." rows="1"></textarea>
             <button class="btn primary ai-send-btn" id="btn-ai-send"><span>➤</span></button>
           </div>
@@ -3249,6 +3644,8 @@ function teacherPage() {
         <select id="ai-provider-select" style="max-width:320px;margin-bottom:20px">
           <option value="groq">⚡ Groq (سریع‌تر)</option>
           <option value="gemini">✨ Gemini (قوی‌تر، برای کارهای پیچیده‌تر بهتر)</option>
+          <option value="cloudflare">🌩️ Cloudflare Workers AI (رایگان، بدون نیاز به کلید API)</option>
+          <option value="mistral">🌊 Mistral AI (رایگان با سقف بالا، کیفیت خوب)</option>
         </select>
         <h3>🔐 تغییر رمز عبور</h3>
         <label>رمز عبور جدید</label><input id="new-pass" type="password" autocomplete="new-password">
@@ -3360,6 +3757,7 @@ function teacherScript() {
     document.querySelectorAll('.subtab-content').forEach(c=>c.classList.add('hidden'));
     document.getElementById('tab-'+t.dataset.subtab).classList.remove('hidden');
     if(t.dataset.subtab==='answers')loadAnswers();
+    if(t.dataset.subtab==='worksheet')loadWorksheetList();
     if(t.dataset.subtab==='questions'){updateDurationDisplay();}
   });
 
@@ -3398,6 +3796,45 @@ function teacherScript() {
           if(w>mw){h=Math.round(h*mw/w);w=mw;}
           c.width=w;c.height=h;c.getContext('2d').drawImage(img,0,0,w,h);
           resolve(c.toDataURL('image/jpeg',0.85));
+        };
+        img.onerror=()=>reject(new Error('فایل عکس معتبر نیست'));
+        img.src=ev.target.result;
+      };
+      rd.onerror=()=>reject(new Error('خطا در خواندن فایل'));
+      rd.readAsDataURL(file);
+    });
+  }
+
+  // فشرده‌سازی عکس کاربرگ تا زیر ۲ مگابایت (با حفظ خوانایی متن، برخلاف عکس پروفایل که کوچک می‌شود)
+  function compressWorksheetImage(file){
+    return new Promise((resolve,reject)=>{
+      const rd=new FileReader();
+      rd.onload=ev=>{
+        const img=new Image();
+        img.onload=()=>{
+          let w=img.width,h=img.height;
+          const maxDim=2000;
+          if(Math.max(w,h)>maxDim){
+            const scale=maxDim/Math.max(w,h);
+            w=Math.round(w*scale);h=Math.round(h*scale);
+          }
+          const c=document.createElement('canvas');c.width=w;c.height=h;
+          const ctx=c.getContext('2d');ctx.fillStyle='#fff';ctx.fillRect(0,0,w,h);ctx.drawImage(img,0,0,w,h);
+          let quality=0.9;
+          function tryCompress(){
+            c.toBlob(function(blob){
+              if(!blob){reject(new Error('خطا در فشرده‌سازی'));return;}
+              if(blob.size<=2*1024*1024||quality<=0.3){
+                const fr=new FileReader();
+                fr.onload=()=>resolve(fr.result);
+                fr.readAsDataURL(blob);
+              }else{
+                quality-=0.1;
+                tryCompress();
+              }
+            },'image/jpeg',quality);
+          }
+          tryCompress();
         };
         img.onerror=()=>reject(new Error('فایل عکس معتبر نیست'));
         img.src=ev.target.result;
@@ -3850,6 +4287,105 @@ function teacherScript() {
     if(d.ok){toast('تصحیح ثبت شد ✅');loadAnswers();}else toast(d.error||'خطا');
   };
   document.getElementById('btn-refresh-ans').onclick=loadAnswers;
+
+  // ===== کاربرگ =====
+  let WORKSHEET_STUDENTS=[];
+  async function loadWorksheetList(){
+    const box=document.getElementById('worksheet-list');
+    box.innerHTML='<p class="muted">در حال بارگذاری...</p>';
+    const d=await api('/api/teacher/students');
+    if(!d.ok||!d.students||!d.students.length){box.innerHTML='<p class="muted">ابتدا از تب «دانش‌آموزان» یک دانش‌آموز بسازید.</p>';return;}
+    WORKSHEET_STUDENTS=d.students;
+    box.innerHTML=d.students.map(function(s){
+      const avatar=s.photo?'<img src="'+s.photo+'" style="width:32px;height:32px;border-radius:50%;object-fit:cover">':'<div style="width:32px;height:32px;border-radius:50%;background:#e2e8f0;display:flex;align-items:center;justify-content:center;font-size:14px">🧑‍🎓</div>';
+      return '<div class="q-block" id="ws-row-'+s.uuid+'">'+
+        '<div class="row" style="align-items:center;flex-wrap:wrap">'+
+          avatar+
+          '<b style="flex:1">'+esc(s.label||'(بدون نام)')+'</b>'+
+          '<label class="btn sm sec" style="cursor:pointer;flex:0 0 auto">📄 بارگذاری/جایگزینی کاربرگ<input type="file" accept="image/*,application/pdf" class="hidden" data-ws-upload="'+s.uuid+'"></label>'+
+          '<button class="btn sm" style="flex:0 0 auto" data-ws-toggle="'+s.uuid+'">👁️ مشاهده و بازخورد</button>'+
+        '</div>'+
+        '<div class="hidden" id="ws-detail-'+s.uuid+'" style="margin-top:12px;padding-top:12px;border-top:1px solid var(--line)"></div>'+
+      '</div>';
+    }).join('');
+  }
+  document.getElementById('btn-refresh-ws').onclick=loadWorksheetList;
+
+  document.getElementById('worksheet-list').addEventListener('change',async function(e){
+    const inp=e.target.closest('[data-ws-upload]');
+    if(!inp)return;
+    const uuid=inp.dataset.wsUpload;
+    const file=inp.files&&inp.files[0];
+    inp.value='';
+    if(!file)return;
+    try{
+      let fileDataUrl,fileName;
+      if(file.type==='application/pdf'){
+        if(file.size>4*1024*1024){toast('حجم فایل PDF باید کمتر از ۴ مگابایت باشد');return;}
+        fileDataUrl=await new Promise(function(resolve,reject){
+          const rd=new FileReader();
+          rd.onload=function(){resolve(rd.result);};
+          rd.onerror=function(){reject(new Error('خطا در خواندن فایل'));};
+          rd.readAsDataURL(file);
+        });
+        fileName=file.name;
+      }else if(file.type.startsWith('image/')){
+        fileDataUrl=await compressWorksheetImage(file);
+        fileName=file.name;
+      }else{
+        toast('فقط فایل عکس یا PDF مجاز است');return;
+      }
+      toast('در حال بارگذاری کاربرگ...');
+      const d=await api('/api/teacher/worksheet/'+uuid,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({fileDataUrl,fileName})});
+      if(d.ok)toast('کاربرگ بارگذاری شد ✅');else toast(d.error||'خطا در بارگذاری');
+    }catch(err){toast(err.message||'خطا در پردازش فایل');}
+  });
+
+  document.getElementById('worksheet-list').addEventListener('click',async function(e){
+    const btn=e.target.closest('[data-ws-toggle]');
+    if(!btn)return;
+    const uuid=btn.dataset.wsToggle;
+    const detail=document.getElementById('ws-detail-'+uuid);
+    if(!detail.classList.contains('hidden')){detail.classList.add('hidden');return;}
+    detail.classList.remove('hidden');
+    detail.innerHTML='<p class="muted">در حال بارگذاری...</p>';
+    const d=await api('/api/teacher/worksheet/'+uuid);
+    if(!d.ok){detail.innerHTML='<p class="muted">خطا در بارگذاری</p>';return;}
+    const w=d.worksheet||{};
+    let html='';
+    if(w.teacherFile){
+      html+='<div style="margin-bottom:12px"><b style="font-size:13px">📄 کاربرگ ارسال‌شده:</b><br>';
+      if(w.teacherFileType==='pdf'){
+        html+='<a class="btn sm sec" href="'+w.teacherFile+'" download="'+(w.teacherFileName||'کاربرگ.pdf')+'" style="margin-top:6px;display:inline-block">⬇️ دانلود PDF ('+esc(w.teacherFileName||'')+')</a>';
+      }else{
+        html+='<img src="'+w.teacherFile+'" style="max-width:260px;border-radius:8px;border:1px solid #ddd;margin-top:6px;display:block">';
+      }
+      html+='</div>';
+    }else{
+      html+='<p class="muted">هنوز کاربرگی برای این دانش‌آموز بارگذاری نکرده‌اید.</p>';
+    }
+    if(w.studentFiles&&w.studentFiles.length){
+      html+='<div style="margin-bottom:12px"><b style="font-size:13px">📷 عکس‌های ارسالی دانش‌آموز:</b><div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:6px">'+
+        w.studentFiles.map(function(p){return '<img src="'+p+'" style="width:100px;height:100px;object-fit:cover;border-radius:8px;border:1px solid #ddd;cursor:pointer" onclick="openAnsPhoto(this.src)">';}).join('')+
+      '</div></div>';
+    }else{
+      html+='<p class="muted">دانش‌آموز هنوز کاربرگ انجام‌شده را ارسال نکرده است.</p>';
+    }
+    html+='<div><label style="font-weight:600;font-size:13px">💬 بازخورد شما:</label>'+
+      '<textarea id="ws-fb-'+uuid+'" placeholder="بازخورد خود را برای دانش‌آموز بنویسید...">'+esc(w.feedback||'')+'</textarea>'+
+      '<button class="btn sm primary" style="margin-top:8px" data-ws-savefb="'+uuid+'">💾 ذخیره بازخورد</button></div>';
+    detail.innerHTML=html;
+  });
+
+  document.getElementById('worksheet-list').addEventListener('click',async function(e){
+    const btn=e.target.closest('[data-ws-savefb]');
+    if(!btn)return;
+    const uuid=btn.dataset.wsSavefb;
+    const ta=document.getElementById('ws-fb-'+uuid);
+    const feedback=ta?ta.value:'';
+    const d=await api('/api/teacher/worksheet/'+uuid+'/feedback',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({feedback})});
+    if(d.ok)toast('بازخورد ذخیره شد ✅');else toast(d.error||'خطا در ذخیره بازخورد');
+  });
 
   // ===== برنامه هفتگی =====
   async function loadSchedule(){
@@ -6300,6 +6836,40 @@ function teacherScript() {
     aiPendingImage=null;
     document.getElementById('ai-img-preview').classList.add('hidden');
   };
+  let aiPendingPdfText=null,aiPendingPdfName='';
+  document.getElementById('btn-ai-pdf-pick').onclick=()=>{document.getElementById('ai-pdf-file').click();};
+  document.getElementById('ai-pdf-file').addEventListener('change',async function(e){
+    const file=e.target.files[0];
+    if(!file)return;
+    if(file.type!=='application/pdf'){toast('لطفاً یک فایل PDF انتخاب کنید');e.target.value='';return;}
+    const btn=document.getElementById('btn-ai-pdf-pick');btn.disabled=true;
+    toast('در حال استخراج متن از PDF...');
+    try{
+      const buf=await file.arrayBuffer();
+      const doc=await pdfjsLib.getDocument({data:buf}).promise;
+      const parts=[];
+      for(let p=1;p<=doc.numPages;p++){
+        const blocks=await extractPdfPageBlocks(p,doc);
+        blocks.forEach(function(b){
+          if(b.type==='table'){b.rows.forEach(function(cells){parts.push(cells.map(function(cellLines){return cellLines.join(' ');}).join(' | '));});}
+          else if(b.type==='para'&&b.text){parts.push(b.text);}
+        });
+      }
+      const extracted=parts.join('\\n').trim();
+      if(!extracted){toast('متنی در این PDF پیدا نشد (شاید فقط عکس/اسکن باشد)');e.target.value='';btn.disabled=false;return;}
+      aiPendingPdfText=extracted;
+      aiPendingPdfName=file.name;
+      document.getElementById('ai-pdf-preview-name').textContent='📄 '+file.name+' ('+doc.numPages+' صفحه)';
+      document.getElementById('ai-pdf-preview').classList.remove('hidden');
+      toast('متن PDF استخراج شد ✅');
+    }catch(err){toast('خطا در خواندن PDF: '+err.message);}
+    btn.disabled=false;
+    e.target.value='';
+  });
+  document.getElementById('btn-ai-pdf-remove').onclick=()=>{
+    aiPendingPdfText=null;aiPendingPdfName='';
+    document.getElementById('ai-pdf-preview').classList.add('hidden');
+  };
   function addAiMessage(role,text,imageUrl,msgId){
     const box=document.getElementById('ai-messages');
     const isUser=role==='user';
@@ -6337,16 +6907,25 @@ function teacherScript() {
   document.getElementById('btn-ai-send').onclick=async()=>{
     const text=aiInput.value.trim();
     const img=aiPendingImage;
-    if(!text&&!img)return;
+    const pdfText=aiPendingPdfText;
+    const pdfName=aiPendingPdfName;
+    if(!text&&!img&&!pdfText)return;
     aiInput.value='';aiInput.style.height='auto';
-    const userMsgId=addAiMessage('user',text||'(بدون متن)',img);
+    const displayText=(text||(pdfText?'':'(بدون متن)'))+(pdfText?'\\n\\n📄 فایل ضمیمه: '+pdfName:'');
+    const userMsgId=addAiMessage('user',displayText,img);
+    let apiText=text;
+    if(pdfText){
+      apiText=(text?text+'\\n\\n':'')+'متن استخراج‌شده از فایل PDF («'+pdfName+'»):\\n---\\n'+pdfText+'\\n---';
+    }
     if(img){
-      aiMessages.push({role:'user',content:[{type:'text',text:text||'این تصویر را توضیح بده'},{type:'image_url',image_url:{url:img}}],_id:userMsgId});
+      aiMessages.push({role:'user',content:[{type:'text',text:apiText||'این تصویر را توضیح بده'},{type:'image_url',image_url:{url:img}}],_id:userMsgId});
     }else{
-      aiMessages.push({role:'user',content:text,_id:userMsgId});
+      aiMessages.push({role:'user',content:apiText||'لطفاً این متن را بررسی کن.',_id:userMsgId});
     }
     aiPendingImage=null;
+    aiPendingPdfText=null;aiPendingPdfName='';
     document.getElementById('ai-img-preview').classList.add('hidden');
+    document.getElementById('ai-pdf-preview').classList.add('hidden');
     showTyping();
     try{
       const msgs=aiMessages.slice(-10).map(m=>({role:m.role,content:m.content}));
