@@ -2808,10 +2808,12 @@ function teacherPage() {
         </div>
         <div class="row" style="margin-top:12px">
           <button class="btn primary" id="btn-gen-table">🔄 ساخت جدول</button>
+          <button class="btn sec" id="btn-tbl-add-row">➕ افزودن ردیف</button>
           <button class="btn success" id="btn-save-table">💾 ذخیره</button>
           <button class="btn sec" id="btn-word-table">📄 دانلود Word</button>
           <button class="btn gray" id="btn-excel-table">📊 دانلود Excel واقعی (xlsx)</button>
         </div>
+        <p class="muted" style="margin-top:6px">نکته: زدن دوباره‌ی «ساخت جدول» کل جدول را از نو می‌سازد و اطلاعات فعلی پاک می‌شود؛ برای افزودن سطر بدون پاک‌شدن اطلاعات، از دکمه‌ی «افزودن ردیف» استفاده کنید. برای حذف یک ستون، روی دکمه‌ی ✖ کنار عنوان همان ستون بزنید.</p>
       </div>
 
       <div class="subtab-content hidden" id="tab-orgform">
@@ -3436,6 +3438,7 @@ function teacherPage() {
               <option value="">— انتخاب دانش‌آموز —</option>
             </select>
             <button class="btn sm sec" id="btn-lbf-new">🆕 دانش‌آموز جدید</button>
+            <button class="btn sm danger hidden" id="btn-lbf-delete">🗑️ حذف این دانش‌آموز</button>
           </div>
           <div id="lbf-form-wrap" class="hidden">
             <div class="row" style="align-items:center;gap:14px;margin:10px 0">
@@ -4542,6 +4545,12 @@ function teacherScript() {
   document.getElementById('btn-gen-table').onclick=function(){
     const rows=parseInt(document.getElementById('tbl-rows').value)||5;
     const cols=parseInt(document.getElementById('tbl-cols').value)||4;
+    xlsBuildStructure(rows,cols);
+    if(document.getElementById('tbl-avg-check').checked)calcAndShowAvg();
+  };
+
+  // ساخت کامل ساختار جدول (هدر + بدنه‌ی خالی) با تعداد سطر/ستون داده‌شده — این تابع همه‌چیز را از نو می‌سازد
+  function xlsBuildStructure(rows,cols){
     const thead=document.getElementById('custom-table-head');
     const tbody=document.getElementById('custom-table-body');
     const tfoot=document.getElementById('custom-table-foot');
@@ -4551,7 +4560,12 @@ function teacherScript() {
     ch+='<th class="xls-corner" rowspan="2">حذف</th>';
     ch+='</tr>';
     ch+='<tr class="xls-titlerow"><th class="xls-rowhead">#</th>';
-    for(let c=1;c<=cols;c++){ch+='<th><input type="text" id="'+xlsTitleId(c)+'" placeholder="عنوان ستون '+c+'" value="ستون '+c+'"></th>';}
+    for(let c=1;c<=cols;c++){
+      ch+='<th><div style="display:flex;align-items:center;gap:4px">'+
+        '<input type="text" id="'+xlsTitleId(c)+'" placeholder="عنوان ستون '+c+'" value="ستون '+c+'" style="flex:1;min-width:0">'+
+        '<button type="button" class="btn sm danger xls-col-del" data-col="'+c+'" title="حذف این ستون" style="padding:2px 6px;flex:0 0 auto">✖</button>'+
+        '</div></th>';
+    }
     ch+='</tr>';
     thead.innerHTML=ch;
 
@@ -4564,8 +4578,67 @@ function teacherScript() {
     }
     tbody.innerHTML=b;
     tfoot.innerHTML='';
+  }
+
+  // افزودن یک سطر تازه به انتهای جدول موجود، بدون پاک‌کردن مقادیر سطرهای قبلی
+  function xlsAddRow(){
+    const tbody=document.getElementById('custom-table-body');
+    const cols=parseInt(document.getElementById('tbl-cols').value)||4;
+    if(!tbody.children.length){toast('ابتدا با دکمه‌ی «ساخت جدول» یک جدول بسازید');return;}
+    const r=tbody.children.length+1;
+    const tr=document.createElement('tr');
+    let rowHtml='<td class="xls-rowhead">'+r+'</td>';
+    for(let c=1;c<=cols;c++){rowHtml+='<td><input type="text" id="'+xlsCellId(r,c)+'" data-r="'+r+'" data-c="'+c+'"></td>';}
+    rowHtml+='<td class="org-row-del-cell"><button type="button" class="btn sm danger xls-row-del">✖</button></td>';
+    tr.innerHTML=rowHtml;
+    tbody.appendChild(tr);
+    document.getElementById('tbl-rows').value=r;
     if(document.getElementById('tbl-avg-check').checked)calcAndShowAvg();
-  };
+  }
+  document.getElementById('btn-tbl-add-row').onclick=xlsAddRow;
+
+  // حذف یک ستون (بدون از دست رفتن مقادیر بقیه‌ی ستون‌ها و سطرها)
+  function xlsDeleteColumn(colIdx){
+    const cols=parseInt(document.getElementById('tbl-cols').value)||4;
+    if(cols<=1){toast('حداقل باید یک ستون باقی بماند');return;}
+    const rows=parseInt(document.getElementById('tbl-rows').value)||5;
+    const titles=[];
+    for(let c=1;c<=cols;c++){
+      if(c===colIdx)continue;
+      const el=document.getElementById(xlsTitleId(c));
+      titles.push(el?el.value:'ستون '+c);
+    }
+    const data=[];
+    for(let r=1;r<=rows;r++){
+      const rowVals=[];
+      for(let c=1;c<=cols;c++){
+        if(c===colIdx)continue;
+        const el=document.getElementById(xlsCellId(r,c));
+        rowVals.push(el?el.value:'');
+      }
+      data.push(rowVals);
+    }
+    const newCols=cols-1;
+    document.getElementById('tbl-cols').value=newCols;
+    xlsBuildStructure(rows,newCols);
+    for(let c=1;c<=newCols;c++){
+      const el=document.getElementById(xlsTitleId(c));
+      if(el)el.value=titles[c-1]!==undefined?titles[c-1]:('ستون '+c);
+    }
+    for(let r=1;r<=rows;r++){
+      for(let c=1;c<=newCols;c++){
+        const el=document.getElementById(xlsCellId(r,c));
+        if(el)el.value=data[r-1][c-1]||'';
+      }
+    }
+    if(document.getElementById('tbl-avg-check').checked)calcAndShowAvg();
+    toast('ستون حذف شد ✅');
+  }
+  document.getElementById('custom-table-head').addEventListener('click',function(e){
+    const btn=e.target.closest('.xls-col-del');
+    if(!btn)return;
+    xlsDeleteColumn(parseInt(btn.dataset.col,10));
+  });
 
   function xlsDeleteRow(tr){
     const tbody=document.getElementById('custom-table-body');
@@ -5498,6 +5571,25 @@ function teacherScript() {
   function loadScanImg(file){
     const rd=new FileReader();
     rd.onload=ev=>{const img=new Image();img.onload=()=>{
+      // عکس‌های دوربین موبایل معمولاً خیلی بزرگ‌اند (۸ تا ۱۲+ مگاپیکسل)؛ پردازش‌های بعدی (اصلاح پرسپکتیو، فیلترها، برش)
+      // پیکسل‌به‌پیکسل روی کل تصویر انجام می‌شوند و بدون کوچک‌سازی ممکن است مرورگر موبایل هنگ کند یا کاملاً بسته شود.
+      const maxDim=2000;
+      let w=img.naturalWidth,h=img.naturalHeight;
+      if(Math.max(w,h)>maxDim){
+        const scale=maxDim/Math.max(w,h);
+        const c=document.createElement('canvas');
+        c.width=Math.round(w*scale);c.height=Math.round(h*scale);
+        c.getContext('2d').drawImage(img,0,0,c.width,c.height);
+        const resized=new Image();
+        resized.onload=()=>{
+          scanDropZone.classList.add('hidden');
+          scanWarpOriginalImg=resized;
+          openScanWarpStage(resized);
+        };
+        resized.onerror=()=>{toast('خطا در پردازش عکس');};
+        resized.src=c.toDataURL('image/jpeg',0.92);
+        return;
+      }
       scanDropZone.classList.add('hidden');
       scanWarpOriginalImg=img;
       openScanWarpStage(img);
@@ -8162,6 +8254,7 @@ function teacherScript() {
     document.getElementById('lbf-student-name').value='';
     document.getElementById('lbf-cols').value=12;
     document.getElementById('lbf-student-select').value='';
+    document.getElementById('btn-lbf-delete').classList.add('hidden');
     lbSetPerfPhoto('');
     document.getElementById('lbf-form-wrap').classList.remove('hidden');
     lbRenderPerformance();
@@ -8181,13 +8274,35 @@ function teacherScript() {
       document.getElementById('lbf-teacher').value=rec.meta.teacher||'';
       document.getElementById('lbf-year').value=rec.meta.year||'';
     }
+    document.getElementById('btn-lbf-delete').classList.remove('hidden');
     document.getElementById('lbf-form-wrap').classList.remove('hidden');
     lbRenderPerformance();
   }
   document.getElementById('lbf-student-select').addEventListener('change',function(){
     if(this.value)lbPerfLoadStudent(this.value);
-    else document.getElementById('lbf-form-wrap').classList.add('hidden');
+    else{document.getElementById('lbf-form-wrap').classList.add('hidden');document.getElementById('btn-lbf-delete').classList.add('hidden');}
   });
+  // --- حذف دانش‌آموزِ در حال ویرایش از فهرست سطوح عملکرد ---
+  document.getElementById('btn-lbf-delete').onclick=async function(){
+    if(!LB_PERF_CURRENT_UUID)return;
+    var studentName=document.getElementById('lbf-student-name').value||'این دانش‌آموز';
+    if(!confirm('آیا از حذف «'+studentName+'» و تمام سطوح عملکرد ثبت‌شده‌ی او مطمئن هستید؟ این کار قابل بازگشت نیست.'))return;
+    var gradeIdx=lbSelectedPerfGradeIdx();
+    var ok=await lbSave('performance:student:'+LB_PERF_CURRENT_UUID,null,true);
+    if(ok){
+      var key='performance:list:'+gradeIdx;
+      var list=(await lbLoad(key))||[];
+      list=list.filter(function(s){return s.uuid!==LB_PERF_CURRENT_UUID;});
+      await lbSave(key,list,true);
+      await lbRenderPerfStudentList(gradeIdx);
+      document.getElementById('lbf-form-wrap').classList.add('hidden');
+      document.getElementById('btn-lbf-delete').classList.add('hidden');
+      LB_PERF_CURRENT_UUID=null;
+      toast('دانش‌آموز حذف شد ✅');
+    }else{
+      toast('خطا در حذف اطلاعات');
+    }
+  };
   // --- ذخیره‌ی سطح عملکرد دانش‌آموزِ در حال ویرایش ---
   document.getElementById('btn-lbf-save').onclick=async function(){
     var name=document.getElementById('lbf-student-name').value.trim();
@@ -8217,6 +8332,7 @@ function teacherScript() {
   // --- تغییر پایه: لیست دانش‌آموزان به‌روزرسانی می‌شود و فرم تا انتخاب/ساخت جدید مخفی می‌ماند ---
   document.getElementById('lbf-grade-select').addEventListener('change',function(){
     document.getElementById('lbf-form-wrap').classList.add('hidden');
+    document.getElementById('btn-lbf-delete').classList.add('hidden');
     LB_PERF_CURRENT_UUID=null;
     lbRenderPerfStudentList(lbSelectedPerfGradeIdx());
   });
