@@ -830,6 +830,11 @@ async function handleApi(req, env, url, path) {
         return wordResponse(answerSheetWord(sub), `پاسخنامه-${sub.student.name || id}.doc`);
       }
       const questions = await getQuestions(env);
+      if (type === "examsheet") {
+        const raw = await env.EXAM_KV.get("lbdata:examsheet");
+        const data = raw ? JSON.parse(raw) : {};
+        return wordResponse(examSheetWord(data), "برگه-آزمون-چاپی.doc");
+      }
       return wordResponse(examWord(meta, questions), "برگه-آزمون.doc");
     }
 
@@ -996,6 +1001,36 @@ function examWord(meta, questions) {
       `<td>${questionBodyWord(q)}</td>` +
       `</tr></table>`;
   });
+  return body;
+}
+
+function examSheetWord(d) {
+  d = d || {};
+  const rows = Array.isArray(d.rows) && d.rows.length ? d.rows : [{ q: "", mark: "" }];
+  let body =
+    `<table class="meta-table"><tr>` +
+    `<td style="text-align:center;font-weight:bold">${esc(d.org1 || "وزارت آموزش و پرورش جمهوری اسلامی ایران")}<br>${esc(d.org2 || "")}</td>` +
+    `<td style="text-align:center;font-weight:bold">${esc(d.examtitle || "")}<br>${esc(d.year || "")}</td>` +
+    `<td>تاریخ آزمون: ${esc(d.date || "")}<br>زمان آزمون: ${esc(d.time || "")}<br>تعداد صفحات: ${esc(d.pages || "1")}</td>` +
+    `</tr></table>` +
+    `<table class="meta-table"><tr>` +
+    `<td>نام درس: ${esc(d.course || "")}</td><td>نام دبیر: ${esc(d.teacher || "")}</td>` +
+    `<td>رشته / پایه: ${esc(d.grade || "")}</td><td>مدت امتحان: ${esc(d.duration || "")}</td>` +
+    `</tr></table>` +
+    `<table class="meta-table"><tr>` +
+    `<td>نام و نام‌خانوادگی: ...................................</td>` +
+    `<td>نام پدر: ...................................</td>` +
+    `<td>شماره داوطلب: ...................................</td>` +
+    `</tr></table>` +
+    `<table class="meta-table"><tr><td style="text-align:center;font-weight:bold">محل مهر یا امضای مدیر</td></tr></table>` +
+    `<table class="q" style="table-layout:fixed"><tr>` +
+    `<th class="qnum" style="width:40px">ردیف</th><th>سؤال</th><th style="width:60px">بارم</th>` +
+    `</tr>` +
+    rows.map((r, i) =>
+      `<tr><td class="qnum">${i + 1}</td><td style="min-height:70px">${esc(r.q || "").replace(/\n/g, "<br>")}</td><td style="text-align:center">${esc(r.mark || "")}</td></tr>`
+    ).join("") +
+    `</table>` +
+    `<p style="text-align:center;font-weight:bold">صفحه ۱</p>`;
   return body;
 }
 
@@ -1550,6 +1585,13 @@ const SHARED_CSS = `
   [data-theme="dark"] .ai-input-area textarea{background:#262626;border-color:#404040;color:#e5e5e5}
   .ai-input-area textarea:focus{border-color:#da7756;outline:none}
   .ai-send-btn{width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:17px;padding:0;flex-shrink:0}
+  .ai-attach-preview{display:flex;align-items:center;gap:10px;padding:8px 14px;background:#f8fafc;border-top:1px solid #e5e7eb;animation:clsDrawerOpen .15s ease-out}
+  [data-theme="dark"] .ai-attach-preview{background:#262626;border-color:#404040}
+  .ai-attach-preview span{font-size:12.5px;color:#475569;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  [data-theme="dark"] .ai-attach-preview span{color:#d4d4d4}
+  .ai-attach-remove{flex:0 0 auto;width:26px;height:26px;border-radius:50%;border:1px solid #e5e7eb;background:#fff;color:#dc2626;font-size:13px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s}
+  [data-theme="dark"] .ai-attach-remove{background:#171717;border-color:#404040}
+  .ai-attach-remove:hover{background:#dc2626;color:#fff;border-color:#dc2626}
   @media(max-width:640px){
     .ai-chat-container{height:calc(100vh - 220px);min-height:420px;border-radius:12px}
     .ai-header{padding:10px 12px}
@@ -1568,6 +1610,42 @@ const SHARED_CSS = `
   @media(max-width:640px){
     .cls-wrap{flex-direction:column}
     #t-cam-preview{max-width:100%;width:100%}
+  }
+
+  /* ---- ساخت آزمون (برگه چاپی) ---- */
+  #es-print-area{background:#fff;padding:16px;border:1px solid var(--line);border-radius:12px}
+  [data-theme="dark"] #es-print-area{background:#1e293b}
+  .es-header-table{width:100%;border-collapse:collapse;table-layout:fixed}
+  .es-header-table td{border:1px solid #000;padding:6px 8px;vertical-align:top}
+  .es-header-table input{border:none;background:transparent;width:100%;font-family:inherit;font-size:13px;padding:2px 0;color:inherit}
+  .es-header-table input:focus{outline:none;background:#fffbe6}
+  [data-theme="dark"] .es-header-table input:focus{background:#334155}
+  .es-header-table td span{font-size:12.5px;font-weight:700;display:inline-block;margin-left:4px}
+  .es-hdr-org input,.es-hdr-title input{text-align:center;font-weight:700;margin:3px 0}
+  .es-hdr-title{text-align:center}
+  .es-hdr-meta div{display:flex;gap:6px;align-items:center;margin:3px 0;white-space:nowrap}
+  .es-hdr-meta input{flex:1;min-width:0}
+  .es-blank{border-bottom:1px dotted #000!important}
+  .es-stamp-box{border:1px solid #000;border-top:none;text-align:center;font-size:12px;font-weight:700;padding:10px;color:#374151}
+  [data-theme="dark"] .es-stamp-box{color:#cbd5e1}
+  .es-main-table{width:100%;border-collapse:collapse;margin-top:0}
+  .es-main-table th,.es-main-table td{border:1px solid #000;padding:8px;vertical-align:top;font-size:13px}
+  .es-main-table thead th{background:#f1f5f9;font-weight:700;text-align:center}
+  [data-theme="dark"] .es-main-table thead th{background:#334155}
+  .es-col-num{width:44px;text-align:center;font-weight:700}
+  .es-col-mark{width:64px;text-align:center}
+  .es-main-table textarea{width:100%;min-height:70px;border:none;resize:vertical;font-family:inherit;font-size:13px;background:transparent;color:inherit}
+  .es-main-table textarea:focus{outline:none;background:#fffbe6}
+  [data-theme="dark"] .es-main-table textarea:focus{background:#334155}
+  .es-main-table input.es-mark{width:100%;border:none;text-align:center;font-family:inherit;font-size:13px;background:transparent;color:inherit}
+  .es-row-del{width:100%;background:none;border:none;color:#dc2626;cursor:pointer;font-size:15px}
+  .es-pagefoot{text-align:center;font-weight:700;margin-top:10px;font-size:13px}
+  @media print{
+    body *{visibility:hidden}
+    #tab-examsheet, #tab-examsheet *{visibility:visible}
+    #tab-examsheet{position:absolute;top:0;right:0;left:0;width:100%}
+    .top-nav, .tabs, .subtabs, #tab-examsheet .row, .es-row-del{display:none!important}
+    .es-main-table textarea,.es-main-table input.es-mark,.es-header-table input{color:#000!important}
   }
 
   /* ---- Timer ---- */
@@ -2599,6 +2677,7 @@ function teacherPage() {
     <div id="dash" class="hidden">
       <div class="tabs">
         <div class="tab active" data-tab="examonline">🎓 آزمون آنلاین</div>
+        <div class="tab" data-tab="examsheet">🖨️ ساخت آزمون</div>
         <div class="tab" data-tab="schedule">📅 برنامه هفتگی</div>
         <div class="tab" data-tab="tablesorg">📊 جدول‌ساز</div>
         <div class="tab" data-tab="imgtools">🖼️ ابزار عکس</div>
@@ -2755,6 +2834,64 @@ function teacherPage() {
             <button class="btn primary" onclick="mtInsertIntoQuestion()">➕ درج در سوال</button>
             <button class="btn gray" onclick="document.getElementById('mt-canvas').innerHTML=''">🗑️ پاک کردن فرمول</button>
           </div>
+        </div>
+      </div>
+
+      <div class="card tab-content hidden" id="tab-examsheet">
+        <h3>🖨️ ساخت آزمون (برگه چاپی)</h3>
+        <p class="muted">دقیقاً مثل برگه رسمی آزمون: سربرگ، مشخصات دانش‌آموز و جدول ردیف/سؤال/بارم. سؤال‌ها را اضافه کنید، ذخیره کنید و در پایان چاپ بگیرید.</p>
+
+        <div id="es-print-area">
+          <table class="es-header-table">
+            <tr>
+              <td class="es-hdr-org">
+                <input id="es-org1" placeholder="وزارت آموزش و پرورش جمهوری اسلامی ایران" value="وزارت آموزش و پرورش جمهوری اسلامی ایران">
+                <input id="es-org2" placeholder="آموزش و پرورش ناحیه / منطقه ...">
+              </td>
+              <td class="es-hdr-title">
+                <input id="es-examtitle" placeholder="عنوان آزمون (مثال: آزمون پایان ترم نوبت دوم)">
+                <input id="es-year" placeholder="سال تحصیلی: ....-....">
+              </td>
+              <td class="es-hdr-meta">
+                <div><span>تاریخ آزمون:</span><input id="es-date"></div>
+                <div><span>زمان آزمون:</span><input id="es-time"></div>
+                <div><span>تعداد صفحات:</span><input id="es-pages" value="1"></div>
+              </td>
+            </tr>
+          </table>
+
+          <table class="es-header-table" style="margin-top:6px">
+            <tr>
+              <td><span>نام درس:</span><input id="es-course" placeholder="نام درس"></td>
+              <td><span>نام دبیر:</span><input id="es-teacher" placeholder="نام دبیر"></td>
+              <td><span>رشته / پایه:</span><input id="es-grade" placeholder="مثال: دهم انسانی"></td>
+              <td><span>مدت امتحان:</span><input id="es-duration" placeholder="مثال: 75 دقیقه"></td>
+            </tr>
+          </table>
+
+          <table class="es-header-table" style="margin-top:6px">
+            <tr>
+              <td><span>نام و نام‌خانوادگی:</span><input class="es-blank"></td>
+              <td><span>نام پدر:</span><input class="es-blank"></td>
+              <td><span>شماره داوطلب:</span><input class="es-blank"></td>
+            </tr>
+          </table>
+
+          <div class="es-stamp-box">محل مهر یا امضای مدیر</div>
+
+          <table class="es-main-table" id="es-main-table">
+            <thead><tr><th class="es-col-num">ردیف</th><th>سؤال</th><th class="es-col-mark">بارم</th></tr></thead>
+            <tbody id="es-rows"></tbody>
+          </table>
+
+          <div class="es-pagefoot">صفحه ۱</div>
+        </div>
+
+        <div class="row" style="margin-top:16px">
+          <button class="btn" id="btn-es-addrow">➕ افزودن سؤال</button>
+          <button class="btn success" id="btn-es-save">💾 ذخیره</button>
+          <button class="btn secondary" id="btn-es-print">🖨️ چاپ</button>
+          <button class="btn sec" id="btn-es-word">📄 دانلود Word</button>
         </div>
       </div>
 
@@ -3186,15 +3323,15 @@ function teacherPage() {
           <div class="ai-typing hidden" id="ai-typing">
             <div class="ai-message ai"><div class="ai-message-avatar">🤖</div><div class="ai-message-content"><div class="ai-typing-dots"><span></span><span></span><span></span></div></div></div>
           </div>
-          <div id="ai-img-preview" class="hidden" style="display:flex;align-items:center;gap:8px;padding:6px 16px;background:#f1f5f9">
-            <img id="ai-img-preview-thumb" style="width:40px;height:40px;object-fit:cover;border-radius:6px">
-            <span style="font-size:12px;color:#475569;flex:1">تصویر ضمیمه شد</span>
-            <button type="button" id="btn-ai-img-remove" class="btn sm gray" style="padding:2px 8px">✕</button>
+          <div id="ai-img-preview" class="hidden ai-attach-preview">
+            <img id="ai-img-preview-thumb" style="width:36px;height:36px;object-fit:cover;border-radius:8px;flex:0 0 auto">
+            <span>🖼️ تصویر ضمیمه شد</span>
+            <button type="button" id="btn-ai-img-remove" class="ai-attach-remove" title="حذف تصویر">✕</button>
           </div>
-          <div id="ai-pdf-preview" class="hidden" style="display:flex;align-items:center;gap:8px;padding:6px 16px;background:#f1f5f9">
-            <span style="font-size:18px">📄</span>
-            <span id="ai-pdf-preview-name" style="font-size:12px;color:#475569;flex:1">فایل PDF ضمیمه شد</span>
-            <button type="button" id="btn-ai-pdf-remove" class="btn sm gray" style="padding:2px 8px">✕</button>
+          <div id="ai-pdf-preview" class="hidden ai-attach-preview">
+            <span style="font-size:17px;flex:0 0 auto">📄</span>
+            <span id="ai-pdf-preview-name">فایل PDF ضمیمه شد</span>
+            <button type="button" id="btn-ai-pdf-remove" class="ai-attach-remove" title="حذف فایل">✕</button>
           </div>
           <div class="ai-input-area">
             <input type="file" id="ai-img-file" accept="image/*" class="hidden">
@@ -3708,6 +3845,7 @@ function teacherScript() {
     if(t.dataset.tab==='tablesorg'){if(typeof loadTableIfNeeded==='function')loadTableIfNeeded();if(typeof loadOrgFormIfNeeded==='function')loadOrgFormIfNeeded();}
     if(t.dataset.tab==='schedule'){document.getElementById('btn-gen-schedule').click();if(typeof loadScheduleThemeIfNeeded==='function')loadScheduleThemeIfNeeded();}
     if(t.dataset.tab==='classroom'){renderClassLinks();setTimeout(function(){if(typeof clsResizeBoard==='function')clsResizeBoard();},50);}
+    if(t.dataset.tab==='examsheet'){if(typeof loadExamSheetIfNeeded==='function')loadExamSheetIfNeeded();}
   });
 
   document.querySelectorAll('.subtab[data-subtab]').forEach(t=>t.onclick=()=>{
@@ -5240,6 +5378,68 @@ function teacherScript() {
     await lbSave('orgform',orgGatherData());
   };
   document.getElementById('btn-org-print').onclick=function(){window.print();};
+
+  // ===== ساخت آزمون (برگه چاپی) =====
+  let esRows=[{q:'',mark:''}];
+  function esRenderRows(){
+    const tbody=document.getElementById('es-rows');
+    tbody.innerHTML=esRows.map(function(r,i){
+      return '<tr>'+
+        '<td class="es-col-num">'+(i+1)+(esRows.length>1?'<div><button type="button" class="es-row-del" data-i="'+i+'" title="حذف این سؤال">✕ حذف</button></div>':'')+'</td>'+
+        '<td><textarea data-i="'+i+'" class="es-q">'+esc(r.q||'')+'</textarea></td>'+
+        '<td class="es-col-mark"><input class="es-mark" data-i="'+i+'" value="'+esc(r.mark||'')+'"></td>'+
+        '</tr>';
+    }).join('');
+    tbody.querySelectorAll('.es-q').forEach(function(el){el.oninput=function(){esRows[+this.dataset.i].q=this.value;};});
+    tbody.querySelectorAll('.es-mark').forEach(function(el){el.oninput=function(){esRows[+this.dataset.i].mark=this.value;};});
+    tbody.querySelectorAll('.es-row-del').forEach(function(el){el.onclick=function(){esRows.splice(+this.dataset.i,1);esRenderRows();};});
+  }
+  esRenderRows();
+  document.getElementById('btn-es-addrow').onclick=function(){esRows.push({q:'',mark:''});esRenderRows();};
+
+  function esGatherData(){
+    return {
+      org1:document.getElementById('es-org1').value,
+      org2:document.getElementById('es-org2').value,
+      examtitle:document.getElementById('es-examtitle').value,
+      year:document.getElementById('es-year').value,
+      date:document.getElementById('es-date').value,
+      time:document.getElementById('es-time').value,
+      pages:document.getElementById('es-pages').value,
+      course:document.getElementById('es-course').value,
+      teacher:document.getElementById('es-teacher').value,
+      grade:document.getElementById('es-grade').value,
+      duration:document.getElementById('es-duration').value,
+      rows:esRows
+    };
+  }
+  document.getElementById('btn-es-save').onclick=function(){lbSave('examsheet',esGatherData());};
+  document.getElementById('btn-es-print').onclick=function(){window.print();};
+  document.getElementById('btn-es-word').onclick=async function(){
+    await lbSave('examsheet',esGatherData(),true);
+    window.open('/api/teacher/word?type=examsheet','_blank');
+  };
+
+  let esLoaded=false;
+  async function loadExamSheetIfNeeded(){
+    if(esLoaded)return;esLoaded=true;
+    const d=await lbLoad('examsheet');
+    if(!d)return;
+    if(d.org1!=null)document.getElementById('es-org1').value=d.org1;
+    if(d.org2!=null)document.getElementById('es-org2').value=d.org2;
+    if(d.examtitle!=null)document.getElementById('es-examtitle').value=d.examtitle;
+    if(d.year!=null)document.getElementById('es-year').value=d.year;
+    if(d.date!=null)document.getElementById('es-date').value=d.date;
+    if(d.time!=null)document.getElementById('es-time').value=d.time;
+    if(d.pages!=null)document.getElementById('es-pages').value=d.pages;
+    if(d.course!=null)document.getElementById('es-course').value=d.course;
+    if(d.teacher!=null)document.getElementById('es-teacher').value=d.teacher;
+    if(d.grade!=null)document.getElementById('es-grade').value=d.grade;
+    if(d.duration!=null)document.getElementById('es-duration').value=d.duration;
+    if(Array.isArray(d.rows)&&d.rows.length)esRows=d.rows;
+    esRenderRows();
+  }
+
 
   document.getElementById('btn-org-form').onclick=async function(){
     const btn=this;btn.disabled=true;const origText=btn.textContent;btn.textContent='⏳ در حال ساخت فایل...';
