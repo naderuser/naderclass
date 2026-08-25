@@ -1511,48 +1511,65 @@ const SHARED_CSS = `
   [data-theme="dark"] .xls-avgrow td{background:#22381f !important;color:#c8e6c9}
   .xls-avgrow td:first-child{text-align:center}
   
-  .ai-chat-container{background:linear-gradient(180deg,#f8fafc,#fff);border-radius:16px;border:1px solid #e2e8f0;overflow:hidden;display:flex;flex-direction:column;height:550px}
-  [data-theme="dark"] .ai-chat-container{background:#1e293b;border-color:#475569}
-  .ai-header{display:flex;align-items:center;gap:12px;padding:16px 20px;background:linear-gradient(135deg,#667eea,#764ba2);color:#fff}
-  .ai-avatar{width:48px;height:48px;background:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:24px;box-shadow:0 4px 12px rgba(0,0,0,.2)}
-  .ai-title{flex:1}
-  .ai-title h3{margin:0;font-size:16px;font-weight:700}
-  .ai-status{font-size:12px;opacity:.8}
-  .ai-mode-select select{padding:8px 12px;border-radius:8px;border:none;background:#fff;color:#333;font-size:13px;font-weight:600;cursor:pointer}
-  .ai-messages{flex:1;min-height:0;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:12px}
-  .ai-message{display:flex;gap:10px;max-width:85%}
-  .ai-message.user{flex-direction:row-reverse;align-self:flex-end}
-  .ai-message.ai{align-self:flex-start}
-  .ai-message-avatar{width:36px;height:36px;background:#e0e7ff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
-  .ai-message.user .ai-message-avatar{background:#dbeafe;order:1}
-  .ai-message-content{background:#fff;border-radius:16px;padding:12px 16px;box-shadow:0 2px 8px rgba(0,0,0,.08);border:1px solid #e2e8f0}
-  [data-theme="dark"] .ai-message-content{background:#1e293b;border-color:#475569;color:#e2e8f0}
-  .ai-message.user .ai-message-content{background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;border-color:transparent}
-  .ai-message-text{line-height:1.7;font-size:14px;white-space:pre-wrap;user-select:text}
-  .ai-copy-btn{display:inline-flex;align-items:center;gap:4px;margin-top:8px;padding:3px 10px;font-size:11px;font-weight:600;border-radius:999px;border:1px solid #e2e8f0;background:#f8fafc;color:#475569;cursor:pointer;transition:all .15s}
-  .ai-copy-btn:hover{background:#667eea;color:#fff;border-color:#667eea}
-  .ai-message.user .ai-copy-btn{background:rgba(255,255,255,.15);color:#fff;border-color:rgba(255,255,255,.3)}
-  .ai-message.user .ai-copy-btn:hover{background:#fff;color:#667eea}
-  .ai-del-btn{display:inline-flex;align-items:center;gap:4px;margin-top:8px;margin-inline-start:6px;padding:3px 10px;font-size:11px;font-weight:600;border-radius:999px;border:1px solid #fecaca;background:#fef2f2;color:#dc2626;cursor:pointer;transition:all .15s}
+  .ai-chat-container{background:#fff;border-radius:16px;border:1px solid #e5e7eb;overflow:hidden;display:flex;flex-direction:column;height:min(650px,80vh)}
+  [data-theme="dark"] .ai-chat-container{background:#171717;border-color:#333}
+  .ai-header{display:flex;align-items:center;gap:10px;padding:12px 16px;background:#fff;border-bottom:1px solid #e5e7eb;color:#1f2937}
+  [data-theme="dark"] .ai-header{background:#171717;border-color:#333;color:#e5e5e5}
+  .ai-avatar{width:32px;height:32px;background:#da7756;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
+  .ai-title{flex:1;min-width:0}
+  .ai-title h3{margin:0;font-size:15px;font-weight:700}
+  .ai-status{font-size:11px;opacity:.6}
+  .ai-mode-select select{padding:8px 12px;border-radius:8px;border:1px solid #e5e7eb;background:#fff;color:#333;font-size:13px;font-weight:600;cursor:pointer}
+  .ai-messages{flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:14px 12px;display:flex;flex-direction:column;gap:16px;background:#fff}
+  [data-theme="dark"] .ai-messages{background:#171717}
+  .ai-message{display:flex;gap:8px;max-width:92%}
+  .ai-message.user{flex-direction:row-reverse;align-self:flex-end;max-width:88%}
+  .ai-message.ai{align-self:flex-start;max-width:100%;width:100%}
+  .ai-message-avatar{width:26px;height:26px;background:#e0e7ff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0}
+  .ai-message.user .ai-message-avatar{display:none}
+  .ai-message.ai .ai-message-avatar{background:#da7756;font-size:13px}
+  .ai-message-content{background:transparent;border-radius:0;padding:0;box-shadow:none;border:none;min-width:0;flex:1}
+  [data-theme="dark"] .ai-message-content{color:#e5e5e5}
+  .ai-message.user .ai-message-content{background:#f0efec;color:#1f2937;border-radius:18px;padding:9px 14px;flex:0 1 auto}
+  [data-theme="dark"] .ai-message.user .ai-message-content{background:#2a2a2a;color:#e5e5e5}
+  .ai-message-text{line-height:1.6;font-size:14.5px;white-space:pre-wrap;user-select:text;word-break:break-word}
+  .ai-copy-btn{display:inline-flex;align-items:center;gap:4px;margin-top:6px;padding:3px 9px;font-size:11px;font-weight:600;border-radius:999px;border:1px solid #e5e7eb;background:#fff;color:#6b7280;cursor:pointer;transition:all .15s}
+  [data-theme="dark"] .ai-copy-btn{background:#262626;border-color:#404040;color:#a3a3a3}
+  .ai-copy-btn:hover{background:#da7756;color:#fff;border-color:#da7756}
+  .ai-del-btn{display:inline-flex;align-items:center;gap:4px;margin-top:6px;margin-inline-start:6px;padding:3px 9px;font-size:11px;font-weight:600;border-radius:999px;border:1px solid #fecaca;background:#fff;color:#dc2626;cursor:pointer;transition:all .15s}
+  [data-theme="dark"] .ai-del-btn{background:#262626}
   .ai-del-btn:hover{background:#dc2626;color:#fff;border-color:#dc2626}
-  .ai-message.user .ai-del-btn{background:rgba(255,255,255,.15);color:#fff;border-color:rgba(255,255,255,.3)}
-  .ai-message.user .ai-del-btn:hover{background:#fff;color:#dc2626}
-  .ai-typing-dots{display:flex;gap:4px;padding:4px 0}
-  .ai-typing-dots span{width:8px;height:8px;background:#667eea;border-radius:50%;animation:typingBounce 1.4s infinite ease-in-out}
+  .ai-typing-dots{display:flex;gap:4px;padding:8px 0}
+  .ai-typing-dots span{width:7px;height:7px;background:#da7756;border-radius:50%;animation:typingBounce 1.4s infinite ease-in-out}
   .ai-typing-dots span:nth-child(1){animation-delay:-.32s}
   .ai-typing-dots span:nth-child(2){animation-delay:-.16s}
   @keyframes typingBounce{0%,80%,100%{transform:scale(.6);opacity:.4}40%{transform:scale(1);opacity:1}}
-  .ai-quick-actions{display:flex;gap:8px;padding:12px 16px;flex-wrap:wrap;border-top:1px solid #e2e8f0;background:#fafbfc}
-  [data-theme="dark"] .ai-quick-actions{background:#1e293b;border-color:#475569}
-  .quick-action-btn{padding:8px 14px;background:#fff;border:2px solid #e2e8f0;border-radius:999px;font-size:13px;cursor:pointer;transition:all .2s;font-weight:500}
-  [data-theme="dark"] .quick-action-btn{background:#1e293b;color:#e2e8f0}
-  .quick-action-btn:hover{background:#667eea;color:#fff;border-color:#667eea}
-  .ai-input-area{display:flex;gap:10px;padding:16px;border-top:1px solid #e2e8f0;background:#fff;align-items:flex-end}
-  [data-theme="dark"] .ai-input-area{background:#1e293b;border-color:#475569}
-  .ai-input-area textarea{flex:1;padding:12px 16px;border:2px solid #e2e8f0;border-radius:12px;resize:none;font-size:14px;line-height:1.5;max-height:120px;font-family:inherit}
-  .ai-input-area textarea:focus{border-color:#667eea;outline:none}
-  .ai-send-btn{width:48px;height:48px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:20px;padding:0}
+  .ai-input-area{display:flex;gap:8px;padding:10px 12px;padding-bottom:max(10px,env(safe-area-inset-bottom));border-top:1px solid #e5e7eb;background:#fff;align-items:flex-end}
+  [data-theme="dark"] .ai-input-area{background:#171717;border-color:#333}
+  .ai-input-area textarea{flex:1;padding:11px 14px;border:1px solid #e5e7eb;border-radius:20px;resize:none;font-size:16px;line-height:1.4;max-height:120px;font-family:inherit;background:#fff}
+  [data-theme="dark"] .ai-input-area textarea{background:#262626;border-color:#404040;color:#e5e5e5}
+  .ai-input-area textarea:focus{border-color:#da7756;outline:none}
+  .ai-send-btn{width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:17px;padding:0;flex-shrink:0}
+  @media(max-width:640px){
+    .ai-chat-container{height:calc(100vh - 220px);min-height:420px;border-radius:12px}
+    .ai-header{padding:10px 12px}
+    .ai-avatar{width:28px;height:28px;font-size:14px}
+    .ai-title h3{font-size:14px}
+    .ai-messages{padding:10px 8px;gap:14px}
+    .ai-message.user{max-width:94%}
+    .ai-input-area{padding:8px}
+    .ai-input-area textarea{padding:10px 12px}
+  }
   
+  .cls-options-drawer{display:flex;flex-direction:column;gap:8px;padding:10px;margin-bottom:12px;background:#f8fafc;border:1px solid var(--line);border-radius:12px;animation:clsDrawerOpen .18s ease-out}
+  [data-theme="dark"] .cls-options-drawer{background:#1e293b}
+  @keyframes clsDrawerOpen{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:translateY(0)}}
+  .cls-opt-btn{width:100%;justify-content:flex-start;text-align:right;padding:11px 14px;font-size:14px}
+  @media(max-width:640px){
+    .cls-wrap{flex-direction:column}
+    #t-cam-preview{max-width:100%;width:100%}
+  }
+
   /* ---- Timer ---- */
   .exam-timer{background:linear-gradient(135deg,#1a1a2e,#16213e);color:#fff;border-radius:16px;padding:20px;text-align:center;margin-bottom:16px;border:2px solid #0f3460}
   .exam-timer .timer-display{font-size:48px;font-weight:700;font-family:monospace;letter-spacing:4px;color:#00d2ff;text-shadow:0 0 20px rgba(0,210,255,0.3)}
@@ -3161,19 +3178,13 @@ function teacherPage() {
           <div class="ai-header">
             <div class="ai-avatar">🤖</div>
             <div class="ai-title"><h3>دستیار هوش مصنوعی</h3><span class="ai-status">آنلاین</span></div>
-            <button type="button" class="btn sm gray" id="btn-ai-clear" title="پاک کردن کل گفتگو" style="flex:0 0 auto">🗑️ پاک کردن گفتگو</button>
+            <button type="button" class="btn sm gray" id="btn-ai-clear" title="پاک کردن کل گفتگو" style="flex:0 0 auto;width:34px;height:34px;padding:0;border-radius:50%;display:flex;align-items:center;justify-content:center">🗑️</button>
           </div>
           <div id="ai-messages" class="ai-messages">
             <div class="ai-message ai"><div class="ai-message-avatar">🤖</div><div class="ai-message-content"><div class="ai-message-text">سلام! 👋 من دستیار هوش مصنوعی شما هستم. چطور می‌توانم کمکتان کنم؟</div></div></div>
           </div>
           <div class="ai-typing hidden" id="ai-typing">
             <div class="ai-message ai"><div class="ai-message-avatar">🤖</div><div class="ai-message-content"><div class="ai-typing-dots"><span></span><span></span><span></span></div></div></div>
-          </div>
-          <div class="ai-quick-actions">
-            <button class="quick-action-btn" data-prompt="یک سوال تستی از درس ریاضی پایه هشتم بساز">📚 ساخت سوال</button>
-            <button class="quick-action-btn" data-prompt="متن یک پیام تشویقی برای دانش‌آموزان بنویس">💬 پیام تشویقی</button>
-            <button class="quick-action-btn" data-prompt="یک برنامه تدریس هفتگی برای معلم پیشنهاد بده">📅 برنامه تدریس</button>
-            <button class="quick-action-btn" data-prompt="ایده‌هایی برای فعالیت‌های کلاسی خلاقانه">🎨 ایده خلاقانه</button>
           </div>
           <div id="ai-img-preview" class="hidden" style="display:flex;align-items:center;gap:8px;padding:6px 16px;background:#f1f5f9">
             <img id="ai-img-preview-thumb" style="width:40px;height:40px;object-fit:cover;border-radius:6px">
@@ -3200,16 +3211,19 @@ function teacherPage() {
 
       <div class="card tab-content hidden" id="tab-classroom">
         <h3>🖥️ کلاس آنلاین</h3>
-        <div class="cls-status" style="display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap">
-          <span class="dot" id="tdot" style="width:10px;height:10px;border-radius:50%;background:#dc2626;display:inline-block"></span>
-          <span id="t-cls-status" class="muted">کلاس آنلاین شروع نشده</span>
-          <span style="flex:1"></span>
-          <button class="btn sm" id="btn-cls-start">▶️ شروع کلاس</button>
-          <button class="btn sm gray hidden" id="btn-cls-stop">⏹️ پایان کلاس</button>
-          <button class="btn sm sec hidden" id="btn-mic-toggle">🎙️ روشن کردن میکروفون</button>
-          <button class="btn sm sec hidden" id="btn-cam-toggle">📷 روشن کردن تصویر</button>
+        <div class="cls-status" style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+          <span class="dot" id="tdot" style="width:10px;height:10px;border-radius:50%;background:#dc2626;display:inline-block;flex:0 0 auto"></span>
+          <span id="t-cls-status" class="muted" style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">کلاس آنلاین شروع نشده</span>
+          <button type="button" class="btn sm sec" id="btn-cls-options-toggle" style="flex:0 0 auto">⚙️ گزینه‌ها</button>
         </div>
-        <video id="t-cam-preview" autoplay muted playsinline class="hidden" style="width:160px;border-radius:10px;border:1px solid var(--line);margin-bottom:10px;background:#000"></video>
+        <div id="cls-options-drawer" class="cls-options-drawer hidden">
+          <button class="btn sm cls-opt-btn" id="btn-cls-start">▶️ شروع کلاس</button>
+          <button class="btn sm gray hidden cls-opt-btn" id="btn-cls-stop">⏹️ پایان کلاس</button>
+          <button class="btn sm sec hidden cls-opt-btn" id="btn-mic-toggle">🎙️ روشن کردن میکروفون</button>
+          <button class="btn sm sec hidden cls-opt-btn" id="btn-cam-toggle">📷 روشن کردن تصویر</button>
+          <button class="btn sm sec hidden cls-opt-btn" id="btn-cam-flip">🔄 چرخش دوربین</button>
+        </div>
+        <video id="t-cam-preview" autoplay muted playsinline class="hidden" style="width:160px;max-width:45vw;border-radius:10px;border:1px solid var(--line);margin-bottom:10px;background:#000"></video>
 
         <div class="cls-wrap" style="display:flex;gap:12px;flex-wrap:wrap">
           <div class="cls-board-col">
@@ -6886,7 +6900,6 @@ function teacherScript() {
   // ===== AI Chat =====
   let aiMessages=[{role:'system',content:'تو یک دستیار هوشمند برای معلمان هستی. به زبان فارسی پاسخ بده.'}];
   let aiPendingImage=null; // dataURL تصویر ضمیمه‌شده (در صورت وجود) پیش از ارسال پیام بعدی
-  document.querySelectorAll('.quick-action-btn').forEach(btn=>{btn.onclick=()=>{const prompt=btn.dataset.prompt;document.getElementById('ai-input').value=prompt;document.getElementById('btn-ai-send').click();};});
   const aiInput=document.getElementById('ai-input');
   aiInput.addEventListener('input',function(){this.style.height='auto';this.style.height=Math.min(this.scrollHeight,120)+'px';});
   document.getElementById('btn-ai-img-pick').onclick=()=>{document.getElementById('ai-img-file').click();};
@@ -7037,7 +7050,7 @@ function teacherScript() {
   }
 
   let clsWs=null, clsMicStream=null, clsRecorder=null, clsDrawing=false, clsLastPoint=null, clsCurrentStroke=null, clsAudioActive=false, clsAudioGen=0;
-  let clsCamStream=null, clsCamInterval=null, clsAudioFromCam=false;
+  let clsCamStream=null, clsCamInterval=null, clsAudioFromCam=false, clsCamFacing='user';
   const tBoard=document.getElementById('t-board');
   const tCtx=tBoard.getContext('2d');
   const CLS_BOARD_DEFAULT_W=900, CLS_BOARD_DEFAULT_H=560;
@@ -7410,8 +7423,14 @@ function teacherScript() {
     document.getElementById('t-cam-preview').classList.add('hidden');
     document.getElementById('t-cam-preview').srcObject=null;
     document.getElementById('btn-cam-toggle').textContent='📷 روشن کردن تصویر';
+    document.getElementById('btn-cam-flip').classList.add('hidden');
+    clsCamFacing='user';
     clsAudioFromCam=false;
     if(clsWs)clsWs.close();
+  };
+
+  document.getElementById('btn-cls-options-toggle').onclick=function(){
+    document.getElementById('cls-options-drawer').classList.toggle('hidden');
   };
 
   function clsStartMicRecorder(stream){
@@ -7481,15 +7500,18 @@ function teacherScript() {
       preview.classList.add('hidden');
       preview.srcObject=null;
       this.textContent='📷 روشن کردن تصویر';
+      document.getElementById('btn-cam-flip').classList.add('hidden');
+      clsCamFacing='user';
       clsSend({type:'video-stop'});
       if(clsAudioFromCam){ clsStopMicRecorder(); clsAudioFromCam=false; }
       return;
     }
     try{
-      clsCamStream=await navigator.mediaDevices.getUserMedia({video:{width:{ideal:320},height:{ideal:240}}, audio:true});
+      clsCamStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:clsCamFacing,width:{ideal:320},height:{ideal:240}}, audio:true});
       preview.srcObject=clsCamStream;
       preview.classList.remove('hidden');
       this.textContent='🔴 خاموش کردن تصویر';
+      document.getElementById('btn-cam-flip').classList.remove('hidden');
       // اگر میکروفون از قبل روشن نبود، صدا را هم همراه تصویر روشن کن (مثل یک تماس تصویری واقعی)
       if(!(clsRecorder && clsRecorder.state==='recording') && clsCamStream.getAudioTracks().length){
         clsStartMicRecorder(new MediaStream(clsCamStream.getAudioTracks()));
@@ -7509,6 +7531,27 @@ function teacherScript() {
         }catch(e){}
       },220); // حدود ۴-۵ فریم در ثانیه؛ کافی برای تماس تصویری ساده کلاس درس
     }catch(e){ toast('دسترسی به دوربین یا میکروفون داده نشد'); }
+  };
+
+  document.getElementById('btn-cam-flip').onclick=async function(){
+    if(!clsCamStream){toast('ابتدا دوربین را روشن کنید');return;}
+    const preview=document.getElementById('t-cam-preview');
+    const nextFacing=clsCamFacing==='user'?'environment':'user';
+    try{
+      const newStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:nextFacing,width:{ideal:320},height:{ideal:240}}, audio:true});
+      const wasAudioFromCam=clsAudioFromCam;
+      if(wasAudioFromCam){ clsStopMicRecorder(); clsAudioFromCam=false; }
+      clsCamStream.getTracks().forEach(t=>t.stop());
+      clsCamStream=newStream;
+      clsCamFacing=nextFacing;
+      preview.srcObject=clsCamStream;
+      if(wasAudioFromCam && clsCamStream.getAudioTracks().length){
+        clsStartMicRecorder(new MediaStream(clsCamStream.getAudioTracks()));
+        clsAudioFromCam=true;
+        document.getElementById('btn-mic-toggle').textContent='🔴 خاموش کردن میکروفون';
+      }
+      toast('دوربین عوض شد 🔄');
+    }catch(e){ toast('چرخش دوربین در این دستگاه ممکن نیست'); }
   };
 
   // ===================== دفتر مدیریت کلاسی =====================
