@@ -904,7 +904,7 @@ function wordResponse(bodyHtml, filename) {
     `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">` +
     `<head><meta charset="utf-8">` +
     `<style>
-      @page { size: A4; margin: 2cm; }
+      @page { size: A4; margin: 1.5cm; }
       body { font-family: 'B Nazanin','Tahoma',sans-serif; direction: rtl; font-size: 13pt; }
       .hdr { text-align:center; border-bottom: 2px solid #000; padding-bottom:8px; margin-bottom:14px; }
       .hdr h1 { font-size: 15pt; margin: 2px 0; }
@@ -1008,20 +1008,24 @@ function examSheetWord(d) {
   d = d || {};
   const rows = Array.isArray(d.rows) && d.rows.length ? d.rows : [{ q: "", mark: "" }];
   let body =
-    `<table class="meta-table"><tr>` +
-    `<td style="text-align:center;font-weight:bold">${esc(d.org1 || "وزارت آموزش و پرورش جمهوری اسلامی ایران")}<br>${esc(d.org2 || "")}</td>` +
-    `<td style="text-align:center;font-weight:bold">${esc(d.examtitle || "")}<br>${esc(d.year || "")}</td>` +
-    `<td>تاریخ آزمون: ${esc(d.date || "")}<br>زمان آزمون: ${esc(d.time || "")}</td>` +
+    `<table class="meta-table" style="table-layout:fixed"><tr>` +
+    `<td style="width:33%">نام درس: ${esc(d.course || "")}</td>` +
+    `<td style="width:34%;text-align:center;font-weight:bold">${esc(d.org1 || "وزارت آموزش و پرورش جمهوری اسلامی ایران")}</td>` +
+    `<td style="width:33%">تاریخ آزمون: ${esc(d.date || "")}</td>` +
+    `</tr><tr>` +
+    `<td>نام دبیر: ${esc(d.teacher || "")}</td>` +
+    `<td style="text-align:center;font-weight:bold">${esc(d.org2 || "")}</td>` +
+    `<td>زمان آزمون: ${esc(d.time || "")}</td>` +
+    `</tr><tr>` +
+    `<td>رشته / پایه: ${esc(d.grade || "")}</td>` +
+    `<td>مدت امتحان: ${esc(d.duration || "")}</td>` +
+    `<td>عنوان: ${esc(d.examtitle || "")}</td>` +
     `</tr></table>` +
-    `<table class="meta-table"><tr>` +
-    `<td>نام درس: ${esc(d.course || "")}</td><td>نام دبیر: ${esc(d.teacher || "")}</td>` +
-    `<td>رشته / پایه: ${esc(d.grade || "")}</td><td>مدت امتحان: ${esc(d.duration || "")}</td>` +
-    `</tr></table>` +
-    `<table class="meta-table"><tr>` +
+    `<table class="meta-table" style="margin-top:6px"><tr>` +
     `<td>نام و نام‌خانوادگی: ...................................</td>` +
     `<td>نام پدر: ...................................</td>` +
     `</tr></table>` +
-    `<table class="q" style="table-layout:fixed"><tr>` +
+    `<table class="q" style="table-layout:fixed;margin-top:6px"><tr>` +
     `<th class="qnum" style="width:40px">ردیف</th><th>سؤال</th><th style="width:60px">بارم</th>` +
     `</tr>` +
     rows.map((r, i) =>
@@ -1030,7 +1034,7 @@ function examSheetWord(d) {
       `<td style="text-align:center;vertical-align:top">${esc(r.mark || "")}</td></tr>`
     ).join("") +
     `</table>` +
-    `<p style="text-align:center;font-weight:bold">صفحه ۱</p>`;
+    `<p style="text-align:center;font-weight:bold;margin-top:4px">صفحه ۱</p>`;
   return body;
 }
 
@@ -1621,12 +1625,9 @@ const SHARED_CSS = `
   .es-header-table input:focus{outline:none;background:#fffbe6}
   [data-theme="dark"] .es-header-table input:focus{background:#334155}
   .es-header-table td span{font-size:12.5px;font-weight:700;display:inline-block;margin-left:4px}
-  .es-hdr-org input,.es-hdr-title input{text-align:center;font-weight:700;margin:3px 0}
-  .es-hdr-title{text-align:center}
-  .es-hdr-meta div{display:flex;gap:6px;align-items:center;margin:3px 0;white-space:nowrap}
-  .es-hdr-meta input{flex:1;min-width:0}
+  .es-hdr-org input{text-align:center;font-weight:700}
   .es-blank{border-bottom:1px dotted #000!important}
-  .es-main-table{width:100%;border-collapse:collapse;margin-top:0}
+  .es-main-table{width:100%;border-collapse:collapse;margin-top:6px}
   .es-main-table th,.es-main-table td{border:1px solid #000;padding:8px;vertical-align:top;font-size:13px}
   .es-main-table thead th{background:#f1f5f9;font-weight:700;text-align:center}
   [data-theme="dark"] .es-main-table thead th{background:#334155}
@@ -1637,12 +1638,12 @@ const SHARED_CSS = `
   [data-theme="dark"] .es-main-table textarea:focus{background:#334155}
   .es-main-table input.es-mark{width:100%;border:none;text-align:center;font-family:inherit;font-size:13px;background:transparent;color:inherit}
   .es-row-del{width:100%;background:none;border:none;color:#dc2626;cursor:pointer;font-size:15px}
-  .es-pagefoot{text-align:center;font-weight:700;margin-top:10px;font-size:13px}
+  .es-pagefoot{text-align:center;font-weight:700;margin-top:8px;font-size:13px}
   @media print{
     body *{visibility:hidden}
-    #tab-examsheet, #tab-examsheet *{visibility:visible}
-    #tab-examsheet{position:absolute;top:0;right:0;left:0;width:100%}
-    .top-nav, .tabs, .subtabs, #tab-examsheet .row, .es-row-del{display:none!important}
+    #es-print-area, #es-print-area *{visibility:visible}
+    #es-print-area{position:absolute;top:0;right:0;left:0;width:100%;padding:0;border:none;border-radius:0;margin:0}
+    .es-main-table tr{page-break-inside:avoid}
     .es-main-table textarea,.es-main-table input.es-mark,.es-header-table input{color:#000!important}
   }
 
@@ -2836,33 +2837,25 @@ function teacherPage() {
       </div>
 
       <div class="card tab-content hidden" id="tab-examsheet">
-        <h3>🖨️ ساخت آزمون (برگه چاپی)</h3>
-        <p class="muted">دقیقاً مثل برگه رسمی آزمون: سربرگ، مشخصات دانش‌آموز و جدول ردیف/سؤال/بارم. سؤال‌ها را اضافه کنید، ذخیره کنید و در پایان چاپ بگیرید.</p>
+        <h3 id="es-page-title">🖨️ ساخت آزمون (برگه چاپی)</h3>
+        <p class="muted" id="es-page-desc">دقیقاً مثل برگه رسمی آزمون: سربرگ، مشخصات دانش‌آموز و جدول ردیف/سؤال/بارم. سؤال‌ها را اضافه کنید، ذخیره کنید و در پایان چاپ بگیرید.</p>
 
         <div id="es-print-area">
           <table class="es-header-table">
             <tr>
-              <td class="es-hdr-org">
-                <input id="es-org1" placeholder="وزارت آموزش و پرورش جمهوری اسلامی ایران" value="وزارت آموزش و پرورش جمهوری اسلامی ایران">
-                <input id="es-org2" placeholder="آموزش و پرورش ناحیه / منطقه ...">
-              </td>
-              <td class="es-hdr-title">
-                <input id="es-examtitle" placeholder="عنوان آزمون (مثال: آزمون پایان ترم نوبت دوم)">
-                <input id="es-year" placeholder="سال تحصیلی: ....-....">
-              </td>
-              <td class="es-hdr-meta">
-                <div><span>تاریخ آزمون:</span><input id="es-date"></div>
-                <div><span>زمان آزمون:</span><input id="es-time"></div>
-              </td>
-            </tr>
-          </table>
-
-          <table class="es-header-table" style="margin-top:6px">
-            <tr>
               <td><span>نام درس:</span><input id="es-course" placeholder="نام درس"></td>
+              <td class="es-hdr-org"><input id="es-org1" placeholder="وزارت آموزش و پرورش جمهوری اسلامی ایران" value="وزارت آموزش و پرورش جمهوری اسلامی ایران"></td>
+              <td><span>تاریخ آزمون:</span><input id="es-date"></td>
+            </tr>
+            <tr>
               <td><span>نام دبیر:</span><input id="es-teacher" placeholder="نام دبیر"></td>
+              <td class="es-hdr-org"><input id="es-org2" placeholder="آموزش و پرورش ناحیه / منطقه ..."></td>
+              <td><span>زمان آزمون:</span><input id="es-time"></td>
+            </tr>
+            <tr>
               <td><span>رشته / پایه:</span><input id="es-grade" placeholder="مثال: دهم انسانی"></td>
               <td><span>مدت امتحان:</span><input id="es-duration" placeholder="مثال: 75 دقیقه"></td>
+              <td><span>عنوان:</span><input id="es-examtitle" placeholder="مثال: پایان ترم"></td>
             </tr>
           </table>
 
@@ -5396,7 +5389,6 @@ function teacherScript() {
       org1:document.getElementById('es-org1').value,
       org2:document.getElementById('es-org2').value,
       examtitle:document.getElementById('es-examtitle').value,
-      year:document.getElementById('es-year').value,
       date:document.getElementById('es-date').value,
       time:document.getElementById('es-time').value,
       course:document.getElementById('es-course').value,
@@ -5421,7 +5413,6 @@ function teacherScript() {
     if(d.org1!=null)document.getElementById('es-org1').value=d.org1;
     if(d.org2!=null)document.getElementById('es-org2').value=d.org2;
     if(d.examtitle!=null)document.getElementById('es-examtitle').value=d.examtitle;
-    if(d.year!=null)document.getElementById('es-year').value=d.year;
     if(d.date!=null)document.getElementById('es-date').value=d.date;
     if(d.time!=null)document.getElementById('es-time').value=d.time;
     if(d.course!=null)document.getElementById('es-course').value=d.course;
