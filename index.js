@@ -447,11 +447,11 @@ export class ClassRoom {
 async function handleApi(req, env, url, path) {
   const method = req.method;
 
-  /* --- تشخیصی موقت: بررسی وجود کلید GROQ (بدون افشای مقدار) --- */
+  /* --- تشخیصی موقت: بررسی وجود کلید Gemini (بدون افشای مقدار) --- */
   if (path === "/api/debug/env-check" && method === "GET") {
     return json({
-      hasGroqKey: typeof env.GROQ_API_KEY === "string" && env.GROQ_API_KEY.length > 0,
-      groqKeyLength: env.GROQ_API_KEY ? env.GROQ_API_KEY.length : 0,
+      hasGeminiKey: typeof env.GEMINI_API_KEY === "string" && env.GEMINI_API_KEY.length > 0,
+      geminiKeyLength: env.GEMINI_API_KEY ? env.GEMINI_API_KEY.length : 0,
     });
   }
 
@@ -836,148 +836,53 @@ async function handleApi(req, env, url, path) {
     if (path === "/api/teacher/ai/chat" && method === "POST") {
       const body = await req.json().catch(() => ({}));
       const messages = body.messages || [];
-      const provider = ["gemini", "cloudflare", "mistral"].includes(body.provider) ? body.provider : "groq";
       const maxTokens = Math.min(Math.max(parseInt(body.max_tokens, 10) || 1024, 256), 4096);
-      const hasImage = messages.some(m => Array.isArray(m.content) && m.content.some(c => c && c.type === "image_url"));
 
-      if (provider === "mistral") {
-        const mistralKey = env.MISTRAL_API_KEY;
-        if (!mistralKey) return json({ error: "کلید MISTRAL_API_KEY تنظیم نشده" }, 500);
-        // mistral-small-latest از نسخه‌ی Small 4 (مارس ۲۰۲۶) به بعد چندرسانه‌ای شده و از عکس هم پشتیبانی می‌کند
-        const mistralModel = "mistral-small-latest";
-        try {
-          const aiRes = await fetch("https://api.mistral.ai/v1/chat/completions", {
-            method: "POST",
-            headers: { "Content-Type": "application/json", "Authorization": "Bearer " + mistralKey },
-            body: JSON.stringify({
-              model: mistralModel,
-              messages: [{ role: "system", content: "You are a helpful assistant for Iranian teachers. Follow the system/user instructions provided about which language to respond in." }, ...messages.slice(-10)],
-              max_tokens: maxTokens
-            })
-          });
-          if (!aiRes.ok) {
-            const errText = await aiRes.text();
-            return json({ error: "Mistral: " + errText }, aiRes.status);
-          }
-          const aiData = await aiRes.json();
-          return json({ ok: true, content: aiData.choices?.[0]?.message?.content || "" });
-        } catch (e) {
-          return json({ error: "Error: " + e.message }, 500);
-        }
-      }
-
-      if (provider === "cloudflare") {
-        if (!env.AI) return json({ error: "AI binding تنظیم نشده. باید از داشبورد Cloudflare، Workers AI binding با نام AI به این Worker اضافه شود." }, 500);
-        try {
-          if (hasImage) {
-            // مدل تصویری Workers AI فقط یک تصویر در هر درخواست می‌پذیرد (به‌صورت فیلد جدا، نه داخل content)
-            let imageDataUrl = null;
-            const cfMessages = [];
-            for (const m of messages.slice(-10)) {
-              if (Array.isArray(m.content)) {
-                let textPart = "";
-                for (const c of m.content) {
-                  if (c.type === "text") textPart += (textPart ? " " : "") + c.text;
-                  else if (c.type === "image_url" && c.image_url?.url) imageDataUrl = c.image_url.url;
-                }
-                cfMessages.push({ role: m.role, content: textPart || "این تصویر را توضیح بده" });
-              } else {
-                cfMessages.push({ role: m.role, content: m.content });
-              }
-            }
-            if (!imageDataUrl) return json({ error: "تصویری برای پردازش یافت نشد" }, 400);
-            const cfRes = await env.AI.run("@cf/meta/llama-3.2-11b-vision-instruct", {
-              messages: cfMessages,
-              image: imageDataUrl,
-              max_tokens: maxTokens
-            });
-            return json({ ok: true, content: cfRes.response || cfRes.result?.response || "" });
-          } else {
-            const cfMessages = [{ role: "system", content: "You are a helpful assistant for Iranian teachers. Follow the system/user instructions provided about which language to respond in." }, ...messages.slice(-10)];
-            const cfRes = await env.AI.run("@cf/meta/llama-3.3-70b-instruct-fp8-fast", {
-              messages: cfMessages,
-              max_tokens: maxTokens
-            });
-            return json({ ok: true, content: cfRes.response || cfRes.result?.response || "" });
-          }
-        } catch (e) {
-          return json({ error: "Cloudflare AI: " + e.message }, 500);
-        }
-      }
-
-      if (provider === "gemini") {
-        const geminiKey = env.GEMINI_API_KEY;
-        if (!geminiKey) return json({ error: "کلید GEMINI_API_KEY تنظیم نشده" }, 500);
-        // مدل فعلی: gemini-3.6-flash (نسخه‌ی پایدار/GA در سال ۲۰۲۶؛ در صورت بازنشستگی باید به‌روزرسانی شود)
-        const geminiModel = "gemini-3.6-flash";
-        // تبدیل قالب پیام‌های OpenAI-style به قالب contents مورد نیاز Gemini
-        let systemInstruction = "";
-        const contents = [];
-        for (const m of messages.slice(-10)) {
-          if (m.role === "system") { systemInstruction += (systemInstruction ? "\n" : "") + (typeof m.content === "string" ? m.content : ""); continue; }
-          const role = m.role === "assistant" ? "model" : "user";
-          const parts = [];
-          if (typeof m.content === "string") {
-            parts.push({ text: m.content });
-          } else if (Array.isArray(m.content)) {
-            for (const c of m.content) {
-              if (c.type === "text") parts.push({ text: c.text });
-              else if (c.type === "image_url" && c.image_url?.url) {
-                const durl = c.image_url.url;
-                const match = /^data:(.+?);base64,(.+)$/.exec(durl);
-                if (match) parts.push({ inline_data: { mime_type: match[1], data: match[2] } });
-              }
+      const geminiKey = env.GEMINI_API_KEY;
+      if (!geminiKey) return json({ error: "کلید GEMINI_API_KEY تنظیم نشده" }, 500);
+      // مدل فعلی: gemini-3.6-flash (نسخه‌ی پایدار/GA در سال ۲۰۲۶؛ در صورت بازنشستگی باید به‌روزرسانی شود)
+      const geminiModel = "gemini-3.6-flash";
+      // تبدیل قالب پیام‌های OpenAI-style به قالب contents مورد نیاز Gemini
+      let systemInstruction = "";
+      const contents = [];
+      for (const m of messages.slice(-10)) {
+        if (m.role === "system") { systemInstruction += (systemInstruction ? "\n" : "") + (typeof m.content === "string" ? m.content : ""); continue; }
+        const role = m.role === "assistant" ? "model" : "user";
+        const parts = [];
+        if (typeof m.content === "string") {
+          parts.push({ text: m.content });
+        } else if (Array.isArray(m.content)) {
+          for (const c of m.content) {
+            if (c.type === "text") parts.push({ text: c.text });
+            else if (c.type === "image_url" && c.image_url?.url) {
+              const durl = c.image_url.url;
+              const match = /^data:(.+?);base64,(.+)$/.exec(durl);
+              if (match) parts.push({ inline_data: { mime_type: match[1], data: match[2] } });
             }
           }
-          if (parts.length) contents.push({ role, parts });
         }
-        try {
-          const aiRes = await fetch(
-            `https://generativelanguage.googleapis.com/v1beta/models/${geminiModel}:generateContent?key=${geminiKey}`,
-            {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                contents,
-                systemInstruction: systemInstruction ? { parts: [{ text: systemInstruction }] } : undefined,
-                generationConfig: { maxOutputTokens: maxTokens }
-              })
-            }
-          );
-          if (!aiRes.ok) {
-            const errText = await aiRes.text();
-            return json({ error: "Gemini: " + errText }, aiRes.status);
-          }
-          const aiData = await aiRes.json();
-          const text = aiData.candidates?.[0]?.content?.parts?.map(p => p.text || "").join("") || "";
-          return json({ ok: true, content: text });
-        } catch (e) {
-          return json({ error: "Error: " + e.message }, 500);
-        }
+        if (parts.length) contents.push({ role, parts });
       }
-
-      // ===== Groq (پیش‌فرض) =====
-      const apiKey = env.GROQ_API_KEY;
-      if (!apiKey) return json({ error: "کلید GROQ_API_KEY تنظیم نشده" }, 500);
-      // اگر هر یک از پیام‌ها شامل تصویر باشد، به‌صورت خودکار به مدل چندرسانه‌ای (تصویر+متن) Groq سوییچ می‌کنیم
-      // توجه: llama-3.3-70b-versatile و llama-4-scout توسط Groq بازنشسته شدند (۲۰۲۶)؛ جایگزین شد با gpt-oss-120b / qwen3.6-27b
-      const model = hasImage ? "qwen/qwen3.6-27b" : "openai/gpt-oss-120b";
       try {
-        const aiRes = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-          method: "POST",
-          headers: { "Content-Type": "application/json", "Authorization": "Bearer " + apiKey },
-          body: JSON.stringify({
-            model,
-            messages: [{ role: "system", content: "You are a helpful assistant for Iranian teachers. Follow the system/user instructions provided about which language to respond in." }, ...messages.slice(-10)],
-            max_tokens: maxTokens
-          })
-        });
+        const aiRes = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/${geminiModel}:generateContent?key=${geminiKey}`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              contents,
+              systemInstruction: systemInstruction ? { parts: [{ text: systemInstruction }] } : undefined,
+              generationConfig: { maxOutputTokens: maxTokens }
+            })
+          }
+        );
         if (!aiRes.ok) {
           const errText = await aiRes.text();
-          return json({ error: "Groq: " + errText }, aiRes.status);
+          return json({ error: "Gemini: " + errText }, aiRes.status);
         }
         const aiData = await aiRes.json();
-        return json({ ok: true, content: aiData.choices?.[0]?.message?.content || "" });
+        const text = aiData.candidates?.[0]?.content?.parts?.map(p => p.text || "").join("") || "";
+        return json({ ok: true, content: text });
       } catch (e) {
         return json({ error: "Error: " + e.message }, 500);
       }
@@ -3411,6 +3316,7 @@ function teacherPage() {
             <button class="btn primary" id="btn-lb-pacing-word">📄 دانلود Word (این پایه)</button>
             <button class="btn sec" id="btn-lb-pacing-excel">📊 دانلود Excel (این پایه)</button>
             <button class="btn gray" id="btn-lb-pacing-pdf">🖨️ چاپ / دانلود PDF (این پایه)</button>
+            <button class="btn danger" type="button" onclick="lbClearContainer('lb-pacing-preview')">🗑️ پاک کردن جدول</button>
           </div>
         </div>
 
@@ -3435,6 +3341,7 @@ function teacherPage() {
             <button class="btn primary" id="btn-lb-roster-word">📄 دانلود Word</button>
             <button class="btn sec" id="btn-lb-roster-excel">📊 دانلود Excel</button>
             <button class="btn gray" id="btn-lb-roster-pdf">🖨️ چاپ / دانلود PDF</button>
+            <button class="btn danger" type="button" onclick="lbClearContainer('lbr-table')">🗑️ پاک کردن جدول</button>
           </div>
         </div>
 
@@ -3472,6 +3379,7 @@ function teacherPage() {
             <button class="btn primary" id="btn-lbg-word">📄 دانلود Word</button>
             <button class="btn sec" id="btn-lbg-excel">📊 دانلود Excel</button>
             <button class="btn gray" id="btn-lbg-pdf">🖨️ چاپ / دانلود PDF</button>
+            <button class="btn danger" type="button" onclick="lbClearContainer('lbg-table')">🗑️ پاک کردن جدول</button>
           </div>
         </div>
 
@@ -3502,6 +3410,7 @@ function teacherPage() {
             <button class="btn primary" id="btn-lb-absence-word">📄 دانلود Word</button>
             <button class="btn sec" id="btn-lb-absence-excel">📊 دانلود Excel</button>
             <button class="btn gray" id="btn-lb-absence-pdf">🖨️ چاپ / دانلود PDF</button>
+            <button class="btn danger" type="button" onclick="lbClearContainer('lba-table')">🗑️ پاک کردن جدول</button>
           </div>
         </div>
 
@@ -3551,6 +3460,7 @@ function teacherPage() {
               <button class="btn primary" id="btn-lb-performance-word">📄 دانلود Word</button>
               <button class="btn sec" id="btn-lb-performance-excel">📊 دانلود Excel</button>
               <button class="btn gray" id="btn-lb-performance-pdf">🖨️ چاپ / دانلود PDF</button>
+              <button class="btn danger" type="button" onclick="lbClearContainer('lb-performance-preview')">🗑️ پاک کردن جدول</button>
             </div>
           </div>
         </div>
@@ -3581,6 +3491,7 @@ function teacherPage() {
             <button class="btn primary" id="btn-lb-council-word">📄 دانلود Word</button>
             <button class="btn sec" id="btn-lb-council-excel">📊 دانلود Excel</button>
             <button class="btn gray" id="btn-lb-council-pdf">🖨️ چاپ / دانلود PDF</button>
+            <button class="btn danger" type="button" onclick="lbClearContainer('lbc-table')">🗑️ پاک کردن جدول</button>
           </div>
         </div>
 
@@ -3605,6 +3516,7 @@ function teacherPage() {
             <button class="btn primary" id="btn-lb-meetings-word">📄 دانلود Word</button>
             <button class="btn sec" id="btn-lb-meetings-excel">📊 دانلود Excel</button>
             <button class="btn gray" id="btn-lb-meetings-pdf">🖨️ چاپ / دانلود PDF</button>
+            <button class="btn danger" type="button" onclick="lbClearContainer('lbm-table')">🗑️ پاک کردن جدول</button>
           </div>
         </div>
 
@@ -3633,6 +3545,7 @@ function teacherPage() {
             <button class="btn primary" id="btn-lb-weekly-word">📄 دانلود Word</button>
             <button class="btn sec" id="btn-lb-weekly-excel">📊 دانلود Excel</button>
             <button class="btn gray" id="btn-lb-weekly-pdf">🖨️ چاپ / دانلود PDF</button>
+            <button class="btn danger" type="button" onclick="lbClearContainer('lb-weekly-preview')">🗑️ پاک کردن جدول</button>
           </div>
         </div>
 
@@ -3641,7 +3554,9 @@ function teacherPage() {
           <button class="btn sm gray lb-back-btn">← بازگشت به دفتر</button>
           <h3>🗓️ جدول ۳- برنامه درسی هفتگی (کلاس تک پایه)</h3>
           <div class="lb-meta-form">
-            <div><label>برنامه درسی پایه</label><input id="lbw2-grade" placeholder="......................."></div>
+            <div><label>نام مدرسه</label><input id="lbw2-school" placeholder="......................."></div>
+            <div><label>نام آموزگار</label><input id="lbw2-teacher" placeholder="......................."></div>
+            <div><label>پایه</label><input id="lbw2-grade" placeholder="......................."></div>
             <div><label>کلاس</label><input id="lbw2-class" placeholder="......................."></div>
           </div>
           <div class="lb-preview" id="lb-weekly2-preview"></div>
@@ -3650,6 +3565,7 @@ function teacherPage() {
             <button class="btn primary" id="btn-lb-weekly2-word">📄 دانلود Word</button>
             <button class="btn sec" id="btn-lb-weekly2-excel">📊 دانلود Excel</button>
             <button class="btn gray" id="btn-lb-weekly2-pdf">🖨️ چاپ / دانلود PDF</button>
+            <button class="btn danger" type="button" onclick="lbClearContainer('lb-weekly2-preview')">🗑️ پاک کردن جدول</button>
           </div>
         </div>
 
@@ -3671,6 +3587,7 @@ function teacherPage() {
             <button class="btn primary" id="btn-lb-staff-word">📄 دانلود Word</button>
             <button class="btn sec" id="btn-lb-staff-excel">📊 دانلود Excel</button>
             <button class="btn gray" id="btn-lb-staff-pdf">🖨️ چاپ / دانلود PDF</button>
+            <button class="btn danger" type="button" onclick="lbClearContainer('lbs-table')">🗑️ پاک کردن جدول</button>
           </div>
         </div>
 
@@ -3685,13 +3602,7 @@ function teacherPage() {
           <button class="theme-btn" data-theme="dark" onclick="setTheme('dark')">🌙 تاریک</button>
         </div>
         <h3>🤖 موتور هوش مصنوعی</h3>
-        <p class="muted" style="margin-bottom:8px">این انتخاب برای تمام قابلیت‌های هوش مصنوعی (ترجمه، استخراج متن از عکس/PDF و ...) اعمال می‌شود.</p>
-        <select id="ai-provider-select" style="max-width:320px;margin-bottom:20px">
-          <option value="groq">⚡ Groq (سریع‌تر)</option>
-          <option value="gemini">✨ Gemini (قوی‌تر، برای کارهای پیچیده‌تر بهتر)</option>
-          <option value="cloudflare">🌩️ Cloudflare Workers AI (رایگان، بدون نیاز به کلید API)</option>
-          <option value="mistral">🌊 Mistral AI (رایگان با سقف بالا، کیفیت خوب)</option>
-        </select>
+        <p class="muted" style="margin-bottom:20px">تمام قابلیت‌های هوش مصنوعی (ترجمه، استخراج متن از عکس/PDF، چت دستیار و ...) با موتور ✨ Gemini انجام می‌شود.</p>
         <h3>🔐 تغییر رمز عبور</h3>
         <label>رمز عبور جدید</label><input id="new-pass" type="password" autocomplete="new-password">
         <p class="muted" id="pass-msg"></p>
@@ -3731,6 +3642,14 @@ function teacherScript() {
   
   function esc(s){const d=document.createElement('div');d.textContent=s==null?'':s;return d.innerHTML;}
   function toast(m){const t=document.getElementById('toast');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2500);}
+  window.addEventListener('error',function(e){
+    console.error('خطای پیش‌بینی‌نشده:',e.error||e.message);
+    try{toast('⚠️ خطایی رخ داد؛ لطفاً دوباره تلاش کنید');}catch(_){}
+  });
+  window.addEventListener('unhandledrejection',function(e){
+    console.error('خطای پیش‌بینی‌نشده (async):',e.reason);
+    try{toast('⚠️ خطایی رخ داد؛ لطفاً دوباره تلاش کنید');}catch(_){}
+  });
   function uid(){return 'q-'+Math.random().toString(36).slice(2,10);}
   async function api(path,opts){const r=await fetch(path,opts);return r.json();}
   async function lbSave(key,value,silent){
@@ -3752,15 +3671,8 @@ function teacherScript() {
   setTimeout(()=>{document.querySelectorAll('.theme-btn').forEach(b=>b.classList.toggle('active',b.dataset.theme===savedTheme));},100);
   window.setTheme=function(t){document.documentElement.setAttribute('data-theme',t);localStorage.setItem('panelTheme',t);document.querySelectorAll('.theme-btn').forEach(b=>b.classList.toggle('active',b.dataset.theme===t));};
 
-  // ===== انتخاب موتور هوش مصنوعی (Groq / Gemini) =====
-  window.getAiProvider=function(){return localStorage.getItem('aiProvider')||'groq';};
-  setTimeout(()=>{
-    const sel=document.getElementById('ai-provider-select');
-    if(sel){
-      sel.value=getAiProvider();
-      sel.addEventListener('change',()=>{localStorage.setItem('aiProvider',sel.value);toast('موتور هوش مصنوعی تغییر کرد');});
-    }
-  },100);
+  // ===== موتور هوش مصنوعی: فقط Gemini =====
+  window.getAiProvider=function(){return 'gemini';};
 
   // ===== ورود =====
   async function checkAuth(){
@@ -5929,40 +5841,59 @@ function teacherScript() {
   scanMakeCropDraggable(document.getElementById('scan-crop-h-br'),'br');
 
   document.getElementById('btn-scan-crop-open').onclick=()=>{
-    if(!SCANORIG){toast('ابتدا عکس را انتخاب کنید');return;}
-    const cv=document.getElementById('scan-canvas');
-    document.getElementById('scan-crop-img').src=cv.toDataURL('image/png');
-    scanCropRect={x:0.05,y:0.05,w:0.9,h:0.9};
-    scanRenderCropRect();
-    document.getElementById('scan-cropstage').classList.remove('hidden');
-    document.getElementById('scan-controls').classList.add('hidden');
+    try{
+      if(!SCANORIG){toast('ابتدا عکس را انتخاب کنید');return;}
+      const cv=document.getElementById('scan-canvas');
+      if(!cv.width||!cv.height){toast('عکس هنوز آماده نیست، لحظه‌ای صبر کنید');return;}
+      document.getElementById('scan-crop-img').src=cv.toDataURL('image/png');
+      scanCropRect={x:0.05,y:0.05,w:0.9,h:0.9};
+      scanRenderCropRect();
+      document.getElementById('scan-cropstage').classList.remove('hidden');
+      document.getElementById('scan-controls').classList.add('hidden');
+    }catch(err){
+      console.error('scan-crop-open error:',err);
+      toast('خطا در باز کردن بخش برش عکس. لطفاً دوباره تلاش کنید');
+    }
   };
   document.getElementById('btn-scan-crop-cancel').onclick=()=>{
     document.getElementById('scan-cropstage').classList.add('hidden');
     document.getElementById('scan-controls').classList.remove('hidden');
   };
   document.getElementById('btn-scan-crop-apply').onclick=()=>{
-    const cv=document.getElementById('scan-canvas');
-    const sx=scanCropRect.x*cv.width,sy=scanCropRect.y*cv.height;
-    const sw=scanCropRect.w*cv.width,sh=scanCropRect.h*cv.height;
-    const outCanvas=document.createElement('canvas');
-    outCanvas.width=Math.max(1,Math.round(sw));outCanvas.height=Math.max(1,Math.round(sh));
-    const octx=outCanvas.getContext('2d');
-    octx.drawImage(cv,sx,sy,sw,sh,0,0,outCanvas.width,outCanvas.height);
-    const croppedImg=new Image();
-    croppedImg.onload=()=>{
-      SCANORIG=croppedImg;SCANIMG=croppedImg;scanRotation=0;
-      document.getElementById('scan-bright').value=0;
-      document.getElementById('scan-contrast').value=0;
-      document.getElementById('scan-sharp').value=0;
-      document.getElementById('scan-saturation').value=0;
-      updateFilterValues();
+    try{
+      const cv=document.getElementById('scan-canvas');
+      const sx=scanCropRect.x*cv.width,sy=scanCropRect.y*cv.height;
+      const sw=scanCropRect.w*cv.width,sh=scanCropRect.h*cv.height;
+      if(sw<=0||sh<=0){toast('کادر برش نامعتبر است');return;}
+      const outCanvas=document.createElement('canvas');
+      outCanvas.width=Math.max(1,Math.round(sw));outCanvas.height=Math.max(1,Math.round(sh));
+      const octx=outCanvas.getContext('2d');
+      octx.drawImage(cv,sx,sy,sw,sh,0,0,outCanvas.width,outCanvas.height);
+      const croppedImg=new Image();
+      croppedImg.onload=()=>{
+        SCANORIG=croppedImg;SCANIMG=croppedImg;scanRotation=0;
+        document.getElementById('scan-bright').value=0;
+        document.getElementById('scan-contrast').value=0;
+        document.getElementById('scan-sharp').value=0;
+        document.getElementById('scan-saturation').value=0;
+        updateFilterValues();
+        document.getElementById('scan-cropstage').classList.add('hidden');
+        document.getElementById('scan-controls').classList.remove('hidden');
+        applyScan();
+        toast('برش اعمال شد ✅');
+      };
+      croppedImg.onerror=()=>{
+        toast('خطا در اعمال برش. لطفاً دوباره تلاش کنید');
+        document.getElementById('scan-cropstage').classList.add('hidden');
+        document.getElementById('scan-controls').classList.remove('hidden');
+      };
+      croppedImg.src=outCanvas.toDataURL('image/png');
+    }catch(err){
+      console.error('scan-crop-apply error:',err);
+      toast('خطا در اعمال برش عکس. لطفاً دوباره تلاش کنید');
       document.getElementById('scan-cropstage').classList.add('hidden');
       document.getElementById('scan-controls').classList.remove('hidden');
-      applyScan();
-      toast('برش اعمال شد ✅');
-    };
-    croppedImg.src=outCanvas.toDataURL('image/png');
+    }
   };
 
   document.getElementById('btn-reset-scan').onclick=()=>{SCANORIG=SCANIMG;scanRotation=0;document.getElementById('scan-bright').value=0;document.getElementById('scan-contrast').value=0;document.getElementById('scan-sharp').value=0;document.getElementById('scan-saturation').value=0;updateFilterValues();document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));document.querySelector('.filter-btn[data-filter="original"]').classList.add('active');applyScan();};
@@ -7671,6 +7602,19 @@ function teacherScript() {
     });
     return rows;
   }
+  // پاک کردن تمام مقادیر ورودی داخل یک جدول/بخش (بدون دست زدن به چک‌باکس‌ها)، با فراخوانی رویداد input تا داده‌های وابسته (LB_*_DATA) هم به‌روز شوند
+  function lbClearContainer(containerId){
+    if(!confirm('آیا از پاک‌کردن تمام اطلاعات این جدول مطمئن هستید؟ این کار قابل بازگشت نیست.'))return;
+    var el=document.getElementById(containerId);
+    if(!el)return;
+    el.querySelectorAll('input,textarea').forEach(function(inp){
+      if(inp.type==='checkbox'||inp.type==='radio')return;
+      inp.value='';
+      inp.dispatchEvent(new Event('input',{bubbles:true}));
+    });
+    toast('جدول پاک شد ✅');
+  }
+  window.lbClearContainer=lbClearContainer;
   function lbRowsToHtmlTable(rows){
     if(!rows.length)return '<table></table>';
     var h='<table><tr>'+rows[0].map(function(c){return '<th>'+esc(c)+'</th>';}).join('')+'</tr>';
@@ -8561,6 +8505,8 @@ function teacherScript() {
     LB_WEEKLY2_LOADED=true;
     var saved=await lbLoad('weekly2');
     if(saved){
+      document.getElementById('lbw2-school').value=saved.school||'';
+      document.getElementById('lbw2-teacher').value=saved.teacher||'';
       document.getElementById('lbw2-grade').value=saved.grade||'';
       document.getElementById('lbw2-class').value=saved.className||'';
       if(saved.data)LB_WEEKLY2_DATA=saved.data;
@@ -8568,10 +8514,10 @@ function teacherScript() {
     lbRenderWeekly2();
   }
   document.getElementById('btn-lbw2-save').onclick=function(){
-    lbSave('weekly2',{grade:document.getElementById('lbw2-grade').value,className:document.getElementById('lbw2-class').value,data:LB_WEEKLY2_DATA});
+    lbSave('weekly2',{school:document.getElementById('lbw2-school').value,teacher:document.getElementById('lbw2-teacher').value,grade:document.getElementById('lbw2-grade').value,className:document.getElementById('lbw2-class').value,data:LB_WEEKLY2_DATA});
   };
   function lbWeekly2ExportHtml(){
-    var meta='<p class="lb-meta"><b>برنامه درسی پایه:</b> '+esc(document.getElementById('lbw2-grade').value)+' &nbsp;&nbsp;&nbsp; <b>کلاس:</b> '+esc(document.getElementById('lbw2-class').value)+'</p>';
+    var meta='<p class="lb-meta"><b>نام مدرسه:</b> '+esc(document.getElementById('lbw2-school').value)+' &nbsp;&nbsp;&nbsp; <b>نام آموزگار:</b> '+esc(document.getElementById('lbw2-teacher').value)+' &nbsp;&nbsp;&nbsp; <b>پایه:</b> '+esc(document.getElementById('lbw2-grade').value)+' &nbsp;&nbsp;&nbsp; <b>کلاس:</b> '+esc(document.getElementById('lbw2-class').value)+'</p>';
     return meta+lbBuildWeekly2Html(true);
   }
   document.getElementById('btn-lb-weekly2-word').onclick=function(){lbWordExport('جدول ۳- برنامه درسی هفتگی (کلاس تک پایه)',lbWeekly2ExportHtml(),'برنامه-درسی-هفتگی-تک-پایه',false);};
