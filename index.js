@@ -6499,8 +6499,9 @@ function teacherScript() {
             const nx=subArgs[ai++],ny=subArgs[ai++];
             const p1=applyM(curMatrix,[cx,cy]),p2=applyM(curMatrix,[nx,ny]);
             const dx=Math.abs(p2[0]-p1[0]),dy=Math.abs(p2[1]-p1[1]);
-            if(dy<0.5&&dx>10)hLines.push({x1:Math.min(p1[0],p2[0]),x2:Math.max(p1[0],p2[0]),y:(p1[1]+p2[1])/2});
-            else if(dx<0.5&&dy>10)vLines.push({y1:Math.min(p1[1],p2[1]),y2:Math.max(p1[1],p2[1]),x:(p1[0]+p2[0])/2});
+            // آستانهٔ طول بزرگ‌تر: خطوط کوچک (دور چک‌باکس گزینه‌ها، خط‌چین جای خالی) نباید به‌عنوان مرز جدول در کل عرض صفحه در نظر گرفته شوند
+            if(dy<0.5&&dx>28)hLines.push({x1:Math.min(p1[0],p2[0]),x2:Math.max(p1[0],p2[0]),y:(p1[1]+p2[1])/2});
+            else if(dx<0.5&&dy>18)vLines.push({y1:Math.min(p1[1],p2[1]),y2:Math.max(p1[1],p2[1]),x:(p1[0]+p2[0])/2});
             cx=nx;cy=ny;
           }else if(op===OPS.curveTo){ai+=6;cx=subArgs[ai-2];cy=subArgs[ai-1];}
           else if(op===OPS.closePath){cx=sx;cy=sy;}
@@ -6508,13 +6509,35 @@ function teacherScript() {
             const rx=subArgs[ai++],ry=subArgs[ai++],rw=subArgs[ai++],rh=subArgs[ai++];
             const p1=applyM(curMatrix,[rx,ry]),p2=applyM(curMatrix,[rx+rw,ry+rh]);
             const w=Math.abs(p2[0]-p1[0]),h=Math.abs(p2[1]-p1[1]);
-            if(h<2&&w>10)hLines.push({x1:Math.min(p1[0],p2[0]),x2:Math.max(p1[0],p2[0]),y:(p1[1]+p2[1])/2});
-            else if(w<2&&h>10)vLines.push({y1:Math.min(p1[1],p2[1]),y2:Math.max(p1[1],p2[1]),x:(p1[0]+p2[0])/2});
+            if(h<2&&w>28)hLines.push({x1:Math.min(p1[0],p2[0]),x2:Math.max(p1[0],p2[0]),y:(p1[1]+p2[1])/2});
+            else if(w<2&&h>18)vLines.push({y1:Math.min(p1[1],p2[1]),y2:Math.max(p1[1],p2[1]),x:(p1[0]+p2[0])/2});
           }
         }
       }
     }
     return{hLines,vLines};
+  }
+
+  // تشخیص «شکاف بزرگ» بین دو تکهٔ متن مجاور = مرز واقعی دو بلوک/ستون جدا (نه فقط فاصلهٔ معمولی بین کلمات)
+  // مثال کلاسیک: در سربرگ آزمون‌ها، «نام و نام‌خانوادگی:» (باکس راست) و عنوان وسط صفحه («مرکز ارزشیابی...»)
+  // ممکن است روی یک خط افقی (همان y) قرار بگیرند چون کنار هم چیده شده‌اند، اما با فاصلهٔ خالی زیاد در وسط؛
+  // بدون این تشخیص، این دو متنِ کاملاً نامرتبط به‌اشتباه به‌عنوان یک خط واحد به‌هم می‌چسبند.
+  // محاسبهٔ شکاف با کسر عرض واقعی آیتم (it.width) دقیق‌تر از تفاضل سادهٔ x است و از تشخیص اشتباه در جمله‌های عادی جلوگیری می‌کند.
+  const PDF2WORD_COL_BREAK_RATIO=4, PDF2WORD_COL_BREAK_MIN_ABS=18;
+  function pdf2wordSplitIntoLines(sortedItems){
+    const lines=[];let cur=[];let prevItem=null;
+    sortedItems.forEach(it=>{
+      if(prevItem){
+        const prevRight=prevItem.transform[4];
+        const curRight=it.transform[4]+(it.width||0);
+        const gap=prevRight-curRight;
+        const fontSize=Math.abs(it.transform[3])||Math.abs(it.transform[0])||10;
+        if(gap>Math.max(fontSize*PDF2WORD_COL_BREAK_RATIO,PDF2WORD_COL_BREAK_MIN_ABS)){lines.push(cur);cur=[];}
+      }
+      cur.push(it);prevItem=it;
+    });
+    if(cur.length)lines.push(cur);
+    return lines;
   }
 
   // اتصال هوشمند تکه‌های متن: فقط وقتی فاصلهٔ واقعی بین دو تکه به‌اندازهٔ کافی بزرگ باشد یک space درج می‌شود
@@ -6548,13 +6571,16 @@ function teacherScript() {
     const out=[];
     for(const ml of microLines){
       const sorted=[...ml.items].sort((a,b)=>b.transform[4]-a.transform[4]);
-      let text=pdf2wordJoinItems(sorted).replace(/\s+/g,' ').replace(/\s+([.,،؛:؟!])/g,'$1').trim();
-      if(text!==''&&ocrCtx&&hasBrokenGlyphs(text)){
-        const bb=itemsBBox(sorted);
-        const ocrText=await ocrRect(ocrCtx,bb.xL,bb.xR,bb.yTop,bb.yBot);
-        if(ocrText)text=ocrText;
+      const subLines=pdf2wordSplitIntoLines(sorted); // جلوگیری از چسبیدن متن ستون‌های مجزای هم‌ارتفاع به هم
+      for(const sub of subLines){
+        let text=pdf2wordJoinItems(sub).replace(/\s+/g,' ').replace(/\s+([.,،؛:؟!])/g,'$1').trim();
+        if(text!==''&&ocrCtx&&hasBrokenGlyphs(text)){
+          const bb=itemsBBox(sub);
+          const ocrText=await ocrRect(ocrCtx,bb.xL,bb.xR,bb.yTop,bb.yBot);
+          if(ocrText)text=ocrText;
+        }
+        if(text!=='')out.push(text);
       }
-      if(text!=='')out.push(text);
     }
     return out;
   }
@@ -6590,13 +6616,16 @@ function teacherScript() {
       const out=[];
       for(const l of lines){
         const sorted=[...l.items].sort((a,b)=>b.transform[4]-a.transform[4]);
-        let text=pdf2wordJoinItems(sorted).replace(/\s+/g,' ').replace(/\s+([.,،؛:؟!])/g,'$1').trim();
-        if(text!==''&&ocrCtx&&hasBrokenGlyphs(text)){
-          const bb=itemsBBox(sorted);
-          const ocrText=await ocrRect(ocrCtx,bb.xL,bb.xR,bb.yTop,bb.yBot);
-          if(ocrText)text=ocrText;
+        const subLines=pdf2wordSplitIntoLines(sorted); // جلوگیری از چسبیدن متن ستون‌های مجزای هم‌ارتفاع به هم (مثلاً باکس‌های سربرگ آزمون)
+        for(const sub of subLines){
+          let text=pdf2wordJoinItems(sub).replace(/\s+/g,' ').replace(/\s+([.,،؛:؟!])/g,'$1').trim();
+          if(text!==''&&ocrCtx&&hasBrokenGlyphs(text)){
+            const bb=itemsBBox(sub);
+            const ocrText=await ocrRect(ocrCtx,bb.xL,bb.xR,bb.yTop,bb.yBot);
+            if(ocrText)text=ocrText;
+          }
+          if(text!=='')out.push({type:'para',text});
         }
-        if(text!=='')out.push({type:'para',text});
       }
       return out;
     };
