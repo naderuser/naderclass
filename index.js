@@ -910,9 +910,9 @@ function wordResponse(bodyHtml, filename) {
       .hdr h1 { font-size: 15pt; margin: 2px 0; }
       .hdr h2 { font-size: 12pt; margin: 2px 0; font-weight: normal; }
       .hdr h3 { font-size: 12pt; margin: 2px 0; font-weight: normal; }
-      .meta-table { width:100%; border-collapse: collapse; margin-bottom: 14px; }
+      .meta-table { width:100%; mso-table-layout-alt:fixed; border-collapse: collapse; margin-bottom: 14px; }
       .meta-table td { border: 1px solid #000; padding: 6px 8px; }
-      table.q { width:100%; border-collapse: collapse; margin-bottom: 10px; }
+      table.q { width:100%; mso-table-layout-alt:fixed; border-collapse: collapse; margin-bottom: 10px; }
       table.q td, table.q th { border: 1px solid #000; padding: 6px 8px; vertical-align: top; }
       .qnum { width: 36px; text-align:center; font-weight:bold; }
       .opt { padding: 2px 18px; }
@@ -1007,8 +1007,9 @@ function examWord(meta, questions) {
 function examSheetWord(d) {
   d = d || {};
   const rows = Array.isArray(d.rows) && d.rows.length ? d.rows : [{ q: "", mark: "" }];
+  const tblStyle = "width:100%;table-layout:fixed;mso-table-layout-alt:fixed";
   let body =
-    `<table class="meta-table" style="table-layout:fixed"><tr>` +
+    `<table class="meta-table" width="100%" style="${tblStyle}"><tr>` +
     `<td style="width:33%">نام درس: ${esc(d.course || "")}</td>` +
     `<td style="width:34%;text-align:center;font-weight:bold">${esc(d.org1 || "وزارت آموزش و پرورش جمهوری اسلامی ایران")}</td>` +
     `<td style="width:33%">تاریخ آزمون: ${esc(d.date || "")}</td>` +
@@ -1021,12 +1022,12 @@ function examSheetWord(d) {
     `<td>مدت امتحان: ${esc(d.duration || "")}</td>` +
     `<td>عنوان: ${esc(d.examtitle || "")}</td>` +
     `</tr></table>` +
-    `<table class="meta-table" style="margin-top:6px"><tr>` +
-    `<td>نام و نام‌خانوادگی: ...................................</td>` +
-    `<td>نام پدر: ...................................</td>` +
+    `<table class="meta-table" width="100%" style="${tblStyle};margin-top:6px"><tr>` +
+    `<td style="width:50%">نام و نام‌خانوادگی: ...................................</td>` +
+    `<td style="width:50%">نام پدر: ...................................</td>` +
     `</tr></table>` +
-    `<table class="q" style="table-layout:fixed;margin-top:6px"><tr>` +
-    `<th class="qnum" style="width:40px">ردیف</th><th>سؤال</th><th style="width:60px">بارم</th>` +
+    `<table class="q" width="100%" style="${tblStyle};margin-top:6px"><tr>` +
+    `<th class="qnum" style="width:8%">ردیف</th><th style="width:80%">سؤال</th><th style="width:12%">بارم</th>` +
     `</tr>` +
     rows.map((r, i) =>
       `<tr style="height:110px;mso-height-rule:atleast"><td class="qnum" style="vertical-align:top">${i + 1}</td>` +
