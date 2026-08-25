@@ -1011,7 +1011,7 @@ function examSheetWord(d) {
     `<table class="meta-table"><tr>` +
     `<td style="text-align:center;font-weight:bold">${esc(d.org1 || "وزارت آموزش و پرورش جمهوری اسلامی ایران")}<br>${esc(d.org2 || "")}</td>` +
     `<td style="text-align:center;font-weight:bold">${esc(d.examtitle || "")}<br>${esc(d.year || "")}</td>` +
-    `<td>تاریخ آزمون: ${esc(d.date || "")}<br>زمان آزمون: ${esc(d.time || "")}<br>تعداد صفحات: ${esc(d.pages || "1")}</td>` +
+    `<td>تاریخ آزمون: ${esc(d.date || "")}<br>زمان آزمون: ${esc(d.time || "")}</td>` +
     `</tr></table>` +
     `<table class="meta-table"><tr>` +
     `<td>نام درس: ${esc(d.course || "")}</td><td>نام دبیر: ${esc(d.teacher || "")}</td>` +
@@ -1020,14 +1020,14 @@ function examSheetWord(d) {
     `<table class="meta-table"><tr>` +
     `<td>نام و نام‌خانوادگی: ...................................</td>` +
     `<td>نام پدر: ...................................</td>` +
-    `<td>شماره داوطلب: ...................................</td>` +
     `</tr></table>` +
-    `<table class="meta-table"><tr><td style="text-align:center;font-weight:bold">محل مهر یا امضای مدیر</td></tr></table>` +
     `<table class="q" style="table-layout:fixed"><tr>` +
     `<th class="qnum" style="width:40px">ردیف</th><th>سؤال</th><th style="width:60px">بارم</th>` +
     `</tr>` +
     rows.map((r, i) =>
-      `<tr><td class="qnum">${i + 1}</td><td style="min-height:70px">${esc(r.q || "").replace(/\n/g, "<br>")}</td><td style="text-align:center">${esc(r.mark || "")}</td></tr>`
+      `<tr style="height:110px;mso-height-rule:atleast"><td class="qnum" style="vertical-align:top">${i + 1}</td>` +
+      `<td style="vertical-align:top">${esc(r.q || "").replace(/\n/g, "<br>")}${r.q ? "" : "<br><br><br><br>"}</td>` +
+      `<td style="text-align:center;vertical-align:top">${esc(r.mark || "")}</td></tr>`
     ).join("") +
     `</table>` +
     `<p style="text-align:center;font-weight:bold">صفحه ۱</p>`;
@@ -1626,15 +1626,13 @@ const SHARED_CSS = `
   .es-hdr-meta div{display:flex;gap:6px;align-items:center;margin:3px 0;white-space:nowrap}
   .es-hdr-meta input{flex:1;min-width:0}
   .es-blank{border-bottom:1px dotted #000!important}
-  .es-stamp-box{border:1px solid #000;border-top:none;text-align:center;font-size:12px;font-weight:700;padding:10px;color:#374151}
-  [data-theme="dark"] .es-stamp-box{color:#cbd5e1}
   .es-main-table{width:100%;border-collapse:collapse;margin-top:0}
   .es-main-table th,.es-main-table td{border:1px solid #000;padding:8px;vertical-align:top;font-size:13px}
   .es-main-table thead th{background:#f1f5f9;font-weight:700;text-align:center}
   [data-theme="dark"] .es-main-table thead th{background:#334155}
   .es-col-num{width:44px;text-align:center;font-weight:700}
   .es-col-mark{width:64px;text-align:center}
-  .es-main-table textarea{width:100%;min-height:70px;border:none;resize:vertical;font-family:inherit;font-size:13px;background:transparent;color:inherit}
+  .es-main-table textarea{width:100%;min-height:110px;border:none;resize:vertical;font-family:inherit;font-size:13px;background:transparent;color:inherit}
   .es-main-table textarea:focus{outline:none;background:#fffbe6}
   [data-theme="dark"] .es-main-table textarea:focus{background:#334155}
   .es-main-table input.es-mark{width:100%;border:none;text-align:center;font-family:inherit;font-size:13px;background:transparent;color:inherit}
@@ -2855,7 +2853,6 @@ function teacherPage() {
               <td class="es-hdr-meta">
                 <div><span>تاریخ آزمون:</span><input id="es-date"></div>
                 <div><span>زمان آزمون:</span><input id="es-time"></div>
-                <div><span>تعداد صفحات:</span><input id="es-pages" value="1"></div>
               </td>
             </tr>
           </table>
@@ -2873,11 +2870,8 @@ function teacherPage() {
             <tr>
               <td><span>نام و نام‌خانوادگی:</span><input class="es-blank"></td>
               <td><span>نام پدر:</span><input class="es-blank"></td>
-              <td><span>شماره داوطلب:</span><input class="es-blank"></td>
             </tr>
           </table>
-
-          <div class="es-stamp-box">محل مهر یا امضای مدیر</div>
 
           <table class="es-main-table" id="es-main-table">
             <thead><tr><th class="es-col-num">ردیف</th><th>سؤال</th><th class="es-col-mark">بارم</th></tr></thead>
@@ -5405,7 +5399,6 @@ function teacherScript() {
       year:document.getElementById('es-year').value,
       date:document.getElementById('es-date').value,
       time:document.getElementById('es-time').value,
-      pages:document.getElementById('es-pages').value,
       course:document.getElementById('es-course').value,
       teacher:document.getElementById('es-teacher').value,
       grade:document.getElementById('es-grade').value,
@@ -5431,7 +5424,6 @@ function teacherScript() {
     if(d.year!=null)document.getElementById('es-year').value=d.year;
     if(d.date!=null)document.getElementById('es-date').value=d.date;
     if(d.time!=null)document.getElementById('es-time').value=d.time;
-    if(d.pages!=null)document.getElementById('es-pages').value=d.pages;
     if(d.course!=null)document.getElementById('es-course').value=d.course;
     if(d.teacher!=null)document.getElementById('es-teacher').value=d.teacher;
     if(d.grade!=null)document.getElementById('es-grade').value=d.grade;
