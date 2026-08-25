@@ -2955,26 +2955,11 @@ function teacherPage() {
             <button class="btn secondary" id="btn-rotate-l">↶ چرخش چپ</button>
             <button class="btn secondary" id="btn-rotate-r">↷ چرخش راست</button>
             <button class="btn secondary" id="btn-scan-autoenhance">✨ روشن‌سازی خودکار</button>
-            <button class="btn secondary" id="btn-scan-crop-open">✂️ برش عکس</button>
             <div class="setting-group" style="display:inline-flex;align-items:center;gap:6px;margin:0 8px"><label style="margin:0">📦 کیفیت خروجی</label><input type="range" id="scan-out-quality" min="30" max="100" value="90" style="width:100px"><span class="setting-value" id="scan-out-quality-val">90%</span></div>
             <button class="btn primary" id="btn-dl-img">💾 دانلود عکس</button>
             <button class="btn success" id="btn-dl-pdf">📄 دانلود PDF</button>
             <button class="btn secondary" id="btn-reset-scan">🔄 بازنشانی فیلترها</button>
             <button class="btn danger" id="btn-remove-scan">🗑️ حذف عکس</button>
-          </div>
-
-          <div id="scan-cropstage" class="hidden" style="margin-top:16px">
-            <div id="scan-crop-wrapper" style="position:relative;max-width:100%;display:inline-block;touch-action:none;user-select:none">
-              <img id="scan-crop-img" src="" style="width:100%;max-width:500px;display:block;border-radius:8px" draggable="false">
-              <div id="scan-crop-rect" style="position:absolute;border:2px solid #667eea;background:rgba(102,126,234,.15);box-sizing:border-box;pointer-events:none"></div>
-              <div class="scan-warp-handle" data-corner="tl" id="scan-crop-h-tl" style="position:absolute;width:24px;height:24px;margin:-12px;border-radius:50%;background:#667eea;border:3px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.4);cursor:grab;touch-action:none"></div>
-              <div class="scan-warp-handle" data-corner="br" id="scan-crop-h-br" style="position:absolute;width:24px;height:24px;margin:-12px;border-radius:50%;background:#667eea;border:3px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.4);cursor:grab;touch-action:none"></div>
-            </div>
-            <p class="muted" style="margin-top:8px">دو گوشهٔ آبی (بالا‌چپ و پایین‌راست) را بکشید تا کادر برش را تنظیم کنید.</p>
-            <div class="scan-toolbar">
-              <button class="btn primary" id="btn-scan-crop-apply">✅ اعمال برش</button>
-              <button class="btn gray" id="btn-scan-crop-cancel">✖️ انصراف</button>
-            </div>
           </div>
         </div>
       </div>
@@ -3744,7 +3729,7 @@ function teacherScript() {
   window.copyLink=(l)=>{navigator.clipboard.writeText(l).then(()=>toast('لینک کپی شد'));};
   window.delStudent=async(id)=>{if(!confirm('حذف این دانش‌آموز و پاسخنامه‌اش؟'))return;await api('/api/teacher/students/'+id,{method:'DELETE'});loadStudents();};
 
-  // کوچک و فشرده کردن عکس پروفایل قبل از ارسال (حداکثر ابعاد 320px، حداکثر حجم اصلی 2 مگابایت)
+  // کوچک‌کردن و برش مرکزی عکس پروفایل به یک مربع کامل (مثل آپلود عکس پروفایل واقعی) تا داخل دایره هیچ‌وقت کشیده/بیضی به‌نظر نرسد
   function resizeProfilePhoto(file){
     return new Promise((resolve,reject)=>{
       if(file.size>2*1024*1024){reject(new Error('حجم عکس باید کمتر از ۲ مگابایت باشد'));return;}
@@ -3752,9 +3737,12 @@ function teacherScript() {
       rd.onload=ev=>{
         const img=new Image();
         img.onload=()=>{
-          const c=document.createElement('canvas');const mw=320;let w=img.width,h=img.height;
-          if(w>mw){h=Math.round(h*mw/w);w=mw;}
-          c.width=w;c.height=h;c.getContext('2d').drawImage(img,0,0,w,h);
+          const size=320;
+          // برش مرکزی: بزرگ‌ترین مربع ممکن از وسط عکس اصلی انتخاب می‌شود تا نسبت تصویر به‌هم نخورد
+          const side=Math.min(img.width,img.height);
+          const sx=(img.width-side)/2, sy=(img.height-side)/2;
+          const c=document.createElement('canvas');c.width=size;c.height=size;
+          c.getContext('2d').drawImage(img,sx,sy,side,side,0,0,size,size);
           resolve(c.toDataURL('image/jpeg',0.85));
         };
         img.onerror=()=>reject(new Error('فایل عکس معتبر نیست'));
@@ -5889,103 +5877,6 @@ function teacherScript() {
       toast('روشنایی تصویر به‌صورت خودکار بهبود یافت ✅');
     };
     enhancedImg.src=fullCanvas.toDataURL('image/png');
-  };
-
-  // ===== برش مستطیلی عکس (داخل اسکنر) =====
-  let scanCropRect={x:0.05,y:0.05,w:0.9,h:0.9};
-  function scanRenderCropRect(){
-    const wrapper=document.getElementById('scan-crop-wrapper');
-    const rectEl=document.getElementById('scan-crop-rect');
-    rectEl.style.left=(scanCropRect.x*100)+'%';
-    rectEl.style.top=(scanCropRect.y*100)+'%';
-    rectEl.style.width=(scanCropRect.w*100)+'%';
-    rectEl.style.height=(scanCropRect.h*100)+'%';
-    document.getElementById('scan-crop-h-tl').style.left=(scanCropRect.x*100)+'%';
-    document.getElementById('scan-crop-h-tl').style.top=(scanCropRect.y*100)+'%';
-    document.getElementById('scan-crop-h-br').style.left=((scanCropRect.x+scanCropRect.w)*100)+'%';
-    document.getElementById('scan-crop-h-br').style.top=((scanCropRect.y+scanCropRect.h)*100)+'%';
-  }
-  function scanMakeCropDraggable(handle,corner){
-    handle.addEventListener('pointerdown',e=>{
-      e.preventDefault();
-      handle.setPointerCapture(e.pointerId);
-      const wrapper=document.getElementById('scan-crop-wrapper');
-      function move(ev){
-        const rect=wrapper.getBoundingClientRect();
-        let px=(ev.clientX-rect.left)/rect.width,py=(ev.clientY-rect.top)/rect.height;
-        px=Math.min(1,Math.max(0,px));py=Math.min(1,Math.max(0,py));
-        if(corner==='tl'){
-          scanCropRect.w=(scanCropRect.x+scanCropRect.w)-px;
-          scanCropRect.h=(scanCropRect.y+scanCropRect.h)-py;
-          scanCropRect.x=px;scanCropRect.y=py;
-        }else{
-          scanCropRect.w=px-scanCropRect.x;
-          scanCropRect.h=py-scanCropRect.y;
-        }
-        if(scanCropRect.w>0.02&&scanCropRect.h>0.02)scanRenderCropRect();
-      }
-      function up(){handle.releasePointerCapture(e.pointerId);handle.removeEventListener('pointermove',move);handle.removeEventListener('pointerup',up);}
-      handle.addEventListener('pointermove',move);
-      handle.addEventListener('pointerup',up);
-    });
-  }
-  scanMakeCropDraggable(document.getElementById('scan-crop-h-tl'),'tl');
-  scanMakeCropDraggable(document.getElementById('scan-crop-h-br'),'br');
-
-  document.getElementById('btn-scan-crop-open').onclick=()=>{
-    try{
-      if(!SCANORIG){toast('ابتدا عکس را انتخاب کنید');return;}
-      const cv=document.getElementById('scan-canvas');
-      if(!cv.width||!cv.height){toast('عکس هنوز آماده نیست، لحظه‌ای صبر کنید');return;}
-      document.getElementById('scan-crop-img').src=cv.toDataURL('image/png');
-      scanCropRect={x:0.05,y:0.05,w:0.9,h:0.9};
-      scanRenderCropRect();
-      document.getElementById('scan-cropstage').classList.remove('hidden');
-      document.getElementById('scan-controls').classList.add('hidden');
-    }catch(err){
-      console.error('scan-crop-open error:',err);
-      toast('خطا در باز کردن بخش برش عکس. لطفاً دوباره تلاش کنید');
-    }
-  };
-  document.getElementById('btn-scan-crop-cancel').onclick=()=>{
-    document.getElementById('scan-cropstage').classList.add('hidden');
-    document.getElementById('scan-controls').classList.remove('hidden');
-  };
-  document.getElementById('btn-scan-crop-apply').onclick=()=>{
-    try{
-      const cv=document.getElementById('scan-canvas');
-      const sx=scanCropRect.x*cv.width,sy=scanCropRect.y*cv.height;
-      const sw=scanCropRect.w*cv.width,sh=scanCropRect.h*cv.height;
-      if(sw<=0||sh<=0){toast('کادر برش نامعتبر است');return;}
-      const outCanvas=document.createElement('canvas');
-      outCanvas.width=Math.max(1,Math.round(sw));outCanvas.height=Math.max(1,Math.round(sh));
-      const octx=outCanvas.getContext('2d');
-      octx.drawImage(cv,sx,sy,sw,sh,0,0,outCanvas.width,outCanvas.height);
-      const croppedImg=new Image();
-      croppedImg.onload=()=>{
-        SCANORIG=croppedImg;SCANIMG=croppedImg;scanRotation=0;
-        document.getElementById('scan-bright').value=0;
-        document.getElementById('scan-contrast').value=0;
-        document.getElementById('scan-sharp').value=0;
-        document.getElementById('scan-saturation').value=0;
-        updateFilterValues();
-        document.getElementById('scan-cropstage').classList.add('hidden');
-        document.getElementById('scan-controls').classList.remove('hidden');
-        applyScan();
-        toast('برش اعمال شد ✅');
-      };
-      croppedImg.onerror=()=>{
-        toast('خطا در اعمال برش. لطفاً دوباره تلاش کنید');
-        document.getElementById('scan-cropstage').classList.add('hidden');
-        document.getElementById('scan-controls').classList.remove('hidden');
-      };
-      croppedImg.src=outCanvas.toDataURL('image/png');
-    }catch(err){
-      console.error('scan-crop-apply error:',err);
-      toast('خطا در اعمال برش عکس. لطفاً دوباره تلاش کنید');
-      document.getElementById('scan-cropstage').classList.add('hidden');
-      document.getElementById('scan-controls').classList.remove('hidden');
-    }
   };
 
   document.getElementById('btn-reset-scan').onclick=()=>{SCANORIG=SCANIMG;scanRotation=0;document.getElementById('scan-bright').value=0;document.getElementById('scan-contrast').value=0;document.getElementById('scan-sharp').value=0;document.getElementById('scan-saturation').value=0;updateFilterValues();document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));document.querySelector('.filter-btn[data-filter="original"]').classList.add('active');applyScan();};
