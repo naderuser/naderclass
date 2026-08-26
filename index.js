@@ -1036,18 +1036,17 @@ function examSheetWord(d) {
     `<td style="width:50%">نام درس: ${esc(d.course || "")}</td>` +
     `<td style="width:50%">${esc(teacherLabel)}: ${esc(d.teacher || "")}</td>` +
     `</tr></table>` +
-    `<table class="q" width="100%" style="${tblStyle};margin-top:6px"><tr>` +
-    `<th class="qnum" style="width:8%">ردیف</th><th style="width:80%">سؤال</th><th style="width:12%">${esc(markLabel)}</th>` +
-    `</tr>` +
+    `<table class="q" width="100%" style="${tblStyle};margin-top:6px">` +
+    `<thead><tr><th class="qnum" style="width:8%">ردیف</th><th style="width:80%">سؤال</th><th style="width:12%">${esc(markLabel)}</th></tr></thead>` +
+    `<tbody>` +
     rows.map((r, i) => {
       const sp = parseInt(r.space, 10) || 90;
       const brCount = r.q ? 0 : Math.max(1, Math.round(sp / 35));
-      return `<tr style="height:${sp}px;mso-height-rule:atleast"><td class="qnum" style="vertical-align:top">${toFaDigitsSrv(i + 1)}</td>` +
+      return `<tr style="height:${sp}px;mso-height-rule:atleast;page-break-inside:avoid"><td class="qnum" style="vertical-align:top">${toFaDigitsSrv(i + 1)}</td>` +
         `<td style="vertical-align:top;font-size:${fontSize}pt">${r.q || ""}${r.q ? "" : "<br>".repeat(brCount)}</td>` +
         `<td style="text-align:center;vertical-align:top">${esc(r.mark || "")}</td></tr>`;
     }).join("") +
-    `</table>` +
-    `<p style="text-align:center;font-weight:bold;margin-top:4px">صفحه ۱</p>`;
+    `</tbody></table>`;
   return fontWrap(body);
 }
 
@@ -5596,7 +5595,7 @@ function teacherScript() {
     style+='td,th{border:1px solid #000;padding:6px 8px;font-size:'+fs+'pt;vertical-align:top}';
     style+='th{background:#f1f5f9;text-align:center;font-weight:bold}';
     style+='.qnum{width:44px;text-align:center;font-weight:bold}.mk{width:64px;text-align:center}';
-    style+='.foot{text-align:center;font-weight:bold;margin-top:8px}';
+    style+='thead{display:table-header-group}tr{page-break-inside:avoid}';
     style+='.es-tbl-toolbar{display:none!important}.es-tbl-wrap{border:none!important;padding:0!important}</style>';
     let h='<table><tr>'+
       '<td>نام و نام‌خانوادگی: ...................................</td>'+
@@ -5612,13 +5611,13 @@ function teacherScript() {
       '<td>'+esc(d.examtitle)+(d.examtitleExtra?' - '+esc(d.examtitleExtra):'')+'</td>'+
       '</tr></table>'+
       '<table><tr><td>نام درس: '+esc(d.course)+'</td><td>'+esc(d.teacherLabel)+': '+esc(d.teacher)+'</td></tr></table>';
-    let q='<table><tr><th class="qnum">ردیف</th><th>سؤال</th><th class="mk">'+esc(d.markLabel)+'</th></tr>';
+    let q='<table><thead><tr><th class="qnum">ردیف</th><th>سؤال</th><th class="mk">'+esc(d.markLabel)+'</th></tr></thead><tbody>';
     d.rows.forEach(function(r,i){
       const sp=r.space||90;
       q+='<tr><td class="qnum">'+toFaDigits(i+1)+'</td><td style="min-height:'+sp+'px">'+(r.q||'')+'</td><td style="text-align:center">'+esc(r.mark||'')+'</td></tr>';
     });
-    q+='</table>';
-    return '<html><head><meta charset="utf-8">'+style+'</head><body>'+h+q+'<div class="foot">صفحه ۱</div></body></html>';
+    q+='</tbody></table>';
+    return '<html><head><meta charset="utf-8">'+style+'</head><body>'+h+q+'</body></html>';
   }
 
   let esLoaded=false;
