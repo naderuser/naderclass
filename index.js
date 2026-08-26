@@ -1665,7 +1665,7 @@ const SHARED_CSS = `
   .es-col-num{width:44px;text-align:center;font-weight:bold}
   .es-col-mark{width:80px;text-align:center}
   .es-q-cell{position:relative}
-  .es-q{width:100%;min-height:110px;font-family:inherit;font-weight:bold;font-size:14px;outline:none;white-space:pre-wrap;word-break:break-word}
+  .es-q{width:100%;min-height:50px;font-family:inherit;font-weight:bold;font-size:14px;outline:none;white-space:pre-wrap;word-break:break-word}
   .es-q:focus{background:#fffbe6}
   [data-theme="dark"] .es-q:focus{background:#334155}
   .es-q table{border-collapse:collapse;margin:6px 0}
