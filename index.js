@@ -5654,6 +5654,19 @@ function teacherScript() {
     return '<html><head><meta charset="utf-8">'+style+'</head><body>'+h+q+'<div class="foot">صفحه ۱</div></body></html>';
   }
 
+  // پاک‌سازی خط‌های خالی اضافیِ ته متن سؤال (باقی‌مانده از روش قدیمیِ افزودن جدول که یک <div><br></div> اضافه می‌کرد)
+  function esTrimTrailingBreaks(html){
+    if(!html)return html;
+    let prev;
+    do{
+      prev=html;
+      html=html.replace(/(<div>\s*(&nbsp;)?\s*<br\s*\/?>\s*<\/div>\s*)+$/i,'');
+      html=html.replace(/(<p>\s*(&nbsp;)?\s*<br\s*\/?>\s*<\/p>\s*)+$/i,'');
+      html=html.replace(/(<br\s*\/?>\s*)+$/i,'');
+      html=html.replace(/(&nbsp;|\s)+$/,'');
+    }while(html!==prev);
+    return html;
+  }
   let esLoaded=false;
   async function loadExamSheetIfNeeded(){
     if(esLoaded)return;esLoaded=true;
@@ -5672,7 +5685,7 @@ function teacherScript() {
     if(d.grade!=null)document.getElementById('es-grade').value=d.grade;
     if(d.schoolyear!=null)document.getElementById('es-schoolyear').value=d.schoolyear;
     if(Array.isArray(d.rows)&&d.rows.length){
-      esRows=d.rows.map(function(r){return {q:r.q||'',mark:r.mark||'',tables:Array.isArray(r.tables)?r.tables:[]};});
+      esRows=d.rows.map(function(r){return {q:esTrimTrailingBreaks(r.q||''),mark:r.mark||'',tables:Array.isArray(r.tables)?r.tables:[]};});
     }
     esRenderRows();
   }
