@@ -1007,9 +1007,6 @@ function examWord(meta, questions) {
 function examSheetWord(d) {
   d = d || {};
   const rows = Array.isArray(d.rows) && d.rows.length ? d.rows : [{ q: "", mark: "" }];
-function examSheetWord(d) {
-  d = d || {};
-  const rows = Array.isArray(d.rows) && d.rows.length ? d.rows : [{ q: "", mark: "" }];
   const teacherLabel = d.teacherLabel || "نام دبیر";
   const markLabel = d.markLabel || "بارم";
   const tblStyle = "width:100%;table-layout:fixed;mso-table-layout-alt:fixed";
