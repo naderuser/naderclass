@@ -1039,11 +1039,13 @@ function examSheetWord(d) {
     `<table class="q" width="100%" style="${tblStyle};margin-top:6px"><tr>` +
     `<th class="qnum" style="width:8%">ردیف</th><th style="width:80%">سؤال</th><th style="width:12%">${esc(markLabel)}</th>` +
     `</tr>` +
-    rows.map((r, i) =>
-      `<tr><td class="qnum" style="vertical-align:top">${toFaDigitsSrv(i + 1)}</td>` +
-      `<td style="vertical-align:top;font-size:${fontSize}pt">${r.q || ""}${r.q ? "" : "<br><br>"}</td>` +
-      `<td style="text-align:center;vertical-align:top">${esc(r.mark || "")}</td></tr>`
-    ).join("") +
+    rows.map((r, i) => {
+      const sp = parseInt(r.space, 10) || 90;
+      const brCount = r.q ? 0 : Math.max(1, Math.round(sp / 35));
+      return `<tr style="height:${sp}px;mso-height-rule:atleast"><td class="qnum" style="vertical-align:top">${toFaDigitsSrv(i + 1)}</td>` +
+        `<td style="vertical-align:top;font-size:${fontSize}pt">${r.q || ""}${r.q ? "" : "<br>".repeat(brCount)}</td>` +
+        `<td style="text-align:center;vertical-align:top">${esc(r.mark || "")}</td></tr>`;
+    }).join("") +
     `</table>` +
     `<p style="text-align:center;font-weight:bold;margin-top:4px">صفحه ۱</p>`;
   return fontWrap(body);
@@ -1648,14 +1650,19 @@ const SHARED_CSS = `
   .es-col-num{width:44px;text-align:center;font-weight:bold}
   .es-col-mark{width:80px;text-align:center}
   .es-q-cell{position:relative}
-  .es-q{width:100%;min-height:110px;font-family:inherit;font-weight:bold;font-size:var(--es-font-size,12pt);outline:none;white-space:pre-wrap;word-break:break-word}
+  .es-q{width:100%;min-height:90px;font-family:inherit;font-weight:bold;font-size:var(--es-font-size,12pt);outline:none;white-space:pre-wrap;word-break:break-word}
   .es-q:focus{background:#fffbe6}
   [data-theme="dark"] .es-q:focus{background:#334155}
   .es-q table{border-collapse:collapse;margin:6px 0}
   .es-q table td{border:1px solid #000;padding:8px;min-width:36px;font-size:inherit}
-  .es-q-tools{display:flex;gap:4px;margin-top:6px}
+  .es-q-tools{display:flex;gap:4px;align-items:center;flex-wrap:wrap;margin-top:6px}
   .es-q-tools button{background:none;border:1px solid #e2e8f0;border-radius:6px;color:#475569;cursor:pointer;font-size:11px;padding:2px 7px}
   [data-theme="dark"] .es-q-tools button{border-color:#404040;color:#a3a3a3}
+  .es-space-ctrl{display:inline-flex;align-items:center;gap:4px;margin-inline-start:6px;font-size:11px;color:#475569}
+  [data-theme="dark"] .es-space-ctrl{color:#a3a3a3}
+  .es-space-btn{background:none;border:1px solid #e2e8f0;border-radius:6px;color:#475569;cursor:pointer;font-size:11px;padding:2px 7px;line-height:1}
+  [data-theme="dark"] .es-space-btn{border-color:#404040;color:#a3a3a3}
+  .es-space-val{min-width:24px;text-align:center;display:inline-block;font-weight:bold}
   .es-main-table input.es-mark{width:100%;border:none;text-align:center;font-family:inherit;font-weight:bold;font-size:var(--es-font-size,12pt);background:transparent;color:inherit}
   .es-row-del{width:100%;background:none;border:none;color:#dc2626;cursor:pointer;font-size:15px}
   .es-pagefoot{text-align:center;font-weight:bold;margin-top:8px;font-size:14px}
@@ -5450,14 +5457,24 @@ function teacherScript() {
     '</div><div><br></div>';
   }
 
+  const ES_SPACE_DEFAULT=90, ES_SPACE_MIN=40, ES_SPACE_MAX=500, ES_SPACE_STEP=20;
+
   function esRenderRows(){
     const tbody=document.getElementById('es-rows');
     tbody.innerHTML=esRows.map(function(r,i){
+      const sp=r.space||ES_SPACE_DEFAULT;
       return '<tr>'+
         '<td class="es-col-num">'+toFaDigits(i+1)+(esRows.length>1?'<div><button type="button" class="es-row-del" data-i="'+i+'" title="حذف این سؤال">✕ حذف</button></div>':'')+'</td>'+
         '<td class="es-q-cell">'+
-          '<div class="es-q" data-i="'+i+'" contenteditable="true">'+(r.q||'')+'</div>'+
-          '<div class="es-q-tools"><button type="button" class="es-q-addtable" data-i="'+i+'">🔲 افزودن جدول</button></div>'+
+          '<div class="es-q" data-i="'+i+'" contenteditable="true" style="min-height:'+sp+'px">'+(r.q||'')+'</div>'+
+          '<div class="es-q-tools">'+
+            '<button type="button" class="es-q-addtable" data-i="'+i+'">🔲 افزودن جدول</button>'+
+            '<span class="es-space-ctrl">📏 فضای پاسخ:'+
+              '<button type="button" class="es-space-btn" data-i="'+i+'" data-dir="-1" title="فضای کمتر برای این سؤال">➖</button>'+
+              '<b class="es-space-val" data-i="'+i+'">'+toFaDigits(sp)+'</b>'+
+              '<button type="button" class="es-space-btn" data-i="'+i+'" data-dir="1" title="فضای بیشتر برای این سؤال">➕</button>'+
+            '</span>'+
+          '</div>'+
         '</td>'+
         '<td class="es-col-mark"><input class="es-mark" data-i="'+i+'" value="'+esc(r.mark||'')+'"></td>'+
         '</tr>';
@@ -5465,6 +5482,19 @@ function teacherScript() {
     tbody.querySelectorAll('.es-q').forEach(function(el){convertDigitsInElement(el);el.oninput=function(){convertDigitsInElement(this);esRows[+this.dataset.i].q=this.innerHTML;};});
     tbody.querySelectorAll('.es-mark').forEach(function(el){el.oninput=function(){esRows[+this.dataset.i].mark=this.value;};});
     tbody.querySelectorAll('.es-row-del').forEach(function(el){el.onclick=function(){esRows.splice(+this.dataset.i,1);esRenderRows();};});
+    tbody.querySelectorAll('.es-space-btn').forEach(function(el){
+      el.onclick=function(){
+        const i=+this.dataset.i;
+        const dir=+this.dataset.dir;
+        let cur=esRows[i].space||ES_SPACE_DEFAULT;
+        cur=Math.max(ES_SPACE_MIN,Math.min(ES_SPACE_MAX,cur+dir*ES_SPACE_STEP));
+        esRows[i].space=cur;
+        const qEl=tbody.querySelector('.es-q[data-i="'+i+'"]');
+        qEl.style.minHeight=cur+'px';
+        const valEl=tbody.querySelector('.es-space-val[data-i="'+i+'"]');
+        valEl.textContent=toFaDigits(cur);
+      };
+    });
     tbody.querySelectorAll('.es-q-addtable').forEach(function(el){
       el.onclick=function(){
         const i=+this.dataset.i;
@@ -5584,7 +5614,8 @@ function teacherScript() {
       '<table><tr><td>نام درس: '+esc(d.course)+'</td><td>'+esc(d.teacherLabel)+': '+esc(d.teacher)+'</td></tr></table>';
     let q='<table><tr><th class="qnum">ردیف</th><th>سؤال</th><th class="mk">'+esc(d.markLabel)+'</th></tr>';
     d.rows.forEach(function(r,i){
-      q+='<tr><td class="qnum">'+toFaDigits(i+1)+'</td><td>'+(r.q||'')+'</td><td style="text-align:center">'+esc(r.mark||'')+'</td></tr>';
+      const sp=r.space||90;
+      q+='<tr><td class="qnum">'+toFaDigits(i+1)+'</td><td style="min-height:'+sp+'px">'+(r.q||'')+'</td><td style="text-align:center">'+esc(r.mark||'')+'</td></tr>';
     });
     q+='</table>';
     return '<html><head><meta charset="utf-8">'+style+'</head><body>'+h+q+'<div class="foot">صفحه ۱</div></body></html>';
