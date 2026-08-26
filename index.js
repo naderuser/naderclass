@@ -5521,7 +5521,7 @@ function teacherScript() {
       '<table><tr><td>نام درس: '+esc(d.course)+'</td><td>'+esc(d.teacherLabel)+': '+esc(d.teacher)+'</td></tr></table>';
     let q='<table><tr><th class="qnum">ردیف</th><th>سؤال</th><th class="mk">'+esc(d.markLabel)+'</th></tr>';
     d.rows.forEach(function(r,i){
-      q+='<tr><td class="qnum">'+(i+1)+'</td><td>'+esc(r.q||'').replace(/\n/g,'<br>')+'</td><td style="text-align:center">'+esc(r.mark||'')+'</td></tr>';
+      q+='<tr><td class="qnum">'+(i+1)+'</td><td>'+esc(r.q||'').replace(/\\n/g,'<br>')+'</td><td style="text-align:center">'+esc(r.mark||'')+'</td></tr>';
     });
     q+='</table>';
     let ct='';
