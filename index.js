@@ -833,7 +833,7 @@ async function handleApi(req, env, url, path) {
       if (type === "examsheet") {
         const raw = await env.EXAM_KV.get("lbdata:examsheet");
         const data = raw ? JSON.parse(raw) : {};
-        return wordResponse(examSheetWord(data), "برگه-آزمون-چاپی.doc");
+        return wordResponse(examSheetWord(data), "برگه-آزمون-چاپی.doc", "0.6cm");
       }
       return wordResponse(examWord(meta, questions), "برگه-آزمون.doc");
     }
@@ -899,12 +899,12 @@ async function handleApi(req, env, url, path) {
 
 /* ------------------------- خروجی Word ------------------------- */
 
-function wordResponse(bodyHtml, filename) {
+function wordResponse(bodyHtml, filename, margin) {
   const doc =
     `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">` +
     `<head><meta charset="utf-8">` +
     `<style>
-      @page { size: A4; margin: 1.5cm; }
+      @page { size: A4; margin: ${margin || "1.5cm"}; }
       body { font-family: 'B Nazanin','Tahoma',sans-serif; direction: rtl; font-size: 13pt; }
       .hdr { text-align:center; border-bottom: 2px solid #000; padding-bottom:8px; margin-bottom:14px; }
       .hdr h1 { font-size: 15pt; margin: 2px 0; }
@@ -1007,27 +1007,30 @@ function examWord(meta, questions) {
 function examSheetWord(d) {
   d = d || {};
   const rows = Array.isArray(d.rows) && d.rows.length ? d.rows : [{ q: "", mark: "" }];
+  const customTables = Array.isArray(d.customTables) ? d.customTables : [];
+  const teacherLabel = d.teacherLabel || "نام دبیر";
+  const markLabel = d.markLabel || "بارم";
   const tblStyle = "width:100%;table-layout:fixed;mso-table-layout-alt:fixed";
   let body =
     `<table class="meta-table" width="100%" style="${tblStyle}"><tr>` +
-    `<td style="width:33%">نام درس: ${esc(d.course || "")}</td>` +
+    `<td style="width:33%">نام و نام‌خانوادگی: ...................................</td>` +
     `<td style="width:34%;text-align:center;font-weight:bold">${esc(d.org1 || "وزارت آموزش و پرورش جمهوری اسلامی ایران")}</td>` +
     `<td style="width:33%">تاریخ آزمون: ${esc(d.date || "")}</td>` +
     `</tr><tr>` +
-    `<td>نام دبیر: ${esc(d.teacher || "")}</td>` +
+    `<td>نام پدر: ...................................</td>` +
     `<td style="text-align:center;font-weight:bold">${esc(d.org2 || "")}</td>` +
     `<td>زمان آزمون: ${esc(d.time || "")}</td>` +
     `</tr><tr>` +
     `<td>رشته / پایه: ${esc(d.grade || "")}</td>` +
-    `<td>مدت امتحان: ${esc(d.duration || "")}</td>` +
-    `<td>عنوان: ${esc(d.examtitle || "")}</td>` +
+    `<td>تعداد صفحات: ${esc(d.pages || "")}</td>` +
+    `<td>${esc(d.examtitle || "آزمون نوبت اول")}</td>` +
     `</tr></table>` +
     `<table class="meta-table" width="100%" style="${tblStyle};margin-top:6px"><tr>` +
-    `<td style="width:50%">نام و نام‌خانوادگی: ...................................</td>` +
-    `<td style="width:50%">نام پدر: ...................................</td>` +
+    `<td style="width:50%">نام درس: ${esc(d.course || "")}</td>` +
+    `<td style="width:50%">${esc(teacherLabel)}: ${esc(d.teacher || "")}</td>` +
     `</tr></table>` +
     `<table class="q" width="100%" style="${tblStyle};margin-top:6px"><tr>` +
-    `<th class="qnum" style="width:8%">ردیف</th><th style="width:80%">سؤال</th><th style="width:12%">بارم</th>` +
+    `<th class="qnum" style="width:8%">ردیف</th><th style="width:80%">سؤال</th><th style="width:12%">${esc(markLabel)}</th>` +
     `</tr>` +
     rows.map((r, i) =>
       `<tr style="height:110px;mso-height-rule:atleast"><td class="qnum" style="vertical-align:top">${i + 1}</td>` +
@@ -1035,6 +1038,17 @@ function examSheetWord(d) {
       `<td style="text-align:center;vertical-align:top">${esc(r.mark || "")}</td></tr>`
     ).join("") +
     `</table>` +
+    customTables.map((t) => {
+      let rowsHtml = "";
+      for (let r = 0; r < t.rows; r++) {
+        rowsHtml += "<tr>";
+        for (let c = 0; c < t.cols; c++) {
+          rowsHtml += `<td style="height:40px">${esc((t.cells && t.cells[r] && t.cells[r][c]) || "")}</td>`;
+        }
+        rowsHtml += "</tr>";
+      }
+      return `<table width="100%" style="${tblStyle};margin-top:8px">${rowsHtml}</table>`;
+    }).join("") +
     `<p style="text-align:center;font-weight:bold;margin-top:4px">صفحه ۱</p>`;
   return body;
 }
@@ -1626,6 +1640,8 @@ const SHARED_CSS = `
   .es-header-table input:focus{outline:none;background:#fffbe6}
   [data-theme="dark"] .es-header-table input:focus{background:#334155}
   .es-header-table td span{font-size:12.5px;font-weight:700;display:inline-block;margin-left:4px}
+  .es-header-table select,.es-main-table select{border:none;background:transparent;font-family:inherit;font-size:12.5px;font-weight:700;color:inherit;cursor:pointer}
+  .es-header-table select:focus,.es-main-table select:focus{outline:none}
   .es-hdr-org input{text-align:center;font-weight:700}
   .es-blank{border-bottom:1px dotted #000!important}
   .es-main-table{width:100%;border-collapse:collapse;margin-top:6px}
@@ -1633,19 +1649,26 @@ const SHARED_CSS = `
   .es-main-table thead th{background:#f1f5f9;font-weight:700;text-align:center}
   [data-theme="dark"] .es-main-table thead th{background:#334155}
   .es-col-num{width:44px;text-align:center;font-weight:700}
-  .es-col-mark{width:64px;text-align:center}
+  .es-col-mark{width:80px;text-align:center}
   .es-main-table textarea{width:100%;min-height:110px;border:none;resize:vertical;font-family:inherit;font-size:13px;background:transparent;color:inherit}
   .es-main-table textarea:focus{outline:none;background:#fffbe6}
   [data-theme="dark"] .es-main-table textarea:focus{background:#334155}
   .es-main-table input.es-mark{width:100%;border:none;text-align:center;font-family:inherit;font-size:13px;background:transparent;color:inherit}
   .es-row-del{width:100%;background:none;border:none;color:#dc2626;cursor:pointer;font-size:15px}
   .es-pagefoot{text-align:center;font-weight:700;margin-top:8px;font-size:13px}
+  .es-custom-table-block{margin-top:10px}
+  .es-custom-table{width:100%;border-collapse:collapse}
+  .es-custom-table .es-ct-cell{border:1px solid #000;padding:10px;min-width:40px;min-height:36px;font-size:13px}
+  .es-custom-table .es-ct-cell:focus{outline:2px solid #da7756;background:#fffbe6}
+  [data-theme="dark"] .es-custom-table .es-ct-cell:focus{background:#334155}
+  .es-ct-del{margin-top:4px;background:none;border:none;color:#dc2626;font-size:12px;cursor:pointer}
   @media print{
     body *{visibility:hidden}
     #es-print-area, #es-print-area *{visibility:visible}
     #es-print-area{position:absolute;top:0;right:0;left:0;width:100%;padding:0;border:none;border-radius:0;margin:0}
     .es-main-table tr{page-break-inside:avoid}
-    .es-main-table textarea,.es-main-table input.es-mark,.es-header-table input{color:#000!important}
+    .es-main-table textarea,.es-main-table input.es-mark,.es-header-table input,.es-header-table select,.es-main-table select{color:#000!important}
+    .es-ct-del{display:none!important}
   }
 
   /* ---- Timer ---- */
@@ -2839,38 +2862,64 @@ function teacherPage() {
 
       <div class="card tab-content hidden" id="tab-examsheet">
         <h3 id="es-page-title">🖨️ ساخت آزمون (برگه چاپی)</h3>
-        <p class="muted" id="es-page-desc">دقیقاً مثل برگه رسمی آزمون: سربرگ، مشخصات دانش‌آموز و جدول ردیف/سؤال/بارم. سؤال‌ها را اضافه کنید، ذخیره کنید و در پایان چاپ بگیرید.</p>
+        <p class="muted" id="es-page-desc">دقیقاً مثل برگه رسمی آزمون: سربرگ، مشخصات دانش‌آموز و جدول ردیف/سؤال/بارم. سؤال‌ها را اضافه کنید، ذخیره کنید و در پایان چاپ یا دانلود بگیرید.</p>
+
+        <div class="row" style="margin-bottom:10px">
+          <button class="btn sec" id="btn-es-addtable">🔲 افزودن جدول دلخواه</button>
+        </div>
 
         <div id="es-print-area">
           <table class="es-header-table">
             <tr>
-              <td><span>نام درس:</span><input id="es-course" placeholder="نام درس"></td>
+              <td><span>نام و نام‌خانوادگی:</span><input class="es-blank"></td>
               <td class="es-hdr-org"><input id="es-org1" placeholder="وزارت آموزش و پرورش جمهوری اسلامی ایران" value="وزارت آموزش و پرورش جمهوری اسلامی ایران"></td>
               <td><span>تاریخ آزمون:</span><input id="es-date"></td>
             </tr>
             <tr>
-              <td><span>نام دبیر:</span><input id="es-teacher" placeholder="نام دبیر"></td>
+              <td><span>نام پدر:</span><input class="es-blank"></td>
               <td class="es-hdr-org"><input id="es-org2" placeholder="آموزش و پرورش ناحیه / منطقه ..."></td>
               <td><span>زمان آزمون:</span><input id="es-time"></td>
             </tr>
             <tr>
               <td><span>رشته / پایه:</span><input id="es-grade" placeholder="مثال: دهم انسانی"></td>
-              <td><span>مدت امتحان:</span><input id="es-duration" placeholder="مثال: 75 دقیقه"></td>
-              <td><span>عنوان:</span><input id="es-examtitle" placeholder="مثال: پایان ترم"></td>
+              <td><span>تعداد صفحات:</span><input id="es-pages" placeholder="مثال: 2"></td>
+              <td>
+                <select id="es-examtitle">
+                  <option value="آزمون نوبت اول">آزمون نوبت اول</option>
+                  <option value="آزمون نوبت دوم">آزمون نوبت دوم</option>
+                  <option value="ارزشیابی">ارزشیابی</option>
+                </select>
+              </td>
             </tr>
           </table>
 
           <table class="es-header-table" style="margin-top:6px">
             <tr>
-              <td><span>نام و نام‌خانوادگی:</span><input class="es-blank"></td>
-              <td><span>نام پدر:</span><input class="es-blank"></td>
+              <td><span>نام درس:</span><input id="es-course" placeholder="نام درس"></td>
+              <td>
+                <select id="es-teacher-label" style="width:auto;flex:0 0 auto;font-weight:700;font-size:12.5px">
+                  <option value="نام دبیر">نام دبیر:</option>
+                  <option value="نام آموزگار">نام آموزگار:</option>
+                </select>
+                <input id="es-teacher" placeholder="نام">
+              </td>
             </tr>
           </table>
 
           <table class="es-main-table" id="es-main-table">
-            <thead><tr><th class="es-col-num">ردیف</th><th>سؤال</th><th class="es-col-mark">بارم</th></tr></thead>
+            <thead><tr>
+              <th class="es-col-num">ردیف</th><th>سؤال</th>
+              <th class="es-col-mark">
+                <select id="es-mark-label">
+                  <option value="بارم">بارم</option>
+                  <option value="بازخورد معلم">بازخورد معلم</option>
+                </select>
+              </th>
+            </tr></thead>
             <tbody id="es-rows"></tbody>
           </table>
+
+          <div id="es-custom-tables"></div>
 
           <div class="es-pagefoot">صفحه ۱</div>
         </div>
@@ -2880,6 +2929,7 @@ function teacherPage() {
           <button class="btn success" id="btn-es-save">💾 ذخیره</button>
           <button class="btn secondary" id="btn-es-print">🖨️ چاپ</button>
           <button class="btn sec" id="btn-es-word">📄 دانلود Word</button>
+          <button class="btn gray" id="btn-es-pdf">📕 دانلود PDF</button>
         </div>
       </div>
 
@@ -5369,6 +5419,7 @@ function teacherScript() {
 
   // ===== ساخت آزمون (برگه چاپی) =====
   let esRows=[{q:'',mark:''}];
+  let esCustomTables=[];
   function esRenderRows(){
     const tbody=document.getElementById('es-rows');
     tbody.innerHTML=esRows.map(function(r,i){
@@ -5385,6 +5436,37 @@ function teacherScript() {
   esRenderRows();
   document.getElementById('btn-es-addrow').onclick=function(){esRows.push({q:'',mark:''});esRenderRows();};
 
+  function esRenderCustomTables(){
+    const wrap=document.getElementById('es-custom-tables');
+    wrap.innerHTML=esCustomTables.map(function(t,ti){
+      let html='<div class="es-custom-table-block" data-ti="'+ti+'"><table class="es-custom-table"><tbody>';
+      for(let r=0;r<t.rows;r++){
+        html+='<tr>';
+        for(let c=0;c<t.cols;c++){
+          html+='<td class="es-ct-cell" contenteditable="true" data-ti="'+ti+'" data-r="'+r+'" data-c="'+c+'">'+esc((t.cells[r]&&t.cells[r][c])||'')+'</td>';
+        }
+        html+='</tr>';
+      }
+      html+='</tbody></table><button type="button" class="es-ct-del" data-ti="'+ti+'">✕ حذف این جدول</button></div>';
+      return html;
+    }).join('');
+    wrap.querySelectorAll('.es-ct-cell').forEach(function(el){
+      el.oninput=function(){
+        const ti=+this.dataset.ti,r=+this.dataset.r,c=+this.dataset.c;
+        esCustomTables[ti].cells[r][c]=this.textContent;
+      };
+    });
+    wrap.querySelectorAll('.es-ct-del').forEach(function(el){
+      el.onclick=function(){esCustomTables.splice(+this.dataset.ti,1);esRenderCustomTables();};
+    });
+  }
+  document.getElementById('btn-es-addtable').onclick=function(){
+    let r=parseInt(prompt('تعداد ردیف جدول؟','2'),10);let c=parseInt(prompt('تعداد ستون جدول؟','2'),10);
+    if(!r||r<1)r=2;if(!c||c<1)c=2;
+    esCustomTables.push({rows:r,cols:c,cells:Array.from({length:r},function(){return Array(c).fill('');})});
+    esRenderCustomTables();
+  };
+
   function esGatherData(){
     return {
       org1:document.getElementById('es-org1').value,
@@ -5393,10 +5475,13 @@ function teacherScript() {
       date:document.getElementById('es-date').value,
       time:document.getElementById('es-time').value,
       course:document.getElementById('es-course').value,
+      teacherLabel:document.getElementById('es-teacher-label').value,
       teacher:document.getElementById('es-teacher').value,
+      markLabel:document.getElementById('es-mark-label').value,
       grade:document.getElementById('es-grade').value,
-      duration:document.getElementById('es-duration').value,
-      rows:esRows
+      pages:document.getElementById('es-pages').value,
+      rows:esRows,
+      customTables:esCustomTables
     };
   }
   document.getElementById('btn-es-save').onclick=function(){lbSave('examsheet',esGatherData());};
@@ -5405,6 +5490,48 @@ function teacherScript() {
     await lbSave('examsheet',esGatherData(),true);
     window.open('/api/teacher/word?type=examsheet','_blank');
   };
+  document.getElementById('btn-es-pdf').onclick=function(){
+    const html=getExamSheetHtmlForExport();
+    const w=window.open('','_blank');
+    w.document.write(html);w.document.close();
+    setTimeout(function(){w.print();},500);
+  };
+
+  function getExamSheetHtmlForExport(){
+    const d=esGatherData();
+    let style='<style>body{direction:rtl;font-family:Tahoma,Arial;padding:10px}';
+    style+='table{width:100%;border-collapse:collapse;table-layout:fixed;margin-bottom:6px}';
+    style+='td,th{border:1px solid #000;padding:6px 8px;font-size:13px;vertical-align:top}';
+    style+='th{background:#f1f5f9;text-align:center;font-weight:700}';
+    style+='.qnum{width:44px;text-align:center;font-weight:700}.mk{width:64px;text-align:center}';
+    style+='.foot{text-align:center;font-weight:700;margin-top:8px}</style>';
+    let h='<table><tr>'+
+      '<td>نام و نام‌خانوادگی: ...................................</td>'+
+      '<td style="text-align:center;font-weight:bold">'+esc(d.org1)+'</td>'+
+      '<td>تاریخ آزمون: '+esc(d.date)+'</td>'+
+      '</tr><tr>'+
+      '<td>نام پدر: ...................................</td>'+
+      '<td style="text-align:center;font-weight:bold">'+esc(d.org2)+'</td>'+
+      '<td>زمان آزمون: '+esc(d.time)+'</td>'+
+      '</tr><tr>'+
+      '<td>رشته / پایه: '+esc(d.grade)+'</td>'+
+      '<td>تعداد صفحات: '+esc(d.pages)+'</td>'+
+      '<td>'+esc(d.examtitle)+'</td>'+
+      '</tr></table>'+
+      '<table><tr><td>نام درس: '+esc(d.course)+'</td><td>'+esc(d.teacherLabel)+': '+esc(d.teacher)+'</td></tr></table>';
+    let q='<table><tr><th class="qnum">ردیف</th><th>سؤال</th><th class="mk">'+esc(d.markLabel)+'</th></tr>';
+    d.rows.forEach(function(r,i){
+      q+='<tr><td class="qnum">'+(i+1)+'</td><td>'+esc(r.q||'').replace(/\n/g,'<br>')+'</td><td style="text-align:center">'+esc(r.mark||'')+'</td></tr>';
+    });
+    q+='</table>';
+    let ct='';
+    (d.customTables||[]).forEach(function(t){
+      ct+='<table><tbody>';
+      for(let r=0;r<t.rows;r++){ct+='<tr>';for(let c=0;c<t.cols;c++){ct+='<td>'+esc((t.cells[r]&&t.cells[r][c])||'')+'</td>';}ct+='</tr>';}
+      ct+='</tbody></table>';
+    });
+    return '<html><head><meta charset="utf-8">'+style+'</head><body>'+h+q+ct+'<div class="foot">صفحه ۱</div></body></html>';
+  }
 
   let esLoaded=false;
   async function loadExamSheetIfNeeded(){
@@ -5417,11 +5544,15 @@ function teacherScript() {
     if(d.date!=null)document.getElementById('es-date').value=d.date;
     if(d.time!=null)document.getElementById('es-time').value=d.time;
     if(d.course!=null)document.getElementById('es-course').value=d.course;
+    if(d.teacherLabel!=null)document.getElementById('es-teacher-label').value=d.teacherLabel;
     if(d.teacher!=null)document.getElementById('es-teacher').value=d.teacher;
+    if(d.markLabel!=null)document.getElementById('es-mark-label').value=d.markLabel;
     if(d.grade!=null)document.getElementById('es-grade').value=d.grade;
-    if(d.duration!=null)document.getElementById('es-duration').value=d.duration;
+    if(d.pages!=null)document.getElementById('es-pages').value=d.pages;
     if(Array.isArray(d.rows)&&d.rows.length)esRows=d.rows;
+    if(Array.isArray(d.customTables))esCustomTables=d.customTables;
     esRenderRows();
+    esRenderCustomTables();
   }
 
 
