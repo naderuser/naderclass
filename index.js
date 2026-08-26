@@ -69,6 +69,11 @@ function esc(s) {
     .replace(/'/g, "&#39;");
 }
 
+const FA_DIGITS_SRV = ["۰", "۱", "۲", "۳", "۴", "۵", "۶", "۷", "۸", "۹"];
+function toFaDigitsSrv(s) {
+  return String(s == null ? "" : s).replace(/[0-9]/g, (d) => FA_DIGITS_SRV[+d]);
+}
+
 function sanitizeHtml(s) {
   return String(s == null ? "" : s)
     .replace(/<\s*\/?\s*(script|iframe|object|embed|link|meta|style)\b[^>]*>/gi, "")
@@ -1004,13 +1009,29 @@ function examWord(meta, questions) {
   return body;
 }
 
+function examSheetUserTablesWord(tables) {
+  if (!Array.isArray(tables) || !tables.length) return "";
+  return tables
+    .map((t) => {
+      const fs = t.fontSize || 12;
+      const w = t.width || 100;
+      let h = `<table style="width:${w}%;border-collapse:collapse;mso-table-layout-alt:fixed;margin:4px 0 4px auto;font-size:${fs}pt">`;
+      (t.rows || []).forEach((row) => {
+        h += "<tr>" + row.map((cell) => `<td style="border:1px solid #000;padding:4px 6px">${cell || ""}</td>`).join("") + "</tr>";
+      });
+      h += "</table>";
+      return h;
+    })
+    .join("");
+}
+
 function examSheetWord(d) {
   d = d || {};
-  const rows = Array.isArray(d.rows) && d.rows.length ? d.rows : [{ q: "", mark: "" }];
+  const rows = Array.isArray(d.rows) && d.rows.length ? d.rows : [{ q: "", mark: "", tables: [] }];
   const teacherLabel = d.teacherLabel || "نام دبیر";
   const markLabel = d.markLabel || "بارم";
   const tblStyle = "width:100%;table-layout:fixed;mso-table-layout-alt:fixed";
-  const fontWrap = (inner) => `<div style="font-family:'B Nazanin',Tahoma,Arial;font-weight:bold">${inner}</div>`;
+  const fontWrap = (inner) => `<div style="font-family:'B Nazanin',Tahoma,Arial;font-weight:bold;font-size:10.5pt">${inner}</div>`;
   const examTitleFull = esc(d.examtitle || "آزمون نوبت اول") + (d.examtitleExtra ? " - " + esc(d.examtitleExtra) : "");
   let body =
     `<table class="meta-table" width="100%" style="${tblStyle}"><tr>` +
@@ -1026,18 +1047,21 @@ function examSheetWord(d) {
     `<td>سال تحصیلی: ${esc(d.schoolyear || "")}</td>` +
     `<td>${examTitleFull}</td>` +
     `</tr></table>` +
-    `<table class="meta-table" width="100%" style="${tblStyle};margin-top:6px"><tr>` +
+    `<table class="meta-table" width="100%" style="${tblStyle};margin-top:4px"><tr>` +
     `<td style="width:50%">نام درس: ${esc(d.course || "")}</td>` +
     `<td style="width:50%">${esc(teacherLabel)}: ${esc(d.teacher || "")}</td>` +
     `</tr></table>` +
-    `<table class="q" width="100%" style="${tblStyle};margin-top:6px"><tr>` +
+    `<table class="q" width="100%" style="${tblStyle};margin-top:4px"><tr>` +
     `<th class="qnum" style="width:8%">ردیف</th><th style="width:80%">سؤال</th><th style="width:12%">${esc(markLabel)}</th>` +
     `</tr>` +
-    rows.map((r, i) =>
-      `<tr style="height:110px;mso-height-rule:atleast"><td class="qnum" style="vertical-align:top">${i + 1}</td>` +
-      `<td style="vertical-align:top">${r.q || ""}${r.q ? "" : "<br><br><br><br>"}</td>` +
-      `<td style="text-align:center;vertical-align:top">${esc(r.mark || "")}</td></tr>`
-    ).join("") +
+    rows
+      .map(
+        (r, i) =>
+          `<tr><td class="qnum" style="vertical-align:top">${toFaDigitsSrv(i + 1)}</td>` +
+          `<td style="vertical-align:top">${r.q || ""}${examSheetUserTablesWord(r.tables)}</td>` +
+          `<td style="text-align:center;vertical-align:top">${esc(r.mark || "")}</td></tr>`
+      )
+      .join("") +
     `</table>` +
     `<p style="text-align:center;font-weight:bold;margin-top:4px">صفحه ۱</p>`;
   return fontWrap(body);
@@ -1649,6 +1673,26 @@ const SHARED_CSS = `
   .es-q-tools{display:flex;gap:4px;margin-top:6px}
   .es-q-tools button{background:none;border:1px solid #e2e8f0;border-radius:6px;color:#475569;cursor:pointer;font-size:11px;padding:2px 7px}
   [data-theme="dark"] .es-q-tools button{border-color:#404040;color:#a3a3a3}
+  .es-tables-box{margin-top:8px;display:flex;flex-direction:column;gap:10px}
+  .es-table-wrap{border:1px dashed #cbd5e1;border-radius:8px;padding:8px;background:#f8fafc}
+  [data-theme="dark"] .es-table-wrap{background:#0f172a;border-color:#404040}
+  .es-table-toolbar{display:flex;flex-wrap:wrap;align-items:center;gap:5px;margin-bottom:6px;font-weight:normal}
+  .es-table-toolbar .es-tbl-label{font-size:11px;color:#64748b;font-weight:bold}
+  [data-theme="dark"] .es-table-toolbar .es-tbl-label{color:#94a3b8}
+  .es-table-toolbar button{background:#fff;border:1px solid #e2e8f0;border-radius:6px;color:#475569;cursor:pointer;font-size:11px;padding:3px 8px}
+  [data-theme="dark"] .es-table-toolbar button{background:#1e293b;border-color:#404040;color:#a3a3a3}
+  .es-table-toolbar button.danger{color:#dc2626;border-color:#fecaca}
+  .es-table-toolbar input[type=number]{width:46px;border:1px solid #e2e8f0;border-radius:6px;padding:2px 4px;font-size:11px;font-family:inherit;text-align:center}
+  [data-theme="dark"] .es-table-toolbar input[type=number]{background:#1e293b;border-color:#404040;color:#e5e5e5}
+  .es-table-toolbar select{border:1px solid #e2e8f0;border-radius:6px;padding:2px 4px;font-size:11px;font-family:inherit}
+  [data-theme="dark"] .es-table-toolbar select{background:#1e293b;border-color:#404040;color:#e5e5e5}
+  .es-user-table{border-collapse:collapse}
+  .es-user-table td{border:1px solid #000;padding:6px;min-width:34px;outline:none}
+  .es-user-table td:focus{background:#fffbe6}
+  [data-theme="dark"] .es-user-table td:focus{background:#334155}
+  .es-col-del-row td{border:none;text-align:center;padding:0 6px 3px}
+  .es-col-del-row button,.es-row-del-cell button{background:none;border:none;color:#dc2626;cursor:pointer;font-size:11px;padding:0 3px}
+  .es-row-del-cell{border:none!important;vertical-align:middle;padding:0 3px!important;width:20px}
   .es-main-table input.es-mark{width:100%;border:none;text-align:center;font-family:inherit;font-weight:bold;font-size:14px;background:transparent;color:inherit}
   .es-row-del{width:100%;background:none;border:none;color:#dc2626;cursor:pointer;font-size:15px}
   .es-pagefoot{text-align:center;font-weight:bold;margin-top:8px;font-size:14px}
@@ -1659,6 +1703,10 @@ const SHARED_CSS = `
     .es-main-table tr{page-break-inside:avoid}
     .es-q,.es-main-table input.es-mark,.es-header-table input,.es-header-table select,.es-main-table select{color:#000!important}
     .es-q-tools{display:none!important}
+    .es-table-wrap{border:none!important;background:none!important;padding:0!important}
+    .es-table-toolbar{display:none!important}
+    .es-col-del-row{display:none!important}
+    .es-row-del-cell{display:none!important}
   }
 
   /* ---- Timer ---- */
@@ -2912,7 +2960,6 @@ function teacherPage() {
         <div class="row" style="margin-top:16px">
           <button class="btn" id="btn-es-addrow">➕ افزودن سؤال</button>
           <button class="btn success" id="btn-es-save">💾 ذخیره</button>
-          <button class="btn secondary" id="btn-es-print">🖨️ چاپ</button>
           <button class="btn sec" id="btn-es-word">📄 دانلود Word</button>
           <button class="btn gray" id="btn-es-pdf">📕 دانلود PDF</button>
         </div>
@@ -5403,14 +5450,52 @@ function teacherScript() {
   document.getElementById('btn-org-print').onclick=function(){window.print();};
 
   // ===== ساخت آزمون (برگه چاپی) =====
-  let esRows=[{q:'',mark:''}];
+  let esRows=[{q:'',mark:'',tables:[]}];
+
+  // ---- کمک‌تابع‌های جدول‌های داخل سؤال ----
+  function esNewTable(){return {rows:[['',''],['','']],fontSize:12,width:100};}
+  function esTableHtml(t,ri,ti){
+    const fs=t.fontSize||12;
+    const w=t.width||100;
+    const colCount=(t.rows[0]||[]).length;
+    let html='<div class="es-table-wrap" data-ri="'+ri+'" data-ti="'+ti+'">';
+    html+='<div class="es-table-toolbar">';
+    html+='<span class="es-tbl-label">🔲 جدول '+toFaDigits(ti+1)+'</span>';
+    html+='<button type="button" class="es-tbl-addrow" title="افزودن ردیف">➕ ردیف</button>';
+    html+='<button type="button" class="es-tbl-addcol" title="افزودن ستون">➕ ستون</button>';
+    html+='<button type="button" class="es-tbl-up" title="جابه‌جایی به بالا">⬆</button>';
+    html+='<button type="button" class="es-tbl-down" title="جابه‌جایی به پایین">⬇</button>';
+    html+='<span class="es-tbl-label">فونت:</span><input type="number" class="es-tbl-font" min="8" max="36" value="'+fs+'">';
+    html+='<span class="es-tbl-label">اندازه:</span><select class="es-tbl-width">'+
+      [40,50,60,70,80,90,100].map(function(p){return '<option value="'+p+'"'+(p===w?' selected':'')+'>'+toFaDigits(p)+'%</option>';}).join('')+
+      '</select>';
+    html+='<button type="button" class="es-tbl-del danger" title="حذف کل این جدول">🗑 حذف جدول</button>';
+    html+='</div>';
+    html+='<table class="es-user-table" style="font-size:'+fs+'px;width:'+w+'%">';
+    html+='<tr class="es-col-del-row"><td class="es-row-del-cell"></td>'+
+      Array.from({length:colCount}).map(function(_,ci){return '<td><button type="button" class="es-tbl-delcol" data-ci="'+ci+'" title="حذف این ستون">✕</button></td>';}).join('')+
+      '</tr>';
+    t.rows.forEach(function(row,rIdx){
+      html+='<tr>';
+      html+='<td class="es-row-del-cell">'+(t.rows.length>1?'<button type="button" class="es-tbl-delrow" data-ri2="'+rIdx+'" title="حذف این ردیف">✕</button>':'')+'</td>';
+      row.forEach(function(cell,cIdx){
+        html+='<td class="es-tbl-cell" contenteditable="true" data-r="'+rIdx+'" data-c="'+cIdx+'">'+(cell||'')+'</td>';
+      });
+      html+='</tr>';
+    });
+    html+='</table></div>';
+    return html;
+  }
   function esRenderRows(){
     const tbody=document.getElementById('es-rows');
     tbody.innerHTML=esRows.map(function(r,i){
+      r.tables=Array.isArray(r.tables)?r.tables:[];
+      const tablesHtml=r.tables.length?('<div class="es-tables-box">'+r.tables.map(function(t,ti){return esTableHtml(t,i,ti);}).join('')+'</div>'):'';
       return '<tr>'+
-        '<td class="es-col-num">'+(i+1)+(esRows.length>1?'<div><button type="button" class="es-row-del" data-i="'+i+'" title="حذف این سؤال">✕ حذف</button></div>':'')+'</td>'+
+        '<td class="es-col-num">'+toFaDigits(i+1)+(esRows.length>1?'<div><button type="button" class="es-row-del" data-i="'+i+'" title="حذف این سؤال">✕ حذف</button></div>':'')+'</td>'+
         '<td class="es-q-cell">'+
           '<div class="es-q" data-i="'+i+'" contenteditable="true">'+(r.q||'')+'</div>'+
+          tablesHtml+
           '<div class="es-q-tools"><button type="button" class="es-q-addtable" data-i="'+i+'">🔲 افزودن جدول</button></div>'+
         '</td>'+
         '<td class="es-col-mark"><input class="es-mark" data-i="'+i+'" value="'+esc(r.mark||'')+'"></td>'+
@@ -5422,21 +5507,81 @@ function teacherScript() {
     tbody.querySelectorAll('.es-q-addtable').forEach(function(el){
       el.onclick=function(){
         const i=+this.dataset.i;
-        const qEl=tbody.querySelector('.es-q[data-i="'+i+'"]');
-        let r=parseInt(prompt('تعداد ردیف جدول؟','2'),10);let c=parseInt(prompt('تعداد ستون جدول؟','2'),10);
-        if(!r||r<1)r=2;if(!c||c<1)c=2;
-        let html='<table><tbody>';
-        for(let rr=0;rr<r;rr++){html+='<tr>';for(let cc=0;cc<c;cc++){html+='<td>&nbsp;</td>';}html+='</tr>';}
-        html+='</tbody></table><div><br></div>';
-        qEl.focus();
-        const ok=document.execCommand&&document.execCommand('insertHTML',false,html);
-        if(!ok){qEl.innerHTML+=html;}
-        esRows[i].q=qEl.innerHTML;
+        esRows[i].tables=esRows[i].tables||[];
+        esRows[i].tables.push(esNewTable());
+        esRenderRows();
       };
+    });
+    // ---- رویدادهای مربوط به هر جدولِ داخلِ سؤال ----
+    tbody.querySelectorAll('.es-table-wrap').forEach(function(wrap){
+      const ri=+wrap.dataset.ri, ti=+wrap.dataset.ti;
+      const t=(esRows[ri]&&esRows[ri].tables&&esRows[ri].tables[ti])||null;
+      if(!t)return;
+      wrap.querySelectorAll('.es-tbl-cell').forEach(function(td){
+        td.oninput=function(){t.rows[+this.dataset.r][+this.dataset.c]=this.innerHTML;};
+      });
+      const addRowBtn=wrap.querySelector('.es-tbl-addrow');
+      if(addRowBtn)addRowBtn.onclick=function(){
+        const cols=(t.rows[0]||['']).length;
+        t.rows.push(new Array(cols).fill(''));
+        esRenderRows();
+      };
+      const addColBtn=wrap.querySelector('.es-tbl-addcol');
+      if(addColBtn)addColBtn.onclick=function(){
+        t.rows.forEach(function(row){row.push('');});
+        esRenderRows();
+      };
+      const delBtn=wrap.querySelector('.es-tbl-del');
+      if(delBtn)delBtn.onclick=function(){
+        if(!confirm('این جدول حذف شود؟'))return;
+        esRows[ri].tables.splice(ti,1);
+        esRenderRows();
+      };
+      const upBtn=wrap.querySelector('.es-tbl-up');
+      if(upBtn)upBtn.onclick=function(){
+        if(ti<=0)return;
+        const arr=esRows[ri].tables;
+        [arr[ti-1],arr[ti]]=[arr[ti],arr[ti-1]];
+        esRenderRows();
+      };
+      const downBtn=wrap.querySelector('.es-tbl-down');
+      if(downBtn)downBtn.onclick=function(){
+        const arr=esRows[ri].tables;
+        if(ti>=arr.length-1)return;
+        [arr[ti+1],arr[ti]]=[arr[ti],arr[ti+1]];
+        esRenderRows();
+      };
+      const fontInp=wrap.querySelector('.es-tbl-font');
+      if(fontInp)fontInp.onchange=function(){
+        let v=parseInt(this.value,10);if(!v||v<8)v=8;if(v>36)v=36;
+        t.fontSize=v;
+        esRenderRows();
+      };
+      const widthSel=wrap.querySelector('.es-tbl-width');
+      if(widthSel)widthSel.onchange=function(){
+        t.width=parseInt(this.value,10)||100;
+        esRenderRows();
+      };
+      wrap.querySelectorAll('.es-tbl-delcol').forEach(function(btn){
+        btn.onclick=function(){
+          const ci=+this.dataset.ci;
+          if((t.rows[0]||[]).length<=1){toast('حداقل یک ستون باید بماند');return;}
+          t.rows.forEach(function(row){row.splice(ci,1);});
+          esRenderRows();
+        };
+      });
+      wrap.querySelectorAll('.es-tbl-delrow').forEach(function(btn){
+        btn.onclick=function(){
+          const rIdx=+this.dataset.ri2;
+          if(t.rows.length<=1){toast('حداقل یک ردیف باید بماند');return;}
+          t.rows.splice(rIdx,1);
+          esRenderRows();
+        };
+      });
     });
   }
   esRenderRows();
-  document.getElementById('btn-es-addrow').onclick=function(){esRows.push({q:'',mark:''});esRenderRows();};
+  document.getElementById('btn-es-addrow').onclick=function(){esRows.push({q:'',mark:'',tables:[]});esRenderRows();};
 
   function esGatherData(){
     return {
@@ -5456,7 +5601,6 @@ function teacherScript() {
     };
   }
   document.getElementById('btn-es-save').onclick=function(){lbSave('examsheet',esGatherData());};
-  document.getElementById('btn-es-print').onclick=function(){window.print();};
   document.getElementById('btn-es-word').onclick=async function(){
     await lbSave('examsheet',esGatherData(),true);
     window.open('/api/teacher/word?type=examsheet','_blank');
@@ -5468,6 +5612,18 @@ function teacherScript() {
     setTimeout(function(){w.print();},500);
   };
 
+  function esUserTablesToHtml(tables){
+    if(!Array.isArray(tables)||!tables.length)return'';
+    return tables.map(function(t){
+      const fs=t.fontSize||12;const w=t.width||100;
+      let h='<table style="width:'+w+'%;border-collapse:collapse;table-layout:auto;margin:6px 0 6px auto;font-size:'+fs+'px">';
+      (t.rows||[]).forEach(function(row){
+        h+='<tr>'+row.map(function(cell){return '<td style="border:1px solid #000;padding:6px;min-width:30px">'+(cell||'')+'</td>';}).join('')+'</tr>';
+      });
+      h+='</table>';
+      return h;
+    }).join('');
+  }
   function getExamSheetHtmlForExport(){
     const d=esGatherData();
     let style='<style>body{direction:rtl;font-family:"B Nazanin",Tahoma,Arial;font-weight:bold;padding:10px}';
@@ -5492,7 +5648,7 @@ function teacherScript() {
       '<table><tr><td>نام درس: '+esc(d.course)+'</td><td>'+esc(d.teacherLabel)+': '+esc(d.teacher)+'</td></tr></table>';
     let q='<table><tr><th class="qnum">ردیف</th><th>سؤال</th><th class="mk">'+esc(d.markLabel)+'</th></tr>';
     d.rows.forEach(function(r,i){
-      q+='<tr><td class="qnum">'+(i+1)+'</td><td>'+(r.q||'')+'</td><td style="text-align:center">'+esc(r.mark||'')+'</td></tr>';
+      q+='<tr><td class="qnum">'+toFaDigits(i+1)+'</td><td>'+(r.q||'')+esUserTablesToHtml(r.tables)+'</td><td style="text-align:center">'+esc(r.mark||'')+'</td></tr>';
     });
     q+='</table>';
     return '<html><head><meta charset="utf-8">'+style+'</head><body>'+h+q+'<div class="foot">صفحه ۱</div></body></html>';
@@ -5515,7 +5671,9 @@ function teacherScript() {
     if(d.markLabel!=null)document.getElementById('es-mark-label').value=d.markLabel;
     if(d.grade!=null)document.getElementById('es-grade').value=d.grade;
     if(d.schoolyear!=null)document.getElementById('es-schoolyear').value=d.schoolyear;
-    if(Array.isArray(d.rows)&&d.rows.length)esRows=d.rows;
+    if(Array.isArray(d.rows)&&d.rows.length){
+      esRows=d.rows.map(function(r){return {q:r.q||'',mark:r.mark||'',tables:Array.isArray(r.tables)?r.tables:[]};});
+    }
     esRenderRows();
   }
 
