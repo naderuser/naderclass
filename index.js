@@ -69,6 +69,11 @@ function esc(s) {
     .replace(/'/g, "&#39;");
 }
 
+const FA_DIGITS_SRV = ["۰", "۱", "۲", "۳", "۴", "۵", "۶", "۷", "۸", "۹"];
+function toFaDigitsSrv(s) {
+  return String(s == null ? "" : s).replace(/[0-9]/g, (d) => FA_DIGITS_SRV[+d]);
+}
+
 function sanitizeHtml(s) {
   return String(s == null ? "" : s)
     .replace(/<\s*\/?\s*(script|iframe|object|embed|link|meta|style)\b[^>]*>/gi, "")
@@ -1009,8 +1014,9 @@ function examSheetWord(d) {
   const rows = Array.isArray(d.rows) && d.rows.length ? d.rows : [{ q: "", mark: "" }];
   const teacherLabel = d.teacherLabel || "نام دبیر";
   const markLabel = d.markLabel || "بارم";
+  const fontSize = parseInt(d.fontSize, 10) || 12;
   const tblStyle = "width:100%;table-layout:fixed;mso-table-layout-alt:fixed";
-  const fontWrap = (inner) => `<div style="font-family:'B Nazanin',Tahoma,Arial;font-weight:bold">${inner}</div>`;
+  const fontWrap = (inner) => `<div style="font-family:'B Nazanin',Tahoma,Arial;font-weight:bold;font-size:${fontSize}pt">${inner}</div>`;
   const examTitleFull = esc(d.examtitle || "آزمون نوبت اول") + (d.examtitleExtra ? " - " + esc(d.examtitleExtra) : "");
   let body =
     `<table class="meta-table" width="100%" style="${tblStyle}"><tr>` +
@@ -1034,8 +1040,8 @@ function examSheetWord(d) {
     `<th class="qnum" style="width:8%">ردیف</th><th style="width:80%">سؤال</th><th style="width:12%">${esc(markLabel)}</th>` +
     `</tr>` +
     rows.map((r, i) =>
-      `<tr style="height:110px;mso-height-rule:atleast"><td class="qnum" style="vertical-align:top">${i + 1}</td>` +
-      `<td style="vertical-align:top">${r.q || ""}${r.q ? "" : "<br><br><br><br>"}</td>` +
+      `<tr><td class="qnum" style="vertical-align:top">${toFaDigitsSrv(i + 1)}</td>` +
+      `<td style="vertical-align:top;font-size:${fontSize}pt">${r.q || ""}${r.q ? "" : "<br><br>"}</td>` +
       `<td style="text-align:center;vertical-align:top">${esc(r.mark || "")}</td></tr>`
     ).join("") +
     `</table>` +
@@ -1634,24 +1640,34 @@ const SHARED_CSS = `
   .es-header-table select:focus,.es-main-table select:focus{outline:none}
   .es-hdr-org input{text-align:center;font-weight:bold}
   .es-blank{border-bottom:1px dotted #000!important}
+  #es-print-area{--es-font-size:12pt}
   .es-main-table{width:100%;border-collapse:collapse;margin-top:6px}
-  .es-main-table th,.es-main-table td{border:1px solid #000;padding:8px;vertical-align:top;font-size:14px}
+  .es-main-table th,.es-main-table td{border:1px solid #000;padding:8px;vertical-align:top;font-size:var(--es-font-size,12pt)}
   .es-main-table thead th{background:#f1f5f9;font-weight:bold;text-align:center}
   [data-theme="dark"] .es-main-table thead th{background:#334155}
   .es-col-num{width:44px;text-align:center;font-weight:bold}
   .es-col-mark{width:80px;text-align:center}
   .es-q-cell{position:relative}
-  .es-q{width:100%;min-height:110px;font-family:inherit;font-weight:bold;font-size:14px;outline:none;white-space:pre-wrap;word-break:break-word}
+  .es-q{width:100%;min-height:110px;font-family:inherit;font-weight:bold;font-size:var(--es-font-size,12pt);outline:none;white-space:pre-wrap;word-break:break-word}
   .es-q:focus{background:#fffbe6}
   [data-theme="dark"] .es-q:focus{background:#334155}
   .es-q table{border-collapse:collapse;margin:6px 0}
-  .es-q table td{border:1px solid #000;padding:8px;min-width:36px}
+  .es-q table td{border:1px solid #000;padding:8px;min-width:36px;font-size:inherit}
   .es-q-tools{display:flex;gap:4px;margin-top:6px}
   .es-q-tools button{background:none;border:1px solid #e2e8f0;border-radius:6px;color:#475569;cursor:pointer;font-size:11px;padding:2px 7px}
   [data-theme="dark"] .es-q-tools button{border-color:#404040;color:#a3a3a3}
-  .es-main-table input.es-mark{width:100%;border:none;text-align:center;font-family:inherit;font-weight:bold;font-size:14px;background:transparent;color:inherit}
+  .es-main-table input.es-mark{width:100%;border:none;text-align:center;font-family:inherit;font-weight:bold;font-size:var(--es-font-size,12pt);background:transparent;color:inherit}
   .es-row-del{width:100%;background:none;border:none;color:#dc2626;cursor:pointer;font-size:15px}
   .es-pagefoot{text-align:center;font-weight:bold;margin-top:8px;font-size:14px}
+  .es-tbl-wrap{display:inline-block;max-width:100%;width:70%;margin:6px 0;border:1px dashed #cbd5e1;border-radius:8px;padding:6px;vertical-align:top;box-sizing:border-box}
+  [data-theme="dark"] .es-tbl-wrap{border-color:#404040}
+  .es-tbl-toolbar{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:5px}
+  .es-tbl-toolbar button{background:#f1f5f9;border:1px solid #e2e8f0;border-radius:5px;color:#334155;cursor:pointer;font-size:10.5px;padding:3px 6px;white-space:nowrap}
+  .es-tbl-toolbar .es-tbl-del{background:#fee2e2;color:#dc2626;border-color:#fecaca}
+  [data-theme="dark"] .es-tbl-toolbar button{background:#262626;border-color:#404040;color:#a3a3a3}
+  [data-theme="dark"] .es-tbl-toolbar .es-tbl-del{background:#450a0a;color:#fca5a5;border-color:#7f1d1d}
+  .es-tbl-wrap table{width:100%;border-collapse:collapse;margin:0}
+  .es-tbl-wrap table td{border:1px solid #000;padding:8px;min-width:24px;font-size:inherit}
   @media print{
     body *{visibility:hidden}
     #es-print-area, #es-print-area *{visibility:visible}
@@ -1659,6 +1675,8 @@ const SHARED_CSS = `
     .es-main-table tr{page-break-inside:avoid}
     .es-q,.es-main-table input.es-mark,.es-header-table input,.es-header-table select,.es-main-table select{color:#000!important}
     .es-q-tools{display:none!important}
+    .es-tbl-wrap{border:none!important;padding:0!important}
+    .es-tbl-toolbar{display:none!important}
   }
 
   /* ---- Timer ---- */
@@ -2909,12 +2927,14 @@ function teacherPage() {
           <div class="es-pagefoot">صفحه ۱</div>
         </div>
 
-        <div class="row" style="margin-top:16px">
+        <div class="row" style="margin-top:16px;align-items:center">
           <button class="btn" id="btn-es-addrow">➕ افزودن سؤال</button>
           <button class="btn success" id="btn-es-save">💾 ذخیره</button>
-          <button class="btn secondary" id="btn-es-print">🖨️ چاپ</button>
           <button class="btn sec" id="btn-es-word">📄 دانلود Word</button>
           <button class="btn gray" id="btn-es-pdf">📕 دانلود PDF</button>
+          <label style="display:flex;align-items:center;gap:6px;font-size:13px;font-weight:600">🔤 اندازه فونت:
+            <input type="number" id="es-font-size" min="8" max="36" step="1" value="12" style="width:60px;padding:6px;border:1px solid #ddd;border-radius:6px">
+          </label>
         </div>
       </div>
 
@@ -5404,11 +5424,37 @@ function teacherScript() {
 
   // ===== ساخت آزمون (برگه چاپی) =====
   let esRows=[{q:'',mark:''}];
+  let esFontSize=12;
+
+  // ساخت یک جدول قابل‌مدیریت (با نوار ابزار: افزودن/حذف ردیف و ستون، جابه‌جایی، تغییر اندازه، حذف کامل جدول)
+  function esBuildTableWrapHtml(r,c){
+    let rowsHtml='';
+    for(let rr=0;rr<r;rr++){
+      rowsHtml+='<tr>';
+      for(let cc=0;cc<c;cc++){rowsHtml+='<td>&nbsp;</td>';}
+      rowsHtml+='</tr>';
+    }
+    return '<div class="es-tbl-wrap" contenteditable="false" style="width:70%">'+
+      '<div class="es-tbl-toolbar" contenteditable="false">'+
+        '<button type="button" data-tact="addrow" title="افزودن ردیف">➕ردیف</button>'+
+        '<button type="button" data-tact="delrow" title="حذف آخرین ردیف">➖ردیف</button>'+
+        '<button type="button" data-tact="addcol" title="افزودن ستون">➕ستون</button>'+
+        '<button type="button" data-tact="delcol" title="حذف آخرین ستون">➖ستون</button>'+
+        '<button type="button" data-tact="wbig" title="بزرگ‌تر کردن جدول">↔️ بزرگ‌تر</button>'+
+        '<button type="button" data-tact="wsmall" title="کوچک‌تر کردن جدول">↔️ کوچک‌تر</button>'+
+        '<button type="button" data-tact="up" title="جابه‌جایی به بالا">⬆️</button>'+
+        '<button type="button" data-tact="down" title="جابه‌جایی به پایین">⬇️</button>'+
+        '<button type="button" class="es-tbl-del" data-tact="del" title="حذف کامل این جدول">🗑️ حذف جدول</button>'+
+      '</div>'+
+      '<table contenteditable="true"><tbody>'+rowsHtml+'</tbody></table>'+
+    '</div><div><br></div>';
+  }
+
   function esRenderRows(){
     const tbody=document.getElementById('es-rows');
     tbody.innerHTML=esRows.map(function(r,i){
       return '<tr>'+
-        '<td class="es-col-num">'+(i+1)+(esRows.length>1?'<div><button type="button" class="es-row-del" data-i="'+i+'" title="حذف این سؤال">✕ حذف</button></div>':'')+'</td>'+
+        '<td class="es-col-num">'+toFaDigits(i+1)+(esRows.length>1?'<div><button type="button" class="es-row-del" data-i="'+i+'" title="حذف این سؤال">✕ حذف</button></div>':'')+'</td>'+
         '<td class="es-q-cell">'+
           '<div class="es-q" data-i="'+i+'" contenteditable="true">'+(r.q||'')+'</div>'+
           '<div class="es-q-tools"><button type="button" class="es-q-addtable" data-i="'+i+'">🔲 افزودن جدول</button></div>'+
@@ -5416,27 +5462,71 @@ function teacherScript() {
         '<td class="es-col-mark"><input class="es-mark" data-i="'+i+'" value="'+esc(r.mark||'')+'"></td>'+
         '</tr>';
     }).join('');
-    tbody.querySelectorAll('.es-q').forEach(function(el){el.oninput=function(){esRows[+this.dataset.i].q=this.innerHTML;};});
+    tbody.querySelectorAll('.es-q').forEach(function(el){convertDigitsInElement(el);el.oninput=function(){convertDigitsInElement(this);esRows[+this.dataset.i].q=this.innerHTML;};});
     tbody.querySelectorAll('.es-mark').forEach(function(el){el.oninput=function(){esRows[+this.dataset.i].mark=this.value;};});
     tbody.querySelectorAll('.es-row-del').forEach(function(el){el.onclick=function(){esRows.splice(+this.dataset.i,1);esRenderRows();};});
     tbody.querySelectorAll('.es-q-addtable').forEach(function(el){
       el.onclick=function(){
         const i=+this.dataset.i;
         const qEl=tbody.querySelector('.es-q[data-i="'+i+'"]');
-        let r=parseInt(prompt('تعداد ردیف جدول؟','2'),10);let c=parseInt(prompt('تعداد ستون جدول؟','2'),10);
+        let r=parseInt(toEnDigits(prompt('تعداد ردیف جدول؟','2')),10);
+        let c=parseInt(toEnDigits(prompt('تعداد ستون جدول؟','2')),10);
         if(!r||r<1)r=2;if(!c||c<1)c=2;
-        let html='<table><tbody>';
-        for(let rr=0;rr<r;rr++){html+='<tr>';for(let cc=0;cc<c;cc++){html+='<td>&nbsp;</td>';}html+='</tr>';}
-        html+='</tbody></table><div><br></div>';
-        qEl.focus();
-        const ok=document.execCommand&&document.execCommand('insertHTML',false,html);
-        if(!ok){qEl.innerHTML+=html;}
+        // جدول همیشه به انتهای متن سؤال اضافه می‌شود تا سؤال بالای جدول باقی بماند
+        qEl.insertAdjacentHTML('beforeend',esBuildTableWrapHtml(r,c));
         esRows[i].q=qEl.innerHTML;
       };
     });
   }
+
+  // مدیریت کلیک روی دکمه‌های نوار ابزار هر جدول (افزودن/حذف ردیف و ستون، جابه‌جایی، بزرگ/کوچک کردن، حذف جدول)
+  document.getElementById('es-rows').addEventListener('click',function(e){
+    const btn=e.target.closest('[data-tact]');
+    if(!btn)return;
+    e.preventDefault();
+    const wrap=btn.closest('.es-tbl-wrap');
+    const qEl=btn.closest('.es-q-cell').querySelector('.es-q');
+    const i=+qEl.dataset.i;
+    const table=wrap.querySelector('table');
+    const act=btn.dataset.tact;
+    if(act==='addrow'){
+      const cols=table.rows.length?table.rows[0].cells.length:1;
+      const tr=table.insertRow(-1);
+      for(let c=0;c<cols;c++){const td=tr.insertCell(-1);td.innerHTML='&nbsp;';}
+    }else if(act==='delrow'){
+      if(table.rows.length>1)table.deleteRow(-1);else toast('حداقل یک ردیف باید در جدول باقی بماند');
+    }else if(act==='addcol'){
+      Array.from(table.rows).forEach(function(row){const td=row.insertCell(-1);td.innerHTML='&nbsp;';});
+    }else if(act==='delcol'){
+      const ncols=table.rows.length?table.rows[0].cells.length:0;
+      if(ncols>1){Array.from(table.rows).forEach(function(row){row.deleteCell(-1);});}else toast('حداقل یک ستون باید در جدول باقی بماند');
+    }else if(act==='wbig'){
+      let w=parseInt(wrap.style.width,10)||70;w=Math.min(100,w+10);wrap.style.width=w+'%';
+    }else if(act==='wsmall'){
+      let w=parseInt(wrap.style.width,10)||70;w=Math.max(20,w-10);wrap.style.width=w+'%';
+    }else if(act==='up'){
+      let prev=wrap.previousElementSibling;
+      while(prev&&prev.tagName==='BR')prev=prev.previousElementSibling;
+      if(prev)wrap.parentNode.insertBefore(wrap,prev);
+    }else if(act==='down'){
+      let next=wrap.nextElementSibling;
+      if(next){const after=next.nextElementSibling;if(after)wrap.parentNode.insertBefore(after,wrap);}
+    }else if(act==='del'){
+      if(confirm('آیا از حذف کامل این جدول مطمئن هستید؟ این کار قابل بازگشت نیست.'))wrap.remove();else return;
+    }
+    convertDigitsInElement(table);
+    esRows[i].q=qEl.innerHTML;
+  });
+
   esRenderRows();
   document.getElementById('btn-es-addrow').onclick=function(){esRows.push({q:'',mark:''});esRenderRows();};
+
+  function esApplyFontSize(v){
+    esFontSize=parseInt(v,10)||12;
+    document.getElementById('es-print-area').style.setProperty('--es-font-size',esFontSize+'pt');
+  }
+  document.getElementById('es-font-size').addEventListener('input',function(){esApplyFontSize(this.value);});
+  esApplyFontSize(12);
 
   function esGatherData(){
     return {
@@ -5452,11 +5542,11 @@ function teacherScript() {
       markLabel:document.getElementById('es-mark-label').value,
       grade:document.getElementById('es-grade').value,
       schoolyear:document.getElementById('es-schoolyear').value,
+      fontSize:esFontSize,
       rows:esRows
     };
   }
   document.getElementById('btn-es-save').onclick=function(){lbSave('examsheet',esGatherData());};
-  document.getElementById('btn-es-print').onclick=function(){window.print();};
   document.getElementById('btn-es-word').onclick=async function(){
     await lbSave('examsheet',esGatherData(),true);
     window.open('/api/teacher/word?type=examsheet','_blank');
@@ -5470,12 +5560,14 @@ function teacherScript() {
 
   function getExamSheetHtmlForExport(){
     const d=esGatherData();
-    let style='<style>body{direction:rtl;font-family:"B Nazanin",Tahoma,Arial;font-weight:bold;padding:10px}';
+    const fs=parseInt(d.fontSize,10)||12;
+    let style='<style>body{direction:rtl;font-family:"B Nazanin",Tahoma,Arial;font-weight:bold;padding:10px;font-size:'+fs+'pt}';
     style+='table{width:100%;border-collapse:collapse;table-layout:fixed;margin-bottom:6px}';
-    style+='td,th{border:1px solid #000;padding:6px 8px;font-size:14px;vertical-align:top}';
+    style+='td,th{border:1px solid #000;padding:6px 8px;font-size:'+fs+'pt;vertical-align:top}';
     style+='th{background:#f1f5f9;text-align:center;font-weight:bold}';
     style+='.qnum{width:44px;text-align:center;font-weight:bold}.mk{width:64px;text-align:center}';
-    style+='.foot{text-align:center;font-weight:bold;margin-top:8px}</style>';
+    style+='.foot{text-align:center;font-weight:bold;margin-top:8px}';
+    style+='.es-tbl-toolbar{display:none!important}.es-tbl-wrap{border:none!important;padding:0!important}</style>';
     let h='<table><tr>'+
       '<td>نام و نام‌خانوادگی: ...................................</td>'+
       '<td style="text-align:center">'+esc(d.org1)+'</td>'+
@@ -5492,7 +5584,7 @@ function teacherScript() {
       '<table><tr><td>نام درس: '+esc(d.course)+'</td><td>'+esc(d.teacherLabel)+': '+esc(d.teacher)+'</td></tr></table>';
     let q='<table><tr><th class="qnum">ردیف</th><th>سؤال</th><th class="mk">'+esc(d.markLabel)+'</th></tr>';
     d.rows.forEach(function(r,i){
-      q+='<tr><td class="qnum">'+(i+1)+'</td><td>'+(r.q||'')+'</td><td style="text-align:center">'+esc(r.mark||'')+'</td></tr>';
+      q+='<tr><td class="qnum">'+toFaDigits(i+1)+'</td><td>'+(r.q||'')+'</td><td style="text-align:center">'+esc(r.mark||'')+'</td></tr>';
     });
     q+='</table>';
     return '<html><head><meta charset="utf-8">'+style+'</head><body>'+h+q+'<div class="foot">صفحه ۱</div></body></html>';
@@ -5515,6 +5607,7 @@ function teacherScript() {
     if(d.markLabel!=null)document.getElementById('es-mark-label').value=d.markLabel;
     if(d.grade!=null)document.getElementById('es-grade').value=d.grade;
     if(d.schoolyear!=null)document.getElementById('es-schoolyear').value=d.schoolyear;
+    if(d.fontSize!=null){document.getElementById('es-font-size').value=d.fontSize;esApplyFontSize(d.fontSize);}
     if(Array.isArray(d.rows)&&d.rows.length)esRows=d.rows;
     esRenderRows();
   }
