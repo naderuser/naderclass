@@ -3860,15 +3860,7 @@ function teacherScript() {
     try{toast('⚠️ خطایی رخ داد؛ لطفاً دوباره تلاش کنید');}catch(_){}
   });
   function uid(){return 'q-'+Math.random().toString(36).slice(2,10);}
-  async function api(path,opts){
-    let r;
-    try{ r=await fetch(path,opts); }
-    catch(e){ return {ok:false,error:'ارتباط با سرور برقرار نشد (خطای شبکه). اتصال اینترنت یا آدرس سایت را بررسی کنید.'}; }
-    let d;
-    try{ d=await r.json(); }
-    catch(e){ return {ok:false,error:'پاسخ سرور نامعتبر بود (کد '+r.status+'). احتمالاً EXAM_KV در Cloudflare Worker بایند نشده یا خطایی در سرور رخ داده.'}; }
-    return d;
-  }
+  async function api(path,opts){const r=await fetch(path,opts);return r.json();}
   async function lbSave(key,value,silent){
     try{
       const d=await api('/api/teacher/lb-save',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({key,value})});
@@ -3902,22 +3894,9 @@ function teacherScript() {
     }
   }
   document.getElementById('btn-login').onclick=async()=>{
-    const errEl=document.getElementById('login-err');
-    errEl.textContent='';
     const p=document.getElementById('pass').value;
-    if(!p){errEl.textContent='لطفاً رمز عبور را وارد کنید';return;}
-    const btn=document.getElementById('btn-login');
-    const oldText=btn.textContent;
-    btn.textContent='در حال ورود...';btn.disabled=true;
-    try{
-      const d=await api('/api/teacher/login',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({password:p})});
-      if(d.ok){if(d.created)toast('رمز عبور شما ثبت شد');showDash();}
-      else errEl.textContent=d.error||'خطا در ورود';
-    }catch(e){
-      errEl.textContent='خطای غیرمنتظره: '+(e && e.message?e.message:e);
-    }finally{
-      btn.textContent=oldText;btn.disabled=false;
-    }
+    const d=await api('/api/teacher/login',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({password:p})});
+    if(d.ok){if(d.created)toast('رمز عبور شما ثبت شد');showDash();}else document.getElementById('login-err').textContent=d.error||'خطا';
   };
   document.getElementById('pass').addEventListener('keydown',e=>{if(e.key==='Enter')document.getElementById('btn-login').click();});
   document.getElementById('btn-logout').onclick=async()=>{await api('/api/teacher/logout',{method:'POST'});location.reload();};
