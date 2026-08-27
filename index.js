@@ -1302,6 +1302,7 @@ const SHARED_CSS = `
   #cls-pdf-nav input[type="number"]{padding:4px;border:1px solid #cbd5e1;border-radius:6px}
 
   /* ---- چیدمان کلاس آنلاین: تخته بزرگ و در اولویت، به‌خصوص در گوشی ---- */
+  .cls-wrap{display:flex;gap:12px;flex-wrap:wrap}
   .cls-board-col{flex:1 1 520px;min-width:280px}
   .cls-chat-col{flex:0 0 300px;min-width:260px}
   @media (max-width:760px){
@@ -1645,7 +1646,7 @@ const SHARED_CSS = `
   .cls-opt-btn{width:100%;justify-content:flex-start;text-align:right;padding:11px 14px;font-size:14px}
   @media(max-width:640px){
     .cls-wrap{flex-direction:column}
-    #t-cam-preview{max-width:100%;width:100%}
+    #t-cam-preview{width:150px;height:112px;top:8px;left:8px}
     #cls-teacher-video{width:80px;height:60px;top:6px;left:6px}
   }
 
@@ -2622,7 +2623,7 @@ async function studentClassPage(env, id) {
     })();
     function playAudioChunk(b64, mime){
       audioQueue.push({b64, mime: mime||'audio/webm'});
-      if(audioQueue.length>3) audioQueue.splice(0, audioQueue.length-3); // اگر پخش عقب افتاد، فقط تازه‌ترین‌ها را نگه دار تا صدا زنده‌تر بماند
+      if(audioQueue.length>2) audioQueue.splice(0, audioQueue.length-2); // اگر پخش عقب افتاد، فقط تازه‌ترین‌ها را نگه دار تا صدا زنده‌تر بماند و دانش‌آموز از معلم عقب نیفتد
       pumpAudioQueue();
     }
     function pumpAudioQueue(){
@@ -3472,48 +3473,47 @@ function teacherPage() {
           <button class="btn sm sec hidden cls-opt-btn" id="btn-cam-flip">🔄 چرخش دوربین</button>
         </div>
 
-        <div class="cls-top-row" style="position:relative;margin-bottom:12px">
-          <video id="t-cam-preview" autoplay muted playsinline class="hidden" style="position:absolute;top:0;left:0;width:96px;height:72px;object-fit:cover;border-radius:10px;border:2px solid #fff;box-shadow:0 4px 14px rgba(0,0,0,.35);background:#000;z-index:5"></video>
-          <div class="cls-pdf-panel" id="cls-pdf-panel" style="margin-bottom:0;transition:padding-left .15s">
-            <div class="row" style="align-items:center;flex-wrap:wrap">
-              <label class="btn sm sec" style="cursor:pointer;flex:0 0 auto">📄 افزودن PDF<input type="file" accept="application/pdf" id="cls-pdf-file" style="display:none"></label>
-              <span id="cls-pdf-name" class="muted" style="font-size:12px"></span>
-              <button class="btn sm danger hidden" id="cls-pdf-remove-file" style="flex:0 0 auto">🗑️ حذف فایل PDF</button>
-            </div>
-            <div id="cls-pdf-nav" class="row hidden" style="align-items:center;margin-top:6px;flex-wrap:wrap">
-              <button class="btn sm gray" id="cls-pdf-prev" style="flex:0 0 auto">◀ قبلی</button>
-              <span style="flex:0 0 auto">صفحه <input type="number" id="cls-pdf-pagenum" min="1" value="1" style="width:60px;text-align:center"> از <span id="cls-pdf-total">1</span></span>
-              <button class="btn sm gray" id="cls-pdf-next" style="flex:0 0 auto">بعدی ▶</button>
-              <button class="btn sm primary" id="cls-pdf-show" style="flex:0 0 auto">🖼️ نمایش این صفحه روی تخته</button>
-              <button class="btn sm danger" id="cls-pdf-remove-bg" style="flex:0 0 auto">حذف PDF از تخته</button>
-            </div>
+        <div class="cls-pdf-panel" id="cls-pdf-panel" style="margin-bottom:12px">
+          <div class="row" style="align-items:center;flex-wrap:wrap">
+            <label class="btn sm sec" style="cursor:pointer;flex:0 0 auto">📄 افزودن PDF<input type="file" accept="application/pdf" id="cls-pdf-file" style="display:none"></label>
+            <span id="cls-pdf-name" class="muted" style="font-size:12px"></span>
+            <button class="btn sm danger hidden" id="cls-pdf-remove-file" style="flex:0 0 auto">🗑️ حذف فایل PDF</button>
+          </div>
+          <div id="cls-pdf-nav" class="row hidden" style="align-items:center;margin-top:6px;flex-wrap:wrap">
+            <button class="btn sm gray" id="cls-pdf-prev" style="flex:0 0 auto">◀ قبلی</button>
+            <span style="flex:0 0 auto">صفحه <input type="number" id="cls-pdf-pagenum" min="1" value="1" style="width:60px;text-align:center"> از <span id="cls-pdf-total">1</span></span>
+            <button class="btn sm gray" id="cls-pdf-next" style="flex:0 0 auto">بعدی ▶</button>
+            <button class="btn sm primary" id="cls-pdf-show" style="flex:0 0 auto">🖼️ نمایش این صفحه روی تخته</button>
+            <button class="btn sm danger" id="cls-pdf-remove-bg" style="flex:0 0 auto">حذف PDF از تخته</button>
           </div>
         </div>
 
-        <div class="cls-chat-col" style="width:100%;margin-bottom:12px">
-          <h4 style="margin:0 0 6px">👥 حاضرین (<span id="cls-online-count">0</span>)</h4>
-          <div id="cls-participants" class="muted" style="font-size:13px;max-height:110px;overflow:auto;margin-bottom:10px"></div>
-          <div id="t-chatBox" style="height:220px;overflow:auto;border:1px solid var(--line);border-radius:10px;padding:10px;background:#fafafa;display:flex;flex-direction:column;gap:6px"></div>
-          <div class="row" style="margin-top:8px">
-            <input id="t-chatInput" placeholder="پیام به کلاس...">
-            <button class="btn sm" id="t-btnSend" style="flex:0 0 auto">ارسال</button>
-            <button class="btn sm gray" id="t-btnFile" style="flex:0 0 auto" title="ارسال فایل">📎</button>
-            <input type="file" id="t-fileInput" style="display:none">
+        <div class="cls-wrap">
+          <div class="cls-board-col" style="position:relative">
+            <div class="row" style="margin-bottom:8px;flex-wrap:wrap">
+              <input type="color" id="brd-color" value="#111827" style="flex:0 0 44px;padding:2px;height:38px">
+              <input type="range" id="brd-size" min="1" max="20" value="3" style="flex:1;min-width:80px">
+              <button class="btn sm gray active" id="brd-tool-pen" style="flex:0 0 auto">✏️ قلم</button>
+              <button class="btn sm gray" id="brd-tool-line" style="flex:0 0 auto">📏 خط راست</button>
+              <button class="btn sm gray" id="brd-tool-text" style="flex:0 0 auto">🔤 متن</button>
+              <button class="btn sm gray" id="brd-tool-eraser" style="flex:0 0 auto">🧽 پاک‌کن</button>
+              <button class="btn sm danger" id="brd-clear" style="flex:0 0 auto">🗑️ پاک کردن یادداشت‌ها</button>
+            </div>
+            <canvas id="t-board" width="900" height="500" style="width:100%;background:#fff;border:1px solid var(--line);border-radius:10px;touch-action:none;display:block;cursor:crosshair"></canvas>
+            <video id="t-cam-preview" autoplay muted playsinline class="hidden" style="position:absolute;top:52px;left:10px;width:220px;height:165px;object-fit:cover;border-radius:10px;border:2px solid #fff;box-shadow:0 4px 14px rgba(0,0,0,.35);background:#000;z-index:5"></video>
+            <p class="muted" style="font-size:12px;margin-top:6px">روی تخته بکشید؛ ترسیم برای همه دانش‌آموزان متصل به‌صورت زنده نمایش داده می‌شود.</p>
           </div>
-        </div>
-
-        <div class="cls-board-col" style="width:100%">
-          <div class="row" style="margin-bottom:8px;flex-wrap:wrap">
-            <input type="color" id="brd-color" value="#111827" style="flex:0 0 44px;padding:2px;height:38px">
-            <input type="range" id="brd-size" min="1" max="20" value="3" style="flex:1;min-width:80px">
-            <button class="btn sm gray active" id="brd-tool-pen" style="flex:0 0 auto">✏️ قلم</button>
-            <button class="btn sm gray" id="brd-tool-line" style="flex:0 0 auto">📏 خط راست</button>
-            <button class="btn sm gray" id="brd-tool-text" style="flex:0 0 auto">🔤 متن</button>
-            <button class="btn sm gray" id="brd-tool-eraser" style="flex:0 0 auto">🧽 پاک‌کن</button>
-            <button class="btn sm danger" id="brd-clear" style="flex:0 0 auto">🗑️ پاک کردن یادداشت‌ها</button>
+          <div class="cls-chat-col">
+            <h4 style="margin:0 0 6px">👥 حاضرین (<span id="cls-online-count">0</span>)</h4>
+            <div id="cls-participants" class="muted" style="font-size:13px;max-height:110px;overflow:auto;margin-bottom:10px"></div>
+            <div id="t-chatBox" style="height:220px;overflow:auto;border:1px solid var(--line);border-radius:10px;padding:10px;background:#fafafa;display:flex;flex-direction:column;gap:6px"></div>
+            <div class="row" style="margin-top:8px">
+              <input id="t-chatInput" placeholder="پیام به کلاس...">
+              <button class="btn sm" id="t-btnSend" style="flex:0 0 auto">ارسال</button>
+              <button class="btn sm gray" id="t-btnFile" style="flex:0 0 auto" title="ارسال فایل">📎</button>
+              <input type="file" id="t-fileInput" style="display:none">
+            </div>
           </div>
-          <canvas id="t-board" width="900" height="500" style="width:100%;background:#fff;border:1px solid var(--line);border-radius:10px;touch-action:none;display:block;cursor:crosshair"></canvas>
-          <p class="muted" style="font-size:12px;margin-top:6px">روی تخته بکشید؛ ترسیم برای همه دانش‌آموزان متصل به‌صورت زنده نمایش داده می‌شود.</p>
         </div>
 
         <hr style="border:none;border-top:1px solid var(--line);margin:16px 0">
@@ -3876,6 +3876,7 @@ function teacherPage() {
             <label style="flex:0 0 auto;font-weight:700">اهم مصوبات جلسه:</label>
             <button class="btn sm sec" id="btn-lbmin-decision-add">➕ افزودن ردیف</button>
             <button class="btn sm gray" id="btn-lbmin-decision-remove">➖ حذف آخرین ردیف</button>
+            <button class="btn sm danger" id="btn-lbmin-decision-clearall">🗑️ حذف همه ردیف‌ها</button>
           </div>
           <div class="lb-preview" id="lbmin-decisions-wrap"></div>
 
@@ -3883,6 +3884,7 @@ function teacherPage() {
             <label style="flex:0 0 auto;font-weight:700">اسامی حاضرین در جلسه:</label>
             <button class="btn sm sec" id="btn-lbmin-att-add">➕ افزودن ردیف</button>
             <button class="btn sm gray" id="btn-lbmin-att-remove">➖ حذف آخرین ردیف</button>
+            <button class="btn sm danger" id="btn-lbmin-att-clearall">🗑️ حذف همه ردیف‌ها</button>
           </div>
           <div class="lb-preview" id="lbmin-attendees-wrap"></div>
 
@@ -8077,8 +8079,8 @@ function teacherScript() {
       rec.start();
       clsRecorder=rec;
       // هر قطعه یک فایل صوتی کامل و مستقل است (نه یک استریم پیوسته)، برای سازگاری بین مرورگرها
-      // مدت کوتاه‌تر = تأخیر کمتر در شنیدن صدای معلم
-      setTimeout(()=>{ if(rec.state==='recording') rec.stop(); }, 380);
+      // مدت کوتاه‌تر = تأخیر کمتر در شنیدن صدای معلم (قبلاً ۳۸۰ میلی‌ثانیه بود؛ کوتاه‌تر شد تا دانش‌آموز کمتر عقب بماند)
+      setTimeout(()=>{ if(rec.state==='recording') rec.stop(); }, 260);
     }
     recordOneChunk();
   }
@@ -8143,10 +8145,10 @@ function teacherScript() {
         if(!clsCamStream)return;
         try{
           capCtx.drawImage(preview,0,0,cap.width,cap.height);
-          const dataUrl=cap.toDataURL('image/jpeg',0.45);
+          const dataUrl=cap.toDataURL('image/jpeg',0.4);
           clsSend({type:'video-frame', data: dataUrl});
         }catch(e){}
-      },220); // حدود ۴-۵ فریم در ثانیه؛ کافی برای تماس تصویری ساده کلاس درس
+      },130); // حدود ۷-۸ فریم در ثانیه؛ روان‌تر از حالت قبل با تأخیر کمتر تا دانش‌آموز از معلم عقب نماند
     }catch(e){ toast('دسترسی به دوربین یا میکروفون داده نشد'); }
   };
 
@@ -9356,7 +9358,7 @@ function teacherScript() {
         +'<th style="border:1px solid #333;padding:6px">مصوبات</th></tr></thead><tbody>';
       LB_MIN_DECISIONS.forEach(function(val,i){
         h+='<tr><td style="border:1px solid #333;padding:6px;text-align:center">'+toFaDigits(i+1)+'</td>'
-          +'<td style="border:1px solid #333;padding:6px;text-align:right">'+esc(val).replace(/\\n/g,'<br>')+'</td></tr>';
+          +'<td style="border:1px solid #333;padding:6px;text-align:right">'+toFaDigits(esc(val)).replace(/\\n/g,'<br>')+'</td></tr>';
       });
       h+='</tbody></table>';
       return h;
@@ -9390,6 +9392,12 @@ function teacherScript() {
     if(LB_MIN_DECISIONS.length<=1){toast('حداقل یک ردیف باید باقی بماند');return;}
     LB_MIN_DECISIONS.pop();lbRenderMinutesDecisions();
   };
+  document.getElementById('btn-lbmin-decision-clearall').onclick=function(){
+    if(!confirm('آیا از حذف همه‌ی ردیف‌های جدول مصوبات مطمئن هستید؟'))return;
+    LB_MIN_DECISIONS=[''];
+    lbRenderMinutesDecisions();
+    toast('همه‌ی ردیف‌های جدول مصوبات حذف شد ✅');
+  };
 
   function lbBuildMinutesAttendeesHtml(forExport){
     if(forExport){
@@ -9403,14 +9411,14 @@ function teacherScript() {
         var a=LB_MIN_ATTENDEES[r]||{name:'',role:'',sign:''};
         var b=LB_MIN_ATTENDEES[half+r];
         h+='<tr><td style="border:1px solid #333;padding:6px;text-align:center">'+toFaDigits(r+1)+'</td>'
-          +'<td style="border:1px solid #333;padding:6px">'+esc(a.name)+'</td>'
-          +'<td style="border:1px solid #333;padding:6px">'+esc(a.role)+'</td>'
-          +'<td style="border:1px solid #333;padding:6px">'+esc(a.sign)+'</td>';
+          +'<td style="border:1px solid #333;padding:6px">'+toFaDigits(esc(a.name))+'</td>'
+          +'<td style="border:1px solid #333;padding:6px">'+toFaDigits(esc(a.role))+'</td>'
+          +'<td style="border:1px solid #333;padding:6px">'+toFaDigits(esc(a.sign))+'</td>';
         if(b){
           h+='<td style="border:1px solid #333;padding:6px;text-align:center">'+toFaDigits(half+r+1)+'</td>'
-            +'<td style="border:1px solid #333;padding:6px">'+esc(b.name)+'</td>'
-            +'<td style="border:1px solid #333;padding:6px">'+esc(b.role)+'</td>'
-            +'<td style="border:1px solid #333;padding:6px">'+esc(b.sign)+'</td>';
+            +'<td style="border:1px solid #333;padding:6px">'+toFaDigits(esc(b.name))+'</td>'
+            +'<td style="border:1px solid #333;padding:6px">'+toFaDigits(esc(b.role))+'</td>'
+            +'<td style="border:1px solid #333;padding:6px">'+toFaDigits(esc(b.sign))+'</td>';
         }else{
           h+='<td style="border:1px solid #333;padding:6px"></td><td style="border:1px solid #333;padding:6px"></td><td style="border:1px solid #333;padding:6px"></td><td style="border:1px solid #333;padding:6px"></td>';
         }
@@ -9450,6 +9458,12 @@ function teacherScript() {
     if(LB_MIN_ATTENDEES.length<=1){toast('حداقل یک ردیف باید باقی بماند');return;}
     LB_MIN_ATTENDEES.pop();lbRenderMinutesAttendees();
   };
+  document.getElementById('btn-lbmin-att-clearall').onclick=function(){
+    if(!confirm('آیا از حذف همه‌ی ردیف‌های جدول حاضرین مطمئن هستید؟'))return;
+    LB_MIN_ATTENDEES=[{name:'',role:'',sign:''}];
+    lbRenderMinutesAttendees();
+    toast('همه‌ی ردیف‌های جدول حاضرین حذف شد ✅');
+  };
 
   function lbMinutesFontCss(key){
     var families={
@@ -9475,21 +9489,21 @@ function teacherScript() {
     h+='@font-face{font-family:"BNazanin";src:url(https://cdn.jsdelivr.net/gh/intuxicated/css-persian@master/fonts/BNazanin.ttf)}';
     h+='@font-face{font-family:"BTitr";src:url(https://cdn.jsdelivr.net/gh/intuxicated/css-persian@master/fonts/BTitrBold.ttf)}';
     h+='</style>';
-    h+='<div style="font-family:'+fontFamily+';font-weight:bold;min-width:760px">';
-    h+='<div style="text-align:left;font-weight:bold;margin:0 0 10px">شماره: '+esc(num||'.......................')+'<br>تاریخ: '+esc(date||'.......................')+'</div>';
+    h+='<div style="font-family:'+fontFamily+';font-weight:bold;width:100%;box-sizing:border-box">';
+    h+='<div style="text-align:left;font-weight:bold;margin:0 0 10px">شماره: '+toFaDigits(esc(num||'.......................'))+'<br>تاریخ: '+toFaDigits(esc(date||'.......................'))+'</div>';
     h+='<p style="text-align:center;font-weight:bold;font-size:16px;margin:0 0 10px">بسمه‌تعالی</p>';
     h+='<p style="text-align:center;font-weight:bold;font-size:15px;margin:0 0 10px">'+esc(title||'صورت جلسه')+'</p>';
-    h+='<table style="width:100%;border-collapse:collapse" class="lb-minutes-table"><tbody>';
+    h+='<table style="width:100%;border-collapse:collapse;table-layout:fixed" class="lb-minutes-table"><tbody>';
     h+='<tr>'
-      +'<td colspan="2" style="border:1px solid #333;padding:6px"><b>شماره جلسه:</b> '+esc(num)+'</td>'
-      +'<td style="border:1px solid #333;padding:6px"><b>روز:</b> '+esc(day)+'</td>'
-      +'<td style="border:1px solid #333;padding:6px"><b>تاریخ:</b> '+esc(date)+'</td>'
-      +'<td style="border:1px solid #333;padding:6px"><b>ساعت شروع:</b> '+esc(start)+'</td></tr>';
+      +'<td colspan="2" style="border:1px solid #333;padding:6px"><b>شماره جلسه:</b> '+toFaDigits(esc(num))+'</td>'
+      +'<td style="border:1px solid #333;padding:6px"><b>روز:</b> '+toFaDigits(esc(day))+'</td>'
+      +'<td style="border:1px solid #333;padding:6px"><b>تاریخ:</b> '+toFaDigits(esc(date))+'</td>'
+      +'<td style="border:1px solid #333;padding:6px"><b>ساعت شروع:</b> '+toFaDigits(esc(start))+'</td></tr>';
     h+='<tr>'
-      +'<td colspan="3" style="border:1px solid #333;padding:6px"><b>مکان برگزاری:</b> '+esc(place)+'</td>'
-      +'<td colspan="2" style="border:1px solid #333;padding:6px"><b>ساعت پایان:</b> '+esc(end)+'</td></tr>';
-    h+='<tr><td colspan="5" style="border:1px solid #333;padding:6px"><b>دستور کار جلسه:</b><br>'+esc(agenda).replace(/\\n/g,'<br>')+'</td></tr>';
-    h+='<tr><td colspan="5" style="border:1px solid #333;padding:6px;height:110px;vertical-align:top"><b>خلاصه مذاکرات جلسه:</b><br>'+esc(summary).replace(/\\n/g,'<br>')+'</td></tr>';
+      +'<td colspan="3" style="border:1px solid #333;padding:6px"><b>مکان برگزاری:</b> '+toFaDigits(esc(place))+'</td>'
+      +'<td colspan="2" style="border:1px solid #333;padding:6px"><b>ساعت پایان:</b> '+toFaDigits(esc(end))+'</td></tr>';
+    h+='<tr><td colspan="5" style="border:1px solid #333;padding:6px;word-break:break-word"><b>دستور کار جلسه:</b><br>'+toFaDigits(esc(agenda)).replace(/\\n/g,'<br>')+'</td></tr>';
+    h+='<tr><td colspan="5" style="border:1px solid #333;padding:6px;height:110px;vertical-align:top;word-break:break-word"><b>خلاصه مذاکرات جلسه:</b><br>'+toFaDigits(esc(summary)).replace(/\\n/g,'<br>')+'</td></tr>';
     h+='<tr><td colspan="5" style="border:1px solid #333;padding:6px"><b>اهم مصوبات جلسه:</b></td></tr>';
     h+='</tbody></table>';
     h+=lbBuildMinutesDecisionsHtml(true);
