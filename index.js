@@ -3847,7 +3847,17 @@ function teacherPage() {
         <!-- ===== ۱۰. صورتجلسه (فرم عمومی) ===== -->
         <div class="lb-panel hidden" id="lb-panel-minutes">
           <button class="btn sm gray lb-back-btn">← بازگشت به دفتر</button>
-          <h3>📝 صورتجلسه</h3>
+          <div class="row" style="align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:6px">
+            <h3 style="margin:0">📝 صورتجلسه</h3>
+            <input id="lbmin-title" placeholder="عنوان صورتجلسه (اختیاری، مثلاً: صورتجلسه شورای معلمان)" style="flex:1;min-width:220px">
+          </div>
+          <div class="row" style="align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px">
+            <label style="flex:0 0 auto;font-weight:700">فونت سند خروجی:</label>
+            <select id="lbmin-font" style="flex:0 0 auto;min-width:170px">
+              <option value="nazanin">بی‌نازنین Bold</option>
+              <option value="titr">بی‌تیتر</option>
+            </select>
+          </div>
           <p class="muted" style="text-align:center;font-weight:700;margin:0 0 10px">بسمه‌تعالی</p>
           <div class="lb-meta-form">
             <div><label>شماره جلسه</label><input id="lbmin-num" placeholder="......................."></div>
@@ -3876,11 +3886,7 @@ function teacherPage() {
           </div>
           <div class="lb-preview" id="lbmin-attendees-wrap"></div>
 
-          <div class="lb-meta-form" style="margin-top:16px">
-            <div><label>شماره (مهر و امضا)</label><input id="lbmin-signnum" placeholder="......................."></div>
-            <div><label>تاریخ (مهر و امضا)</label><input id="lbmin-signdate" placeholder="......................."></div>
-          </div>
-          <p class="muted" style="text-align:center;margin-top:10px">مهر و امضای مدیر مدرسه</p>
+          <p class="muted" style="text-align:center;margin-top:16px">مهر و امضای مدیر مدرسه</p>
 
           <div class="row" style="margin-top:12px">
             <button class="btn primary" id="btn-lbmin-save">💾 ذخیره</button>
@@ -9445,6 +9451,13 @@ function teacherScript() {
     LB_MIN_ATTENDEES.pop();lbRenderMinutesAttendees();
   };
 
+  function lbMinutesFontCss(key){
+    var families={
+      nazanin:"'B Nazanin','BNazanin',Tahoma,Arial",
+      titr:"'B Titr','BTitr',Tahoma,Arial"
+    };
+    return families[key]||families.nazanin;
+  }
   function lbMinutesExportHtml(){
     var num=document.getElementById('lbmin-num').value;
     var day=document.getElementById('lbmin-day').value;
@@ -9454,11 +9467,18 @@ function teacherScript() {
     var end=document.getElementById('lbmin-end').value;
     var agenda=document.getElementById('lbmin-agenda').value;
     var summary=document.getElementById('lbmin-summary').value;
-    var signNum=document.getElementById('lbmin-signnum').value;
-    var signDate=document.getElementById('lbmin-signdate').value;
+    var title=document.getElementById('lbmin-title').value;
+    var fontKey=document.getElementById('lbmin-font').value;
+    var fontFamily=lbMinutesFontCss(fontKey);
 
-    var h='<p style="text-align:center;font-weight:bold;font-size:16px;margin:0 0 10px">بسمه‌تعالی</p>';
-    h+='<p style="font-weight:bold;margin:0 0 10px">صورت جلسه :</p>';
+    var h='<style>';
+    h+='@font-face{font-family:"BNazanin";src:url(https://cdn.jsdelivr.net/gh/intuxicated/css-persian@master/fonts/BNazanin.ttf)}';
+    h+='@font-face{font-family:"BTitr";src:url(https://cdn.jsdelivr.net/gh/intuxicated/css-persian@master/fonts/BTitrBold.ttf)}';
+    h+='</style>';
+    h+='<div style="font-family:'+fontFamily+';font-weight:bold;min-width:760px">';
+    h+='<div style="text-align:left;font-weight:bold;margin:0 0 10px">شماره: '+esc(num||'.......................')+'<br>تاریخ: '+esc(date||'.......................')+'</div>';
+    h+='<p style="text-align:center;font-weight:bold;font-size:16px;margin:0 0 10px">بسمه‌تعالی</p>';
+    h+='<p style="text-align:center;font-weight:bold;font-size:15px;margin:0 0 10px">'+esc(title||'صورت جلسه')+'</p>';
     h+='<table style="width:100%;border-collapse:collapse" class="lb-minutes-table"><tbody>';
     h+='<tr>'
       +'<td colspan="2" style="border:1px solid #333;padding:6px"><b>شماره جلسه:</b> '+esc(num)+'</td>'
@@ -9476,17 +9496,17 @@ function teacherScript() {
     h+='<p style="font-weight:bold;margin:16px 0 6px">اسامی حاضرین در جلسه:</p>';
     h+=lbBuildMinutesAttendeesHtml(true);
     h+='<p style="text-align:center;font-weight:bold;margin-top:26px">مهر و امضای مدیر مدرسه</p>';
-    h+='<table style="width:100%;border:none;margin-top:20px"><tr><td style="border:none;text-align:left">شماره: '+esc(signNum)+'</td></tr>'
-      +'<tr><td style="border:none;text-align:left">تاریخ: '+esc(signDate)+'</td></tr></table>';
+    h+='</div>';
     return h;
   }
   document.getElementById('btn-lb-minutes-word').onclick=function(){lbWordExport('صورتجلسه',lbMinutesExportHtml(),'صورتجلسه',false);};
   document.getElementById('btn-lb-minutes-pdf').onclick=function(){lbPrintExport('صورتجلسه',lbMinutesExportHtml(),false);};
   document.getElementById('btn-lbmin-clear').onclick=function(){
     if(!confirm('آیا از پاک‌کردن تمام اطلاعات صورتجلسه مطمئن هستید؟ این کار قابل بازگشت نیست.'))return;
-    ['lbmin-num','lbmin-day','lbmin-date','lbmin-start','lbmin-place','lbmin-end','lbmin-agenda','lbmin-summary','lbmin-signnum','lbmin-signdate'].forEach(function(id){
+    ['lbmin-num','lbmin-day','lbmin-date','lbmin-start','lbmin-place','lbmin-end','lbmin-agenda','lbmin-summary','lbmin-title'].forEach(function(id){
       document.getElementById(id).value='';
     });
+    document.getElementById('lbmin-font').value='nazanin';
     LB_MIN_DECISIONS=['','','',''];
     LB_MIN_ATTENDEES=[{name:'',role:'',sign:''},{name:'',role:'',sign:''},{name:'',role:'',sign:''},{name:'',role:'',sign:''},
       {name:'',role:'',sign:''},{name:'',role:'',sign:''},{name:'',role:'',sign:''},{name:'',role:'',sign:''}];
@@ -9504,8 +9524,8 @@ function teacherScript() {
       end:document.getElementById('lbmin-end').value,
       agenda:document.getElementById('lbmin-agenda').value,
       summary:document.getElementById('lbmin-summary').value,
-      signNum:document.getElementById('lbmin-signnum').value,
-      signDate:document.getElementById('lbmin-signdate').value,
+      title:document.getElementById('lbmin-title').value,
+      font:document.getElementById('lbmin-font').value,
       decisions:LB_MIN_DECISIONS,
       attendees:LB_MIN_ATTENDEES
     });
@@ -9526,8 +9546,8 @@ function teacherScript() {
       document.getElementById('lbmin-end').value=saved.end||'';
       document.getElementById('lbmin-agenda').value=saved.agenda||'';
       document.getElementById('lbmin-summary').value=saved.summary||'';
-      document.getElementById('lbmin-signnum').value=saved.signNum||'';
-      document.getElementById('lbmin-signdate').value=saved.signDate||'';
+      document.getElementById('lbmin-title').value=saved.title||'';
+      document.getElementById('lbmin-font').value=saved.font||'nazanin';
       if(saved.decisions&&saved.decisions.length)LB_MIN_DECISIONS=saved.decisions;
       if(saved.attendees&&saved.attendees.length)LB_MIN_ATTENDEES=saved.attendees;
       lbRenderMinutesDecisions();
