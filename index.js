@@ -1301,13 +1301,37 @@ const SHARED_CSS = `
   [data-theme="dark"] .cls-pdf-panel{background:#0f172a}
   #cls-pdf-nav input[type="number"]{padding:4px;border:1px solid #cbd5e1;border-radius:6px}
 
-  /* ---- چیدمان کلاس آنلاین: تخته بزرگ و در اولویت، به‌خصوص در گوشی ---- */
+  /* ---- چیدمان کلاس آنلاین برای معلم (تخته + گفتگو کنار هم) ---- */
   .cls-wrap{display:flex;gap:12px;flex-wrap:wrap}
   .cls-board-col{flex:1 1 520px;min-width:280px}
   .cls-chat-col{flex:0 0 300px;min-width:260px}
   @media (max-width:760px){
     .cls-board-col{flex:1 1 100%}
     .cls-chat-col{flex:1 1 100%;min-width:0}
+  }
+
+  /* ---- چیدمان کلاس آنلاین برای دانش‌آموز (موبایل): دوربین بالا، تخته وسط، کاربران و گفتگو پایین ---- */
+  .cls-stack{display:flex;flex-direction:column;gap:12px}
+  .cls-sec{border:1px solid var(--line);border-radius:14px;overflow:hidden;background:var(--card)}
+  .cls-sec-head{display:flex;align-items:center;gap:8px;padding:10px 14px;background:#0f172a;color:#fff;font-weight:700;font-size:14px;cursor:default}
+  .cls-sec-head.tap{cursor:pointer;user-select:none}
+  .cls-sec-head .cls-chevron{margin-right:auto;transition:transform .2s;font-size:12px;opacity:.85}
+  .cls-sec-head.open .cls-chevron{transform:rotate(180deg)}
+  .cls-badge-count{background:#2563eb;color:#fff;border-radius:999px;padding:1px 8px;font-size:12px;font-weight:700}
+  .cls-cam-box{position:relative;width:100%;aspect-ratio:16/10;background:#111827;display:flex;align-items:center;justify-content:center;overflow:hidden}
+  #cls-teacher-video{width:100%;height:100%;object-fit:cover;display:block;cursor:zoom-in}
+  .cls-cam-placeholder{color:#94a3b8;font-size:13px;text-align:center;padding:10px}
+  .cls-board-box{width:100%;background:#fff;padding:8px}
+  .cls-users-list{max-height:220px;overflow:auto;padding:10px 14px}
+  .cls-users-list.hidden{display:none}
+  .cls-user-row{display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--line);font-size:14px}
+  .cls-user-row:last-child{border-bottom:none}
+  .cls-user-row .u-dot{width:8px;height:8px;border-radius:50%;background:#16a34a;flex:0 0 auto}
+  .cls-user-row.role-teacher{font-weight:700;color:var(--primary)}
+  .cls-chat-wrap{padding:10px 14px}
+  .cls-chat-wrap.hidden{display:none}
+  @media (max-width:760px){
+    .cls-cam-box{aspect-ratio:4/3}
   }
 
   .mt-ph{display:inline-block;min-width:18px;min-height:1.1em;border:1px dashed #94a3b8;border-radius:4px;padding:0 3px;outline:none}
@@ -2479,18 +2503,16 @@ async function studentClassPage(env, id) {
   return html(`<!doctype html><html lang="fa" dir="rtl"><head><meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>کلاس آنلاین</title>${FONT_LINK}<style>${SHARED_CSS}
-    .cls-wrap{display:flex;gap:12px;flex-wrap:wrap}
-    #board{width:100%;background:#fff;border:1px solid var(--line);border-radius:10px;touch-action:none;display:block}
+    #board{width:100%;background:#fff;border:1px solid var(--line);border-radius:10px;touch-action:none;display:block;margin:0 auto}
     .cls-status{display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap}
     .dot{width:10px;height:10px;border-radius:50%;background:#dc2626;display:inline-block}
     .dot.on{background:#16a34a}
-    #chatBox{height:360px;overflow:auto;border:1px solid var(--line);border-radius:10px;padding:10px;background:#fafafa;display:flex;flex-direction:column;gap:6px}
+    #chatBox{height:280px;overflow:auto;border:1px solid var(--line);border-radius:10px;padding:10px;background:#fafafa;display:flex;flex-direction:column;gap:6px}
     .msg{padding:6px 10px;border-radius:10px;max-width:90%;font-size:14px}
     .msg.teacher{background:#eef2ff;align-self:flex-start}
     .msg.student{background:#dcfce7;align-self:flex-end}
     .msg .who{font-size:11px;color:#666;margin-bottom:2px}
-    #cls-teacher-video{cursor:zoom-in}
-    #cls-teacher-video.zoomed{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);width:min(92vw,520px);height:auto;max-height:82vh;max-width:none;z-index:41;cursor:zoom-out;box-shadow:0 10px 40px rgba(0,0,0,.5)}
+    #cls-teacher-video.zoomed{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);width:min(92vw,520px);height:auto;max-height:82vh;max-width:none;aspect-ratio:auto;object-fit:contain;z-index:41;cursor:zoom-out;box-shadow:0 10px 40px rgba(0,0,0,.5);border-radius:10px}
     #cls-video-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:40}
   </style></head>
   <body><div class="wrap">
@@ -2504,20 +2526,39 @@ async function studentClassPage(env, id) {
         <button class="btn sm sec" id="btn-raise-hand">✋ بلند کردن دست</button>
         <button class="btn sm" id="btn-enable-sound">🔊 فعال‌سازی صدای کلاس</button>
       </div>
-      <div class="cls-wrap">
-        <div class="cls-board-col" style="position:relative">
-          <canvas id="board" width="900" height="500"></canvas>
-          <div id="cls-video-backdrop" class="hidden"></div>
-          <img id="cls-teacher-video" class="hidden" title="برای بزرگ‌نمایی کلیک کنید" style="position:absolute;top:10px;left:10px;width:110px;height:84px;object-fit:cover;border-radius:10px;border:2px solid #fff;box-shadow:0 4px 14px rgba(0,0,0,.35);background:#000;z-index:5">
-          <p class="muted" style="font-size:12px;margin-top:6px">تخته کلاس توسط معلم کنترل می‌شود. صدای معلم به‌صورت خودکار پخش می‌شود.</p>
+      <div class="cls-stack">
+        <div class="cls-sec">
+          <div class="cls-sec-head">🎥 دوربین معلم</div>
+          <div class="cls-cam-box">
+            <div id="cls-video-backdrop" class="hidden"></div>
+            <img id="cls-teacher-video" class="hidden" title="برای بزرگ‌نمایی کلیک کنید">
+            <div id="cls-cam-placeholder" class="cls-cam-placeholder">دوربین معلم هنوز روشن نشده است</div>
+          </div>
         </div>
-        <div class="cls-chat-col">
-          <div id="chatBox"></div>
-          <div class="row" style="margin-top:8px">
-            <input id="chatInput" placeholder="پیام خود را بنویسید...">
-            <button class="btn sm" id="btnSend" style="flex:0 0 auto">ارسال</button>
-            <button class="btn sm gray" id="btnFile" style="flex:0 0 auto" title="ارسال فایل">📎</button>
-            <input type="file" id="fileInput" style="display:none">
+
+        <div class="cls-sec">
+          <div class="cls-sec-head">📝 تخته آنلاین</div>
+          <div class="cls-board-box">
+            <canvas id="board" width="900" height="500"></canvas>
+          </div>
+          <p class="muted" style="font-size:12px;padding:0 14px 10px">تخته کلاس (و فایل PDF روی آن) توسط معلم کنترل می‌شود. صدای معلم به‌صورت خودکار پخش می‌شود.</p>
+        </div>
+
+        <div class="cls-sec">
+          <div class="cls-sec-head tap" id="cls-users-toggle">👥 کاربران کلاس <span id="cls-users-count" class="cls-badge-count">۰</span><span class="cls-chevron">▾</span></div>
+          <div id="cls-users-list" class="cls-users-list hidden"><span class="muted">کسی متصل نیست</span></div>
+        </div>
+
+        <div class="cls-sec">
+          <div class="cls-sec-head tap open" id="cls-chat-toggle">💬 گفتگوی کلاس<span class="cls-chevron">▾</span></div>
+          <div id="cls-chat-wrap" class="cls-chat-wrap">
+            <div id="chatBox"></div>
+            <div class="row" style="margin-top:8px">
+              <input id="chatInput" placeholder="پیام خود را بنویسید...">
+              <button class="btn sm" id="btnSend" style="flex:0 0 auto">ارسال</button>
+              <button class="btn sm gray" id="btnFile" style="flex:0 0 auto" title="ارسال فایل">📎</button>
+              <input type="file" id="fileInput" style="display:none">
+            </div>
           </div>
         </div>
       </div>
@@ -2643,6 +2684,35 @@ async function studentClassPage(env, id) {
       a.play().catch(()=>{ audioPlaying=false; pumpAudioQueue(); });
     }
 
+    function updateParticipants(list){
+      const box=document.getElementById('cls-users-list');
+      const countEl=document.getElementById('cls-users-count');
+      countEl.textContent=toFaDigitsCls(list.length);
+      if(!list.length){box.innerHTML='<span class="muted">کسی متصل نیست</span>';return;}
+      box.innerHTML=list.map(function(p){
+        const roleCls=p.role==='teacher'?'role-teacher':'';
+        const icon=p.role==='teacher'?'👨‍🏫':'👤';
+        return '<div class="cls-user-row '+roleCls+'"><span class="u-dot"></span>'+icon+' '+esc(p.name||'')+'</div>';
+      }).join('');
+    }
+    const FA_DIGITS_CLS=['۰','۱','۲','۳','۴','۵','۶','۷','۸','۹'];
+    function toFaDigitsCls(n){return String(n).replace(/[0-9]/g,d=>FA_DIGITS_CLS[+d]);}
+
+    (function setupCollapsibleSections(){
+      const usersToggle=document.getElementById('cls-users-toggle');
+      const usersList=document.getElementById('cls-users-list');
+      usersToggle.addEventListener('click',function(){
+        usersList.classList.toggle('hidden');
+        usersToggle.classList.toggle('open');
+      });
+      const chatToggle=document.getElementById('cls-chat-toggle');
+      const chatWrap=document.getElementById('cls-chat-wrap');
+      chatToggle.addEventListener('click',function(){
+        chatWrap.classList.toggle('hidden');
+        chatToggle.classList.toggle('open');
+      });
+    })();
+
     function addChatMsg(entry){
       const box=document.getElementById('chatBox');
       const cls=entry.role==='teacher'?'teacher':'student';
@@ -2688,6 +2758,7 @@ async function studentClassPage(env, id) {
           if(m.boardBg){setBoardBgAndReplay(m.boardBg,m.strokes||[],m.boardBgW,m.boardBgH);}
           else{clearBoard();boardBgImg=null;(m.strokes||[]).forEach(drawStroke);}
           (m.chat||[]).forEach(addChatMsg);
+          updateParticipants(m.participants||[]);
         }
         else if(m.type==='draw'){drawStroke(m.stroke);}
         else if(m.type==='clear'){ctx.clearRect(0,0,canvas.width,canvas.height);if(boardBgImg)ctx.drawImage(boardBgImg,0,0,canvas.width,canvas.height);}
@@ -2697,15 +2768,20 @@ async function studentClassPage(env, id) {
           const img=document.getElementById('cls-teacher-video');
           img.src=m.data;
           img.classList.remove('hidden');
+          document.getElementById('cls-cam-placeholder').classList.add('hidden');
         }
         else if(m.type==='video-stop'){
           const img=document.getElementById('cls-teacher-video');
           img.classList.add('hidden');
           img.src='';
+          document.getElementById('cls-cam-placeholder').classList.remove('hidden');
         }
         else if(m.type==='chat'){addChatMsg(m.entry);}
         else if(m.type==='file'){addFileMsg(m);}
-        else if(m.type==='presence'){ if(m.event==='join'&&m.role==='teacher')toast('معلم وارد کلاس شد');}
+        else if(m.type==='presence'){
+          updateParticipants(m.participants||[]);
+          if(m.event==='join'&&m.role==='teacher')toast('معلم وارد کلاس شد');
+        }
       };
     }
     connect();
