@@ -1527,6 +1527,17 @@ const SHARED_CSS = `
   #schedule-table-wrap.theme-girl td.cell-seshshanbe{background:#f3e8ff}
   #schedule-table-wrap.theme-girl td.cell-chaharshanbe{background:#ffe4e6}
   [data-theme="dark"] #schedule-table-wrap.theme-girl td.cell-shanbe,[data-theme="dark"] #schedule-table-wrap.theme-girl td.cell-yekshanbe,[data-theme="dark"] #schedule-table-wrap.theme-girl td.cell-doshshanbe,[data-theme="dark"] #schedule-table-wrap.theme-girl td.cell-seshshanbe,[data-theme="dark"] #schedule-table-wrap.theme-girl td.cell-chaharshanbe{background:#3d1730}
+
+  /* تم مشکی: پس‌زمینه مشکی برای روزها با نوشته سفید */
+  #schedule-table-wrap.theme-black .schedule-table th.sch-corner{background:linear-gradient(135deg,#000,#1f2937)}
+  #schedule-table-wrap.theme-black .schedule-table th.sch-period{background:#111827;color:#fff}
+  [data-theme="dark"] #schedule-table-wrap.theme-black .schedule-table th.sch-period{background:#000;color:#fff}
+  #schedule-table-wrap.theme-black .sch-day-accent{background:#fff!important}
+  #schedule-table-wrap.theme-black td[class^="sch-daylabel-"]{background:#000!important;color:#fff!important}
+  #schedule-table-wrap.theme-black td.cell-shanbe,#schedule-table-wrap.theme-black td.cell-yekshanbe,#schedule-table-wrap.theme-black td.cell-doshshanbe,#schedule-table-wrap.theme-black td.cell-seshshanbe,#schedule-table-wrap.theme-black td.cell-chaharshanbe{background:#1f2937;color:#fff}
+  [data-theme="dark"] #schedule-table-wrap.theme-black td.cell-shanbe,[data-theme="dark"] #schedule-table-wrap.theme-black td.cell-yekshanbe,[data-theme="dark"] #schedule-table-wrap.theme-black td.cell-doshshanbe,[data-theme="dark"] #schedule-table-wrap.theme-black td.cell-seshshanbe,[data-theme="dark"] #schedule-table-wrap.theme-black td.cell-chaharshanbe{background:#000}
+  #schedule-table-wrap.theme-black .schedule-table textarea::placeholder{color:#94a3b8}
+
   .schedule-table tr.sch-today td{box-shadow:inset 0 0 0 2px var(--primary)}
   .schedule-table tr.sch-today td:first-child .sch-today-badge{position:absolute;top:2px;left:6px;font-size:9px;background:var(--primary);color:#fff;padding:1px 7px;border-radius:8px;font-weight:700}
   .schedule-table textarea{background:transparent;border:none;width:100%;min-height:50px;text-align:center;font-family:inherit;font-size:13px;color:inherit;resize:vertical;line-height:1.5}
@@ -1635,6 +1646,7 @@ const SHARED_CSS = `
   @media(max-width:640px){
     .cls-wrap{flex-direction:column}
     #t-cam-preview{max-width:100%;width:100%}
+    #cls-teacher-video{width:80px;height:60px;top:6px;left:6px}
   }
 
   /* ---- ساخت آزمون (برگه چاپی) ---- */
@@ -2489,9 +2501,9 @@ async function studentClassPage(env, id) {
         <button class="btn sm" id="btn-enable-sound">🔊 فعال‌سازی صدای کلاس</button>
       </div>
       <div class="cls-wrap">
-        <div class="cls-board-col">
-          <img id="cls-teacher-video" class="hidden" style="width:100%;max-width:280px;border-radius:10px;border:1px solid var(--line);margin-bottom:10px;background:#000;display:block">
+        <div class="cls-board-col" style="position:relative">
           <canvas id="board" width="900" height="500"></canvas>
+          <img id="cls-teacher-video" class="hidden" style="position:absolute;top:10px;left:10px;width:110px;height:84px;object-fit:cover;border-radius:10px;border:2px solid #fff;box-shadow:0 4px 14px rgba(0,0,0,.35);background:#000;z-index:5">
           <p class="muted" style="font-size:12px;margin-top:6px">تخته کلاس توسط معلم کنترل می‌شود. صدای معلم به‌صورت خودکار پخش می‌شود.</p>
         </div>
         <div class="cls-chat-col">
@@ -2981,6 +2993,7 @@ function teacherPage() {
           <button class="btn sm sch-theme-btn active" data-theme="default">🌈 پیش‌فرض</button>
           <button class="btn sm sch-theme-btn" data-theme="boy">💙 پسرانه</button>
           <button class="btn sm sch-theme-btn" data-theme="girl">💗 دخترانه</button>
+          <button class="btn sm sch-theme-btn" data-theme="black">🖤 مشکی</button>
         </div>
         <div class="row" style="margin-bottom:16px">
           <input id="sch-school" placeholder="نام مدرسه" style="flex:1">
@@ -3444,47 +3457,49 @@ function teacherPage() {
           <button class="btn sm sec hidden cls-opt-btn" id="btn-cam-toggle">📷 روشن کردن تصویر</button>
           <button class="btn sm sec hidden cls-opt-btn" id="btn-cam-flip">🔄 چرخش دوربین</button>
         </div>
-        <video id="t-cam-preview" autoplay muted playsinline class="hidden" style="width:160px;max-width:45vw;border-radius:10px;border:1px solid var(--line);margin-bottom:10px;background:#000"></video>
 
-        <div class="cls-wrap" style="display:flex;gap:12px;flex-wrap:wrap">
-          <div class="cls-board-col">
-            <div class="cls-pdf-panel">
-              <div class="row" style="align-items:center;flex-wrap:wrap">
-                <label class="btn sm sec" style="cursor:pointer;flex:0 0 auto">📄 افزودن PDF<input type="file" accept="application/pdf" id="cls-pdf-file" style="display:none"></label>
-                <span id="cls-pdf-name" class="muted" style="font-size:12px"></span>
-                <button class="btn sm danger hidden" id="cls-pdf-remove-file" style="flex:0 0 auto">🗑️ حذف فایل PDF</button>
-              </div>
-              <div id="cls-pdf-nav" class="row hidden" style="align-items:center;margin-top:6px;flex-wrap:wrap">
-                <button class="btn sm gray" id="cls-pdf-prev" style="flex:0 0 auto">◀ قبلی</button>
-                <span style="flex:0 0 auto">صفحه <input type="number" id="cls-pdf-pagenum" min="1" value="1" style="width:60px;text-align:center"> از <span id="cls-pdf-total">1</span></span>
-                <button class="btn sm gray" id="cls-pdf-next" style="flex:0 0 auto">بعدی ▶</button>
-                <button class="btn sm primary" id="cls-pdf-show" style="flex:0 0 auto">🖼️ نمایش این صفحه روی تخته</button>
-                <button class="btn sm danger" id="cls-pdf-remove-bg" style="flex:0 0 auto">حذف PDF از تخته</button>
-              </div>
+        <div class="cls-top-row" style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-start;margin-bottom:12px">
+          <video id="t-cam-preview" autoplay muted playsinline class="hidden" style="width:180px;max-width:45vw;aspect-ratio:4/3;object-fit:cover;border-radius:10px;border:1px solid var(--line);background:#000;flex:0 0 auto"></video>
+          <div class="cls-pdf-panel" style="flex:1 1 260px;min-width:220px;margin-bottom:0">
+            <div class="row" style="align-items:center;flex-wrap:wrap">
+              <label class="btn sm sec" style="cursor:pointer;flex:0 0 auto">📄 افزودن PDF<input type="file" accept="application/pdf" id="cls-pdf-file" style="display:none"></label>
+              <span id="cls-pdf-name" class="muted" style="font-size:12px"></span>
+              <button class="btn sm danger hidden" id="cls-pdf-remove-file" style="flex:0 0 auto">🗑️ حذف فایل PDF</button>
             </div>
-            <div class="row" style="margin-bottom:8px;flex-wrap:wrap">
-              <input type="color" id="brd-color" value="#111827" style="flex:0 0 44px;padding:2px;height:38px">
-              <input type="range" id="brd-size" min="1" max="20" value="3" style="flex:1;min-width:80px">
-              <button class="btn sm gray active" id="brd-tool-pen" style="flex:0 0 auto">✏️ قلم</button>
-              <button class="btn sm gray" id="brd-tool-line" style="flex:0 0 auto">📏 خط راست</button>
-              <button class="btn sm gray" id="brd-tool-text" style="flex:0 0 auto">🔤 متن</button>
-              <button class="btn sm gray" id="brd-tool-eraser" style="flex:0 0 auto">🧽 پاک‌کن</button>
-              <button class="btn sm danger" id="brd-clear" style="flex:0 0 auto">🗑️ پاک کردن یادداشت‌ها</button>
-            </div>
-            <canvas id="t-board" width="900" height="500" style="width:100%;background:#fff;border:1px solid var(--line);border-radius:10px;touch-action:none;display:block;cursor:crosshair"></canvas>
-            <p class="muted" style="font-size:12px;margin-top:6px">روی تخته بکشید؛ ترسیم برای همه دانش‌آموزان متصل به‌صورت زنده نمایش داده می‌شود.</p>
-          </div>
-          <div class="cls-chat-col">
-            <h4 style="margin:0 0 6px">👥 حاضرین (<span id="cls-online-count">0</span>)</h4>
-            <div id="cls-participants" class="muted" style="font-size:13px;max-height:110px;overflow:auto;margin-bottom:10px"></div>
-            <div id="t-chatBox" style="height:220px;overflow:auto;border:1px solid var(--line);border-radius:10px;padding:10px;background:#fafafa;display:flex;flex-direction:column;gap:6px"></div>
-            <div class="row" style="margin-top:8px">
-              <input id="t-chatInput" placeholder="پیام به کلاس...">
-              <button class="btn sm" id="t-btnSend" style="flex:0 0 auto">ارسال</button>
-              <button class="btn sm gray" id="t-btnFile" style="flex:0 0 auto" title="ارسال فایل">📎</button>
-              <input type="file" id="t-fileInput" style="display:none">
+            <div id="cls-pdf-nav" class="row hidden" style="align-items:center;margin-top:6px;flex-wrap:wrap">
+              <button class="btn sm gray" id="cls-pdf-prev" style="flex:0 0 auto">◀ قبلی</button>
+              <span style="flex:0 0 auto">صفحه <input type="number" id="cls-pdf-pagenum" min="1" value="1" style="width:60px;text-align:center"> از <span id="cls-pdf-total">1</span></span>
+              <button class="btn sm gray" id="cls-pdf-next" style="flex:0 0 auto">بعدی ▶</button>
+              <button class="btn sm primary" id="cls-pdf-show" style="flex:0 0 auto">🖼️ نمایش این صفحه روی تخته</button>
+              <button class="btn sm danger" id="cls-pdf-remove-bg" style="flex:0 0 auto">حذف PDF از تخته</button>
             </div>
           </div>
+        </div>
+
+        <div class="cls-chat-col" style="width:100%;margin-bottom:12px">
+          <h4 style="margin:0 0 6px">👥 حاضرین (<span id="cls-online-count">0</span>)</h4>
+          <div id="cls-participants" class="muted" style="font-size:13px;max-height:110px;overflow:auto;margin-bottom:10px"></div>
+          <div id="t-chatBox" style="height:220px;overflow:auto;border:1px solid var(--line);border-radius:10px;padding:10px;background:#fafafa;display:flex;flex-direction:column;gap:6px"></div>
+          <div class="row" style="margin-top:8px">
+            <input id="t-chatInput" placeholder="پیام به کلاس...">
+            <button class="btn sm" id="t-btnSend" style="flex:0 0 auto">ارسال</button>
+            <button class="btn sm gray" id="t-btnFile" style="flex:0 0 auto" title="ارسال فایل">📎</button>
+            <input type="file" id="t-fileInput" style="display:none">
+          </div>
+        </div>
+
+        <div class="cls-board-col" style="width:100%">
+          <div class="row" style="margin-bottom:8px;flex-wrap:wrap">
+            <input type="color" id="brd-color" value="#111827" style="flex:0 0 44px;padding:2px;height:38px">
+            <input type="range" id="brd-size" min="1" max="20" value="3" style="flex:1;min-width:80px">
+            <button class="btn sm gray active" id="brd-tool-pen" style="flex:0 0 auto">✏️ قلم</button>
+            <button class="btn sm gray" id="brd-tool-line" style="flex:0 0 auto">📏 خط راست</button>
+            <button class="btn sm gray" id="brd-tool-text" style="flex:0 0 auto">🔤 متن</button>
+            <button class="btn sm gray" id="brd-tool-eraser" style="flex:0 0 auto">🧽 پاک‌کن</button>
+            <button class="btn sm danger" id="brd-clear" style="flex:0 0 auto">🗑️ پاک کردن یادداشت‌ها</button>
+          </div>
+          <canvas id="t-board" width="900" height="500" style="width:100%;background:#fff;border:1px solid var(--line);border-radius:10px;touch-action:none;display:block;cursor:crosshair"></canvas>
+          <p class="muted" style="font-size:12px;margin-top:6px">روی تخته بکشید؛ ترسیم برای همه دانش‌آموزان متصل به‌صورت زنده نمایش داده می‌شود.</p>
         </div>
 
         <hr style="border:none;border-top:1px solid var(--line);margin:16px 0">
@@ -3943,12 +3958,12 @@ function teacherScript() {
   });
 
   // ===== دانش‌آموزان =====
-  async function loadStudents(){
-    const d=await api('/api/teacher/students');
+  let TEACHER_STUDENTS=[];
+  function renderStudentsTable(students){
     const box=document.getElementById('students-list');
-    if(!d.students.length){box.innerHTML='<p class="muted">هنوز دانش‌آموزی ساخته نشده است.</p>';return;}
+    if(!students.length){box.innerHTML='<p class="muted">هنوز دانش‌آموزی ساخته نشده است.</p>';return;}
     box.innerHTML='<table><tr><th>عکس</th><th>#</th><th>نام</th><th>لینک اختصاصی</th><th>وضعیت</th><th></th></tr>'+
-      d.students.map((s,i)=>{
+      students.map((s,i)=>{
         const link=location.origin+'/s/'+s.uuid;
         let st='<span class="pill no">در انتظار</span>';
         if(s.status==='submitted')st='<span class="pill gr">ثبت‌شده (تصحیح‌نشده)</span>';
@@ -3962,8 +3977,19 @@ function teacherScript() {
           '<button class="btn sm danger" onclick="delStudent(\\''+s.uuid+'\\')">حذف</button></td></tr>';
       }).join('')+'</table>';
   }
+  async function loadStudents(){
+    const d=await api('/api/teacher/students');
+    TEACHER_STUDENTS=d.students||[];
+    renderStudentsTable(TEACHER_STUDENTS);
+  }
   window.copyLink=(l)=>{navigator.clipboard.writeText(l).then(()=>toast('لینک کپی شد'));};
-  window.delStudent=async(id)=>{if(!confirm('حذف این دانش‌آموز و پاسخنامه‌اش؟'))return;await api('/api/teacher/students/'+id,{method:'DELETE'});loadStudents();};
+  window.delStudent=async(id)=>{
+    if(!confirm('حذف این دانش‌آموز و پاسخنامه‌اش؟'))return;
+    // حذف فوری از فهرست نمایشی؛ درخواست حذف واقعی در پس‌زمینه انجام می‌شود تا کاربر منتظر پاسخ سرور نماند
+    TEACHER_STUDENTS=TEACHER_STUDENTS.filter(s=>s.uuid!==id);
+    renderStudentsTable(TEACHER_STUDENTS);
+    await api('/api/teacher/students/'+id,{method:'DELETE'});
+  };
 
   // کوچک‌کردن و برش مرکزی عکس پروفایل به یک مربع کامل (مثل آپلود عکس پروفایل واقعی) تا داخل دایره هیچ‌وقت کشیده/بیضی به‌نظر نرسد
   function resizeProfilePhoto(file){
@@ -4045,7 +4071,12 @@ function teacherScript() {
     try{
       const photo=await resizeProfilePhoto(f);
       const r=await api('/api/teacher/students/'+id,{method:'PATCH',headers:{'content-type':'application/json'},body:JSON.stringify({photo})});
-      if(r.ok){toast('عکس پروفایل بروزرسانی شد ✅');loadStudents();}
+      if(r.ok){
+        toast('عکس پروفایل بروزرسانی شد ✅');
+        const idx=TEACHER_STUDENTS.findIndex(s=>s.uuid===id);
+        if(idx>-1){TEACHER_STUDENTS[idx]={...TEACHER_STUDENTS[idx],photo};renderStudentsTable(TEACHER_STUDENTS);}
+        else loadStudents();
+      }
       else{toast('خطا: '+(r.error||'ثبت نشد'));}
     }catch(e){toast(e.message);}
   };
@@ -4059,7 +4090,11 @@ function teacherScript() {
       document.getElementById('new-label').value='';
       newStudentPhoto='';
       document.getElementById('new-student-photo-preview').classList.add('hidden');
-      loadStudents();toast('دانش‌آموز ساخته شد ✅');
+      // بجای دریافت دوباره‌ی کل فهرست از سرور (که با افزایش تعداد دانش‌آموزان کند می‌شود)،
+      // دانش‌آموز تازه‌ساخته‌شده مستقیم به فهرست محلی اضافه و بلافاصله نمایش داده می‌شود
+      TEACHER_STUDENTS.unshift({...r.student,status:'pending'});
+      renderStudentsTable(TEACHER_STUDENTS);
+      toast('دانش‌آموز ساخته شد ✅');
     }finally{btn.disabled=false;}
   };
 
@@ -4677,9 +4712,10 @@ function teacherScript() {
       document.querySelectorAll('.sch-theme-btn').forEach(b=>b.classList.remove('active'));
       btn.classList.add('active');
       const wrap=document.getElementById('schedule-table-wrap');
-      wrap.classList.remove('theme-boy','theme-girl');
+      wrap.classList.remove('theme-boy','theme-girl','theme-black');
       if(btn.dataset.theme==='boy')wrap.classList.add('theme-boy');
       if(btn.dataset.theme==='girl')wrap.classList.add('theme-girl');
+      if(btn.dataset.theme==='black')wrap.classList.add('theme-black');
       lbSave('sch-theme',btn.dataset.theme,true);
     };
   });
@@ -4721,24 +4757,34 @@ function teacherScript() {
     const teacher=document.getElementById('sch-teacher').value||'';
     const days=['شنبه','یکشنبه','دوشنبه','سه‌شنبه','چهارشنبه'];
     const zang=['زنگ اول','زنگ دوم','زنگ سوم','زنگ چهارم','زنگ پنجم'];
-    const accentColors=['#ef4444','#f59e0b','#10b981','#8b5cf6','#06b6d4'];
-    const cellColors=['#fef2f2','#fffbeb','#f0fdf4','#f5f3ff','#ecfeff'];
+    const activeThemeBtn=document.querySelector('.sch-theme-btn.active');
+    const themeName=activeThemeBtn?activeThemeBtn.dataset.theme:'default';
+    const THEMES={
+      default:{corner:['#1e293b','#334155'],periodBg:'#f8fafc',periodColor:'#334155',accent:['#ef4444','#f59e0b','#10b981','#8b5cf6','#06b6d4'],cell:['#fef2f2','#fffbeb','#f0fdf4','#f5f3ff','#ecfeff'],text:'#1e293b',dayText:'#1e293b'},
+      boy:{corner:['#1e3a8a','#2563eb'],periodBg:'#eff6ff',periodColor:'#1e3a8a',accent:['#2563eb','#2563eb','#2563eb','#2563eb','#2563eb'],cell:['#dbeafe','#e0f2fe','#cffafe','#e0e7ff','#dbeafe'],text:'#1e293b',dayText:'#1e293b'},
+      girl:{corner:['#9d174d','#db2777'],periodBg:'#fdf2f8',periodColor:'#9d174d',accent:['#db2777','#db2777','#db2777','#db2777','#db2777'],cell:['#fce7f3','#fdf2f8','#fae8ff','#f3e8ff','#ffe4e6'],text:'#1e293b',dayText:'#1e293b'},
+      black:{corner:['#000','#1f2937'],periodBg:'#111827',periodColor:'#fff',accent:['#fff','#fff','#fff','#fff','#fff'],cell:['#1f2937','#1f2937','#1f2937','#1f2937','#1f2937'],text:'#fff',dayText:'#fff',dayBg:'#000'}
+    };
+    const T=THEMES[themeName]||THEMES.default;
+    const accentColors=T.accent;
+    const cellColors=T.cell;
     let style='<style>@font-face{font-family:"BNazanin";src:url(https://cdn.jsdelivr.net/gh/naderuser/bnazanin@main/BNazanin.ttf)}';
     style+='body{direction:rtl;font-family:"BNazanin",tahoma,Arial;padding:30px;background:#f8fafc}';
     style+='.header{text-align:center;padding:20px;background:#fff;color:#1e293b;border-radius:20px;margin-bottom:20px;border:1.5px solid #e2e8f0}';
     style+='.header h1{font-size:24px;margin:0 0 10px;font-weight:800;letter-spacing:.3px}.header p{margin:5px 0;font-size:14px}';
     style+='table{width:100%;border-collapse:collapse;box-shadow:0 8px 24px rgba(15,23,42,.10);border:1.5px solid #1e293b}';
     style+='th{padding:14px 8px;font-size:14px;font-weight:800;text-align:center;border:1px solid #1e293b}';
-    style+='td{padding:14px 10px;text-align:center;font-size:13px;min-height:50px;font-weight:600;color:#1e293b;border:1px solid #1e293b}';
+    style+='td{padding:14px 10px;text-align:center;font-size:13px;min-height:50px;font-weight:600;color:'+T.text+';border:1px solid #1e293b}';
     style+='.daylabel{border-right:5px solid;font-weight:800}';
     style+='.footer{text-align:center;margin-top:30px;padding:20px;border-top:2px dashed #ddd}</style>';
     let header='<div class="header"><h1>⭐ برنامه هفتگی کلاس ⭐</h1><p>🏫 '+esc(school)+' | سال تحصیلی: '+esc(year)+'</p><p>کلاس: '+esc(cls)+' | آموزگار: '+esc(teacher)+'</p></div>';
-    let table='<table><tr><th style="background:linear-gradient(135deg,#1e293b,#334155);color:#fff;border-bottom:none">روز / زنگ</th>';
-    for(let z=0;z<5;z++){table+='<th style="background:#f8fafc;color:#334155">🔔 '+zang[z]+'</th>';}
+    let table='<table><tr><th style="background:linear-gradient(135deg,'+T.corner[0]+','+T.corner[1]+');color:#fff;border-bottom:none">روز / زنگ</th>';
+    for(let z=0;z<5;z++){table+='<th style="background:'+T.periodBg+';color:'+T.periodColor+'">🔔 '+zang[z]+'</th>';}
     table+='</tr>';
     for(let d=0;d<5;d++){
-      table+='<tr><td class="daylabel" style="background:'+cellColors[d]+';border-right-color:'+accentColors[d]+'">'+days[d]+'</td>';
-      for(let i=1;i<=5;i++){const el=document.getElementById('c'+d+i);const val=(el?el.value:'')||'&nbsp;';table+='<td style="background:'+cellColors[d]+'"><div style="min-height:40px">'+val+'</div></td>';}
+      const dayBg=T.dayBg||cellColors[d];
+      table+='<tr><td class="daylabel" style="background:'+dayBg+';border-right-color:'+accentColors[d]+';color:'+T.dayText+'">'+days[d]+'</td>';
+      for(let i=1;i<=5;i++){const el=document.getElementById('c'+d+i);const val=(el?el.value:'')||'&nbsp;';table+='<td style="background:'+cellColors[d]+';color:'+T.text+'"><div style="min-height:40px">'+val+'</div></td>';}
       table+='</tr>';
     }
     table+='</table>';
