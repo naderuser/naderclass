@@ -2488,6 +2488,9 @@ async function studentClassPage(env, id) {
     .msg.teacher{background:#eef2ff;align-self:flex-start}
     .msg.student{background:#dcfce7;align-self:flex-end}
     .msg .who{font-size:11px;color:#666;margin-bottom:2px}
+    #cls-teacher-video{cursor:zoom-in}
+    #cls-teacher-video.zoomed{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);width:min(92vw,520px);height:auto;max-height:82vh;max-width:none;z-index:41;cursor:zoom-out;box-shadow:0 10px 40px rgba(0,0,0,.5)}
+    #cls-video-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:40}
   </style></head>
   <body><div class="wrap">
     ${pageHeader()}
@@ -2503,7 +2506,8 @@ async function studentClassPage(env, id) {
       <div class="cls-wrap">
         <div class="cls-board-col" style="position:relative">
           <canvas id="board" width="900" height="500"></canvas>
-          <img id="cls-teacher-video" class="hidden" style="position:absolute;top:10px;left:10px;width:110px;height:84px;object-fit:cover;border-radius:10px;border:2px solid #fff;box-shadow:0 4px 14px rgba(0,0,0,.35);background:#000;z-index:5">
+          <div id="cls-video-backdrop" class="hidden"></div>
+          <img id="cls-teacher-video" class="hidden" title="برای بزرگ‌نمایی کلیک کنید" style="position:absolute;top:10px;left:10px;width:110px;height:84px;object-fit:cover;border-radius:10px;border:2px solid #fff;box-shadow:0 4px 14px rgba(0,0,0,.35);background:#000;z-index:5">
           <p class="muted" style="font-size:12px;margin-top:6px">تخته کلاس توسط معلم کنترل می‌شود. صدای معلم به‌صورت خودکار پخش می‌شود.</p>
         </div>
         <div class="cls-chat-col">
@@ -2727,6 +2731,16 @@ async function studentClassPage(env, id) {
       reader.readAsDataURL(file);
     });
     document.getElementById('btn-raise-hand').onclick=()=>{if(ws&&ws.readyState===1){ws.send(JSON.stringify({type:'raise-hand'}));toast('دستت بلند شد ✋');}};
+
+    // ===== بزرگ‌نمایی دوربین معلم توسط دانش‌آموز =====
+    (function(){
+      const vid=document.getElementById('cls-teacher-video');
+      const backdrop=document.getElementById('cls-video-backdrop');
+      function closeZoom(){ vid.classList.remove('zoomed'); backdrop.classList.add('hidden'); }
+      function openZoom(){ if(vid.classList.contains('hidden')||!vid.src)return; vid.classList.add('zoomed'); backdrop.classList.remove('hidden'); }
+      vid.addEventListener('click',function(){ vid.classList.contains('zoomed')?closeZoom():openZoom(); });
+      backdrop.addEventListener('click',closeZoom);
+    })();
   </script></body></html>`);
 }
 
@@ -3458,9 +3472,9 @@ function teacherPage() {
           <button class="btn sm sec hidden cls-opt-btn" id="btn-cam-flip">🔄 چرخش دوربین</button>
         </div>
 
-        <div class="cls-top-row" style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-start;margin-bottom:12px">
-          <video id="t-cam-preview" autoplay muted playsinline class="hidden" style="width:180px;max-width:45vw;aspect-ratio:4/3;object-fit:cover;border-radius:10px;border:1px solid var(--line);background:#000;flex:0 0 auto"></video>
-          <div class="cls-pdf-panel" style="flex:1 1 260px;min-width:220px;margin-bottom:0">
+        <div class="cls-top-row" style="position:relative;margin-bottom:12px">
+          <video id="t-cam-preview" autoplay muted playsinline class="hidden" style="position:absolute;top:0;left:0;width:96px;height:72px;object-fit:cover;border-radius:10px;border:2px solid #fff;box-shadow:0 4px 14px rgba(0,0,0,.35);background:#000;z-index:5"></video>
+          <div class="cls-pdf-panel" id="cls-pdf-panel" style="margin-bottom:0;transition:padding-left .15s">
             <div class="row" style="align-items:center;flex-wrap:wrap">
               <label class="btn sm sec" style="cursor:pointer;flex:0 0 auto">📄 افزودن PDF<input type="file" accept="application/pdf" id="cls-pdf-file" style="display:none"></label>
               <span id="cls-pdf-name" class="muted" style="font-size:12px"></span>
@@ -3523,6 +3537,7 @@ function teacherPage() {
             <button class="lb-menu-btn" data-lb="weekly"><span class="lb-ico">📅</span><span class="lb-t">برنامه درسی هفتگی (چندپایه)</span></button>
             <button class="lb-menu-btn" data-lb="weekly2"><span class="lb-ico">🗓️</span><span class="lb-t">برنامه درسی هفتگی (تک‌پایه)</span></button>
             <button class="lb-menu-btn" data-lb="staff"><span class="lb-ico">🧑‍🏫</span><span class="lb-t">اطلاعات پرسنلی همکاران مدرسه</span></button>
+            <button class="lb-menu-btn" data-lb="minutes"><span class="lb-ico">📝</span><span class="lb-t">صورتجلسه</span><small>فرم عمومی صورتجلسه مدرسه</small></button>
           </div>
         </div>
 
@@ -3826,6 +3841,52 @@ function teacherPage() {
             <button class="btn sec" id="btn-lb-staff-excel">📊 دانلود Excel</button>
             <button class="btn gray" id="btn-lb-staff-pdf">🖨️ چاپ / دانلود PDF</button>
             <button class="btn danger" type="button" onclick="lbClearContainer('lbs-table')">🗑️ پاک کردن جدول</button>
+          </div>
+        </div>
+
+        <!-- ===== ۱۰. صورتجلسه (فرم عمومی) ===== -->
+        <div class="lb-panel hidden" id="lb-panel-minutes">
+          <button class="btn sm gray lb-back-btn">← بازگشت به دفتر</button>
+          <h3>📝 صورتجلسه</h3>
+          <p class="muted" style="text-align:center;font-weight:700;margin:0 0 10px">بسمه‌تعالی</p>
+          <div class="lb-meta-form">
+            <div><label>شماره جلسه</label><input id="lbmin-num" placeholder="......................."></div>
+            <div><label>روز</label><input id="lbmin-day" placeholder="......................."></div>
+            <div><label>تاریخ</label><input id="lbmin-date" placeholder="......................."></div>
+            <div><label>ساعت شروع</label><input id="lbmin-start" placeholder="......................."></div>
+            <div><label>مکان برگزاری</label><input id="lbmin-place" placeholder="......................."></div>
+            <div><label>ساعت پایان</label><input id="lbmin-end" placeholder="......................."></div>
+          </div>
+          <label>دستور کار جلسه</label>
+          <textarea id="lbmin-agenda" rows="3" class="lb-textarea" placeholder="دستور کار و موضوعات جلسه..."></textarea>
+          <label>خلاصه مذاکرات جلسه</label>
+          <textarea id="lbmin-summary" rows="6" class="lb-textarea" placeholder="شرح مذاکرات و مباحث مطرح‌شده در جلسه..."></textarea>
+
+          <div class="row" style="margin-top:14px;align-items:center;flex-wrap:wrap">
+            <label style="flex:0 0 auto;font-weight:700">اهم مصوبات جلسه:</label>
+            <button class="btn sm sec" id="btn-lbmin-decision-add">➕ افزودن ردیف</button>
+            <button class="btn sm gray" id="btn-lbmin-decision-remove">➖ حذف آخرین ردیف</button>
+          </div>
+          <div class="lb-preview" id="lbmin-decisions-wrap"></div>
+
+          <div class="row" style="margin-top:16px;align-items:center;flex-wrap:wrap">
+            <label style="flex:0 0 auto;font-weight:700">اسامی حاضرین در جلسه:</label>
+            <button class="btn sm sec" id="btn-lbmin-att-add">➕ افزودن ردیف</button>
+            <button class="btn sm gray" id="btn-lbmin-att-remove">➖ حذف آخرین ردیف</button>
+          </div>
+          <div class="lb-preview" id="lbmin-attendees-wrap"></div>
+
+          <div class="lb-meta-form" style="margin-top:16px">
+            <div><label>شماره (مهر و امضا)</label><input id="lbmin-signnum" placeholder="......................."></div>
+            <div><label>تاریخ (مهر و امضا)</label><input id="lbmin-signdate" placeholder="......................."></div>
+          </div>
+          <p class="muted" style="text-align:center;margin-top:10px">مهر و امضای مدیر مدرسه</p>
+
+          <div class="row" style="margin-top:12px">
+            <button class="btn primary" id="btn-lbmin-save">💾 ذخیره</button>
+            <button class="btn primary" id="btn-lb-minutes-word">📄 دانلود Word</button>
+            <button class="btn gray" id="btn-lb-minutes-pdf">🖨️ چاپ / دانلود PDF</button>
+            <button class="btn danger" type="button" id="btn-lbmin-clear">🗑️ پاک کردن فرم</button>
           </div>
         </div>
 
@@ -8049,6 +8110,7 @@ function teacherScript() {
       preview.srcObject=null;
       this.textContent='📷 روشن کردن تصویر';
       document.getElementById('btn-cam-flip').classList.add('hidden');
+      document.getElementById('cls-pdf-panel').style.paddingLeft='';
       clsCamFacing='user';
       clsSend({type:'video-stop'});
       if(clsAudioFromCam){ clsStopMicRecorder(); clsAudioFromCam=false; }
@@ -8060,6 +8122,7 @@ function teacherScript() {
       preview.classList.remove('hidden');
       this.textContent='🔴 خاموش کردن تصویر';
       document.getElementById('btn-cam-flip').classList.remove('hidden');
+      document.getElementById('cls-pdf-panel').style.paddingLeft='108px';
       // اگر میکروفون از قبل روشن نبود، صدا را هم همراه تصویر روشن کن (مثل یک تماس تصویری واقعی)
       if(!(clsRecorder && clsRecorder.state==='recording') && clsCamStream.getAudioTracks().length){
         clsStartMicRecorder(new MediaStream(clsCamStream.getAudioTracks()));
@@ -8084,12 +8147,17 @@ function teacherScript() {
   document.getElementById('btn-cam-flip').onclick=async function(){
     if(!clsCamStream){toast('ابتدا دوربین را روشن کنید');return;}
     const preview=document.getElementById('t-cam-preview');
+    const prevFacing=clsCamFacing;
     const nextFacing=clsCamFacing==='user'?'environment':'user';
+    const wasAudioFromCam=clsAudioFromCam;
+    if(wasAudioFromCam){ clsStopMicRecorder(); clsAudioFromCam=false; }
+    // دوربین فعلی را قبل از درخواست دوربین جدید کاملاً آزاد می‌کنیم؛ خیلی از مرورگرها/دستگاه‌ها
+    // اجازه نمی‌دهند دو دوربین همزمان باز باشند و همین باعث می‌شد چرخش دوربین کار نکند.
+    clsCamStream.getTracks().forEach(t=>t.stop());
+    clsCamStream=null;
+    preview.srcObject=null;
     try{
-      const newStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:nextFacing,width:{ideal:320},height:{ideal:240}}, audio:true});
-      const wasAudioFromCam=clsAudioFromCam;
-      if(wasAudioFromCam){ clsStopMicRecorder(); clsAudioFromCam=false; }
-      clsCamStream.getTracks().forEach(t=>t.stop());
+      const newStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{exact:nextFacing},width:{ideal:320},height:{ideal:240}}, audio:true});
       clsCamStream=newStream;
       clsCamFacing=nextFacing;
       preview.srcObject=clsCamStream;
@@ -8099,7 +8167,25 @@ function teacherScript() {
         document.getElementById('btn-mic-toggle').textContent='🔴 خاموش کردن میکروفون';
       }
       toast('دوربین عوض شد 🔄');
-    }catch(e){ toast('چرخش دوربین در این دستگاه ممکن نیست'); }
+    }catch(e){
+      toast('این دستگاه دوربین دومی ندارد یا اجازه دسترسی به آن را نمی‌دهد');
+      // تلاش برای بازگرداندن دوربین قبلی تا تصویر کلاً قطع نشود
+      try{
+        clsCamStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:prevFacing,width:{ideal:320},height:{ideal:240}}, audio:true});
+        clsCamFacing=prevFacing;
+        preview.srcObject=clsCamStream;
+        if(wasAudioFromCam && clsCamStream.getAudioTracks().length){
+          clsStartMicRecorder(new MediaStream(clsCamStream.getAudioTracks()));
+          clsAudioFromCam=true;
+          document.getElementById('btn-mic-toggle').textContent='🔴 خاموش کردن میکروفون';
+        }
+      }catch(e2){
+        toast('دسترسی به دوربین قطع شد؛ لطفاً دوباره روی «روشن کردن تصویر» بزنید');
+        document.getElementById('btn-cam-toggle').textContent='📷 روشن کردن تصویر';
+        document.getElementById('btn-cam-flip').classList.add('hidden');
+        document.getElementById('cls-pdf-panel').style.paddingLeft='';
+      }
+    }
   };
 
   // ===================== دفتر مدیریت کلاسی =====================
@@ -8123,6 +8209,7 @@ function teacherScript() {
       if(b.dataset.lb==='weekly')lbLoadWeeklyIfNeeded();
       if(b.dataset.lb==='weekly2')lbLoadWeekly2IfNeeded();
       if(b.dataset.lb==='staff')lbLoadStaffIfNeeded();
+      if(b.dataset.lb==='minutes')lbLoadMinutesIfNeeded();
     };
   });
   document.querySelectorAll('.lb-back-btn').forEach(function(b){
@@ -9251,6 +9338,203 @@ function teacherScript() {
       lbAddExcelSheet(wb,'پرسنل',lbTableToRows(document.getElementById('lbs-table')));
     });
   };
+  // ===================== ۱۰. صورتجلسه (فرم عمومی) =====================
+  var LB_MIN_DECISIONS=['','','',''];
+  var LB_MIN_ATTENDEES=[{name:'',role:'',sign:''},{name:'',role:'',sign:''},{name:'',role:'',sign:''},{name:'',role:'',sign:''},
+    {name:'',role:'',sign:''},{name:'',role:'',sign:''},{name:'',role:'',sign:''},{name:'',role:'',sign:''}];
+
+  function lbBuildMinutesDecisionsHtml(forExport){
+    if(forExport){
+      var h='<table style="width:100%;border-collapse:collapse" class="lb-minutes-table"><thead><tr>'
+        +'<th style="border:1px solid #333;padding:6px;width:8%">ردیف</th>'
+        +'<th style="border:1px solid #333;padding:6px">مصوبات</th></tr></thead><tbody>';
+      LB_MIN_DECISIONS.forEach(function(val,i){
+        h+='<tr><td style="border:1px solid #333;padding:6px;text-align:center">'+toFaDigits(i+1)+'</td>'
+          +'<td style="border:1px solid #333;padding:6px;text-align:right">'+esc(val).replace(/\n/g,'<br>')+'</td></tr>';
+      });
+      h+='</tbody></table>';
+      return h;
+    }
+    var h='<table class="lb-table" id="lbmin-decisions-table" style="width:100%"><thead><tr>'
+      +'<th style="width:8%">ردیف</th><th>مصوبات</th><th style="width:44px"></th></tr></thead><tbody>';
+    LB_MIN_DECISIONS.forEach(function(val,i){
+      h+='<tr><td>'+toFaDigits(i+1)+'</td>'
+        +'<td><input type="text" class="lbmin-decision-input" data-idx="'+i+'" value="'+esc(val)+'"></td>'
+        +'<td><button type="button" class="btn sm danger lbmin-decision-del" data-idx="'+i+'" title="حذف این ردیف">🗑</button></td></tr>';
+    });
+    h+='</tbody></table>';
+    return h;
+  }
+  function lbRenderMinutesDecisions(){
+    var el=document.getElementById('lbmin-decisions-wrap');
+    el.innerHTML=lbBuildMinutesDecisionsHtml(false);
+    el.querySelectorAll('.lbmin-decision-input').forEach(function(inp){
+      inp.addEventListener('input',function(){LB_MIN_DECISIONS[+inp.dataset.idx]=inp.value;});
+    });
+    el.querySelectorAll('.lbmin-decision-del').forEach(function(btn){
+      btn.addEventListener('click',function(){
+        if(LB_MIN_DECISIONS.length<=1){toast('حداقل یک ردیف باید باقی بماند');return;}
+        LB_MIN_DECISIONS.splice(+btn.dataset.idx,1);
+        lbRenderMinutesDecisions();
+      });
+    });
+  }
+  document.getElementById('btn-lbmin-decision-add').onclick=function(){LB_MIN_DECISIONS.push('');lbRenderMinutesDecisions();};
+  document.getElementById('btn-lbmin-decision-remove').onclick=function(){
+    if(LB_MIN_DECISIONS.length<=1){toast('حداقل یک ردیف باید باقی بماند');return;}
+    LB_MIN_DECISIONS.pop();lbRenderMinutesDecisions();
+  };
+
+  function lbBuildMinutesAttendeesHtml(forExport){
+    if(forExport){
+      var n=LB_MIN_ATTENDEES.length;
+      var half=Math.ceil(n/2);
+      var h='<table style="width:100%;border-collapse:collapse" class="lb-minutes-table"><thead><tr>'
+        +'<th style="border:1px solid #333;padding:6px;width:6%">ردیف</th><th style="border:1px solid #333;padding:6px">نام و نام خانوادگی</th><th style="border:1px solid #333;padding:6px;width:16%">سمت</th><th style="border:1px solid #333;padding:6px;width:14%">امضاء</th>'
+        +'<th style="border:1px solid #333;padding:6px;width:6%">ردیف</th><th style="border:1px solid #333;padding:6px">نام و نام خانوادگی</th><th style="border:1px solid #333;padding:6px;width:16%">سمت</th><th style="border:1px solid #333;padding:6px;width:14%">امضاء</th>'
+        +'</tr></thead><tbody>';
+      for(var r=0;r<half;r++){
+        var a=LB_MIN_ATTENDEES[r]||{name:'',role:'',sign:''};
+        var b=LB_MIN_ATTENDEES[half+r];
+        h+='<tr><td style="border:1px solid #333;padding:6px;text-align:center">'+toFaDigits(r+1)+'</td>'
+          +'<td style="border:1px solid #333;padding:6px">'+esc(a.name)+'</td>'
+          +'<td style="border:1px solid #333;padding:6px">'+esc(a.role)+'</td>'
+          +'<td style="border:1px solid #333;padding:6px">'+esc(a.sign)+'</td>';
+        if(b){
+          h+='<td style="border:1px solid #333;padding:6px;text-align:center">'+toFaDigits(half+r+1)+'</td>'
+            +'<td style="border:1px solid #333;padding:6px">'+esc(b.name)+'</td>'
+            +'<td style="border:1px solid #333;padding:6px">'+esc(b.role)+'</td>'
+            +'<td style="border:1px solid #333;padding:6px">'+esc(b.sign)+'</td>';
+        }else{
+          h+='<td style="border:1px solid #333;padding:6px"></td><td style="border:1px solid #333;padding:6px"></td><td style="border:1px solid #333;padding:6px"></td><td style="border:1px solid #333;padding:6px"></td>';
+        }
+        h+='</tr>';
+      }
+      h+='</tbody></table>';
+      return h;
+    }
+    var h='<table class="lb-table" id="lbmin-attendees-table" style="width:100%"><thead><tr>'
+      +'<th style="width:8%">ردیف</th><th>نام و نام خانوادگی</th><th style="width:22%">سمت</th><th style="width:18%">امضاء</th><th style="width:44px"></th></tr></thead><tbody>';
+    LB_MIN_ATTENDEES.forEach(function(p,i){
+      h+='<tr><td>'+toFaDigits(i+1)+'</td>'
+        +'<td><input type="text" class="lbmin-att-name" data-idx="'+i+'" value="'+esc(p.name)+'"></td>'
+        +'<td><input type="text" class="lbmin-att-role" data-idx="'+i+'" value="'+esc(p.role)+'"></td>'
+        +'<td><input type="text" class="lbmin-att-sign" data-idx="'+i+'" value="'+esc(p.sign)+'"></td>'
+        +'<td><button type="button" class="btn sm danger lbmin-att-del" data-idx="'+i+'" title="حذف این ردیف">🗑</button></td></tr>';
+    });
+    h+='</tbody></table>';
+    return h;
+  }
+  function lbRenderMinutesAttendees(){
+    var el=document.getElementById('lbmin-attendees-wrap');
+    el.innerHTML=lbBuildMinutesAttendeesHtml(false);
+    el.querySelectorAll('.lbmin-att-name').forEach(function(inp){inp.addEventListener('input',function(){LB_MIN_ATTENDEES[+inp.dataset.idx].name=inp.value;});});
+    el.querySelectorAll('.lbmin-att-role').forEach(function(inp){inp.addEventListener('input',function(){LB_MIN_ATTENDEES[+inp.dataset.idx].role=inp.value;});});
+    el.querySelectorAll('.lbmin-att-sign').forEach(function(inp){inp.addEventListener('input',function(){LB_MIN_ATTENDEES[+inp.dataset.idx].sign=inp.value;});});
+    el.querySelectorAll('.lbmin-att-del').forEach(function(btn){
+      btn.addEventListener('click',function(){
+        if(LB_MIN_ATTENDEES.length<=1){toast('حداقل یک ردیف باید باقی بماند');return;}
+        LB_MIN_ATTENDEES.splice(+btn.dataset.idx,1);
+        lbRenderMinutesAttendees();
+      });
+    });
+  }
+  document.getElementById('btn-lbmin-att-add').onclick=function(){LB_MIN_ATTENDEES.push({name:'',role:'',sign:''});lbRenderMinutesAttendees();};
+  document.getElementById('btn-lbmin-att-remove').onclick=function(){
+    if(LB_MIN_ATTENDEES.length<=1){toast('حداقل یک ردیف باید باقی بماند');return;}
+    LB_MIN_ATTENDEES.pop();lbRenderMinutesAttendees();
+  };
+
+  function lbMinutesExportHtml(){
+    var num=document.getElementById('lbmin-num').value;
+    var day=document.getElementById('lbmin-day').value;
+    var date=document.getElementById('lbmin-date').value;
+    var start=document.getElementById('lbmin-start').value;
+    var place=document.getElementById('lbmin-place').value;
+    var end=document.getElementById('lbmin-end').value;
+    var agenda=document.getElementById('lbmin-agenda').value;
+    var summary=document.getElementById('lbmin-summary').value;
+    var signNum=document.getElementById('lbmin-signnum').value;
+    var signDate=document.getElementById('lbmin-signdate').value;
+
+    var h='<p style="text-align:center;font-weight:bold;font-size:16px;margin:0 0 10px">بسمه‌تعالی</p>';
+    h+='<p style="font-weight:bold;margin:0 0 10px">صورت جلسه :</p>';
+    h+='<table style="width:100%;border-collapse:collapse" class="lb-minutes-table"><tbody>';
+    h+='<tr>'
+      +'<td colspan="2" style="border:1px solid #333;padding:6px"><b>شماره جلسه:</b> '+esc(num)+'</td>'
+      +'<td style="border:1px solid #333;padding:6px"><b>روز:</b> '+esc(day)+'</td>'
+      +'<td style="border:1px solid #333;padding:6px"><b>تاریخ:</b> '+esc(date)+'</td>'
+      +'<td style="border:1px solid #333;padding:6px"><b>ساعت شروع:</b> '+esc(start)+'</td></tr>';
+    h+='<tr>'
+      +'<td colspan="3" style="border:1px solid #333;padding:6px"><b>مکان برگزاری:</b> '+esc(place)+'</td>'
+      +'<td colspan="2" style="border:1px solid #333;padding:6px"><b>ساعت پایان:</b> '+esc(end)+'</td></tr>';
+    h+='<tr><td colspan="5" style="border:1px solid #333;padding:6px"><b>دستور کار جلسه:</b><br>'+esc(agenda).replace(/\n/g,'<br>')+'</td></tr>';
+    h+='<tr><td colspan="5" style="border:1px solid #333;padding:6px;height:110px;vertical-align:top"><b>خلاصه مذاکرات جلسه:</b><br>'+esc(summary).replace(/\n/g,'<br>')+'</td></tr>';
+    h+='<tr><td colspan="5" style="border:1px solid #333;padding:6px"><b>اهم مصوبات جلسه:</b></td></tr>';
+    h+='</tbody></table>';
+    h+=lbBuildMinutesDecisionsHtml(true);
+    h+='<p style="font-weight:bold;margin:16px 0 6px">اسامی حاضرین در جلسه:</p>';
+    h+=lbBuildMinutesAttendeesHtml(true);
+    h+='<p style="text-align:center;font-weight:bold;margin-top:26px">مهر و امضای مدیر مدرسه</p>';
+    h+='<table style="width:100%;border:none;margin-top:20px"><tr><td style="border:none;text-align:left">شماره: '+esc(signNum)+'</td></tr>'
+      +'<tr><td style="border:none;text-align:left">تاریخ: '+esc(signDate)+'</td></tr></table>';
+    return h;
+  }
+  document.getElementById('btn-lb-minutes-word').onclick=function(){lbWordExport('صورتجلسه',lbMinutesExportHtml(),'صورتجلسه',false);};
+  document.getElementById('btn-lb-minutes-pdf').onclick=function(){lbPrintExport('صورتجلسه',lbMinutesExportHtml(),false);};
+  document.getElementById('btn-lbmin-clear').onclick=function(){
+    if(!confirm('آیا از پاک‌کردن تمام اطلاعات صورتجلسه مطمئن هستید؟ این کار قابل بازگشت نیست.'))return;
+    ['lbmin-num','lbmin-day','lbmin-date','lbmin-start','lbmin-place','lbmin-end','lbmin-agenda','lbmin-summary','lbmin-signnum','lbmin-signdate'].forEach(function(id){
+      document.getElementById(id).value='';
+    });
+    LB_MIN_DECISIONS=['','','',''];
+    LB_MIN_ATTENDEES=[{name:'',role:'',sign:''},{name:'',role:'',sign:''},{name:'',role:'',sign:''},{name:'',role:'',sign:''},
+      {name:'',role:'',sign:''},{name:'',role:'',sign:''},{name:'',role:'',sign:''},{name:'',role:'',sign:''}];
+    lbRenderMinutesDecisions();
+    lbRenderMinutesAttendees();
+    toast('فرم صورتجلسه پاک شد ✅');
+  };
+  document.getElementById('btn-lbmin-save').onclick=function(){
+    lbSave('minutes',{
+      num:document.getElementById('lbmin-num').value,
+      day:document.getElementById('lbmin-day').value,
+      date:document.getElementById('lbmin-date').value,
+      start:document.getElementById('lbmin-start').value,
+      place:document.getElementById('lbmin-place').value,
+      end:document.getElementById('lbmin-end').value,
+      agenda:document.getElementById('lbmin-agenda').value,
+      summary:document.getElementById('lbmin-summary').value,
+      signNum:document.getElementById('lbmin-signnum').value,
+      signDate:document.getElementById('lbmin-signdate').value,
+      decisions:LB_MIN_DECISIONS,
+      attendees:LB_MIN_ATTENDEES
+    });
+  };
+  var LB_MIN_LOADED=false;
+  async function lbLoadMinutesIfNeeded(){
+    if(LB_MIN_LOADED){return;}
+    LB_MIN_LOADED=true;
+    lbRenderMinutesDecisions();
+    lbRenderMinutesAttendees();
+    var saved=await lbLoad('minutes');
+    if(saved){
+      document.getElementById('lbmin-num').value=saved.num||'';
+      document.getElementById('lbmin-day').value=saved.day||'';
+      document.getElementById('lbmin-date').value=saved.date||'';
+      document.getElementById('lbmin-start').value=saved.start||'';
+      document.getElementById('lbmin-place').value=saved.place||'';
+      document.getElementById('lbmin-end').value=saved.end||'';
+      document.getElementById('lbmin-agenda').value=saved.agenda||'';
+      document.getElementById('lbmin-summary').value=saved.summary||'';
+      document.getElementById('lbmin-signnum').value=saved.signNum||'';
+      document.getElementById('lbmin-signdate').value=saved.signDate||'';
+      if(saved.decisions&&saved.decisions.length)LB_MIN_DECISIONS=saved.decisions;
+      if(saved.attendees&&saved.attendees.length)LB_MIN_ATTENDEES=saved.attendees;
+      lbRenderMinutesDecisions();
+      lbRenderMinutesAttendees();
+    }
+  }
+
   // ===================== پایان دفتر مدیریت کلاسی =====================
 
   checkAuth();
