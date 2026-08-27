@@ -2291,11 +2291,31 @@ async function workSheetPage(env, id) {
       </div>
     </div>
   </div>
+
+  <div id="ans-photo-modal" class="mt-modal-overlay hidden" onclick="if(event.target===this)closeAnsPhoto()">
+    <div style="max-width:95vw;max-height:90vh;position:relative">
+      <button class="btn sm gray" style="position:absolute;top:-40px;left:0" onclick="closeAnsPhoto()">✖ بستن</button>
+      <img id="ans-photo-modal-img" src="" style="max-width:95vw;max-height:85vh;border-radius:8px;box-shadow:0 8px 30px rgba(0,0,0,.4)">
+      <div style="text-align:center;margin-top:10px">
+        <a id="ans-photo-modal-dl" href="" download="کاربرگ.jpg" class="btn primary">⬇️ دانلود عکس</a>
+      </div>
+    </div>
+  </div>
+
   <div class="toast" id="toast"></div>
   <script>
     const ID=${JSON.stringify(id)};
     function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.style.opacity='1';setTimeout(()=>t.style.opacity='0',2600);}
     async function api(path,opts){const r=await fetch(path,opts);return r.json();}
+
+    window.openAnsPhoto=function(src){
+      document.getElementById('ans-photo-modal-img').src=src;
+      document.getElementById('ans-photo-modal-dl').href=src;
+      document.getElementById('ans-photo-modal').classList.remove('hidden');
+    };
+    window.closeAnsPhoto=function(){
+      document.getElementById('ans-photo-modal').classList.add('hidden');
+    };
 
     let PENDING_PHOTOS=[];
 
@@ -2386,7 +2406,7 @@ async function workSheetPage(env, id) {
           document.getElementById('ws-upload-box').classList.add('hidden');
           document.getElementById('ws-submitted-box').classList.remove('hidden');
           document.getElementById('ws-submitted-photos').innerHTML=PENDING_PHOTOS.map(function(p){
-            return '<img src="'+p+'" style="width:110px;height:110px;object-fit:cover;border-radius:8px;border:1px solid #ddd">';
+            return '<img src="'+p+'" style="width:110px;height:110px;object-fit:cover;border-radius:8px;border:1px solid #ddd;cursor:zoom-in" onclick="openAnsPhoto(this.src)" title="برای بزرگ‌نمایی کلیک کنید">';
           }).join('');
         }else{
           toast(d.error||'خطا در ارسال');
@@ -2407,7 +2427,8 @@ async function workSheetPage(env, id) {
         if(d.teacherFileType==='pdf'){
           tBox.innerHTML='<a class="btn sec" href="'+d.teacherFile+'" download="'+(d.teacherFileName||'کاربرگ.pdf')+'">⬇️ دانلود فایل PDF کاربرگ ('+(d.teacherFileName||'')+')</a>';
         }else{
-          tBox.innerHTML='<img src="'+d.teacherFile+'" style="max-width:100%;border-radius:10px;border:1px solid #ddd">';
+          tBox.innerHTML='<img src="'+d.teacherFile+'" style="max-width:100%;border-radius:10px;border:1px solid #ddd;cursor:zoom-in" onclick="openAnsPhoto(this.src)" title="برای بزرگ‌نمایی کلیک کنید">'+
+            '<br><a href="'+d.teacherFile+'" download="'+(d.teacherFileName||'کاربرگ.jpg')+'" class="btn sm sec" style="margin-top:8px;display:inline-block">⬇️ دانلود عکس کاربرگ</a>';
         }
       }else{
         tBox.textContent='هنوز کاربرگی توسط معلم ارسال نشده است.';
@@ -2416,7 +2437,7 @@ async function workSheetPage(env, id) {
         document.getElementById('ws-upload-box').classList.add('hidden');
         document.getElementById('ws-submitted-box').classList.remove('hidden');
         document.getElementById('ws-submitted-photos').innerHTML=d.studentFiles.map(function(p){
-          return '<img src="'+p+'" style="width:110px;height:110px;object-fit:cover;border-radius:8px;border:1px solid #ddd">';
+          return '<img src="'+p+'" style="width:110px;height:110px;object-fit:cover;border-radius:8px;border:1px solid #ddd;cursor:zoom-in" onclick="openAnsPhoto(this.src)" title="برای بزرگ‌نمایی کلیک کنید">';
         }).join('');
       }
       if(d.feedback){
