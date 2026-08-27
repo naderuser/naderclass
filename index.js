@@ -3109,12 +3109,17 @@ function teacherPage() {
 
       <div class="subtab-content" id="tab-scan">
         <h3>📷 اسکنر حرفه‌ای (مشابه CamScanner)</h3>
-        <p class="muted">عکس‌های خود را با کیفیت بالا اسکن کنید</p>
+        <p class="muted">عکس‌های خود را با کیفیت بالا اسکن کنید، یا یک فایل PDF بدهید تا صفحاتش خودکار به عکس تبدیل و اضافه شوند</p>
         <div class="upload-zone" id="scan-drop-zone">
-          <input type="file" accept="image/*" id="scan-file" class="hidden">
+          <input type="file" accept="image/*,application/pdf" id="scan-file" class="hidden">
           <div class="upload-icon">📷</div>
-          <p>عکس را اینجا رها کنید یا کلیک کنید</p>
-          <span class="muted">فرمت‌های مجاز: JPG, PNG, WEBP</span>
+          <p>عکس یا فایل PDF را اینجا رها کنید یا کلیک کنید</p>
+          <span class="muted">فرمت‌های مجاز: JPG, PNG, WEBP, PDF (هر صفحه PDF به‌صورت خودکار تبدیل به عکس می‌شود)</span>
+        </div>
+        <div id="scan-pdf-nav" class="hidden" style="display:flex;align-items:center;justify-content:center;gap:10px;margin:10px 0;background:#eef2ff;border:1px solid #c7d2fe;border-radius:8px;padding:8px 12px">
+          <button type="button" class="btn sm secondary" id="btn-scan-pdf-prev">◀ صفحه قبل</button>
+          <span id="scan-pdf-pageinfo" style="font-weight:bold">صفحه ۱ از ۱</span>
+          <button type="button" class="btn sm secondary" id="btn-scan-pdf-next">صفحه بعد ▶</button>
         </div>
         <div id="scan-warp-stage" class="hidden">
           <div id="scan-warp-wrapper" style="position:relative;max-width:100%;display:inline-block;touch-action:none;user-select:none">
@@ -5964,13 +5969,78 @@ function teacherScript() {
 
   // ===== اسکنر =====
   let SCANIMG=null, SCANORIG=null, scanRotation=0;
+  let scanPdfPages=[], scanPdfIndex=0; // صفحات یک PDF که به عکس تبدیل شده‌اند (برای اسکن یکی‌یکی)
   const scanDropZone=document.getElementById('scan-drop-zone');
   const scanFileInput=document.getElementById('scan-file');
+  const scanPdfNav=document.getElementById('scan-pdf-nav');
   scanDropZone.onclick=()=>scanFileInput.click();
   scanDropZone.addEventListener('dragover',e=>{e.preventDefault();scanDropZone.classList.add('dragover');});
   scanDropZone.addEventListener('dragleave',()=>scanDropZone.classList.remove('dragover'));
-  scanDropZone.addEventListener('drop',e=>{e.preventDefault();scanDropZone.classList.remove('dragover');if(e.dataTransfer.files[0])loadScanImg(e.dataTransfer.files[0]);});
-  scanFileInput.addEventListener('change',function(){if(this.files[0])loadScanImg(this.files[0]);});
+  scanDropZone.addEventListener('drop',e=>{e.preventDefault();scanDropZone.classList.remove('dragover');if(e.dataTransfer.files[0])handleScanFile(e.dataTransfer.files[0]);});
+  scanFileInput.addEventListener('change',function(){if(this.files[0])handleScanFile(this.files[0]);this.value='';});
+
+  function handleScanFile(file){
+    if(file.type==='application/pdf'||/\.pdf$/i.test(file.name||'')){
+      loadScanPdf(file);
+    }else{
+      scanPdfPages=[];scanPdfIndex=0;updateScanPdfNav();
+      loadScanImg(file);
+    }
+  }
+
+  // تبدیل خودکار همه‌ی صفحات یک PDF به عکس، و اضافه‌شدن آن‌ها به‌صورت صف برای اسکن یکی‌یکی
+  async function loadScanPdf(file){
+    if(typeof pdfjsLib==='undefined'){toast('کتابخانه PDF در دسترس نیست');return;}
+    toast('⏳ در حال تبدیل صفحات PDF به عکس...');
+    try{
+      const buf=await file.arrayBuffer();
+      const doc=await pdfjsLib.getDocument({data:buf}).promise;
+      const pages=[];
+      for(let p=1;p<=doc.numPages;p++){
+        const page=await doc.getPage(p);
+        const viewport=page.getViewport({scale:2});
+        const c=document.createElement('canvas');
+        c.width=viewport.width;c.height=viewport.height;
+        await page.render({canvasContext:c.getContext('2d'),viewport}).promise;
+        pages.push(c.toDataURL('image/jpeg',0.92));
+      }
+      if(!pages.length){toast('صفحه‌ای در این PDF پیدا نشد');return;}
+      scanPdfPages=pages;
+      scanPdfIndex=0;
+      updateScanPdfNav();
+      loadScanPdfPage(0);
+      toast('✅ '+toFaDigits(pages.length)+' صفحه از PDF به عکس تبدیل شد؛ اکنون می‌توانید هرکدام را اسکن کنید');
+    }catch(e){
+      console.error('خطا در تبدیل PDF به عکس:',e);
+      toast('⚠️ خطا در تبدیل PDF به عکس؛ لطفاً فایل دیگری را امتحان کنید');
+    }
+  }
+
+  function loadScanPdfPage(idx){
+    const dataUrl=scanPdfPages[idx];
+    if(!dataUrl)return;
+    const img=new Image();
+    img.onload=()=>{
+      scanDropZone.classList.add('hidden');
+      scanWarpOriginalImg=img;
+      openScanWarpStage(img);
+    };
+    img.onerror=()=>{toast('خطا در بارگذاری این صفحه از PDF');};
+    img.src=dataUrl;
+  }
+
+  function updateScanPdfNav(){
+    if(scanPdfPages.length>1){
+      scanPdfNav.classList.remove('hidden');
+      document.getElementById('scan-pdf-pageinfo').textContent='صفحه '+toFaDigits(scanPdfIndex+1)+' از '+toFaDigits(scanPdfPages.length);
+      document.getElementById('btn-scan-pdf-prev').disabled=(scanPdfIndex===0);
+      document.getElementById('btn-scan-pdf-next').disabled=(scanPdfIndex===scanPdfPages.length-1);
+    }else{
+      scanPdfNav.classList.add('hidden');
+    }
+  }
+  document.getElementById('btn-scan-pdf-prev').onclick=()=>{if(scanPdfIndex>0){scanPdfIndex--;updateScanPdfNav();loadScanPdfPage(scanPdfIndex);}};
+  document.getElementById('btn-scan-pdf-next').onclick=()=>{if(scanPdfIndex<scanPdfPages.length-1){scanPdfIndex++;updateScanPdfNav();loadScanPdfPage(scanPdfIndex);}};
 
   function loadScanImg(file){
     const rd=new FileReader();
@@ -6296,7 +6366,7 @@ function teacherScript() {
   };
 
   document.getElementById('btn-reset-scan').onclick=()=>{SCANORIG=SCANIMG;scanRotation=0;document.getElementById('scan-bright').value=0;document.getElementById('scan-contrast').value=0;document.getElementById('scan-sharp').value=0;document.getElementById('scan-saturation').value=0;updateFilterValues();document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));document.querySelector('.filter-btn[data-filter="original"]').classList.add('active');applyScan();};
-  document.getElementById('btn-remove-scan').onclick=()=>{if(!confirm('عکس فعلی حذف شود؟'))return;SCANIMG=null;SCANORIG=null;scanWarpOriginalImg=null;scanRotation=0;document.getElementById('scan-controls').classList.add('hidden');document.getElementById('scan-warp-stage').classList.add('hidden');document.getElementById('scan-drop-zone').classList.remove('hidden');document.getElementById('scan-file').value='';document.getElementById('scan-bright').value=0;document.getElementById('scan-contrast').value=0;document.getElementById('scan-sharp').value=0;document.getElementById('scan-saturation').value=0;updateFilterValues();document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));document.querySelector('.filter-btn[data-filter="original"]').classList.add('active');};
+  document.getElementById('btn-remove-scan').onclick=()=>{if(!confirm('عکس فعلی حذف شود؟'))return;SCANIMG=null;SCANORIG=null;scanWarpOriginalImg=null;scanRotation=0;scanPdfPages=[];scanPdfIndex=0;updateScanPdfNav();document.getElementById('scan-controls').classList.add('hidden');document.getElementById('scan-warp-stage').classList.add('hidden');document.getElementById('scan-drop-zone').classList.remove('hidden');document.getElementById('scan-file').value='';document.getElementById('scan-bright').value=0;document.getElementById('scan-contrast').value=0;document.getElementById('scan-sharp').value=0;document.getElementById('scan-saturation').value=0;updateFilterValues();document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));document.querySelector('.filter-btn[data-filter="original"]').classList.add('active');};
   document.getElementById('btn-dl-img').onclick=()=>{if(!SCANORIG){toast('ابتدا عکس را انتخاب کنید');return;}const cv=document.getElementById('scan-canvas');const q=parseInt(document.getElementById('scan-out-quality').value,10)/100;cv.toBlob(blob=>{const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='اسکن.jpg';document.body.appendChild(a);a.click();a.remove();toast('عکس دانلود شد ✅ (حجم فایل حدود '+(blob.size/1024).toFixed(0)+' کیلوبایت)');},'image/jpeg',q);};
   document.getElementById('btn-dl-pdf').onclick=()=>{if(!SCANORIG){toast('ابتدا عکس را انتخاب کنید');return;}if(!window.jspdf){toast('کتابخانه PDF در دسترس نیست');return;}const cv=document.getElementById('scan-canvas');const img=cv.toDataURL('image/jpeg',0.92);const jsPDF=window.jspdf.jsPDF;const pdf=new jsPDF({orientation:cv.width>=cv.height?'l':'p',unit:'pt',format:'a4'});const pw=pdf.internal.pageSize.getWidth(),ph=pdf.internal.pageSize.getHeight();const m=24,aw=pw-2*m,ah=ph-2*m;let iw=cv.width,ih=cv.height;const ratio=Math.min(aw/iw,ah/ih);iw*=ratio;ih*=ratio;pdf.addImage(img,'JPEG',(pw-iw)/2,(ph-ih)/2,iw,ih);pdf.save('اسکن.pdf');toast('فایل PDF ساخته شد ✅');};
 
