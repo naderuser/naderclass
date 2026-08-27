@@ -6041,7 +6041,12 @@ function teacherScript() {
     style+='th{background:#f1f5f9;text-align:center;font-weight:bold}';
     style+='.qnum{width:44px;text-align:center;font-weight:bold}.mk{width:64px;text-align:center}';
     style+='thead{display:table-header-group}tr{page-break-inside:avoid}';
-    style+='.es-tbl-toolbar{display:none!important}.es-tbl-wrap{border:none!important;padding:0!important}</style>';
+    style+='.es-tbl-toolbar{display:none!important}.es-tbl-wrap{border:none!important;padding:0!important}';
+    style+='.es-item{position:static!important;display:inline-block;vertical-align:top;margin:6px 4px;border:none!important;padding:0!important;box-sizing:border-box}';
+    style+='.es-item-toolbar,.es-item-handle{display:none!important}';
+    style+='.es-item img{max-width:100%;width:100%;display:block;border-radius:4px}';
+    style+='.es-item table{width:100%;border-collapse:collapse;margin:0}';
+    style+='.es-item table td{border:1px solid #000;padding:8px;min-width:24px;font-size:inherit}</style>';
     let h='<table><tr>'+
       '<td>نام و نام‌خانوادگی: ...................................</td>'+
       '<td style="text-align:center">'+esc(d.org1)+'</td>'+
