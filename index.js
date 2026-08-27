@@ -1041,9 +1041,9 @@ function examSheetWord(d) {
     `<tbody>` +
     rows.map((r, i) => {
       const sp = parseInt(r.space, 10) || 90;
-      const brCount = r.q ? 0 : Math.max(1, Math.round(sp / 35));
-      return `<tr style="height:${sp}px;mso-height-rule:atleast;page-break-inside:avoid"><td class="qnum" style="vertical-align:top">${toFaDigitsSrv(i + 1)}</td>` +
-        `<td style="vertical-align:top;font-size:${fontSize}pt">${r.q || ""}${r.q ? "" : "<br>".repeat(brCount)}</td>` +
+      const brCount = Math.max(1, Math.round(sp / 35));
+      return `<tr style="page-break-inside:avoid"><td class="qnum" style="vertical-align:top">${toFaDigitsSrv(i + 1)}</td>` +
+        `<td style="vertical-align:top;font-size:${fontSize}pt">${r.q || ""}${"<br>".repeat(brCount)}</td>` +
         `<td style="text-align:center;vertical-align:top">${esc(r.mark || "")}</td></tr>`;
     }).join("") +
     `</tbody></table>`;
@@ -6064,7 +6064,7 @@ function teacherScript() {
     let q='<table><thead><tr><th class="qnum">ردیف</th><th>سؤال</th><th class="mk">'+esc(d.markLabel)+'</th></tr></thead><tbody>';
     d.rows.forEach(function(r,i){
       const sp=r.space||90;
-      q+='<tr><td class="qnum">'+toFaDigits(i+1)+'</td><td style="min-height:'+sp+'px">'+(r.q||'')+'</td><td style="text-align:center">'+esc(r.mark||'')+'</td></tr>';
+      q+='<tr><td class="qnum">'+toFaDigits(i+1)+'</td><td>'+(r.q||'')+'<div style="height:'+sp+'px"></div></td><td style="text-align:center">'+esc(r.mark||'')+'</td></tr>';
     });
     q+='</tbody></table>';
     return '<html><head><meta charset="utf-8">'+style+'</head><body>'+h+q+'</body></html>';
