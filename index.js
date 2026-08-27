@@ -159,7 +159,7 @@ function getScheduleHtml(data) {
   let style = `<style>
     @font-face{font-family:"BNazanin";src:url(https://cdn.jsdelivr.net/gh/naderuser/bnazanin@main/BNazanin.ttf)}
     body{direction:rtl;font-family:"BNazanin",tahoma,Arial;padding:30px;background:#f8fafc}
-    .header{text-align:center;padding:20px;background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;border-radius:20px;margin-bottom:20px}
+    .header{text-align:center;padding:20px;background:#fff;color:#1e293b;border-radius:20px;margin-bottom:20px;border:1.5px solid #e2e8f0}
     .header h1{font-size:24px;margin:0 0 10px;font-weight:800;letter-spacing:.3px}.header p{margin:5px 0;font-size:14px}
     table{width:100%;border-collapse:separate;border-spacing:0;border-radius:18px;overflow:hidden;box-shadow:0 8px 24px rgba(15,23,42,.10);border:1px solid #e2e8f0}
     th{padding:14px 8px;font-size:14px;font-weight:800;text-align:center;border-bottom:2px solid #e2e8f0;border-left:1px solid #e2e8f0}
@@ -1148,6 +1148,13 @@ const SHARED_CSS = `
   table{width:100%;border-collapse:collapse;margin-top:10px}
   th,td{border:1px solid var(--line);padding:8px;text-align:right;font-size:14px;vertical-align:top}
   th{background:#f1f5f9}
+  .ans-table-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .ans-grade-table{min-width:640px}
+  .ans-grade-table th:nth-child(1),.ans-grade-table td:nth-child(1){min-width:32px}
+  .ans-grade-table th:nth-child(2),.ans-grade-table td:nth-child(2){min-width:200px}
+  .ans-grade-table th:nth-child(3),.ans-grade-table td:nth-child(3){min-width:200px}
+  .ans-grade-table th:nth-child(4),.ans-grade-table td:nth-child(4){min-width:100px}
+  .ans-grade-table th:nth-child(5),.ans-grade-table td:nth-child(5){min-width:140px}
   [data-theme="dark"] th{background:#334155}
   .tabs{display:flex;gap:8px;margin-top:16px;flex-wrap:wrap}
   .tab{padding:9px 16px;border-radius:10px;background:#e2e8f0;cursor:pointer;font-weight:600;font-size:14px}
@@ -1241,11 +1248,13 @@ const SHARED_CSS = `
   .lb-preview{overflow-x:auto;margin-top:10px;border:1px solid var(--line);border-radius:10px;padding:10px;background:#fff}
   [data-theme="dark"] .lb-preview{background:#1e293b}
   .lb-table{width:100%;border-collapse:collapse;font-size:12px}
-  .lb-table th,.lb-table td{border:1px solid #94a3b8;padding:6px 8px;text-align:center}
+  .lb-table th,.lb-table td{border:1px solid #94a3b8;padding:6px 8px;text-align:center;min-width:64px}
+  .lb-table th:first-child,.lb-table td:first-child{min-width:40px}
   .lb-table th{background:#dbeafe;font-weight:700}
   [data-theme="dark"] .lb-table th{background:#1e3a5f}
   .lb-table input,.lb-table textarea{width:100%;border:none;background:transparent;text-align:center;font-family:inherit;font-size:12px;padding:2px}
-  .lb-table-tight th,.lb-table-tight td{padding:3px 4px;font-size:11px}
+  .lb-table-tight th,.lb-table-tight td{padding:3px 4px;font-size:11px;min-width:38px}
+  .lb-table-tight th:first-child,.lb-table-tight td:first-child{min-width:36px}
   .lb-table-tight input{min-width:22px}
   .lb-diag-cell{position:relative;background:linear-gradient(to top left, transparent calc(50% - 1px), #94a3b8 calc(50% - 1px), #94a3b8 calc(50% + 1px), transparent calc(50% + 1px))!important;padding:0!important;height:44px;min-width:70px}
   .lb-diag-cell .lb-diag-top{position:absolute;top:2px;left:6px;font-size:10px;font-weight:700}
@@ -1460,7 +1469,7 @@ const SHARED_CSS = `
   /* ---- برنامه هفتگی (نسخه‌ی پیشرفته: نوار رنگی کنار هر روز، تایپوگرافی بهتر، هایلایت امروز) ---- */
   .schedule-table-wrap{overflow-x:auto;border-radius:18px;background:#fff;margin-bottom:16px;box-shadow:0 10px 30px rgba(15,23,42,.10),0 2px 8px rgba(15,23,42,.06);border:2px solid #000}
   [data-theme="dark"] .schedule-table-wrap{background:#1e293b;border-color:#000;box-shadow:0 10px 30px rgba(0,0,0,.35)}
-  .schedule-table{width:100%;border-collapse:separate;border-spacing:0}
+  .schedule-table{width:100%;min-width:760px;border-collapse:separate;border-spacing:0}
   .schedule-table th{padding:16px 10px;font-weight:800;text-align:center;font-size:14px;letter-spacing:.2px;border-bottom:2px solid #000}
   [data-theme="dark"] .schedule-table th{border-color:#000}
   .schedule-table th.sch-corner{background:linear-gradient(135deg,#1e293b,#334155);color:#fff;border-radius:18px 0 0 0}
@@ -1629,9 +1638,9 @@ const SHARED_CSS = `
   }
 
   /* ---- ساخت آزمون (برگه چاپی) ---- */
-  #es-print-area{background:#fff;padding:16px;border:1px solid var(--line);border-radius:12px;font-family:'B Nazanin','Tahoma',sans-serif;font-weight:bold}
+  #es-print-area{background:#fff;padding:16px;border:1px solid var(--line);border-radius:12px;font-family:'B Nazanin','Tahoma',sans-serif;font-weight:bold;overflow-x:auto;-webkit-overflow-scrolling:touch}
   [data-theme="dark"] #es-print-area{background:#1e293b}
-  .es-header-table{width:100%;border-collapse:collapse;table-layout:fixed}
+  .es-header-table{width:100%;min-width:640px;border-collapse:collapse;table-layout:fixed}
   .es-header-table td{border:1px solid #000;padding:6px 8px;vertical-align:top}
   .es-header-table input{border:none;background:transparent;width:100%;font-family:inherit;font-weight:bold;font-size:14px;padding:2px 0;color:inherit}
   .es-header-table input:focus{outline:none;background:#fffbe6}
@@ -1642,7 +1651,7 @@ const SHARED_CSS = `
   .es-hdr-org input{text-align:center;font-weight:bold}
   .es-blank{border-bottom:1px dotted #000!important}
   #es-print-area{--es-font-size:12pt}
-  .es-main-table{width:100%;border-collapse:collapse;margin-top:6px}
+  .es-main-table{width:100%;min-width:640px;border-collapse:collapse;margin-top:6px}
   .es-main-table th,.es-main-table td{border:1px solid #000;padding:8px;vertical-align:top;font-size:var(--es-font-size,12pt)}
   .es-main-table thead th{background:#f1f5f9;font-weight:bold;text-align:center}
   [data-theme="dark"] .es-main-table thead th{background:#334155}
@@ -4480,7 +4489,7 @@ function teacherScript() {
     box.innerHTML='<div class="q-block"><div class="qhead"><span style="display:flex;align-items:center;gap:8px">'+avatar+'<b>'+esc(s.student.name)+'</b> '+badge+'</span>'+
       ' <a class="btn sm sec" href="/api/teacher/word?type=answers&uuid='+s.uuid+'">📄 دانلود Word</a></div>'+
       '<p class="muted">نام پدر: '+esc(s.student.fatherName)+' | کد ملی: '+esc(s.student.nationalId)+' | نام درس: '+esc(s.student.courseName||'')+' | تاریخ آزمون: '+esc(s.student.examDate||'')+' | ثبت: '+new Date(s.submittedAt).toLocaleString('fa-IR')+'</p>'+
-      '<table><tr><th>#</th><th>سوال</th><th>پاسخ دانش‌آموز</th><th>'+statusHeader+'</th><th>'+feedbackLabel+'</th></tr>'+rows+'</table>'+
+      '<div class="ans-table-scroll"><table class="ans-grade-table"><tr><th>#</th><th>سوال</th><th>پاسخ دانش‌آموز</th><th>'+statusHeader+'</th><th>'+feedbackLabel+'</th></tr>'+rows+'</table></div>'+
       '<label>'+feedbackLabel+' کلی</label><textarea id="ov_'+s.uuid+'">'+esc(g.overall||'')+'</textarea>'+
       '<button class="btn" style="margin-top:8px" onclick="saveGrade(\\''+s.uuid+'\\')">ثبت تصحیح</button></div>';
   }
@@ -4695,7 +4704,7 @@ function teacherScript() {
     const cellColors=['#fef2f2','#fffbeb','#f0fdf4','#f5f3ff','#ecfeff'];
     let style='<style>@font-face{font-family:"BNazanin";src:url(https://cdn.jsdelivr.net/gh/naderuser/bnazanin@main/BNazanin.ttf)}';
     style+='body{direction:rtl;font-family:"BNazanin",tahoma,Arial;padding:30px;background:#f8fafc}';
-    style+='.header{text-align:center;padding:20px;background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;border-radius:20px;margin-bottom:20px}';
+    style+='.header{text-align:center;padding:20px;background:#fff;color:#1e293b;border-radius:20px;margin-bottom:20px;border:1.5px solid #e2e8f0}';
     style+='.header h1{font-size:24px;margin:0 0 10px;font-weight:800;letter-spacing:.3px}.header p{margin:5px 0;font-size:14px}';
     style+='table{width:100%;border-collapse:collapse;box-shadow:0 8px 24px rgba(15,23,42,.10);border:1.5px solid #1e293b}';
     style+='th{padding:14px 8px;font-size:14px;font-weight:800;text-align:center;border:1px solid #1e293b}';
