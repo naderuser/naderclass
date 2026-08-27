@@ -9350,7 +9350,7 @@ function teacherScript() {
         +'<th style="border:1px solid #333;padding:6px">مصوبات</th></tr></thead><tbody>';
       LB_MIN_DECISIONS.forEach(function(val,i){
         h+='<tr><td style="border:1px solid #333;padding:6px;text-align:center">'+toFaDigits(i+1)+'</td>'
-          +'<td style="border:1px solid #333;padding:6px;text-align:right">'+esc(val).replace(/\n/g,'<br>')+'</td></tr>';
+          +'<td style="border:1px solid #333;padding:6px;text-align:right">'+esc(val).replace(/\\n/g,'<br>')+'</td></tr>';
       });
       h+='</tbody></table>';
       return h;
@@ -9468,8 +9468,8 @@ function teacherScript() {
     h+='<tr>'
       +'<td colspan="3" style="border:1px solid #333;padding:6px"><b>مکان برگزاری:</b> '+esc(place)+'</td>'
       +'<td colspan="2" style="border:1px solid #333;padding:6px"><b>ساعت پایان:</b> '+esc(end)+'</td></tr>';
-    h+='<tr><td colspan="5" style="border:1px solid #333;padding:6px"><b>دستور کار جلسه:</b><br>'+esc(agenda).replace(/\n/g,'<br>')+'</td></tr>';
-    h+='<tr><td colspan="5" style="border:1px solid #333;padding:6px;height:110px;vertical-align:top"><b>خلاصه مذاکرات جلسه:</b><br>'+esc(summary).replace(/\n/g,'<br>')+'</td></tr>';
+    h+='<tr><td colspan="5" style="border:1px solid #333;padding:6px"><b>دستور کار جلسه:</b><br>'+esc(agenda).replace(/\\n/g,'<br>')+'</td></tr>';
+    h+='<tr><td colspan="5" style="border:1px solid #333;padding:6px;height:110px;vertical-align:top"><b>خلاصه مذاکرات جلسه:</b><br>'+esc(summary).replace(/\\n/g,'<br>')+'</td></tr>';
     h+='<tr><td colspan="5" style="border:1px solid #333;padding:6px"><b>اهم مصوبات جلسه:</b></td></tr>';
     h+='</tbody></table>';
     h+=lbBuildMinutesDecisionsHtml(true);
