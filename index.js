@@ -1668,10 +1668,10 @@ const SHARED_CSS = `
   [data-theme="dark"] .cls-options-drawer{background:#1e293b}
   @keyframes clsDrawerOpen{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:translateY(0)}}
   .cls-opt-btn{width:100%;justify-content:flex-start;text-align:right;padding:11px 14px;font-size:14px}
+  .t-cam-pip{position:fixed;bottom:18px;left:18px;width:200px;height:150px;object-fit:cover;border-radius:12px;border:2px solid #fff;box-shadow:0 4px 16px rgba(0,0,0,.4);background:#000;z-index:45;cursor:move}
   @media(max-width:640px){
     .cls-wrap{flex-direction:column}
-    #t-cam-preview{width:150px;height:112px;top:8px;left:8px}
-    #cls-teacher-video{width:80px;height:60px;top:6px;left:6px}
+    .t-cam-pip{width:110px;height:82px;bottom:14px;left:10px}
   }
 
   /* ---- ساخت آزمون (برگه چاپی) ---- */
@@ -1692,14 +1692,29 @@ const SHARED_CSS = `
   .es-main-table th,.es-main-table td{border:1px solid #000;padding:8px;vertical-align:top;font-size:var(--es-font-size,12pt)}
   .es-main-table thead th{background:#f1f5f9;font-weight:bold;text-align:center}
   [data-theme="dark"] .es-main-table thead th{background:#334155}
-  .es-col-num{width:44px;text-align:center;font-weight:bold}
+  .es-col-num{width:56px;text-align:center;font-weight:bold}
   .es-col-mark{width:80px;text-align:center}
   .es-q-cell{position:relative}
-  .es-q{width:100%;min-height:90px;font-family:inherit;font-weight:bold;font-size:var(--es-font-size,12pt);outline:none;white-space:pre-wrap;word-break:break-word}
+  .es-q{width:100%;position:relative;font-family:inherit;font-weight:bold;font-size:var(--es-font-size,12pt);outline:none;white-space:pre-wrap;word-break:break-word}
   .es-q:focus{background:#fffbe6}
   [data-theme="dark"] .es-q:focus{background:#334155}
   .es-q table{border-collapse:collapse;margin:6px 0}
   .es-q table td{border:1px solid #000;padding:8px;min-width:36px;font-size:inherit}
+  .es-item{position:absolute;border:1px dashed #cbd5e1;border-radius:8px;padding:6px;background:#fff;box-sizing:border-box;z-index:2}
+  [data-theme="dark"] .es-item{border-color:#404040;background:#1e293b}
+  .es-item-toolbar{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:5px}
+  .es-item-toolbar button{background:#f1f5f9;border:1px solid #e2e8f0;border-radius:5px;color:#334155;cursor:pointer;font-size:10.5px;padding:3px 6px;white-space:nowrap}
+  .es-item-toolbar .es-item-del{background:#fee2e2;color:#dc2626;border-color:#fecaca}
+  [data-theme="dark"] .es-item-toolbar button{background:#262626;border-color:#404040;color:#a3a3a3}
+  [data-theme="dark"] .es-item-toolbar .es-item-del{background:#450a0a;color:#fca5a5;border-color:#7f1d1d}
+  .es-item-handle{cursor:move;background:#eef2ff!important;color:#4338ca!important;border-color:#c7d2fe!important;touch-action:none}
+  [data-theme="dark"] .es-item-handle{background:#312e81!important;color:#c7d2fe!important;border-color:#4338ca!important}
+  .es-item table{width:100%;border-collapse:collapse;margin:0}
+  .es-item table td{border:1px solid #000;padding:8px;min-width:24px;font-size:inherit}
+  .es-item img{max-width:100%;display:block;border-radius:4px;pointer-events:none}
+  .es-answer-space{width:100%;box-sizing:border-box;margin-top:4px;border-top:1px dashed #cbd5e1;position:relative}
+  .es-answer-space:before{content:'محل پاسخ';position:absolute;top:2px;right:4px;font-size:9px;font-weight:normal;color:#94a3b8}
+  [data-theme="dark"] .es-answer-space{border-color:#404040}
   .es-q-tools{display:flex;gap:4px;align-items:center;flex-wrap:wrap;margin-top:6px}
   .es-q-tools button{background:none;border:1px solid #e2e8f0;border-radius:6px;color:#475569;cursor:pointer;font-size:11px;padding:2px 7px}
   [data-theme="dark"] .es-q-tools button{border-color:#404040;color:#a3a3a3}
@@ -1710,6 +1725,9 @@ const SHARED_CSS = `
   .es-space-val{min-width:24px;text-align:center;display:inline-block;font-weight:bold}
   .es-main-table input.es-mark{width:100%;border:none;text-align:center;font-family:inherit;font-weight:bold;font-size:var(--es-font-size,12pt);background:transparent;color:inherit}
   .es-row-del{width:100%;background:none;border:none;color:#dc2626;cursor:pointer;font-size:15px}
+  .es-row-move{width:auto;background:none;border:none;color:#475569;cursor:pointer;font-size:14px;padding:1px 3px}
+  [data-theme="dark"] .es-row-move{color:#a3a3a3}
+  .es-row-move:disabled{opacity:.3;cursor:default}
   .es-pagefoot{text-align:center;font-weight:bold;margin-top:8px;font-size:14px}
   .es-tbl-wrap{display:inline-block;max-width:100%;width:70%;margin:6px 0;border:1px dashed #cbd5e1;border-radius:8px;padding:6px;vertical-align:top;box-sizing:border-box}
   [data-theme="dark"] .es-tbl-wrap{border-color:#404040}
@@ -1725,10 +1743,15 @@ const SHARED_CSS = `
     #es-print-area, #es-print-area *{visibility:visible}
     #es-print-area{position:absolute;top:0;right:0;left:0;width:100%;padding:0;border:none;border-radius:0;margin:0}
     .es-main-table tr{page-break-inside:avoid}
+    .es-row-move,.es-row-del{display:none!important}
     .es-q,.es-main-table input.es-mark,.es-header-table input,.es-header-table select,.es-main-table select{color:#000!important}
     .es-q-tools{display:none!important}
+    .es-answer-space{border-top:none!important}
+    .es-answer-space:before{display:none!important}
     .es-tbl-wrap{border:none!important;padding:0!important}
     .es-tbl-toolbar{display:none!important}
+    .es-item{border:none!important;padding:0!important}
+    .es-item-toolbar{display:none!important}
   }
 
   /* ---- Timer ---- */
@@ -3576,7 +3599,7 @@ function teacherPage() {
               <button class="btn sm danger" id="brd-clear" style="flex:0 0 auto">🗑️ پاک کردن یادداشت‌ها</button>
             </div>
             <canvas id="t-board" width="900" height="500" style="width:100%;background:#fff;border:1px solid var(--line);border-radius:10px;touch-action:none;display:block;cursor:crosshair"></canvas>
-            <video id="t-cam-preview" autoplay muted playsinline class="hidden" style="position:absolute;top:52px;left:10px;width:220px;height:165px;object-fit:cover;border-radius:10px;border:2px solid #fff;box-shadow:0 4px 14px rgba(0,0,0,.35);background:#000;z-index:5"></video>
+            <video id="t-cam-preview" autoplay muted playsinline class="hidden t-cam-pip"></video>
             <p class="muted" style="font-size:12px;margin-top:6px">روی تخته بکشید؛ ترسیم برای همه دانش‌آموزان متصل به‌صورت زنده نمایش داده می‌شود.</p>
           </div>
           <div class="cls-chat-col">
@@ -5688,25 +5711,44 @@ function teacherScript() {
     const tbody=document.getElementById('es-rows');
     tbody.innerHTML=esRows.map(function(r,i){
       const sp=r.space||ES_SPACE_DEFAULT;
+      const isFirst=i===0, isLast=i===esRows.length-1;
       return '<tr>'+
-        '<td class="es-col-num">'+toFaDigits(i+1)+(esRows.length>1?'<div><button type="button" class="es-row-del" data-i="'+i+'" title="حذف این سؤال">✕ حذف</button></div>':'')+'</td>'+
+        '<td class="es-col-num">'+toFaDigits(i+1)+
+          '<div style="display:flex;gap:2px;justify-content:center">'+
+            '<button type="button" class="es-row-move" data-i="'+i+'" data-dir="-1" title="جابه‌جایی به بالا"'+(isFirst?' disabled':'')+'>▲</button>'+
+            '<button type="button" class="es-row-move" data-i="'+i+'" data-dir="1" title="جابه‌جایی به پایین"'+(isLast?' disabled':'')+'>▼</button>'+
+          '</div>'+
+          (esRows.length>1?'<div><button type="button" class="es-row-del" data-i="'+i+'" title="حذف این سؤال">✕ حذف</button></div>':'')+
+        '</td>'+
         '<td class="es-q-cell">'+
-          '<div class="es-q" data-i="'+i+'" contenteditable="true" style="min-height:'+sp+'px">'+(r.q||'')+'</div>'+
+          '<div class="es-q" data-i="'+i+'" contenteditable="true">'+(r.q||'')+'</div>'+
+          '<div class="es-answer-space" data-i="'+i+'" style="height:'+sp+'px"></div>'+
           '<div class="es-q-tools">'+
             '<button type="button" class="es-q-addtable" data-i="'+i+'">🔲 افزودن جدول</button>'+
+            '<button type="button" class="es-q-addimage" data-i="'+i+'">🖼️ افزودن عکس</button>'+
             '<span class="es-space-ctrl">📏 فضای پاسخ:'+
-              '<button type="button" class="es-space-btn" data-i="'+i+'" data-dir="-1" title="فضای کمتر برای این سؤال">➖</button>'+
+              '<button type="button" class="es-space-btn" data-i="'+i+'" data-dir="-1" title="فضای کمتر برای پاسخ">➖</button>'+
               '<b class="es-space-val" data-i="'+i+'">'+toFaDigits(sp)+'</b>'+
-              '<button type="button" class="es-space-btn" data-i="'+i+'" data-dir="1" title="فضای بیشتر برای این سؤال">➕</button>'+
+              '<button type="button" class="es-space-btn" data-i="'+i+'" data-dir="1" title="فضای بیشتر برای پاسخ">➕</button>'+
             '</span>'+
           '</div>'+
         '</td>'+
         '<td class="es-col-mark"><input class="es-mark" data-i="'+i+'" value="'+esc(r.mark||'')+'"></td>'+
         '</tr>';
     }).join('');
-    tbody.querySelectorAll('.es-q').forEach(function(el){convertDigitsInElement(el);el.oninput=function(){convertDigitsInElement(this);esRows[+this.dataset.i].q=this.innerHTML;};});
+    tbody.querySelectorAll('.es-q').forEach(function(el){convertDigitsInElement(el);el.oninput=function(){convertDigitsInElement(this);esRows[+this.dataset.i].q=this.innerHTML;};esRecalcQHeight(el);});
     tbody.querySelectorAll('.es-mark').forEach(function(el){el.oninput=function(){esRows[+this.dataset.i].mark=this.value;};});
     tbody.querySelectorAll('.es-row-del').forEach(function(el){el.onclick=function(){esRows.splice(+this.dataset.i,1);esRenderRows();};});
+    tbody.querySelectorAll('.es-row-move').forEach(function(el){
+      el.onclick=function(){
+        const i=+this.dataset.i;
+        const dir=+this.dataset.dir;
+        const j=i+dir;
+        if(j<0||j>=esRows.length)return;
+        const tmp=esRows[i];esRows[i]=esRows[j];esRows[j]=tmp;
+        esRenderRows();
+      };
+    });
     tbody.querySelectorAll('.es-space-btn').forEach(function(el){
       el.onclick=function(){
         const i=+this.dataset.i;
@@ -5714,8 +5756,8 @@ function teacherScript() {
         let cur=esRows[i].space||ES_SPACE_DEFAULT;
         cur=Math.max(ES_SPACE_MIN,Math.min(ES_SPACE_MAX,cur+dir*ES_SPACE_STEP));
         esRows[i].space=cur;
-        const qEl=tbody.querySelector('.es-q[data-i="'+i+'"]');
-        qEl.style.minHeight=cur+'px';
+        const spEl=tbody.querySelector('.es-answer-space[data-i="'+i+'"]');
+        spEl.style.height=cur+'px';
         const valEl=tbody.querySelector('.es-space-val[data-i="'+i+'"]');
         valEl.textContent=toFaDigits(cur);
       };
@@ -5727,12 +5769,189 @@ function teacherScript() {
         let r=parseInt(toEnDigits(prompt('تعداد ردیف جدول؟','2')),10);
         let c=parseInt(toEnDigits(prompt('تعداد ستون جدول؟','2')),10);
         if(!r||r<1)r=2;if(!c||c<1)c=2;
-        // جدول همیشه به انتهای متن سؤال اضافه می‌شود تا سؤال بالای جدول باقی بماند
-        qEl.insertAdjacentHTML('beforeend',esBuildTableWrapHtml(r,c));
+        // جدول به‌صورت پیش‌فرض زیر متن سؤال قرار می‌گیرد، ولی بعد از این با کشیدن دستگیره
+        // می‌توان آن را به هر جای دیگری از فضای همین سؤال جابه‌جا کرد.
+        const pos=esFreeItemDefaultPos(qEl);
+        qEl.insertAdjacentHTML('beforeend',esBuildFreeTableHtml(r,c,pos.top,pos.left));
         esRows[i].q=qEl.innerHTML;
+        esRecalcQHeight(qEl);
+      };
+    });
+    tbody.querySelectorAll('.es-q-addimage').forEach(function(el){
+      el.onclick=function(){
+        const i=+this.dataset.i;
+        const qEl=tbody.querySelector('.es-q[data-i="'+i+'"]');
+        const inp=document.createElement('input');
+        inp.type='file';inp.accept='image/*';
+        inp.onchange=function(){
+          const file=inp.files&&inp.files[0];
+          if(!file)return;
+          const reader=new FileReader();
+          reader.onload=function(){
+            const img=new Image();
+            img.onload=function(){
+              // عکس را قبل از درج، کوچک و فشرده می‌کنیم تا حجم آزمون ذخیره‌شده زیاد نشود
+              const maxW=520;
+              const scale=Math.min(1,maxW/img.width);
+              const cw=Math.round(img.width*scale), ch=Math.round(img.height*scale);
+              const c=document.createElement('canvas');c.width=cw;c.height=ch;
+              c.getContext('2d').drawImage(img,0,0,cw,ch);
+              const dataUrl=c.toDataURL('image/jpeg',0.85);
+              const pos=esFreeItemDefaultPos(qEl);
+              qEl.insertAdjacentHTML('beforeend',esBuildFreeImageHtml(dataUrl,pos.top,pos.left));
+              esRows[i].q=qEl.innerHTML;
+              esRecalcQHeight(qEl);
+            };
+            img.src=reader.result;
+          };
+          reader.readAsDataURL(file);
+        };
+        inp.click();
       };
     });
   }
+
+  // موقعیت پیش‌فرضِ درج (زیر آخرین محتوای فعلیِ سؤال)
+  function esFreeItemDefaultPos(qEl){
+    return {top:qEl.scrollHeight, left:0};
+  }
+
+  // ساخت یک جدول آزاد و قابل‌کشیدن (با نوار ابزار: دستگیره‌ی جابه‌جایی، افزودن/حذف ردیف و ستون، بزرگ/کوچک، حذف)
+  function esBuildFreeTableHtml(r,c,top,left){
+    let rowsHtml='';
+    for(let rr=0;rr<r;rr++){
+      rowsHtml+='<tr>';
+      for(let cc=0;cc<c;cc++){rowsHtml+='<td>&nbsp;</td>';}
+      rowsHtml+='</tr>';
+    }
+    return '<div class="es-item" data-type="table" contenteditable="false" style="top:'+top+'px;left:'+left+'px;width:260px">'+
+      '<div class="es-item-toolbar" contenteditable="false">'+
+        '<button type="button" class="es-item-handle" title="بکشید تا جابه‌جا شود">✥ جابه‌جایی</button>'+
+        '<button type="button" data-itact="addrow" title="افزودن ردیف">➕ردیف</button>'+
+        '<button type="button" data-itact="delrow" title="حذف آخرین ردیف">➖ردیف</button>'+
+        '<button type="button" data-itact="addcol" title="افزودن ستون">➕ستون</button>'+
+        '<button type="button" data-itact="delcol" title="حذف آخرین ستون">➖ستون</button>'+
+        '<button type="button" data-itact="wbig" title="بزرگ‌تر کردن">🔍 بزرگ‌تر</button>'+
+        '<button type="button" data-itact="wsmall" title="کوچک‌تر کردن">🔎 کوچک‌تر</button>'+
+        '<button type="button" class="es-item-del" data-itact="del" title="حذف کامل این جدول">🗑️ حذف</button>'+
+      '</div>'+
+      '<table contenteditable="true"><tbody>'+rowsHtml+'</tbody></table>'+
+    '</div>';
+  }
+
+  // ساخت یک کادر عکس آزاد و قابل‌کشیدن
+  function esBuildFreeImageHtml(dataUrl,top,left){
+    return '<div class="es-item" data-type="image" contenteditable="false" style="top:'+top+'px;left:'+left+'px;width:220px">'+
+      '<div class="es-item-toolbar" contenteditable="false">'+
+        '<button type="button" class="es-item-handle" title="بکشید تا جابه‌جا شود">✥ جابه‌جایی</button>'+
+        '<button type="button" data-itact="wbig" title="بزرگ‌تر کردن">🔍 بزرگ‌تر</button>'+
+        '<button type="button" data-itact="wsmall" title="کوچک‌تر کردن">🔎 کوچک‌تر</button>'+
+        '<button type="button" class="es-item-del" data-itact="del" title="حذف عکس">🗑️ حذف</button>'+
+      '</div>'+
+      '<img src="'+dataUrl+'" draggable="false" alt="">'+
+    '</div>';
+  }
+
+  // ارتفاع کادر سؤال را طوری تنظیم می‌کند که پایین‌ترین جدول/عکسِ جابه‌جاشده هم داخل کادر بماند
+  function esRecalcQHeight(qEl){
+    let maxBottom=0;
+    qEl.querySelectorAll(':scope > .es-item').forEach(function(it){
+      const top=parseFloat(it.style.top)||0;
+      maxBottom=Math.max(maxBottom, top+it.offsetHeight);
+    });
+    qEl.style.minHeight = maxBottom ? (maxBottom+10)+'px' : '';
+  }
+
+  // --- کشیدن آزاد جدول‌ها و عکس‌های تازه‌درج‌شده (با ماوس یا انگشت) ---
+  let esDrag=null;
+  document.getElementById('es-rows').addEventListener('mousedown',function(e){
+    const handle=e.target.closest('.es-item-handle');
+    if(!handle)return;
+    e.preventDefault();
+    esDragStart(handle,e.clientX,e.clientY);
+  });
+  document.getElementById('es-rows').addEventListener('touchstart',function(e){
+    const handle=e.target.closest('.es-item-handle');
+    if(!handle)return;
+    const t=e.touches[0];
+    esDragStart(handle,t.clientX,t.clientY);
+  },{passive:true});
+  function esDragStart(handle,x,y){
+    const it=handle.closest('.es-item');
+    const qEl=handle.closest('.es-q-cell').querySelector('.es-q');
+    esDrag={it:it,qEl:qEl,startX:x,startY:y,startTop:parseFloat(it.style.top)||0,startLeft:parseFloat(it.style.left)||0};
+    it.style.zIndex=5;
+  }
+  function esDragMove(x,y){
+    if(!esDrag)return;
+    const {it,qEl,startX,startY,startTop,startLeft}=esDrag;
+    let newTop=startTop+(y-startY);
+    let newLeft=startLeft+(x-startX);
+    const maxLeft=Math.max(0,qEl.clientWidth-it.offsetWidth);
+    newLeft=Math.max(0,Math.min(newLeft,maxLeft));
+    newTop=Math.max(0,newTop);
+    it.style.top=newTop+'px';
+    it.style.left=newLeft+'px';
+    esRecalcQHeight(qEl);
+  }
+  function esDragEnd(){
+    if(!esDrag)return;
+    const {it,qEl}=esDrag;
+    it.style.zIndex=2;
+    esRecalcQHeight(qEl);
+    const i=+qEl.dataset.i;
+    esRows[i].q=qEl.innerHTML;
+    esDrag=null;
+  }
+  window.addEventListener('mousemove',function(e){if(esDrag)esDragMove(e.clientX,e.clientY);});
+  window.addEventListener('mouseup',esDragEnd);
+  window.addEventListener('touchmove',function(e){if(esDrag){e.preventDefault();const t=e.touches[0];esDragMove(t.clientX,t.clientY);}},{passive:false});
+  window.addEventListener('touchend',esDragEnd);
+
+  // مدیریت کلیک روی دکمه‌های نوار ابزار جدول/عکسِ آزاد (افزودن/حذف ردیف و ستون، بزرگ/کوچک کردن، حذف)
+  document.getElementById('es-rows').addEventListener('click',function(e){
+    const btn=e.target.closest('[data-itact]');
+    if(!btn)return;
+    e.preventDefault();
+    const it=btn.closest('.es-item');
+    const qEl=btn.closest('.es-q-cell').querySelector('.es-q');
+    const i=+qEl.dataset.i;
+    const act=btn.dataset.itact;
+    if(act==='del'){
+      if(!confirm('آیا از حذف این مورد مطمئن هستید؟ این کار قابل بازگشت نیست.'))return;
+      it.remove();
+      esRecalcQHeight(qEl);
+      esRows[i].q=qEl.innerHTML;
+      return;
+    }
+    if(it.dataset.type==='table'){
+      const table=it.querySelector('table');
+      if(act==='addrow'){
+        const cols=table.rows.length?table.rows[0].cells.length:1;
+        const tr=table.insertRow(-1);
+        for(let c=0;c<cols;c++){const td=tr.insertCell(-1);td.innerHTML='&nbsp;';}
+      }else if(act==='delrow'){
+        if(table.rows.length>1)table.deleteRow(-1);else toast('حداقل یک ردیف باید در جدول باقی بماند');
+      }else if(act==='addcol'){
+        Array.from(table.rows).forEach(function(row){const td=row.insertCell(-1);td.innerHTML='&nbsp;';});
+      }else if(act==='delcol'){
+        const ncols=table.rows.length?table.rows[0].cells.length:0;
+        if(ncols>1){Array.from(table.rows).forEach(function(row){row.deleteCell(-1);});}else toast('حداقل یک ستون باید در جدول باقی بماند');
+      }
+      convertDigitsInElement(table);
+    }
+    if(act==='wbig'){
+      let w=parseInt(it.style.width,10)||(it.dataset.type==='image'?220:260);
+      w=Math.min(qEl.clientWidth||600,w+40);
+      it.style.width=w+'px';
+    }else if(act==='wsmall'){
+      let w=parseInt(it.style.width,10)||(it.dataset.type==='image'?220:260);
+      w=Math.max(120,w-40);
+      it.style.width=w+'px';
+    }
+    esRecalcQHeight(qEl);
+    esRows[i].q=qEl.innerHTML;
+  });
 
   // مدیریت کلیک روی دکمه‌های نوار ابزار هر جدول (افزودن/حذف ردیف و ستون، جابه‌جایی، بزرگ/کوچک کردن، حذف جدول)
   document.getElementById('es-rows').addEventListener('click',function(e){
@@ -8184,6 +8403,36 @@ function teacherScript() {
     }catch(e){ toast('دسترسی به میکروفون داده نشد'); }
   };
 
+  (function setupCamPipDrag(){
+    const pip=document.getElementById('t-cam-preview');
+    if(!pip)return;
+    let dragging=false,offX=0,offY=0;
+    function start(x,y){
+      dragging=true;
+      const r=pip.getBoundingClientRect();
+      offX=x-r.left;offY=y-r.top;
+      pip.style.transition='none';
+    }
+    function move(x,y){
+      if(!dragging)return;
+      let left=x-offX, top=y-offY;
+      const maxLeft=window.innerWidth-pip.offsetWidth-4;
+      const maxTop=window.innerHeight-pip.offsetHeight-4;
+      left=Math.max(4,Math.min(left,maxLeft));
+      top=Math.max(4,Math.min(top,maxTop));
+      pip.style.left=left+'px';
+      pip.style.top=top+'px';
+      pip.style.bottom='auto';
+    }
+    function end(){dragging=false;}
+    pip.addEventListener('mousedown',e=>{start(e.clientX,e.clientY);e.preventDefault();});
+    window.addEventListener('mousemove',e=>move(e.clientX,e.clientY));
+    window.addEventListener('mouseup',end);
+    pip.addEventListener('touchstart',e=>{const t=e.touches[0];start(t.clientX,t.clientY);},{passive:true});
+    window.addEventListener('touchmove',e=>{if(!dragging)return;const t=e.touches[0];move(t.clientX,t.clientY);},{passive:true});
+    window.addEventListener('touchend',end);
+  })();
+
   document.getElementById('btn-cam-toggle').onclick=async function(){
     const preview=document.getElementById('t-cam-preview');
     if(clsCamStream){
@@ -8201,7 +8450,10 @@ function teacherScript() {
       return;
     }
     try{
-      clsCamStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:clsCamFacing,width:{ideal:320},height:{ideal:240}}, audio:true});
+      // نکته: عمداً فقط عرض تقریبی درخواست می‌شود، نه عرض+ارتفاع با هم؛ وقتی هر دو با هم
+      // درخواست شوند و با نسبت واقعی دوربین گوشی جور نباشد، خیلی از گوشی‌های اندروید به‌جای
+      // برش تصویر، دور آن را با نوار سیاه پر می‌کنند و تصویر خیلی کوچک و وسط‌چین دیده می‌شود.
+      clsCamStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:clsCamFacing,width:{ideal:320}}, audio:true});
       preview.srcObject=clsCamStream;
       preview.classList.remove('hidden');
       this.textContent='🔴 خاموش کردن تصویر';
@@ -8215,11 +8467,14 @@ function teacherScript() {
       }
       toast('تماس تصویری (با صدا) فعال شد');
       const cap=document.createElement('canvas');
-      cap.width=320;cap.height=240;
       const capCtx=cap.getContext('2d');
       clsCamInterval=setInterval(function(){
         if(!clsCamStream)return;
         try{
+          // اندازه‌ی بوم گرفتن عکس را دقیقاً برابر نسبت واقعی تصویر دوربین قرار می‌دهیم
+          // تا فریم ارسالی بدون نوار سیاه و بدون کشیدگی باشد.
+          const vw=preview.videoWidth||320, vh=preview.videoHeight||240;
+          if(cap.width!==vw||cap.height!==vh){cap.width=vw;cap.height=vh;}
           capCtx.drawImage(preview,0,0,cap.width,cap.height);
           const dataUrl=cap.toDataURL('image/jpeg',0.4);
           clsSend({type:'video-frame', data: dataUrl});
@@ -8241,7 +8496,7 @@ function teacherScript() {
     clsCamStream=null;
     preview.srcObject=null;
     try{
-      const newStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{exact:nextFacing},width:{ideal:320},height:{ideal:240}}, audio:true});
+      const newStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{exact:nextFacing},width:{ideal:320}}, audio:true});
       clsCamStream=newStream;
       clsCamFacing=nextFacing;
       preview.srcObject=clsCamStream;
@@ -8255,7 +8510,7 @@ function teacherScript() {
       toast('این دستگاه دوربین دومی ندارد یا اجازه دسترسی به آن را نمی‌دهد');
       // تلاش برای بازگرداندن دوربین قبلی تا تصویر کلاً قطع نشود
       try{
-        clsCamStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:prevFacing,width:{ideal:320},height:{ideal:240}}, audio:true});
+        clsCamStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:prevFacing,width:{ideal:320}}, audio:true});
         clsCamFacing=prevFacing;
         preview.srcObject=clsCamStream;
         if(wasAudioFromCam && clsCamStream.getAudioTracks().length){
