@@ -9679,7 +9679,6 @@ function teacherScript() {
     tr.innerHTML=html;
     tbody.appendChild(tr);
   };
-  document.getElementById('btn-lbs-build').click();
 
   // --- فونت و اندازه جدول (زنده روی صفحه) ---
   var LB_STAFF_FONTS={bnazanin:"'BNazanin','B Nazanin',Tahoma,Arial",bmitra:"'BMitra','B Mitra',Tahoma,Arial"};
@@ -9694,6 +9693,8 @@ function teacherScript() {
   }
   document.getElementById('lbs-font').onchange=lbApplyStaffStyle;
   document.getElementById('lbs-font-size').oninput=lbApplyStaffStyle;
+
+  document.getElementById('btn-lbs-build').click();
 
   // --- بزرگ/کوچک کردن جدول با کشیدن گوشه (ماوس و لمسی) ---
   (function(){
