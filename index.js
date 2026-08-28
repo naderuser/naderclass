@@ -9689,10 +9689,8 @@ function teacherScript() {
     var size=parseInt(document.getElementById('lbs-font-size').value,10)||12;
     var family=lbStaffFontCss(fontKey);
     var tableEl=document.getElementById('lbs-table');
-    // مثل بزرگ‌کردن فونت در ورد: با بزرگ‌تر شدن فونت، فاصله‌ی داخلی سلول‌ها (padding) هم بیشتر می‌شود
-    // تا کل جدول واقعاً بزرگ‌تر و بلندتر دیده شود، نه فقط خود متن.
-    var padV=Math.max(4,Math.round(size*0.5))+'px';
-    var padH=Math.max(4,Math.round(size*0.65))+'px';
+    // فقط اندازه‌ی خود متن تغییر می‌کند؛ فاصله‌ی داخلی سلول‌ها (padding) ثابت می‌ماند
+    // تا با تغییر اندازه‌ی فونت، جدول به‌جای «بزرگ‌شدن کلی»، صرفاً نوشته‌هایش بزرگ/کوچک شوند.
     tableEl.style.fontFamily=family;
     tableEl.style.fontWeight='bold';
     tableEl.style.fontSize=size+'px';
@@ -9700,7 +9698,6 @@ function teacherScript() {
       cell.style.fontFamily=family;
       cell.style.fontWeight='bold';
       cell.style.fontSize=size+'px';
-      cell.style.padding=padV+' '+padH;
     });
     // چون input‌های داخل جدول یک قانون CSS جداگانه با اندازه‌ی فونت ثابت دارند،
     // باید اندازه‌ی فونت روی خودشان هم مستقیماً تنظیم شود وگرنه تغییری دیده نمی‌شود.
@@ -9848,6 +9845,7 @@ function teacherScript() {
         lbRenderMinutesDecisions();
       });
     });
+    lbApplyMinutesStyle();
   }
   document.getElementById('btn-lbmin-decision-add').onclick=function(){LB_MIN_DECISIONS.push('');lbRenderMinutesDecisions();};
   document.getElementById('btn-lbmin-decision-remove').onclick=function(){
@@ -9914,7 +9912,39 @@ function teacherScript() {
         lbRenderMinutesAttendees();
       });
     });
+    lbApplyMinutesStyle();
   }
+  // --- فونت و اندازه‌ی جداول صورتجلسه (زنده روی صفحه) ---
+  // قبلاً «اندازه فونت» فقط روی فایل خروجی Word/PDF اعمال می‌شد و در جدول‌های
+  // «اهم مصوبات» و «اسامی حاضرین» روی صفحه هیچ تغییری دیده نمی‌شد. این تابع
+  // همان فونت/اندازه را روی خودِ جدول‌های زنده هم اعمال می‌کند.
+  function lbApplyMinutesStyle(){
+    var fontKey=document.getElementById('lbmin-font').value;
+    var size=parseInt(document.getElementById('lbmin-font-size').value,10)||14;
+    var family=lbMinutesFontCss(fontKey);
+    ['lbmin-decisions-table','lbmin-attendees-table'].forEach(function(id){
+      var tableEl=document.getElementById(id);
+      if(!tableEl)return;
+      tableEl.style.fontFamily=family;
+      tableEl.style.fontWeight='bold';
+      tableEl.style.fontSize=size+'px';
+      tableEl.querySelectorAll('th,td').forEach(function(cell){
+        cell.style.fontFamily=family;
+        cell.style.fontWeight='bold';
+        cell.style.fontSize=size+'px';
+      });
+      tableEl.querySelectorAll('input').forEach(function(inp){
+        inp.style.fontFamily=family;
+        inp.style.fontWeight='bold';
+        inp.style.fontSize=size+'px';
+      });
+    });
+  }
+  document.getElementById('lbmin-font').addEventListener('change',lbApplyMinutesStyle);
+  document.getElementById('lbmin-font-size').addEventListener('input',lbApplyMinutesStyle);
+  document.getElementById('lbmin-font-size').addEventListener('change',lbApplyMinutesStyle);
+  document.getElementById('lbmin-font-size').addEventListener('keydown',function(e){if(e.key==='Enter')lbApplyMinutesStyle();});
+
   document.getElementById('btn-lbmin-att-add').onclick=function(){LB_MIN_ATTENDEES.push({name:'',role:'',sign:''});lbRenderMinutesAttendees();};
   document.getElementById('btn-lbmin-att-remove').onclick=function(){
     if(LB_MIN_ATTENDEES.length<=1){toast('حداقل یک ردیف باید باقی بماند');return;}
