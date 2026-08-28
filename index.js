@@ -9810,7 +9810,7 @@ function teacherScript() {
       tds.forEach(function(td,cIdx){
         if(cIdx===0)return;
         var inp=td.querySelector('textarea,input');
-        if(inp)td.innerHTML=esc(r[cIdx]||'').replace(/\n/g,'<br>');
+        if(inp)td.innerHTML=esc(r[cIdx]||'').replace(/\\n/g,'<br>');
       });
     });
     return head+'<div class="lbs-export-wrap">'+tmp.innerHTML+'</div>';
