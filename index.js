@@ -3659,6 +3659,7 @@ function teacherPage() {
             <button class="lb-menu-btn" data-lb="pacing"><span class="lb-ico">📊</span><span class="lb-t">جدول بودجه‌بندی آموزشی</span><small>پایه‌های اول تا ششم</small></button>
             <button class="lb-menu-btn" data-lb="roster"><span class="lb-ico">👨‍🎓</span><span class="lb-t">لیست اسامی دانش‌آموزان</span></button>
             <button class="lb-menu-btn" data-lb="genderstats"><span class="lb-ico">📊</span><span class="lb-t">آمار دانش‌آموزان</span><small>به تفکیک جنسیت</small></button>
+            <button class="lb-menu-btn" data-lb="passrate"><span class="lb-ico">🎯</span><span class="lb-t">درصد قبولی دانش‌آموزان</span><small>نمودار به تفکیک پایه</small></button>
             <button class="lb-menu-btn" data-lb="absence"><span class="lb-ico">📋</span><span class="lb-t">ثبت غیبت دانش‌آموزان</span></button>
             <button class="lb-menu-btn" data-lb="performance"><span class="lb-ico">📈</span><span class="lb-t">ثبت سطوح عملکرد دانش‌آموز</span></button>
             <button class="lb-menu-btn" data-lb="council"><span class="lb-ico">🗣️</span><span class="lb-t">صورتجلسه شورای آموزشی اولیا</span></button>
@@ -3761,6 +3762,41 @@ function teacherPage() {
             <button class="btn sec" id="btn-lbg-excel">📊 دانلود Excel</button>
             <button class="btn gray" id="btn-lbg-pdf">🖨️ چاپ / دانلود PDF</button>
             <button class="btn danger" type="button" onclick="lbClearContainer('lbg-table')">🗑️ پاک کردن جدول</button>
+          </div>
+        </div>
+
+        <!-- ===== درصد قبولی دانش‌آموزان ===== -->
+        <div class="lb-panel hidden" id="lb-panel-passrate">
+          <button class="btn sm gray lb-back-btn">← بازگشت به دفتر</button>
+          <div class="lbg-sheet">
+            <h3 class="lbg-title">نمودار درصد قبولی دانش‌آموزان مدرسه
+              <input id="lbpr-school" class="lbg-inline-input" placeholder="......................." style="width:180px">
+              سال تحصیلی
+              <input id="lbpr-year" class="lbg-inline-input" placeholder="......................." style="width:110px">
+            </h3>
+            <div class="lb-preview">
+              <table class="lb-table lbg-table" id="lbpr-table">
+                <thead><tr><th>پایه</th><th>تعداد کل دانش‌آموزان</th><th>تعداد قبول</th><th>درصد قبولی</th></tr></thead>
+                <tbody>
+                  <tr><td>اول</td><td><input type="text" inputmode="numeric" maxlength="3" class="lbpr-total" data-grade="1"></td><td><input type="text" inputmode="numeric" maxlength="3" class="lbpr-pass" data-grade="1"></td><td class="lbpr-pct" data-grade="1">۰٪</td></tr>
+                  <tr><td>دوم</td><td><input type="text" inputmode="numeric" maxlength="3" class="lbpr-total" data-grade="2"></td><td><input type="text" inputmode="numeric" maxlength="3" class="lbpr-pass" data-grade="2"></td><td class="lbpr-pct" data-grade="2">۰٪</td></tr>
+                  <tr><td>سوم</td><td><input type="text" inputmode="numeric" maxlength="3" class="lbpr-total" data-grade="3"></td><td><input type="text" inputmode="numeric" maxlength="3" class="lbpr-pass" data-grade="3"></td><td class="lbpr-pct" data-grade="3">۰٪</td></tr>
+                  <tr><td>چهارم</td><td><input type="text" inputmode="numeric" maxlength="3" class="lbpr-total" data-grade="4"></td><td><input type="text" inputmode="numeric" maxlength="3" class="lbpr-pass" data-grade="4"></td><td class="lbpr-pct" data-grade="4">۰٪</td></tr>
+                  <tr><td>پنجم</td><td><input type="text" inputmode="numeric" maxlength="3" class="lbpr-total" data-grade="5"></td><td><input type="text" inputmode="numeric" maxlength="3" class="lbpr-pass" data-grade="5"></td><td class="lbpr-pct" data-grade="5">۰٪</td></tr>
+                  <tr><td>ششم</td><td><input type="text" inputmode="numeric" maxlength="3" class="lbpr-total" data-grade="6"></td><td><input type="text" inputmode="numeric" maxlength="3" class="lbpr-pass" data-grade="6"></td><td class="lbpr-pct" data-grade="6">۰٪</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <div style="margin:18px 0 6px;text-align:center">
+              <canvas id="lbpr-chart" width="700" height="320" style="max-width:100%;background:#fff;border:1px solid var(--line);border-radius:10px"></canvas>
+            </div>
+            <p class="muted" style="font-size:12px;text-align:center">رنگ‌بندی نمودار: 🟥 قرمز کم‌رنگ = زیر ۶۰٪ (ضعیف) &nbsp;|&nbsp; 🟦 آبی کم‌رنگ = ۶۰ تا ۸۴٪ (متوسط) &nbsp;|&nbsp; 🟩 سبز کم‌رنگ = ۸۵٪ به بالا (خوب)</p>
+          </div>
+          <div class="row" style="margin-top:12px">
+            <button class="btn primary" id="btn-lbpr-save">💾 ذخیره</button>
+            <button class="btn primary" id="btn-lb-passrate-word">📄 دانلود Word</button>
+            <button class="btn sec" id="btn-lb-passrate-excel">📊 دانلود Excel</button>
+            <button class="btn gray" id="btn-lb-passrate-pdf">🖨️ چاپ / دانلود PDF</button>
           </div>
         </div>
 
@@ -8678,6 +8714,7 @@ function teacherScript() {
       if(b.dataset.lb==='pacing'){lbRenderPacing();lbLoadPacingIfNeeded(lbSelectedGradeIdx());}
       if(b.dataset.lb==='roster')lbLoadRosterIfNeeded();
       if(b.dataset.lb==='genderstats')lbLoadGenderStatsIfNeeded();
+      if(b.dataset.lb==='passrate')lbLoadPassrateIfNeeded();
       if(b.dataset.lb==='absence')lbLoadAbsenceIfNeeded();
       if(b.dataset.lb==='performance'){
         document.getElementById('lbf-form-wrap').classList.add('hidden');
@@ -9134,6 +9171,141 @@ function teacherScript() {
       });
       rows.push(['مجموع کل',totalBoy,totalGirl,totalBoy+totalGirl]);
       lbAddExcelSheet(wb,'آمار دانش‌آموزان',rows);
+    });
+  };
+
+  // ===================== درصد قبولی دانش‌آموزان =====================
+  var LBPR_GRADE_NAMES=['اول','دوم','سوم','چهارم','پنجم','ششم'];
+  function lbprColorForPct(pct){
+    if(pct<60)return{fill:'#fecaca',border:'#ef4444'};      // قرمز کم‌رنگ - ضعیف
+    if(pct<85)return{fill:'#bfdbfe',border:'#3b82f6'};      // آبی کم‌رنگ - متوسط
+    return{fill:'#bbf7d0',border:'#22c55e'};                // سبز کم‌رنگ - خوب
+  }
+  function lbprDrawChart(data){
+    var canvas=document.getElementById('lbpr-chart');
+    if(!canvas)return;
+    var ctx=canvas.getContext('2d');
+    var w=canvas.width,h=canvas.height;
+    ctx.clearRect(0,0,w,h);
+    var padTop=26,padBottom=46,padLeft=44,padRight=20;
+    var chartH=h-padTop-padBottom;
+    var chartW=w-padLeft-padRight;
+    var n=data.length;
+    var gap=18;
+    var barW=(chartW-gap*(n-1))/n;
+    ctx.strokeStyle='#e5e7eb';
+    ctx.fillStyle='#6b7280';
+    ctx.lineWidth=1;
+    [0,25,50,75,100].forEach(function(v){
+      var y=padTop+chartH-(v/100)*chartH;
+      ctx.beginPath();ctx.moveTo(padLeft,y);ctx.lineTo(w-padRight,y);ctx.stroke();
+      ctx.textAlign='right';
+      ctx.font='11px Tahoma, Arial';
+      ctx.fillText(toFaDigits(v),padLeft-6,y+4);
+    });
+    data.forEach(function(pct,i){
+      var barH=(Math.max(0,Math.min(100,pct))/100)*chartH;
+      var x=padLeft+i*(barW+gap);
+      var y=padTop+chartH-barH;
+      var c=lbprColorForPct(pct);
+      ctx.fillStyle=c.fill;
+      ctx.strokeStyle=c.border;
+      ctx.lineWidth=2;
+      ctx.fillRect(x,y,barW,barH);
+      ctx.strokeRect(x,y,barW,barH);
+      ctx.fillStyle='#111827';
+      ctx.textAlign='center';
+      ctx.font='bold 13px Tahoma, Arial';
+      ctx.fillText(toFaDigits(pct)+'٪',x+barW/2,Math.max(14,y-8));
+      ctx.font='12px Tahoma, Arial';
+      ctx.fillStyle='#374151';
+      ctx.fillText('پایه '+LBPR_GRADE_NAMES[i],x+barW/2,padTop+chartH+20);
+    });
+  }
+  function lbprRecalc(){
+    var data=[];
+    for(var g=1;g<=6;g++){
+      var totalInp=document.querySelector('.lbpr-total[data-grade="'+g+'"]');
+      var passInp=document.querySelector('.lbpr-pass[data-grade="'+g+'"]');
+      var pctCell=document.querySelector('.lbpr-pct[data-grade="'+g+'"]');
+      var t=parseInt(toEnDigits(totalInp.value),10)||0;
+      var p=parseInt(toEnDigits(passInp.value),10)||0;
+      var pct=t>0?Math.round((p/t)*100):0;
+      pctCell.textContent=toFaDigits(pct)+'٪';
+      data.push(pct);
+    }
+    lbprDrawChart(data);
+    return data;
+  }
+  document.getElementById('lbpr-table').addEventListener('input',function(e){
+    if(e.target&&(e.target.classList.contains('lbpr-total')||e.target.classList.contains('lbpr-pass'))){
+      var cleaned=toEnDigits(e.target.value).replace(/[^0-9]/g,'').slice(0,3);
+      e.target.value=toFaDigits(cleaned);
+      lbprRecalc();
+    }
+  });
+  var LB_PASSRATE_LOADED=false;
+  async function lbLoadPassrateIfNeeded(){
+    if(LB_PASSRATE_LOADED){lbprRecalc();return;}
+    LB_PASSRATE_LOADED=true;
+    var saved=await lbLoad('passrate');
+    if(saved){
+      document.getElementById('lbpr-school').value=saved.school||'';
+      document.getElementById('lbpr-year').value=saved.year||'';
+      if(saved.grades){
+        saved.grades.forEach(function(row,idx){
+          var g=idx+1;
+          var totalInp=document.querySelector('.lbpr-total[data-grade="'+g+'"]');
+          var passInp=document.querySelector('.lbpr-pass[data-grade="'+g+'"]');
+          if(totalInp)totalInp.value=toFaDigits(toEnDigits(row.total||''));
+          if(passInp)passInp.value=toFaDigits(toEnDigits(row.pass||''));
+        });
+      }
+    }
+    lbprRecalc();
+  }
+  document.getElementById('btn-lbpr-save').onclick=function(){
+    var grades=[];
+    for(var g=1;g<=6;g++){
+      var totalInp=document.querySelector('.lbpr-total[data-grade="'+g+'"]');
+      var passInp=document.querySelector('.lbpr-pass[data-grade="'+g+'"]');
+      grades.push({total:totalInp.value,pass:passInp.value});
+    }
+    lbSave('passrate',{school:document.getElementById('lbpr-school').value,year:document.getElementById('lbpr-year').value,grades:grades});
+    toast('ذخیره شد ✅');
+  };
+  function lbprExportHtml(){
+    var school=document.getElementById('lbpr-school').value||'.......................';
+    var year=document.getElementById('lbpr-year').value||'.......................';
+    var pcts=lbprRecalc();
+    var canvas=document.getElementById('lbpr-chart');
+    var imgData=canvas.toDataURL('image/png');
+    var h='<p style="text-align:center;font-weight:bold;font-size:15px">نمودار درصد قبولی دانش‌آموزان مدرسه '+esc(school)+' - سال تحصیلی '+esc(year)+'</p>';
+    h+='<table><tr><th>پایه</th><th>تعداد کل</th><th>تعداد قبول</th><th>درصد قبولی</th></tr>';
+    LBPR_GRADE_NAMES.forEach(function(name,idx){
+      var g=idx+1;
+      var t=document.querySelector('.lbpr-total[data-grade="'+g+'"]').value||'۰';
+      var p=document.querySelector('.lbpr-pass[data-grade="'+g+'"]').value||'۰';
+      h+='<tr><td>'+esc(name)+'</td><td>'+esc(t)+'</td><td>'+esc(p)+'</td><td>'+toFaDigits(pcts[idx])+'٪</td></tr>';
+    });
+    h+='</table>';
+    h+='<div style="text-align:center;margin-top:16px"><img src="'+imgData+'" style="max-width:100%;width:600px"></div>';
+    h+='<p style="margin-top:10px;font-size:12px">رنگ‌بندی: قرمز کم‌رنگ = زیر ۶۰٪ | آبی کم‌رنگ = ۶۰ تا ۸۴٪ | سبز کم‌رنگ = ۸۵٪ به بالا</p>';
+    return h;
+  }
+  document.getElementById('btn-lb-passrate-word').onclick=function(){lbWordExport('نمودار درصد قبولی دانش‌آموزان',lbprExportHtml(),'درصد-قبولی-دانش-آموزان',false);};
+  document.getElementById('btn-lb-passrate-pdf').onclick=function(){lbPrintExport('نمودار درصد قبولی دانش‌آموزان',lbprExportHtml(),false);};
+  document.getElementById('btn-lb-passrate-excel').onclick=function(){
+    var pcts=lbprRecalc();
+    lbExcelExport('درصد-قبولی-دانش-آموزان',function(wb){
+      var rows=[['پایه','تعداد کل','تعداد قبول','درصد قبولی']];
+      LBPR_GRADE_NAMES.forEach(function(name,idx){
+        var g=idx+1;
+        var t=parseInt(toEnDigits(document.querySelector('.lbpr-total[data-grade="'+g+'"]').value),10)||0;
+        var p=parseInt(toEnDigits(document.querySelector('.lbpr-pass[data-grade="'+g+'"]').value),10)||0;
+        rows.push([name,t,p,pcts[idx]+'%']);
+      });
+      lbAddExcelSheet(wb,'درصد قبولی',rows);
     });
   };
 
