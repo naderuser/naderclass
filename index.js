@@ -1256,6 +1256,7 @@ const SHARED_CSS = `
   .lb-table th{background:#dbeafe;font-weight:700}
   [data-theme="dark"] .lb-table th{background:#1e3a5f}
   .lb-table input,.lb-table textarea{width:100%;border:none;background:transparent;text-align:center;font-family:inherit;font-size:12px;padding:2px}
+  .lbs-cell-ta{resize:none;overflow:hidden;box-sizing:border-box;line-height:1.5;display:block;min-height:1.6em}
   .lb-table-tight th,.lb-table-tight td{padding:3px 4px;font-size:11px;min-width:38px}
   .lb-table-tight th:first-child,.lb-table-tight td:first-child{min-width:36px}
   .lb-table-tight input{min-width:22px}
@@ -9643,11 +9644,26 @@ function teacherScript() {
     h+='<thead><tr>'+LB_STAFF_HEADERS.map(function(hd){return '<th>'+esc(hd)+'</th>';}).join('')+'</tr></thead><tbody>';
     for(var r=1;r<=rowCount;r++){
       h+='<tr><td>'+toFaDigits(r)+'</td>';
-      for(var c=1;c<LB_STAFF_HEADERS.length;c++)h+='<td><input type="text"></td>';
+      for(var c=1;c<LB_STAFF_HEADERS.length;c++)h+='<td><textarea class="lbs-cell-ta" rows="1"></textarea></td>';
       h+='</tr>';
     }
     h+='</tbody>';
     return h;
+  }
+  // مثل ورد: با زدن اینتر داخل خانه، متن به خط بعد می‌رود و ارتفاع همان خانه (و کل ردیف) به‌صورت خودکار بزرگ‌تر می‌شود
+  function lbAutoResizeStaffTa(ta){
+    ta.style.height='auto';
+    ta.style.height=ta.scrollHeight+'px';
+  }
+  function lbWireStaffTextareas(){
+    var tableEl=document.getElementById('lbs-table');
+    if(!tableEl)return;
+    tableEl.querySelectorAll('textarea.lbs-cell-ta').forEach(function(ta){
+      lbAutoResizeStaffTa(ta);
+      if(ta.dataset.lbsWired)return;
+      ta.dataset.lbsWired='1';
+      ta.addEventListener('input',function(){lbAutoResizeStaffTa(ta);});
+    });
   }
   function lbRebuildStaffPreserving(rowCount){
     var tableEl=document.getElementById('lbs-table');
@@ -9660,7 +9676,7 @@ function teacherScript() {
       var tds=tr.querySelectorAll('td');
       tds.forEach(function(td,cIdx){
         if(cIdx===0)return;
-        var inp=td.querySelector('input');
+        var inp=td.querySelector('textarea,input');
         if(inp && oldRow[cIdx]!==undefined)inp.value=oldRow[cIdx];
       });
     });
@@ -9675,7 +9691,7 @@ function teacherScript() {
     var rowNum=tbody.children.length+1;
     var tr=document.createElement('tr');
     var html='<td>'+toFaDigits(rowNum)+'</td>';
-    for(var c=1;c<LB_STAFF_HEADERS.length;c++)html+='<td><input type="text"></td>';
+    for(var c=1;c<LB_STAFF_HEADERS.length;c++)html+='<td><textarea class="lbs-cell-ta" rows="1"></textarea></td>';
     tr.innerHTML=html;
     tbody.appendChild(tr);
     lbApplyStaffStyle();
@@ -9699,13 +9715,14 @@ function teacherScript() {
       cell.style.fontWeight='bold';
       cell.style.fontSize=size+'px';
     });
-    // چون input‌های داخل جدول یک قانون CSS جداگانه با اندازه‌ی فونت ثابت دارند،
+    // چون ورودی‌های داخل جدول یک قانون CSS جداگانه با اندازه‌ی فونت ثابت دارند،
     // باید اندازه‌ی فونت روی خودشان هم مستقیماً تنظیم شود وگرنه تغییری دیده نمی‌شود.
-    tableEl.querySelectorAll('input').forEach(function(inp){
+    tableEl.querySelectorAll('textarea').forEach(function(inp){
       inp.style.fontFamily=family;
       inp.style.fontWeight='bold';
       inp.style.fontSize=size+'px';
     });
+    lbWireStaffTextareas();
   }
   document.getElementById('lbs-font').onchange=lbApplyStaffStyle;
   document.getElementById('lbs-font-size').oninput=lbApplyStaffStyle;
@@ -9792,8 +9809,8 @@ function teacherScript() {
       var tds=trs[rIdx]?trs[rIdx].querySelectorAll('td'):[];
       tds.forEach(function(td,cIdx){
         if(cIdx===0)return;
-        var inp=td.querySelector('input');
-        if(inp)td.innerHTML=esc(r[cIdx]||'');
+        var inp=td.querySelector('textarea,input');
+        if(inp)td.innerHTML=esc(r[cIdx]||'').replace(/\n/g,'<br>');
       });
     });
     return head+'<div class="lbs-export-wrap">'+tmp.innerHTML+'</div>';
