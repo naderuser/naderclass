@@ -1105,6 +1105,7 @@ function answerSheetWord(sub) {
 const SHARED_CSS = `
   @font-face{font-family:"BNazanin";src:url(https://cdn.jsdelivr.net/gh/intuxicated/css-persian@master/fonts/BNazanin.ttf);font-weight:bold}
   @font-face{font-family:"BMitra";src:url(https://cdn.jsdelivr.net/gh/intuxicated/css-persian@master/fonts/BMitra.ttf);font-weight:bold}
+  @font-face{font-family:"BTitr";src:url(https://cdn.jsdelivr.net/gh/intuxicated/css-persian@master/fonts/BTitrBold.ttf);font-weight:bold}
   :root{--bg:#f1f5f9;--card:#ffffff;--primary:#1d4ed8;--primary-2:#2563eb;--accent:#0d9488;--muted:#64748b;--line:#e2e8f0;--danger:#dc2626;--text:#0f172a;}
   [data-theme="light"]{--bg:#f1f5f9;--card:#ffffff;--primary:#1d4ed8;--primary-2:#2563eb;--muted:#64748b;--line:#e2e8f0;--text:#0f172a;}
   [data-theme="dark"]{--bg:#0f172a;--card:#1e293b;--primary:#3b82f6;--primary-2:#60a5fa;--muted:#94a3b8;--line:#334155;--text:#f1f5f9;}
@@ -3162,6 +3163,7 @@ function teacherPage() {
           <div><label style="display:block;margin-bottom:4px">تعداد سطر:</label><input type="number" id="tbl-rows" value="5" min="1" max="50" style="width:100px;padding:8px;border:1px solid #ddd;border-radius:6px"></div>
           <div><label style="display:block;margin-bottom:4px">تعداد ستون:</label><input type="number" id="tbl-cols" value="4" min="1" max="20" style="width:100px;padding:8px;border:1px solid #ddd;border-radius:6px"></div>
           <div><label style="display:block;margin-bottom:4px">عنوان جدول:</label><input type="text" id="tbl-title" placeholder="مثال: لیست نمرات" style="width:200px;padding:8px;border:1px solid #ddd;border-radius:6px"></div>
+          <div><label style="display:block;margin-bottom:4px">فونت جدول:</label><select id="tbl-font" style="padding:8px;border:1px solid #ddd;border-radius:6px"><option value="default">پیش‌فرض</option><option value="titr">B Titr</option></select></div>
         </div>
         <label style="display:flex;align-items:center;gap:8px;margin-bottom:12px;cursor:pointer">
           <input type="checkbox" id="tbl-avg-check" checked>
@@ -5014,11 +5016,20 @@ function teacherScript() {
   function xlsCellId(r,c){return 't'+r+'_'+c;}
   function xlsTitleId(c){return 'ht_'+c;}
 
+  // فونت جدول (اعمال روی خودِ <table>؛ چون سلول‌های داخلی font-family را ارث می‌برند، با ساخت/افزودن ردیف جدید هم دوباره اعمال نیاز نیست)
+  var XLS_FONTS={default:'',titr:"'B Titr','BTitr',Tahoma,Arial"};
+  function xlsApplyTableFont(){
+    var key=document.getElementById('tbl-font').value;
+    document.getElementById('custom-table').style.fontFamily=XLS_FONTS[key]||'';
+  }
+  document.getElementById('tbl-font').addEventListener('change',xlsApplyTableFont);
+
   document.getElementById('btn-gen-table').onclick=function(){
     const rows=parseInt(document.getElementById('tbl-rows').value)||5;
     const cols=parseInt(document.getElementById('tbl-cols').value)||4;
     xlsBuildStructure(rows,cols);
     if(document.getElementById('tbl-avg-check').checked)calcAndShowAvg();
+    xlsApplyTableFont();
   };
 
   // ساخت کامل ساختار جدول (هدر + بدنه‌ی خالی) با تعداد سطر/ستون داده‌شده — این تابع همه‌چیز را از نو می‌سازد
@@ -5313,7 +5324,11 @@ function teacherScript() {
   function xlsBuildTableExportHtml(title){
     const showAvg=document.getElementById('tbl-avg-check').checked;
     const {rows, cols, titles, data}=xlsGetData();
-    let style='<style>body{direction:rtl;font-family:tahoma,Arial;padding:20px}table{width:100%;border-collapse:collapse;margin-top:15px}th,td{border:1px solid #333;padding:8px;text-align:center}th{background:#667eea;color:#fff}td:first-child{background:#eee;font-weight:bold}</style>';
+    const fontKey=document.getElementById('tbl-font').value;
+    const fontFamily=fontKey==='titr'?"'B Titr','BTitr',Tahoma,Arial":'tahoma,Arial';
+    let style='<style>';
+    if(fontKey==='titr')style+='@font-face{font-family:"BTitr";src:url(https://cdn.jsdelivr.net/gh/intuxicated/css-persian@master/fonts/BTitrBold.ttf)}';
+    style+='body{direction:rtl;font-family:'+fontFamily+';padding:20px}table{width:100%;border-collapse:collapse;margin-top:15px}th,td{border:1px solid #333;padding:8px;text-align:center;font-family:'+fontFamily+'}th{background:#667eea;color:#fff}td:first-child{background:#eee;font-weight:bold}</style>';
     let h='<h2 style="text-align:center">'+esc(title)+'</h2><table><tr><th>#</th>';
     for(let c=0;c<cols;c++){h+='<th>'+esc(titles[c])+'</th>';}h+='</tr>';
     for(let r=0;r<rows;r++){
