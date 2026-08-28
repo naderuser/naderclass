@@ -171,7 +171,7 @@ function getScheduleHtml(data) {
   
   let header = `<div class="header"><h1>⭐ برنامه هفتگی کلاس ⭐</h1><p>🏫 ${esc(school)} | سال تحصیلی: ${esc(year)}</p><p>کلاس: ${esc(cls)} | آموزگار: ${esc(teacher)}</p></div>`;
   
-  let table = '<table><tr><th style="background:linear-gradient(135deg,#1e293b,#334155);color:#fff;border-bottom:none">روز / زنگ</th>';
+  let table = '<table><tr><th style="background:#fff;color:#1e293b;border-bottom:none">روز / زنگ</th>';
   for (let z = 0; z < 5; z++) {
     table += `<th style="background:#f8fafc;color:#334155">🔔 ${zang[z]}</th>`;
   }
@@ -1040,8 +1040,9 @@ function examSheetWord(d) {
     `<thead><tr><th class="qnum" style="width:8%">ردیف</th><th style="width:80%">سؤال</th><th style="width:12%">${esc(markLabel)}</th></tr></thead>` +
     `<tbody>` +
     rows.map((r, i) => {
-      const sp = parseInt(r.space, 10) || 90;
-      const brCount = Math.max(1, Math.round(sp / 35));
+      const spRaw = parseInt(r.space, 10);
+      const sp = isNaN(spRaw) ? 90 : spRaw;
+      const brCount = sp > 0 ? Math.max(1, Math.round(sp / 35)) : 0;
       return `<tr style="page-break-inside:avoid"><td class="qnum" style="vertical-align:top">${toFaDigitsSrv(i + 1)}</td>` +
         `<td style="vertical-align:top;font-size:${fontSize}pt">${r.q || ""}${"<br>".repeat(brCount)}</td>` +
         `<td style="text-align:center;vertical-align:top">${esc(r.mark || "")}</td></tr>`;
@@ -1102,6 +1103,8 @@ function answerSheetWord(sub) {
 /* ------------------------- استایل مشترک صفحات ------------------------- */
 
 const SHARED_CSS = `
+  @font-face{font-family:"BNazanin";src:url(https://cdn.jsdelivr.net/gh/intuxicated/css-persian@master/fonts/BNazanin.ttf);font-weight:bold}
+  @font-face{font-family:"BMitra";src:url(https://cdn.jsdelivr.net/gh/intuxicated/css-persian@master/fonts/BMitra.ttf);font-weight:bold}
   :root{--bg:#f1f5f9;--card:#ffffff;--primary:#1d4ed8;--primary-2:#2563eb;--accent:#0d9488;--muted:#64748b;--line:#e2e8f0;--danger:#dc2626;--text:#0f172a;}
   [data-theme="light"]{--bg:#f1f5f9;--card:#ffffff;--primary:#1d4ed8;--primary-2:#2563eb;--muted:#64748b;--line:#e2e8f0;--text:#0f172a;}
   [data-theme="dark"]{--bg:#0f172a;--card:#1e293b;--primary:#3b82f6;--primary-2:#60a5fa;--muted:#94a3b8;--line:#334155;--text:#f1f5f9;}
@@ -1261,6 +1264,13 @@ const SHARED_CSS = `
   .lb-diag-cell .lb-diag-bottom{position:absolute;bottom:2px;right:6px;font-size:10px;font-weight:700}
   .lb-table-zebra tbody tr:nth-child(odd){background:#f4f6f8}
   [data-theme="dark"] .lb-table-zebra tbody tr:nth-child(odd){background:#243247}
+  .lb-resize-wrap{position:relative;display:inline-block;max-width:100%}
+  .lb-resize-wrap>.lb-table{width:auto;min-width:100%}
+  .lb-resize-handle{position:absolute;left:-6px;bottom:-6px;width:20px;height:20px;background:var(--primary);border:2px solid #fff;border-radius:6px;cursor:nwse-resize;z-index:5;display:flex;align-items:center;justify-content:center;color:#fff;font-size:12px;box-shadow:0 1px 4px rgba(0,0,0,.25);user-select:none;touch-action:none}
+  .lb-resize-handle:hover{background:var(--primary-2)}
+  .lb-font-toolbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:10px 0}
+  .lb-font-toolbar label{font-weight:700;font-size:13px}
+  .lb-font-toolbar select,.lb-font-toolbar input[type=number]{padding:6px 8px;border:1px solid #cbd5e1;border-radius:6px;font-family:inherit}
   .lb-pacing-table{width:max-content;min-width:100%;border-collapse:collapse;font-size:11px;margin-bottom:22px}
   .lb-pacing-table th,.lb-pacing-table td{border:1px solid #94a3b8;padding:4px 6px;text-align:center}
   .lb-pacing-table th{background:#dbeafe}
@@ -1497,8 +1507,8 @@ const SHARED_CSS = `
   .schedule-table{width:100%;min-width:760px;border-collapse:separate;border-spacing:0}
   .schedule-table th{padding:16px 10px;font-weight:800;text-align:center;font-size:14px;letter-spacing:.2px;border-bottom:2px solid #000}
   [data-theme="dark"] .schedule-table th{border-color:#000}
-  .schedule-table th.sch-corner{background:linear-gradient(135deg,#1e293b,#334155);color:#fff;border-radius:18px 0 0 0}
-  [data-theme="dark"] .schedule-table th.sch-corner{background:linear-gradient(135deg,#0f172a,#1e293b)}
+  .schedule-table th.sch-corner{background:#fff;color:#1e293b;border:1px solid #e2e8f0;border-radius:18px 0 0 0}
+  [data-theme="dark"] .schedule-table th.sch-corner{background:linear-gradient(135deg,#0f172a,#1e293b);color:#fff}
   .schedule-table th.sch-period{background:#f1f5f9;color:#334155;border-left:2px solid #000}
   [data-theme="dark"] .schedule-table th.sch-period{background:#0f172a;color:#e2e8f0;border-color:#000}
   .schedule-table th.sch-period:last-child{border-radius:0 18px 0 0;border-left:none}
@@ -1553,16 +1563,6 @@ const SHARED_CSS = `
   #schedule-table-wrap.theme-girl td.cell-chaharshanbe{background:#ffe4e6}
   [data-theme="dark"] #schedule-table-wrap.theme-girl td.cell-shanbe,[data-theme="dark"] #schedule-table-wrap.theme-girl td.cell-yekshanbe,[data-theme="dark"] #schedule-table-wrap.theme-girl td.cell-doshshanbe,[data-theme="dark"] #schedule-table-wrap.theme-girl td.cell-seshshanbe,[data-theme="dark"] #schedule-table-wrap.theme-girl td.cell-chaharshanbe{background:#3d1730}
 
-  /* تم مشکی: پس‌زمینه مشکی برای روزها با نوشته سفید */
-  #schedule-table-wrap.theme-black .schedule-table th.sch-corner{background:linear-gradient(135deg,#000,#1f2937)}
-  #schedule-table-wrap.theme-black .schedule-table th.sch-period{background:#111827;color:#fff}
-  [data-theme="dark"] #schedule-table-wrap.theme-black .schedule-table th.sch-period{background:#000;color:#fff}
-  #schedule-table-wrap.theme-black .sch-day-accent{background:#fff!important}
-  #schedule-table-wrap.theme-black td[class^="sch-daylabel-"]{background:#000!important;color:#fff!important}
-  #schedule-table-wrap.theme-black td.cell-shanbe,#schedule-table-wrap.theme-black td.cell-yekshanbe,#schedule-table-wrap.theme-black td.cell-doshshanbe,#schedule-table-wrap.theme-black td.cell-seshshanbe,#schedule-table-wrap.theme-black td.cell-chaharshanbe{background:#1f2937;color:#fff}
-  [data-theme="dark"] #schedule-table-wrap.theme-black td.cell-shanbe,[data-theme="dark"] #schedule-table-wrap.theme-black td.cell-yekshanbe,[data-theme="dark"] #schedule-table-wrap.theme-black td.cell-doshshanbe,[data-theme="dark"] #schedule-table-wrap.theme-black td.cell-seshshanbe,[data-theme="dark"] #schedule-table-wrap.theme-black td.cell-chaharshanbe{background:#000}
-  #schedule-table-wrap.theme-black .schedule-table textarea::placeholder{color:#94a3b8}
-
   .schedule-table tr.sch-today td{box-shadow:inset 0 0 0 2px var(--primary)}
   .schedule-table tr.sch-today td:first-child .sch-today-badge{position:absolute;top:2px;left:6px;font-size:9px;background:var(--primary);color:#fff;padding:1px 7px;border-radius:8px;font-weight:700}
   .schedule-table textarea{background:transparent;border:none;width:100%;min-height:50px;text-align:center;font-family:inherit;font-size:13px;color:inherit;resize:vertical;line-height:1.5}
@@ -1607,61 +1607,63 @@ const SHARED_CSS = `
   [data-theme="dark"] .xls-avgrow td{background:#22381f !important;color:#c8e6c9}
   .xls-avgrow td:first-child{text-align:center}
   
-  .ai-chat-container{background:#fff;border-radius:16px;border:1px solid #e5e7eb;overflow:hidden;display:flex;flex-direction:column;height:min(650px,80vh)}
-  [data-theme="dark"] .ai-chat-container{background:#171717;border-color:#333}
-  .ai-header{display:flex;align-items:center;gap:10px;padding:12px 16px;background:#fff;border-bottom:1px solid #e5e7eb;color:#1f2937}
-  [data-theme="dark"] .ai-header{background:#171717;border-color:#333;color:#e5e5e5}
-  .ai-avatar{width:32px;height:32px;background:#da7756;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
+  .ai-chat-container{background:#fff;border-radius:16px;border:1px solid #e5e7eb;overflow:hidden;display:flex;flex-direction:column;height:min(78vh,900px)}
+  [data-theme="dark"] .ai-chat-container{background:#212121;border-color:#333}
+  .ai-header{display:flex;align-items:center;gap:10px;padding:10px 16px;background:#fff;border-bottom:1px solid #ececec;color:#1f2937}
+  [data-theme="dark"] .ai-header{background:#212121;border-color:#2f2f2f;color:#ececec}
+  .ai-avatar{width:28px;height:28px;background:#10a37f;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;color:#fff}
+  [data-theme="dark"] .ai-avatar{background:#19c37d}
   .ai-title{flex:1;min-width:0}
-  .ai-title h3{margin:0;font-size:15px;font-weight:700}
-  .ai-status{font-size:11px;opacity:.6}
+  .ai-title h3{margin:0;font-size:14.5px;font-weight:600}
+  .ai-status{font-size:11px;opacity:.55}
   .ai-mode-select select{padding:8px 12px;border-radius:8px;border:1px solid #e5e7eb;background:#fff;color:#333;font-size:13px;font-weight:600;cursor:pointer}
-  .ai-messages{flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:14px 12px;display:flex;flex-direction:column;gap:16px;background:#fff}
-  [data-theme="dark"] .ai-messages{background:#171717}
-  .ai-message{display:flex;gap:8px;max-width:92%}
-  .ai-message.user{flex-direction:row-reverse;align-self:flex-end;max-width:88%}
-  .ai-message.ai{align-self:flex-start;max-width:100%;width:100%}
-  .ai-message-avatar{width:26px;height:26px;background:#e0e7ff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0}
-  .ai-message.user .ai-message-avatar{display:none}
-  .ai-message.ai .ai-message-avatar{background:#da7756;font-size:13px}
+  .ai-messages{flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:22px 16px;display:flex;flex-direction:column;gap:26px;background:#fff}
+  [data-theme="dark"] .ai-messages{background:#212121}
+  .ai-message{display:flex;gap:0;max-width:768px;width:100%;margin:0 auto}
+  .ai-message.user{flex-direction:row-reverse;align-self:center;justify-content:flex-start}
+  .ai-message.ai{align-self:center;width:100%}
+  .ai-message-avatar{display:none}
   .ai-message-content{background:transparent;border-radius:0;padding:0;box-shadow:none;border:none;min-width:0;flex:1}
-  [data-theme="dark"] .ai-message-content{color:#e5e5e5}
-  .ai-message.user .ai-message-content{background:#f0efec;color:#1f2937;border-radius:18px;padding:9px 14px;flex:0 1 auto}
-  [data-theme="dark"] .ai-message.user .ai-message-content{background:#2a2a2a;color:#e5e5e5}
-  .ai-message-text{line-height:1.6;font-size:14.5px;white-space:pre-wrap;user-select:text;word-break:break-word}
-  .ai-copy-btn{display:inline-flex;align-items:center;gap:4px;margin-top:6px;padding:3px 9px;font-size:11px;font-weight:600;border-radius:999px;border:1px solid #e5e7eb;background:#fff;color:#6b7280;cursor:pointer;transition:all .15s}
-  [data-theme="dark"] .ai-copy-btn{background:#262626;border-color:#404040;color:#a3a3a3}
-  .ai-copy-btn:hover{background:#da7756;color:#fff;border-color:#da7756}
-  .ai-del-btn{display:inline-flex;align-items:center;gap:4px;margin-top:6px;margin-inline-start:6px;padding:3px 9px;font-size:11px;font-weight:600;border-radius:999px;border:1px solid #fecaca;background:#fff;color:#dc2626;cursor:pointer;transition:all .15s}
-  [data-theme="dark"] .ai-del-btn{background:#262626}
+  [data-theme="dark"] .ai-message-content{color:#ececec}
+  .ai-message.user .ai-message-content{background:#f4f4f5;color:#1f2937;border-radius:20px;padding:10px 16px;flex:0 1 auto;max-width:85%}
+  [data-theme="dark"] .ai-message.user .ai-message-content{background:#2f2f2f;color:#ececec}
+  .ai-message-text{line-height:1.75;font-size:15.5px;white-space:pre-wrap;user-select:text;word-break:break-word}
+  .ai-copy-btn{display:inline-flex;align-items:center;gap:4px;margin-top:8px;padding:3px 9px;font-size:11px;font-weight:600;border-radius:999px;border:1px solid #e5e7eb;background:#fff;color:#6b7280;cursor:pointer;transition:all .15s}
+  [data-theme="dark"] .ai-copy-btn{background:#2a2a2a;border-color:#404040;color:#a3a3a3}
+  .ai-copy-btn:hover{background:#10a37f;color:#fff;border-color:#10a37f}
+  .ai-del-btn{display:inline-flex;align-items:center;gap:4px;margin-top:8px;margin-inline-start:6px;padding:3px 9px;font-size:11px;font-weight:600;border-radius:999px;border:1px solid #fecaca;background:#fff;color:#dc2626;cursor:pointer;transition:all .15s}
+  [data-theme="dark"] .ai-del-btn{background:#2a2a2a}
   .ai-del-btn:hover{background:#dc2626;color:#fff;border-color:#dc2626}
   .ai-typing-dots{display:flex;gap:4px;padding:8px 0}
-  .ai-typing-dots span{width:7px;height:7px;background:#da7756;border-radius:50%;animation:typingBounce 1.4s infinite ease-in-out}
+  .ai-typing-dots span{width:7px;height:7px;background:#10a37f;border-radius:50%;animation:typingBounce 1.4s infinite ease-in-out}
   .ai-typing-dots span:nth-child(1){animation-delay:-.32s}
   .ai-typing-dots span:nth-child(2){animation-delay:-.16s}
   @keyframes typingBounce{0%,80%,100%{transform:scale(.6);opacity:.4}40%{transform:scale(1);opacity:1}}
-  .ai-input-area{display:flex;gap:8px;padding:10px 12px;padding-bottom:max(10px,env(safe-area-inset-bottom));border-top:1px solid #e5e7eb;background:#fff;align-items:flex-end}
-  [data-theme="dark"] .ai-input-area{background:#171717;border-color:#333}
-  .ai-input-area textarea{flex:1;padding:11px 14px;border:1px solid #e5e7eb;border-radius:20px;resize:none;font-size:16px;line-height:1.4;max-height:120px;font-family:inherit;background:#fff}
-  [data-theme="dark"] .ai-input-area textarea{background:#262626;border-color:#404040;color:#e5e5e5}
-  .ai-input-area textarea:focus{border-color:#da7756;outline:none}
-  .ai-send-btn{width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:17px;padding:0;flex-shrink:0}
-  .ai-attach-preview{display:flex;align-items:center;gap:10px;padding:8px 14px;background:#f8fafc;border-top:1px solid #e5e7eb;animation:clsDrawerOpen .15s ease-out}
-  [data-theme="dark"] .ai-attach-preview{background:#262626;border-color:#404040}
+  .ai-input-area{display:flex;gap:8px;padding:14px 16px;padding-bottom:max(14px,env(safe-area-inset-bottom));border-top:1px solid #ececec;background:#fff;align-items:flex-end;max-width:768px;width:100%;margin:0 auto;box-sizing:border-box}
+  [data-theme="dark"] .ai-input-area{background:#212121;border-color:#2f2f2f}
+  .ai-input-area textarea{flex:1;padding:12px 16px;border:1px solid #e5e7eb;border-radius:24px;resize:none;font-size:16px;line-height:1.4;max-height:120px;font-family:inherit;background:#f4f4f5}
+  [data-theme="dark"] .ai-input-area textarea{background:#2f2f2f;border-color:#404040;color:#ececec}
+  .ai-input-area textarea:focus{border-color:#10a37f;outline:none;background:#fff}
+  [data-theme="dark"] .ai-input-area textarea:focus{background:#2f2f2f}
+  .ai-send-btn{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;padding:0;flex-shrink:0}
+  #btn-ai-send{background:#10a37f;border-color:#10a37f;color:#fff}
+  #btn-ai-send:hover{background:#0d8f6f}
+  .ai-attach-preview{display:flex;align-items:center;gap:10px;padding:8px 16px;background:#f8fafc;border-top:1px solid #ececec;animation:clsDrawerOpen .15s ease-out;max-width:768px;width:100%;margin:0 auto;box-sizing:border-box}
+  [data-theme="dark"] .ai-attach-preview{background:#2a2a2a;border-color:#2f2f2f}
   .ai-attach-preview span{font-size:12.5px;color:#475569;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   [data-theme="dark"] .ai-attach-preview span{color:#d4d4d4}
   .ai-attach-remove{flex:0 0 auto;width:26px;height:26px;border-radius:50%;border:1px solid #e5e7eb;background:#fff;color:#dc2626;font-size:13px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s}
-  [data-theme="dark"] .ai-attach-remove{background:#171717;border-color:#404040}
+  [data-theme="dark"] .ai-attach-remove{background:#212121;border-color:#404040}
   .ai-attach-remove:hover{background:#dc2626;color:#fff;border-color:#dc2626}
   @media(max-width:640px){
-    .ai-chat-container{height:calc(100vh - 220px);min-height:420px;border-radius:12px}
-    .ai-header{padding:10px 12px}
-    .ai-avatar{width:28px;height:28px;font-size:14px}
-    .ai-title h3{font-size:14px}
-    .ai-messages{padding:10px 8px;gap:14px}
-    .ai-message.user{max-width:94%}
-    .ai-input-area{padding:8px}
-    .ai-input-area textarea{padding:10px 12px}
+    .ai-chat-container{height:calc(100vh - 165px);min-height:480px;border-radius:12px}
+    .ai-header{padding:9px 12px}
+    .ai-avatar{width:26px;height:26px;font-size:13px}
+    .ai-title h3{font-size:13.5px}
+    .ai-messages{padding:16px 10px;gap:20px}
+    .ai-message.user .ai-message-content{max-width:92%}
+    .ai-input-area{padding:10px}
+    .ai-input-area textarea{padding:10px 14px}
   }
   
   .cls-options-drawer{display:flex;flex-direction:column;gap:8px;padding:10px;margin-bottom:12px;background:#f8fafc;border:1px solid var(--line);border-radius:12px;animation:clsDrawerOpen .18s ease-out}
@@ -2526,7 +2528,7 @@ async function studentClassPage(env, id) {
   return html(`<!doctype html><html lang="fa" dir="rtl"><head><meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>کلاس آنلاین</title>${FONT_LINK}<style>${SHARED_CSS}
-    #board{width:100%;background:#fff;border:1px solid var(--line);border-radius:10px;touch-action:none;display:block;margin:0 auto}
+    #board{width:100%;background:#fff;border:1px solid var(--line);border-radius:10px;touch-action:none;display:block;margin:0 auto;cursor:zoom-in}
     .cls-status{display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap}
     .dot{width:10px;height:10px;border-radius:50%;background:#dc2626;display:inline-block}
     .dot.on{background:#16a34a}
@@ -2537,6 +2539,8 @@ async function studentClassPage(env, id) {
     .msg .who{font-size:11px;color:#666;margin-bottom:2px}
     #cls-teacher-video.zoomed{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);width:min(92vw,520px);height:auto;max-height:82vh;max-width:none;aspect-ratio:auto;object-fit:contain;z-index:41;cursor:zoom-out;box-shadow:0 10px 40px rgba(0,0,0,.5);border-radius:10px}
     #cls-video-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:40}
+    #board.zoomed{position:fixed!important;top:50%;left:50%;transform:translate(-50%,-50%);width:min(94vw,900px)!important;height:auto!important;max-height:88vh;z-index:41;cursor:zoom-out;box-shadow:0 10px 40px rgba(0,0,0,.5);border-radius:10px}
+    #cls-board-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:40}
   </style></head>
   <body><div class="wrap">
     ${pageHeader()}
@@ -2562,7 +2566,8 @@ async function studentClassPage(env, id) {
         <div class="cls-sec">
           <div class="cls-sec-head">📝 تخته آنلاین</div>
           <div class="cls-board-box">
-            <canvas id="board" width="900" height="500"></canvas>
+            <canvas id="board" width="900" height="500" title="برای بزرگ‌نمایی کلیک کنید"></canvas>
+            <div id="cls-board-backdrop" class="hidden"></div>
           </div>
           <p class="muted" style="font-size:12px;padding:0 14px 10px">تخته کلاس (و فایل PDF روی آن) توسط معلم کنترل می‌شود. صدای معلم به‌صورت خودکار پخش می‌شود.</p>
         </div>
@@ -2841,6 +2846,16 @@ async function studentClassPage(env, id) {
       vid.addEventListener('click',function(){ vid.classList.contains('zoomed')?closeZoom():openZoom(); });
       backdrop.addEventListener('click',closeZoom);
     })();
+
+    // ===== بزرگ‌نمایی تخته (و فایل PDF روی آن) توسط دانش‌آموز =====
+    (function(){
+      const b=document.getElementById('board');
+      const backdrop=document.getElementById('cls-board-backdrop');
+      function closeZoom(){ b.classList.remove('zoomed'); backdrop.classList.add('hidden'); }
+      function openZoom(){ b.classList.add('zoomed'); backdrop.classList.remove('hidden'); }
+      b.addEventListener('click',function(){ b.classList.contains('zoomed')?closeZoom():openZoom(); });
+      backdrop.addEventListener('click',closeZoom);
+    })();
   </script></body></html>`);
 }
 
@@ -3107,7 +3122,6 @@ function teacherPage() {
           <button class="btn sm sch-theme-btn active" data-theme="default">🌈 پیش‌فرض</button>
           <button class="btn sm sch-theme-btn" data-theme="boy">💙 پسرانه</button>
           <button class="btn sm sch-theme-btn" data-theme="girl">💗 دخترانه</button>
-          <button class="btn sm sch-theme-btn" data-theme="black">🖤 مشکی</button>
         </div>
         <div class="row" style="margin-bottom:16px">
           <input id="sch-school" placeholder="نام مدرسه" style="flex:1">
@@ -3597,8 +3611,11 @@ function teacherPage() {
               <button class="btn sm gray" id="brd-tool-text" style="flex:0 0 auto">🔤 متن</button>
               <button class="btn sm gray" id="brd-tool-eraser" style="flex:0 0 auto">🧽 پاک‌کن</button>
               <button class="btn sm danger" id="brd-clear" style="flex:0 0 auto">🗑️ پاک کردن یادداشت‌ها</button>
+              <button class="btn sm sec" id="brd-zoom" style="flex:0 0 auto" title="بزرگ‌نمایی تخته">🔍 بزرگ‌نمایی</button>
             </div>
             <canvas id="t-board" width="900" height="500" style="width:100%;background:#fff;border:1px solid var(--line);border-radius:10px;touch-action:none;display:block;cursor:crosshair"></canvas>
+            <img id="t-board-zoom-img" class="hidden" style="position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);width:min(94vw,900px);height:auto;max-height:88vh;object-fit:contain;z-index:41;cursor:zoom-out;box-shadow:0 10px 40px rgba(0,0,0,.5);border-radius:10px;background:#fff">
+            <div id="t-board-zoom-backdrop" class="hidden" style="position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:40"></div>
             <video id="t-cam-preview" autoplay muted playsinline class="hidden t-cam-pip"></video>
             <p class="muted" style="font-size:12px;margin-top:6px">روی تخته بکشید؛ ترسیم برای همه دانش‌آموزان متصل به‌صورت زنده نمایش داده می‌شود.</p>
           </div>
@@ -3933,7 +3950,22 @@ function teacherPage() {
             <button class="btn sm sec" id="btn-lbs-build">🔄 ساخت جدول</button>
             <button class="btn sm gray" id="btn-lbs-addrow">➕ افزودن ردیف</button>
           </div>
-          <div class="lb-preview"><table class="lb-table lb-table-zebra" id="lbs-table"></table></div>
+          <div class="lb-font-toolbar">
+            <label>فونت جدول:</label>
+            <select id="lbs-font">
+              <option value="bnazanin">B Nazanin Bold</option>
+              <option value="bmitra">B Mitra</option>
+            </select>
+            <label>اندازه فونت:</label>
+            <input type="number" id="lbs-font-size" min="8" max="40" step="1" value="12" style="width:70px">
+            <span class="muted">برای بزرگ/کوچک کردن کل جدول، گوشه‌ی پایین‌چپ آن را با ماوس بکشید.</span>
+          </div>
+          <div class="lb-preview">
+            <div class="lb-resize-wrap" id="lbs-resize-wrap">
+              <table class="lb-table lb-table-zebra" id="lbs-table"></table>
+              <div class="lb-resize-handle" id="lbs-resize-handle" title="بکشید تا جدول بزرگ/کوچک شود">⤡</div>
+            </div>
+          </div>
           <div class="row" style="margin-top:12px">
             <button class="btn primary" id="btn-lbs-save">💾 ذخیره</button>
             <button class="btn primary" id="btn-lb-staff-word">📄 دانلود Word</button>
@@ -3956,6 +3988,8 @@ function teacherPage() {
               <option value="nazanin">بی‌نازنین Bold</option>
               <option value="titr">بی‌تیتر</option>
             </select>
+            <label style="flex:0 0 auto;font-weight:700">اندازه فونت:</label>
+            <input type="number" id="lbmin-font-size" min="8" max="36" step="1" value="14" style="width:70px;padding:6px;border:1px solid #ddd;border-radius:6px">
           </div>
           <p class="muted" style="text-align:center;font-weight:700;margin:0 0 10px">بسمه‌تعالی</p>
           <div class="lb-meta-form">
@@ -4880,10 +4914,9 @@ function teacherScript() {
       document.querySelectorAll('.sch-theme-btn').forEach(b=>b.classList.remove('active'));
       btn.classList.add('active');
       const wrap=document.getElementById('schedule-table-wrap');
-      wrap.classList.remove('theme-boy','theme-girl','theme-black');
+      wrap.classList.remove('theme-boy','theme-girl');
       if(btn.dataset.theme==='boy')wrap.classList.add('theme-boy');
       if(btn.dataset.theme==='girl')wrap.classList.add('theme-girl');
-      if(btn.dataset.theme==='black')wrap.classList.add('theme-black');
       lbSave('sch-theme',btn.dataset.theme,true);
     };
   });
@@ -4928,10 +4961,9 @@ function teacherScript() {
     const activeThemeBtn=document.querySelector('.sch-theme-btn.active');
     const themeName=activeThemeBtn?activeThemeBtn.dataset.theme:'default';
     const THEMES={
-      default:{corner:['#1e293b','#334155'],periodBg:'#f8fafc',periodColor:'#334155',accent:['#ef4444','#f59e0b','#10b981','#8b5cf6','#06b6d4'],cell:['#fef2f2','#fffbeb','#f0fdf4','#f5f3ff','#ecfeff'],text:'#1e293b',dayText:'#1e293b'},
-      boy:{corner:['#1e3a8a','#2563eb'],periodBg:'#eff6ff',periodColor:'#1e3a8a',accent:['#2563eb','#2563eb','#2563eb','#2563eb','#2563eb'],cell:['#dbeafe','#e0f2fe','#cffafe','#e0e7ff','#dbeafe'],text:'#1e293b',dayText:'#1e293b'},
-      girl:{corner:['#9d174d','#db2777'],periodBg:'#fdf2f8',periodColor:'#9d174d',accent:['#db2777','#db2777','#db2777','#db2777','#db2777'],cell:['#fce7f3','#fdf2f8','#fae8ff','#f3e8ff','#ffe4e6'],text:'#1e293b',dayText:'#1e293b'},
-      black:{corner:['#000','#1f2937'],periodBg:'#111827',periodColor:'#fff',accent:['#fff','#fff','#fff','#fff','#fff'],cell:['#1f2937','#1f2937','#1f2937','#1f2937','#1f2937'],text:'#fff',dayText:'#fff',dayBg:'#000'}
+      default:{corner:['#ffffff','#ffffff'],cornerText:'#1e293b',periodBg:'#f8fafc',periodColor:'#334155',accent:['#ef4444','#f59e0b','#10b981','#8b5cf6','#06b6d4'],cell:['#fef2f2','#fffbeb','#f0fdf4','#f5f3ff','#ecfeff'],text:'#1e293b',dayText:'#1e293b'},
+      boy:{corner:['#1e3a8a','#2563eb'],cornerText:'#fff',periodBg:'#eff6ff',periodColor:'#1e3a8a',accent:['#2563eb','#2563eb','#2563eb','#2563eb','#2563eb'],cell:['#dbeafe','#e0f2fe','#cffafe','#e0e7ff','#dbeafe'],text:'#1e293b',dayText:'#1e293b'},
+      girl:{corner:['#9d174d','#db2777'],cornerText:'#fff',periodBg:'#fdf2f8',periodColor:'#9d174d',accent:['#db2777','#db2777','#db2777','#db2777','#db2777'],cell:['#fce7f3','#fdf2f8','#fae8ff','#f3e8ff','#ffe4e6'],text:'#1e293b',dayText:'#1e293b'}
     };
     const T=THEMES[themeName]||THEMES.default;
     const accentColors=T.accent;
@@ -4946,7 +4978,7 @@ function teacherScript() {
     style+='.daylabel{border-right:5px solid;font-weight:800}';
     style+='.footer{text-align:center;margin-top:30px;padding:20px;border-top:2px dashed #ddd}</style>';
     let header='<div class="header"><h1>⭐ برنامه هفتگی کلاس ⭐</h1><p>🏫 '+esc(school)+' | سال تحصیلی: '+esc(year)+'</p><p>کلاس: '+esc(cls)+' | آموزگار: '+esc(teacher)+'</p></div>';
-    let table='<table><tr><th style="background:linear-gradient(135deg,'+T.corner[0]+','+T.corner[1]+');color:#fff;border-bottom:none">روز / زنگ</th>';
+    let table='<table><tr><th style="background:linear-gradient(135deg,'+T.corner[0]+','+T.corner[1]+');color:'+(T.cornerText||'#fff')+';border-bottom:none">روز / زنگ</th>';
     for(let z=0;z<5;z++){table+='<th style="background:'+T.periodBg+';color:'+T.periodColor+'">🔔 '+zang[z]+'</th>';}
     table+='</tr>';
     for(let d=0;d<5;d++){
@@ -5705,12 +5737,12 @@ function teacherScript() {
     '</div><div><br></div>';
   }
 
-  const ES_SPACE_DEFAULT=90, ES_SPACE_MIN=40, ES_SPACE_MAX=500, ES_SPACE_STEP=20;
+  const ES_SPACE_DEFAULT=90, ES_SPACE_MIN=0, ES_SPACE_MAX=500, ES_SPACE_STEP=20;
 
   function esRenderRows(){
     const tbody=document.getElementById('es-rows');
     tbody.innerHTML=esRows.map(function(r,i){
-      const sp=r.space||ES_SPACE_DEFAULT;
+      const sp=(r.space!=null&&r.space!=='')?r.space:ES_SPACE_DEFAULT;
       const isFirst=i===0, isLast=i===esRows.length-1;
       return '<tr>'+
         '<td class="es-col-num">'+toFaDigits(i+1)+
@@ -5753,7 +5785,7 @@ function teacherScript() {
       el.onclick=function(){
         const i=+this.dataset.i;
         const dir=+this.dataset.dir;
-        let cur=esRows[i].space||ES_SPACE_DEFAULT;
+        let cur=(esRows[i].space!=null&&esRows[i].space!=='')?esRows[i].space:ES_SPACE_DEFAULT;
         cur=Math.max(ES_SPACE_MIN,Math.min(ES_SPACE_MAX,cur+dir*ES_SPACE_STEP));
         esRows[i].space=cur;
         const spEl=tbody.querySelector('.es-answer-space[data-i="'+i+'"]');
@@ -6063,7 +6095,7 @@ function teacherScript() {
       '<table><tr><td>نام درس: '+esc(d.course)+'</td><td>'+esc(d.teacherLabel)+': '+esc(d.teacher)+'</td></tr></table>';
     let q='<table><thead><tr><th class="qnum">ردیف</th><th>سؤال</th><th class="mk">'+esc(d.markLabel)+'</th></tr></thead><tbody>';
     d.rows.forEach(function(r,i){
-      const sp=r.space||90;
+      const sp=(r.space!=null&&r.space!=='')?r.space:90;
       q+='<tr><td class="qnum">'+toFaDigits(i+1)+'</td><td>'+(r.q||'')+'<div style="height:'+sp+'px"></div></td><td style="text-align:center">'+esc(r.mark||'')+'</td></tr>';
     });
     q+='</tbody></table>';
@@ -8232,6 +8264,17 @@ function teacherScript() {
     clsSend({type:'clear'});
   };
 
+  // ===== بزرگ‌نمایی تخته توسط معلم (بدون تداخل با ترسیم) =====
+  (function(){
+    const zoomImg=document.getElementById('t-board-zoom-img');
+    const backdrop=document.getElementById('t-board-zoom-backdrop');
+    function closeZoom(){ zoomImg.classList.add('hidden'); backdrop.classList.add('hidden'); }
+    function openZoom(){ zoomImg.src=tBoard.toDataURL(); zoomImg.classList.remove('hidden'); backdrop.classList.remove('hidden'); }
+    document.getElementById('brd-zoom').onclick=openZoom;
+    zoomImg.addEventListener('click',closeZoom);
+    backdrop.addEventListener('click',closeZoom);
+  })();
+
   function clsAddChat(entry){
     const box=document.getElementById('t-chatBox');
     const cls=entry.role==='teacher'?'teacher':'student';
@@ -9625,6 +9668,7 @@ function teacherScript() {
   document.getElementById('btn-lbs-build').onclick=function(){
     var n=parseInt(document.getElementById('lbs-rows').value,10)||15;
     lbRebuildStaffPreserving(n);
+    lbApplyStaffStyle();
   };
   document.getElementById('btn-lbs-addrow').onclick=function(){
     var tbody=document.querySelector('#lbs-table tbody');
@@ -9636,6 +9680,52 @@ function teacherScript() {
     tbody.appendChild(tr);
   };
   document.getElementById('btn-lbs-build').click();
+
+  // --- فونت و اندازه جدول (زنده روی صفحه) ---
+  var LB_STAFF_FONTS={bnazanin:"'BNazanin','B Nazanin',Tahoma,Arial",bmitra:"'BMitra','B Mitra',Tahoma,Arial"};
+  function lbStaffFontCss(key){return LB_STAFF_FONTS[key]||LB_STAFF_FONTS.bnazanin;}
+  function lbApplyStaffStyle(){
+    var fontKey=document.getElementById('lbs-font').value;
+    var size=parseInt(document.getElementById('lbs-font-size').value,10)||12;
+    var tableEl=document.getElementById('lbs-table');
+    tableEl.style.fontFamily=lbStaffFontCss(fontKey);
+    tableEl.style.fontWeight='bold';
+    tableEl.style.fontSize=size+'px';
+  }
+  document.getElementById('lbs-font').onchange=lbApplyStaffStyle;
+  document.getElementById('lbs-font-size').oninput=lbApplyStaffStyle;
+
+  // --- بزرگ/کوچک کردن جدول با کشیدن گوشه (ماوس و لمسی) ---
+  (function(){
+    var handle=document.getElementById('lbs-resize-handle');
+    var sizeInput=document.getElementById('lbs-font-size');
+    var dragging=false,startX=0,startY=0,startSize=12;
+    function pos(e){return e.touches&&e.touches[0]?{x:e.touches[0].clientX,y:e.touches[0].clientY}:{x:e.clientX,y:e.clientY};}
+    function onDown(e){
+      dragging=true;
+      var p=pos(e);
+      startX=p.x;startY=p.y;
+      startSize=parseInt(sizeInput.value,10)||12;
+      e.preventDefault();
+    }
+    function onMove(e){
+      if(!dragging)return;
+      var p=pos(e);
+      var delta=((p.x-startX)+(p.y-startY))/8;
+      var newSize=Math.max(8,Math.min(40,Math.round(startSize+delta)));
+      sizeInput.value=newSize;
+      lbApplyStaffStyle();
+      e.preventDefault();
+    }
+    function onUp(){dragging=false;}
+    handle.addEventListener('mousedown',onDown);
+    document.addEventListener('mousemove',onMove);
+    document.addEventListener('mouseup',onUp);
+    handle.addEventListener('touchstart',onDown,{passive:false});
+    document.addEventListener('touchmove',onMove,{passive:false});
+    document.addEventListener('touchend',onUp);
+  })();
+
   var LB_STAFF_LOADED=false;
   async function lbLoadStaffIfNeeded(){
     if(LB_STAFF_LOADED)return;
@@ -9645,17 +9735,31 @@ function teacherScript() {
     document.getElementById('lbs-year').value=saved.year||'';
     if(saved.rowCount){document.getElementById('lbs-rows').value=saved.rowCount;document.getElementById('btn-lbs-build').click();}
     if(saved.rows)lbFillTableRows('lbs-table',saved.rows);
+    if(saved.font)document.getElementById('lbs-font').value=saved.font;
+    if(saved.fontSize)document.getElementById('lbs-font-size').value=saved.fontSize;
+    lbApplyStaffStyle();
   }
   document.getElementById('btn-lbs-save').onclick=function(){
     lbSave('staff',{
       year:document.getElementById('lbs-year').value,
       rowCount:parseInt(document.getElementById('lbs-rows').value,10)||15,
-      rows:lbTableToRows(document.getElementById('lbs-table')).slice(1)
+      rows:lbTableToRows(document.getElementById('lbs-table')).slice(1),
+      font:document.getElementById('lbs-font').value,
+      fontSize:document.getElementById('lbs-font-size').value
     });
   };
   function lbStaffExportHtml(){
     var year=document.getElementById('lbs-year').value;
-    var head='<table style="width:100%;border:none;margin-bottom:10px"><tr>'
+    var fontKey=document.getElementById('lbs-font').value;
+    var fontFamily=lbStaffFontCss(fontKey);
+    var fontSize=parseInt(document.getElementById('lbs-font-size').value,10)||12;
+    var head='<style>'
+      +'@font-face{font-family:"BNazanin";src:url(https://cdn.jsdelivr.net/gh/intuxicated/css-persian@master/fonts/BNazanin.ttf)}'
+      +'@font-face{font-family:"BMitra";src:url(https://cdn.jsdelivr.net/gh/intuxicated/css-persian@master/fonts/BMitra.ttf)}'
+      +'.lbs-export-wrap{font-family:'+fontFamily+'}'
+      +'.lbs-export-wrap th,.lbs-export-wrap td{font-family:'+fontFamily+' !important;font-weight:bold !important;font-size:'+fontSize+'px !important;text-align:center !important}'
+      +'</style>';
+    head+='<table style="width:100%;border:none;margin-bottom:10px"><tr>'
       +'<td style="border:none;text-align:right;font-weight:700;font-size:15px">اطلاعات پرسنلی همکاران مدرسه</td>'
       +'<td style="border:none;text-align:left;font-weight:700">سال تحصیلی: '+esc(year)+'</td>'
       +'</tr></table>';
@@ -9673,7 +9777,7 @@ function teacherScript() {
         if(inp)td.innerHTML=esc(r[cIdx]||'');
       });
     });
-    return head+tmp.innerHTML;
+    return head+'<div class="lbs-export-wrap">'+tmp.innerHTML+'</div>';
   }
   document.getElementById('btn-lb-staff-word').onclick=function(){lbWordExport('اطلاعات پرسنلی همکاران مدرسه',lbStaffExportHtml(),'اطلاعات-پرسنلی-همکاران',true);};
   document.getElementById('btn-lb-staff-pdf').onclick=function(){lbPrintExport('اطلاعات پرسنلی همکاران مدرسه',lbStaffExportHtml(),true);};
@@ -9820,15 +9924,16 @@ function teacherScript() {
     var title=document.getElementById('lbmin-title').value;
     var fontKey=document.getElementById('lbmin-font').value;
     var fontFamily=lbMinutesFontCss(fontKey);
+    var fontSize=parseInt(document.getElementById('lbmin-font-size').value,10)||14;
 
     var h='<style>';
     h+='@font-face{font-family:"BNazanin";src:url(https://cdn.jsdelivr.net/gh/intuxicated/css-persian@master/fonts/BNazanin.ttf)}';
     h+='@font-face{font-family:"BTitr";src:url(https://cdn.jsdelivr.net/gh/intuxicated/css-persian@master/fonts/BTitrBold.ttf)}';
     h+='</style>';
-    h+='<div style="font-family:'+fontFamily+';font-weight:bold;width:100%;box-sizing:border-box">';
+    h+='<div style="font-family:'+fontFamily+';font-weight:bold;font-size:'+fontSize+'px;width:100%;box-sizing:border-box">';
     h+='<div style="text-align:left;font-weight:bold;margin:0 0 10px">شماره: '+toFaDigits(esc(num||'.......................'))+'<br>تاریخ: '+toFaDigits(esc(date||'.......................'))+'</div>';
-    h+='<p style="text-align:center;font-weight:bold;font-size:16px;margin:0 0 10px">بسمه‌تعالی</p>';
-    h+='<p style="text-align:center;font-weight:bold;font-size:15px;margin:0 0 10px">'+esc(title||'صورت جلسه')+'</p>';
+    h+='<p style="text-align:center;font-weight:bold;font-size:1.15em;margin:0 0 10px">بسمه‌تعالی</p>';
+    h+='<p style="text-align:center;font-weight:bold;font-size:1.08em;margin:0 0 10px">'+esc(title||'صورت جلسه')+'</p>';
     h+='<table style="width:100%;border-collapse:collapse;table-layout:fixed" class="lb-minutes-table"><tbody>';
     h+='<tr>'
       +'<td colspan="2" style="border:1px solid #333;padding:6px"><b>شماره جلسه:</b> '+toFaDigits(esc(num))+'</td>'
@@ -9857,6 +9962,7 @@ function teacherScript() {
       document.getElementById(id).value='';
     });
     document.getElementById('lbmin-font').value='nazanin';
+    document.getElementById('lbmin-font-size').value='14';
     LB_MIN_DECISIONS=['','','',''];
     LB_MIN_ATTENDEES=[{name:'',role:'',sign:''},{name:'',role:'',sign:''},{name:'',role:'',sign:''},{name:'',role:'',sign:''},
       {name:'',role:'',sign:''},{name:'',role:'',sign:''},{name:'',role:'',sign:''},{name:'',role:'',sign:''}];
@@ -9876,6 +9982,7 @@ function teacherScript() {
       summary:document.getElementById('lbmin-summary').value,
       title:document.getElementById('lbmin-title').value,
       font:document.getElementById('lbmin-font').value,
+      fontSize:document.getElementById('lbmin-font-size').value,
       decisions:LB_MIN_DECISIONS,
       attendees:LB_MIN_ATTENDEES
     });
@@ -9898,6 +10005,7 @@ function teacherScript() {
       document.getElementById('lbmin-summary').value=saved.summary||'';
       document.getElementById('lbmin-title').value=saved.title||'';
       document.getElementById('lbmin-font').value=saved.font||'nazanin';
+      document.getElementById('lbmin-font-size').value=saved.fontSize||'14';
       if(saved.decisions&&saved.decisions.length)LB_MIN_DECISIONS=saved.decisions;
       if(saved.attendees&&saved.attendees.length)LB_MIN_ATTENDEES=saved.attendees;
       lbRenderMinutesDecisions();
