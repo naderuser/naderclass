@@ -3791,6 +3791,14 @@ function teacherPage() {
               <canvas id="lbpr-chart" width="700" height="320" style="max-width:100%;background:#fff;border:1px solid var(--line);border-radius:10px"></canvas>
             </div>
             <p class="muted" style="font-size:12px;text-align:center">رنگ‌بندی نمودار: 🟥 قرمز کم‌رنگ = زیر ۶۰٪ (ضعیف) &nbsp;|&nbsp; 🟦 آبی کم‌رنگ = ۶۰ تا ۸۴٪ (متوسط) &nbsp;|&nbsp; 🟩 سبز کم‌رنگ = ۸۵٪ به بالا (خوب)</p>
+            <div class="row" style="justify-content:center;align-items:center;margin-top:10px">
+              <span style="font-weight:700">🔤 فونت:</span>
+              <select id="lbpr-font" style="padding:8px;border:1px solid #ddd;border-radius:6px;width:auto">
+                <option value="default">پیش‌فرض</option>
+                <option value="titr">B Titr</option>
+                <option value="nazanin">B Nazanin</option>
+              </select>
+            </div>
           </div>
           <div class="row" style="margin-top:12px">
             <button class="btn primary" id="btn-lbpr-save">💾 ذخیره</button>
@@ -8744,16 +8752,24 @@ function teacherScript() {
       return '<b>'+f[0]+':</b> '+esc(val||'.......................')+'&nbsp;&nbsp;&nbsp;&nbsp;';
     }).join('')+'</p>';
   }
-  function lbWordExport(title,bodyHtml,filename,landscape){
+  function lbFontFaceCss(fontFamily){
+    var css='';
+    if(fontFamily&&fontFamily.indexOf('Titr')!==-1)css+='@font-face{font-family:"BTitr";src:url(https://cdn.jsdelivr.net/gh/intuxicated/css-persian@master/fonts/BTitrBold.ttf)}';
+    if(fontFamily&&fontFamily.indexOf('Nazanin')!==-1)css+='@font-face{font-family:"BNazanin";src:url(https://cdn.jsdelivr.net/gh/intuxicated/css-persian@master/fonts/BNazanin.ttf)}';
+    return css;
+  }
+  function lbWordExport(title,bodyHtml,filename,landscape,fontFamily){
     var pageCss=landscape
       ? '@page Section1 {size:29.7cm 21cm;mso-page-orientation:landscape;margin:1.2cm} div.Section1{page:Section1}'
       : '@page Section1 {size:21cm 29.7cm;margin:1.5cm} div.Section1{page:Section1}';
-    var style='<style>'+pageCss+' body{direction:rtl;font-family:tahoma,Arial;padding:6px}h1,h2,h3{text-align:center}table{width:100%;border-collapse:collapse;margin:10px 0}th,td{border:1px solid #333;padding:'+(landscape?'4px':'6px')+';text-align:center;font-size:'+(landscape?'10px':'12px')+'}th{background:#dbeafe}.lb-meta{margin-bottom:14px;font-size:14px}.lb-nowruz{background:#16a34a;color:#fff;font-weight:bold}.lb-table-zebra tbody tr:nth-child(odd){background:#f4f6f8}</style>';
+    var ff=fontFamily||'tahoma,Arial';
+    var style='<style>'+lbFontFaceCss(fontFamily)+pageCss+' body{direction:rtl;font-family:'+ff+';padding:6px}h1,h2,h3{text-align:center}table{width:100%;border-collapse:collapse;margin:10px 0}th,td{border:1px solid #333;padding:'+(landscape?'4px':'6px')+';text-align:center;font-size:'+(landscape?'10px':'12px')+';font-family:'+ff+'}th{background:#dbeafe}.lb-meta{margin-bottom:14px;font-size:14px}.lb-nowruz{background:#16a34a;color:#fff;font-weight:bold}.lb-table-zebra tbody tr:nth-child(odd){background:#f4f6f8}</style>';
     var blob=new Blob(['<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word"><head><meta charset="utf-8">'+style+'<title>'+esc(title)+'</title></head><body><div class="Section1"><h2>'+esc(title)+'</h2>'+bodyHtml+'</div></body></html>'],{type:'application/msword'});
     var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=filename+'.doc';document.body.appendChild(a);a.click();a.remove();
   }
-  function lbPrintExport(title,bodyHtml,landscape){
-    var style='<style>@page{size:A4 '+(landscape===false?'portrait':'landscape')+';margin:8mm}body{direction:rtl;font-family:tahoma,Arial;padding:6px}h1,h2,h3{text-align:center}table{width:100%;border-collapse:collapse;margin:8px 0}th,td{border:1px solid #333;padding:4px;text-align:center;font-size:10px}th{background:#dbeafe}.lb-meta{margin-bottom:10px;font-size:12px}.lb-nowruz{background:#16a34a;color:#fff;font-weight:bold}.lb-table-zebra tbody tr:nth-child(odd){background:#f4f6f8}</style>';
+  function lbPrintExport(title,bodyHtml,landscape,fontFamily){
+    var ff=fontFamily||'tahoma,Arial';
+    var style='<style>'+lbFontFaceCss(fontFamily)+'@page{size:A4 '+(landscape===false?'portrait':'landscape')+';margin:8mm}body{direction:rtl;font-family:'+ff+';padding:6px}h1,h2,h3{text-align:center}table{width:100%;border-collapse:collapse;margin:8px 0}th,td{border:1px solid #333;padding:4px;text-align:center;font-size:10px;font-family:'+ff+'}th{background:#dbeafe}.lb-meta{margin-bottom:10px;font-size:12px}.lb-nowruz{background:#16a34a;color:#fff;font-weight:bold}.lb-table-zebra tbody tr:nth-child(odd){background:#f4f6f8}</style>';
     var w=window.open('','_blank');
     if(!w){toast('اجازه‌ی باز کردن پنجره‌ی چاپ داده نشد (popup blocked)');return;}
     w.document.write('<html><head><meta charset="utf-8">'+style+'<title>'+esc(title)+'</title></head><body><h2>'+esc(title)+'</h2>'+bodyHtml+'</body></html>');
@@ -9176,6 +9192,23 @@ function teacherScript() {
 
   // ===================== درصد قبولی دانش‌آموزان =====================
   var LBPR_GRADE_NAMES=['اول','دوم','سوم','چهارم','پنجم','ششم'];
+  // فونت: پیش‌فرض / B Titr / B Nazanin — اسم اول برای فونت سیستمی (اگر نصب باشد) و اسم دوم برای فونت وب بارگذاری‌شده در SHARED_CSS
+  var LBPR_FONTS={default:'',titr:"'B Titr','BTitr',Tahoma,Arial",nazanin:"'B Nazanin','BNazanin',Tahoma,Arial"};
+  var LBPR_CANVAS_FONTS={default:'Tahoma, Arial',titr:"'B Titr','BTitr',Tahoma,Arial",nazanin:"'B Nazanin','BNazanin',Tahoma,Arial"};
+  function lbprFontKey(){
+    var el=document.getElementById('lbpr-font');
+    return el?el.value:'default';
+  }
+  function lbprFontFamily(){
+    return LBPR_FONTS[lbprFontKey()]||undefined;
+  }
+  function lbprApplyFont(){
+    var key=lbprFontKey();
+    var panel=document.getElementById('lb-panel-passrate');
+    if(panel)panel.style.fontFamily=LBPR_FONTS[key]||'';
+    lbprRecalc();
+  }
+  document.getElementById('lbpr-font').addEventListener('change',lbprApplyFont);
   function lbprColorForPct(pct){
     if(pct<60)return{fill:'#fecaca',border:'#ef4444'};      // قرمز کم‌رنگ - ضعیف
     if(pct<85)return{fill:'#bfdbfe',border:'#3b82f6'};      // آبی کم‌رنگ - متوسط
@@ -9186,6 +9219,7 @@ function teacherScript() {
     if(!canvas)return;
     var ctx=canvas.getContext('2d');
     var w=canvas.width,h=canvas.height;
+    var cvFont=LBPR_CANVAS_FONTS[lbprFontKey()]||'Tahoma, Arial';
     ctx.clearRect(0,0,w,h);
     var padTop=26,padBottom=46,padLeft=44,padRight=20;
     var chartH=h-padTop-padBottom;
@@ -9200,7 +9234,7 @@ function teacherScript() {
       var y=padTop+chartH-(v/100)*chartH;
       ctx.beginPath();ctx.moveTo(padLeft,y);ctx.lineTo(w-padRight,y);ctx.stroke();
       ctx.textAlign='right';
-      ctx.font='11px Tahoma, Arial';
+      ctx.font='11px '+cvFont;
       ctx.fillText(toFaDigits(v),padLeft-6,y+4);
     });
     data.forEach(function(pct,i){
@@ -9215,9 +9249,9 @@ function teacherScript() {
       ctx.strokeRect(x,y,barW,barH);
       ctx.fillStyle='#111827';
       ctx.textAlign='center';
-      ctx.font='bold 13px Tahoma, Arial';
+      ctx.font='bold 13px '+cvFont;
       ctx.fillText(toFaDigits(pct)+'٪',x+barW/2,Math.max(14,y-8));
-      ctx.font='12px Tahoma, Arial';
+      ctx.font='12px '+cvFont;
       ctx.fillStyle='#374151';
       ctx.fillText('پایه '+LBPR_GRADE_NAMES[i],x+barW/2,padTop+chartH+20);
     });
@@ -9252,6 +9286,10 @@ function teacherScript() {
     if(saved){
       document.getElementById('lbpr-school').value=saved.school||'';
       document.getElementById('lbpr-year').value=saved.year||'';
+      if(saved.font){
+        document.getElementById('lbpr-font').value=saved.font;
+        document.getElementById('lb-panel-passrate').style.fontFamily=LBPR_FONTS[saved.font]||'';
+      }
       if(saved.grades){
         saved.grades.forEach(function(row,idx){
           var g=idx+1;
@@ -9271,7 +9309,7 @@ function teacherScript() {
       var passInp=document.querySelector('.lbpr-pass[data-grade="'+g+'"]');
       grades.push({total:totalInp.value,pass:passInp.value});
     }
-    lbSave('passrate',{school:document.getElementById('lbpr-school').value,year:document.getElementById('lbpr-year').value,grades:grades});
+    lbSave('passrate',{school:document.getElementById('lbpr-school').value,year:document.getElementById('lbpr-year').value,font:lbprFontKey(),grades:grades});
     toast('ذخیره شد ✅');
   };
   function lbprExportHtml(){
@@ -9293,8 +9331,8 @@ function teacherScript() {
     h+='<p style="margin-top:10px;font-size:12px">رنگ‌بندی: قرمز کم‌رنگ = زیر ۶۰٪ | آبی کم‌رنگ = ۶۰ تا ۸۴٪ | سبز کم‌رنگ = ۸۵٪ به بالا</p>';
     return h;
   }
-  document.getElementById('btn-lb-passrate-word').onclick=function(){lbWordExport('نمودار درصد قبولی دانش‌آموزان',lbprExportHtml(),'درصد-قبولی-دانش-آموزان',false);};
-  document.getElementById('btn-lb-passrate-pdf').onclick=function(){lbPrintExport('نمودار درصد قبولی دانش‌آموزان',lbprExportHtml(),false);};
+  document.getElementById('btn-lb-passrate-word').onclick=function(){lbWordExport('نمودار درصد قبولی دانش‌آموزان',lbprExportHtml(),'درصد-قبولی-دانش-آموزان',false,lbprFontFamily());};
+  document.getElementById('btn-lb-passrate-pdf').onclick=function(){lbPrintExport('نمودار درصد قبولی دانش‌آموزان',lbprExportHtml(),false,lbprFontFamily());};
   document.getElementById('btn-lb-passrate-excel').onclick=function(){
     var pcts=lbprRecalc();
     lbExcelExport('درصد-قبولی-دانش-آموزان',function(wb){
