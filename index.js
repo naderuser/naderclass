@@ -3125,6 +3125,14 @@ function teacherPage() {
           <button class="btn sm sch-theme-btn" data-theme="boy">💙 پسرانه</button>
           <button class="btn sm sch-theme-btn" data-theme="girl">💗 دخترانه</button>
         </div>
+        <div class="row" style="margin-bottom:16px;align-items:center;gap:10px;flex-wrap:wrap">
+          <span style="font-weight:700">🔤 فونت جدول:</span>
+          <select id="sch-font" style="padding:8px;border:1px solid #ddd;border-radius:6px">
+            <option value="default">پیش‌فرض</option>
+            <option value="nazanin">B Nazanin</option>
+            <option value="titr">B Titr</option>
+          </select>
+        </div>
         <div class="row" style="margin-bottom:16px">
           <input id="sch-school" placeholder="نام مدرسه" style="flex:1">
           <input id="sch-year" placeholder="سال تحصیلی" style="flex:1">
@@ -4149,7 +4157,7 @@ function teacherScript() {
     document.querySelectorAll('.tab-content').forEach(c=>c.classList.add('hidden'));
     document.getElementById('tab-'+t.dataset.tab).classList.remove('hidden');
     if(t.dataset.tab==='tablesorg'){if(typeof loadTableIfNeeded==='function')loadTableIfNeeded();if(typeof loadOrgFormIfNeeded==='function')loadOrgFormIfNeeded();}
-    if(t.dataset.tab==='schedule'){document.getElementById('btn-gen-schedule').click();if(typeof loadScheduleThemeIfNeeded==='function')loadScheduleThemeIfNeeded();}
+    if(t.dataset.tab==='schedule'){document.getElementById('btn-gen-schedule').click();if(typeof loadScheduleThemeIfNeeded==='function')loadScheduleThemeIfNeeded();if(typeof loadScheduleFontIfNeeded==='function')loadScheduleFontIfNeeded();}
     if(t.dataset.tab==='classroom'){renderClassLinks();setTimeout(function(){if(typeof clsResizeBoard==='function')clsResizeBoard();},50);}
     if(t.dataset.tab==='examsheet'){if(typeof loadExamSheetIfNeeded==='function')loadExamSheetIfNeeded();}
   });
@@ -4936,6 +4944,27 @@ function teacherScript() {
     }
   }
 
+  // ===== فونت جدول برنامهٔ هفتگی (پیش‌فرض/نازنین/تیتر) =====
+  var SCH_FONTS={default:'',nazanin:"'B Nazanin','BNazanin',Tahoma,Arial",titr:"'B Titr','BTitr',Tahoma,Arial"};
+  function schApplyTableFont(){
+    var key=document.getElementById('sch-font').value;
+    document.getElementById('schedule-table').style.fontFamily=SCH_FONTS[key]||'';
+  }
+  document.getElementById('sch-font').addEventListener('change',function(){
+    schApplyTableFont();
+    lbSave('sch-font',document.getElementById('sch-font').value,true);
+  });
+  let SCH_FONT_LOADED=false;
+  async function loadScheduleFontIfNeeded(){
+    if(SCH_FONT_LOADED)return;
+    SCH_FONT_LOADED=true;
+    const saved=await lbLoad('sch-font');
+    if(saved){
+      document.getElementById('sch-font').value=saved;
+      schApplyTableFont();
+    }
+  }
+
   document.getElementById('btn-gen-schedule').onclick=function(){
     const body=document.getElementById('schedule-body');
     let html='';
@@ -4954,6 +4983,7 @@ function teacherScript() {
       html+='</tr>';
     }
     body.innerHTML=html;
+    schApplyTableFont();
   };
 
   function getScheduleHtmlForExport(){
@@ -4973,8 +5003,12 @@ function teacherScript() {
     const T=THEMES[themeName]||THEMES.default;
     const accentColors=T.accent;
     const cellColors=T.cell;
-    let style='<style>@font-face{font-family:"BNazanin";src:url(https://cdn.jsdelivr.net/gh/naderuser/bnazanin@main/BNazanin.ttf)}';
-    style+='body{direction:rtl;font-family:"BNazanin",tahoma,Arial;padding:30px;background:#f8fafc}';
+    const fontKeyEl=document.getElementById('sch-font');
+    const fontKey=fontKeyEl?fontKeyEl.value:'default';
+    const exportFontFamily=fontKey==='nazanin'?'"B Nazanin","BNazanin",tahoma,Arial':(fontKey==='titr'?'"B Titr","BTitr",tahoma,Arial':'tahoma,Arial');
+    let style='<style>@font-face{font-family:"BNazanin";src:url(https://cdn.jsdelivr.net/gh/intuxicated/css-persian@master/fonts/BNazanin.ttf)}';
+    style+='@font-face{font-family:"BTitr";src:url(https://cdn.jsdelivr.net/gh/intuxicated/css-persian@master/fonts/BTitrBold.ttf)}';
+    style+='body{direction:rtl;font-family:'+exportFontFamily+';padding:30px;background:#f8fafc}';
     style+='.header{text-align:center;padding:20px;background:#fff;color:#1e293b;border-radius:20px;margin-bottom:20px;border:1.5px solid #e2e8f0}';
     style+='.header h1{font-size:24px;margin:0 0 10px;font-weight:800;letter-spacing:.3px}.header p{margin:5px 0;font-size:14px}';
     style+='table{width:100%;border-collapse:collapse;box-shadow:0 8px 24px rgba(15,23,42,.10);border:1.5px solid #1e293b}';
