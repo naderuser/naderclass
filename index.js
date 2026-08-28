@@ -3186,6 +3186,7 @@ function teacherPage() {
           <button class="btn sec" id="btn-tbl-add-row">➕ افزودن ردیف</button>
           <button class="btn success" id="btn-save-table">💾 ذخیره</button>
           <button class="btn sec" id="btn-word-table">📄 دانلود Word</button>
+          <button class="btn danger" id="btn-pdf-table">📕 دانلود PDF</button>
           <button class="btn gray" id="btn-excel-table">📊 دانلود Excel واقعی (xlsx)</button>
         </div>
         <p class="muted" style="margin-top:6px">نکته: زدن دوباره‌ی «ساخت جدول» کل جدول را از نو می‌سازد و اطلاعات فعلی پاک می‌شود؛ برای افزودن سطر بدون پاک‌شدن اطلاعات، از دکمه‌ی «افزودن ردیف» استفاده کنید. برای حذف یک ستون، روی دکمه‌ی ✖ کنار عنوان همان ستون بزنید.</p>
@@ -5303,10 +5304,17 @@ function teacherScript() {
 
   document.getElementById('btn-word-table').onclick=function(){
     const title=document.getElementById('tbl-title').value||'جدول';
+    const html=xlsBuildTableExportHtml(title);
+    const blob=new Blob(['<html><head><meta charset="utf-8">'+html.style+'</head><body>'+html.body+'</body></html>'],{type:'application/msword'});
+    const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=title+'.doc';document.body.appendChild(a);a.click();a.remove();
+  };
+
+  // ساخت خروجی HTML جدول (استایل + بدنه)، مشترک بین دانلود Word و دانلود PDF
+  function xlsBuildTableExportHtml(title){
     const showAvg=document.getElementById('tbl-avg-check').checked;
     const {rows, cols, titles, data}=xlsGetData();
     let style='<style>body{direction:rtl;font-family:tahoma,Arial;padding:20px}table{width:100%;border-collapse:collapse;margin-top:15px}th,td{border:1px solid #333;padding:8px;text-align:center}th{background:#667eea;color:#fff}td:first-child{background:#eee;font-weight:bold}</style>';
-    let h='<h2 style="text-align:center">'+title+'</h2><table><tr><th>#</th>';
+    let h='<h2 style="text-align:center">'+esc(title)+'</h2><table><tr><th>#</th>';
     for(let c=0;c<cols;c++){h+='<th>'+esc(titles[c])+'</th>';}h+='</tr>';
     for(let r=0;r<rows;r++){
       h+='<tr><td>'+(r+1)+'</td>';
@@ -5319,9 +5327,20 @@ function teacherScript() {
       for(let c=0;c<cols;c++){h+='<td>'+avgCells[c]+'</td>';}h+='</tr>';
     }
     h+='</table>';
-    const blob=new Blob(['<html><head><meta charset="utf-8">'+style+'</head><body>'+h+'</body></html>'],{type:'application/msword'});
-    const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=title+'.doc';document.body.appendChild(a);a.click();a.remove();
+    return {style,body:h};
+  }
+
+  // دانلود PDF: مثل «دانلود PDF» برنامه‌ی هفتگی، جدول را در یک پنجره‌ی جدید باز و از دیالوگ چاپ مرورگر به PDF تبدیل می‌کند
+  document.getElementById('btn-pdf-table').onclick=function(){
+    const title=document.getElementById('tbl-title').value||'جدول';
+    const html=xlsBuildTableExportHtml(title);
+    const w=window.open('','_blank');
+    if(!w){toast('اجازه‌ی باز کردن پنجره‌ی جدید داده نشد؛ لطفاً مسدودکننده‌ی پاپ‌آپ را غیرفعال کنید');return;}
+    w.document.write('<html><head><meta charset="utf-8"><title>'+esc(title)+'</title>'+html.style+'</head><body>'+html.body+'</body></html>');
+    w.document.close();
+    setTimeout(function(){w.print();},500);
   };
+
 
   let exceljsLoading=null;
   function loadExcelJS(){
@@ -6471,6 +6490,8 @@ function teacherScript() {
     if(typeof pdfjsLib==='undefined'){toast('کتابخانه PDF در دسترس نیست');return;}
     toast('⏳ در حال تبدیل صفحات PDF به عکس...');
     try{
+      // کیفیت خروجی طبق اسلایدر «کیفیت خروجی» تنظیم می‌شود؛ قبلاً همیشه روی مقدار ثابت ۹۲٪ بود و اسلایدر هیچ اثری نداشت
+      const outQ=(parseInt(document.getElementById('scan-out-quality')?.value,10)||90)/100;
       const buf=await file.arrayBuffer();
       const doc=await pdfjsLib.getDocument({data:buf}).promise;
       const pages=[];
@@ -6480,7 +6501,7 @@ function teacherScript() {
         const c=document.createElement('canvas');
         c.width=viewport.width;c.height=viewport.height;
         await page.render({canvasContext:c.getContext('2d'),viewport}).promise;
-        pages.push(c.toDataURL('image/jpeg',0.92));
+        pages.push(c.toDataURL('image/jpeg',outQ));
       }
       if(!pages.length){toast('صفحه‌ای در این PDF پیدا نشد');return;}
       scanPdfPages=pages;
@@ -6846,7 +6867,7 @@ function teacherScript() {
   document.getElementById('btn-reset-scan').onclick=()=>{SCANORIG=SCANIMG;scanRotation=0;document.getElementById('scan-bright').value=0;document.getElementById('scan-contrast').value=0;document.getElementById('scan-sharp').value=0;document.getElementById('scan-saturation').value=0;updateFilterValues();document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));document.querySelector('.filter-btn[data-filter="original"]').classList.add('active');applyScan();};
   document.getElementById('btn-remove-scan').onclick=()=>{if(!confirm('عکس فعلی حذف شود؟'))return;SCANIMG=null;SCANORIG=null;scanWarpOriginalImg=null;scanRotation=0;scanPdfPages=[];scanPdfIndex=0;updateScanPdfNav();document.getElementById('scan-controls').classList.add('hidden');document.getElementById('scan-warp-stage').classList.add('hidden');document.getElementById('scan-drop-zone').classList.remove('hidden');document.getElementById('scan-file').value='';document.getElementById('scan-bright').value=0;document.getElementById('scan-contrast').value=0;document.getElementById('scan-sharp').value=0;document.getElementById('scan-saturation').value=0;updateFilterValues();document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));document.querySelector('.filter-btn[data-filter="original"]').classList.add('active');};
   document.getElementById('btn-dl-img').onclick=()=>{if(!SCANORIG){toast('ابتدا عکس را انتخاب کنید');return;}const cv=document.getElementById('scan-canvas');const q=parseInt(document.getElementById('scan-out-quality').value,10)/100;cv.toBlob(blob=>{const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='اسکن.jpg';document.body.appendChild(a);a.click();a.remove();toast('عکس دانلود شد ✅ (حجم فایل حدود '+(blob.size/1024).toFixed(0)+' کیلوبایت)');},'image/jpeg',q);};
-  document.getElementById('btn-dl-pdf').onclick=()=>{if(!SCANORIG){toast('ابتدا عکس را انتخاب کنید');return;}if(!window.jspdf){toast('کتابخانه PDF در دسترس نیست');return;}const cv=document.getElementById('scan-canvas');const img=cv.toDataURL('image/jpeg',0.92);const jsPDF=window.jspdf.jsPDF;const pdf=new jsPDF({orientation:cv.width>=cv.height?'l':'p',unit:'pt',format:'a4'});const pw=pdf.internal.pageSize.getWidth(),ph=pdf.internal.pageSize.getHeight();const m=24,aw=pw-2*m,ah=ph-2*m;let iw=cv.width,ih=cv.height;const ratio=Math.min(aw/iw,ah/ih);iw*=ratio;ih*=ratio;pdf.addImage(img,'JPEG',(pw-iw)/2,(ph-ih)/2,iw,ih);pdf.save('اسکن.pdf');toast('فایل PDF ساخته شد ✅');};
+  document.getElementById('btn-dl-pdf').onclick=()=>{if(!SCANORIG){toast('ابتدا عکس را انتخاب کنید');return;}if(!window.jspdf){toast('کتابخانه PDF در دسترس نیست');return;}const cv=document.getElementById('scan-canvas');const outQ=(parseInt(document.getElementById('scan-out-quality')?.value,10)||90)/100;const img=cv.toDataURL('image/jpeg',outQ);const jsPDF=window.jspdf.jsPDF;const pdf=new jsPDF({orientation:cv.width>=cv.height?'l':'p',unit:'pt',format:'a4'});const pw=pdf.internal.pageSize.getWidth(),ph=pdf.internal.pageSize.getHeight();const m=24,aw=pw-2*m,ah=ph-2*m;let iw=cv.width,ih=cv.height;const ratio=Math.min(aw/iw,ah/ih);iw*=ratio;ih*=ratio;pdf.addImage(img,'JPEG',(pw-iw)/2,(ph-ih)/2,iw,ih);pdf.save('اسکن.pdf');toast('فایل PDF ساخته شد ✅');};
 
   // ===== کاهش حجم =====
   const resizeDropZone=document.getElementById('resize-drop-zone');
@@ -9955,6 +9976,14 @@ function teacherScript() {
         inp.style.fontWeight='bold';
         inp.style.fontSize=size+'px';
       });
+    });
+    // دستور کار جلسه و خلاصه مذاکرات جلسه هم مثل جدول‌ها با همین فونت/اندازه نمایش داده شوند
+    ['lbmin-agenda','lbmin-summary'].forEach(function(id){
+      var ta=document.getElementById(id);
+      if(!ta)return;
+      ta.style.fontFamily=family;
+      ta.style.fontWeight='bold';
+      ta.style.fontSize=size+'px';
     });
   }
   document.getElementById('lbmin-font').addEventListener('change',lbApplyMinutesStyle);
