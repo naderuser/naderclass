@@ -3755,6 +3755,14 @@ function teacherPage() {
               <div class="lbg-box"><span class="lbg-box-label">تعداد دانش‌آموزان دختر</span><span class="lbg-box-val" id="lbg-total-girl">۰</span></div>
               <div class="lbg-box lbg-box-main"><span class="lbg-box-label">تعداد کل دانش‌آموزان مدرسه</span><span class="lbg-box-val" id="lbg-total-all">۰</span></div>
             </div>
+            <div class="row" style="justify-content:center;align-items:center;margin-top:14px">
+              <span style="font-weight:700">🔤 فونت:</span>
+              <select id="lbg-font" style="padding:8px;border:1px solid #ddd;border-radius:6px;width:auto">
+                <option value="default">پیش‌فرض</option>
+                <option value="titr">B Titr</option>
+                <option value="nazanin">B Nazanin</option>
+              </select>
+            </div>
           </div>
           <div class="row" style="margin-top:16px">
             <button class="btn primary" id="btn-lbg-save">💾 ذخیره</button>
@@ -9125,6 +9133,20 @@ function teacherScript() {
       lbgRecalc();
     }
   });
+  // فونت: پیش‌فرض / B Titr / B Nazanin
+  var LBG_FONTS={default:'',titr:"'B Titr','BTitr',Tahoma,Arial",nazanin:"'B Nazanin','BNazanin',Tahoma,Arial"};
+  function lbgFontKey(){
+    var el=document.getElementById('lbg-font');
+    return el?el.value:'default';
+  }
+  function lbgFontFamily(){
+    return LBG_FONTS[lbgFontKey()]||undefined;
+  }
+  document.getElementById('lbg-font').addEventListener('change',function(){
+    var key=lbgFontKey();
+    var sheet=document.querySelector('#lb-panel-genderstats .lbg-sheet');
+    if(sheet)sheet.style.fontFamily=LBG_FONTS[key]||'';
+  });
 
   var LB_GENDERSTATS_LOADED=false;
   async function lbLoadGenderStatsIfNeeded(){
@@ -9134,6 +9156,11 @@ function teacherScript() {
     if(!saved)return;
     document.getElementById('lbg-school').value=saved.school||'';
     document.getElementById('lbg-year').value=saved.year||'';
+    if(saved.font){
+      document.getElementById('lbg-font').value=saved.font;
+      var sheet=document.querySelector('#lb-panel-genderstats .lbg-sheet');
+      if(sheet)sheet.style.fontFamily=LBG_FONTS[saved.font]||'';
+    }
     if(saved.grades){
       saved.grades.forEach(function(row,idx){
         var g=idx+1;
@@ -9152,7 +9179,7 @@ function teacherScript() {
       var girlInp=document.querySelector('.lbg-girl[data-grade="'+g+'"]');
       grades.push({boy:boyInp.value,girl:girlInp.value});
     }
-    lbSave('genderstats',{school:document.getElementById('lbg-school').value,year:document.getElementById('lbg-year').value,grades:grades});
+    lbSave('genderstats',{school:document.getElementById('lbg-school').value,year:document.getElementById('lbg-year').value,font:lbgFontKey(),grades:grades});
   };
   function lbgExportHtml(){
     var school=document.getElementById('lbg-school').value||'.......................';
@@ -9172,8 +9199,8 @@ function teacherScript() {
     h+='<p style="margin-top:16px">تعداد دانش‌آموزان پسر: <b>'+totalBoy+'</b>&nbsp;&nbsp;&nbsp;&nbsp;تعداد دانش‌آموزان دختر: <b>'+totalGirl+'</b>&nbsp;&nbsp;&nbsp;&nbsp;تعداد کل دانش‌آموزان مدرسه: <b>'+(totalBoy+totalGirl)+'</b></p>';
     return h;
   }
-  document.getElementById('btn-lbg-word').onclick=function(){lbWordExport('آمار دانش‌آموزان به تفکیک جنسیت',lbgExportHtml(),'آمار-دانش-آموزان',false);};
-  document.getElementById('btn-lbg-pdf').onclick=function(){lbPrintExport('آمار دانش‌آموزان به تفکیک جنسیت',lbgExportHtml(),false);};
+  document.getElementById('btn-lbg-word').onclick=function(){lbWordExport('آمار دانش‌آموزان به تفکیک جنسیت',lbgExportHtml(),'آمار-دانش-آموزان',false,lbgFontFamily());};
+  document.getElementById('btn-lbg-pdf').onclick=function(){lbPrintExport('آمار دانش‌آموزان به تفکیک جنسیت',lbgExportHtml(),false,lbgFontFamily());};
   document.getElementById('btn-lbg-excel').onclick=function(){
     lbExcelExport('آمار-دانش-آموزان',function(wb){
       var rows=[['پایه','پسر','دختر','مجموع']];
