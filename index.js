@@ -9678,6 +9678,7 @@ function teacherScript() {
     for(var c=1;c<LB_STAFF_HEADERS.length;c++)html+='<td><input type="text"></td>';
     tr.innerHTML=html;
     tbody.appendChild(tr);
+    lbApplyStaffStyle();
   };
 
   // --- فونت و اندازه جدول (زنده روی صفحه) ---
@@ -9686,13 +9687,33 @@ function teacherScript() {
   function lbApplyStaffStyle(){
     var fontKey=document.getElementById('lbs-font').value;
     var size=parseInt(document.getElementById('lbs-font-size').value,10)||12;
+    var family=lbStaffFontCss(fontKey);
     var tableEl=document.getElementById('lbs-table');
-    tableEl.style.fontFamily=lbStaffFontCss(fontKey);
+    // مثل بزرگ‌کردن فونت در ورد: با بزرگ‌تر شدن فونت، فاصله‌ی داخلی سلول‌ها (padding) هم بیشتر می‌شود
+    // تا کل جدول واقعاً بزرگ‌تر و بلندتر دیده شود، نه فقط خود متن.
+    var padV=Math.max(4,Math.round(size*0.5))+'px';
+    var padH=Math.max(4,Math.round(size*0.65))+'px';
+    tableEl.style.fontFamily=family;
     tableEl.style.fontWeight='bold';
     tableEl.style.fontSize=size+'px';
+    tableEl.querySelectorAll('th,td').forEach(function(cell){
+      cell.style.fontFamily=family;
+      cell.style.fontWeight='bold';
+      cell.style.fontSize=size+'px';
+      cell.style.padding=padV+' '+padH;
+    });
+    // چون input‌های داخل جدول یک قانون CSS جداگانه با اندازه‌ی فونت ثابت دارند،
+    // باید اندازه‌ی فونت روی خودشان هم مستقیماً تنظیم شود وگرنه تغییری دیده نمی‌شود.
+    tableEl.querySelectorAll('input').forEach(function(inp){
+      inp.style.fontFamily=family;
+      inp.style.fontWeight='bold';
+      inp.style.fontSize=size+'px';
+    });
   }
   document.getElementById('lbs-font').onchange=lbApplyStaffStyle;
   document.getElementById('lbs-font-size').oninput=lbApplyStaffStyle;
+  document.getElementById('lbs-font-size').onchange=lbApplyStaffStyle;
+  document.getElementById('lbs-font-size').addEventListener('keydown',function(e){if(e.key==='Enter')lbApplyStaffStyle();});
 
   document.getElementById('btn-lbs-build').click();
 
@@ -9930,6 +9951,10 @@ function teacherScript() {
     var h='<style>';
     h+='@font-face{font-family:"BNazanin";src:url(https://cdn.jsdelivr.net/gh/intuxicated/css-persian@master/fonts/BNazanin.ttf)}';
     h+='@font-face{font-family:"BTitr";src:url(https://cdn.jsdelivr.net/gh/intuxicated/css-persian@master/fonts/BTitrBold.ttf)}';
+    // خروجی Word/PDF یک استایل پایه‌ی خودش دارد که روی th,td اندازه‌ی فونت ثابت (مثلاً 12px) می‌گذارد
+    // و چون آن قانون مستقیماً روی خودِ th/td است، بر فونت انتخابی معلم (که فقط روی دیو بیرونی ست می‌شود) غالب می‌شود؛
+    // اینجا با !important و کلاس lb-minutes-table آن را override می‌کنیم تا اندازه‌ی فونت انتخابی واقعاً در خروجی اعمال شود.
+    h+='.lb-minutes-table th,.lb-minutes-table td{font-family:'+fontFamily+' !important;font-weight:bold !important;font-size:'+fontSize+'px !important}';
     h+='</style>';
     h+='<div style="font-family:'+fontFamily+';font-weight:bold;font-size:'+fontSize+'px;width:100%;box-sizing:border-box">';
     h+='<div style="text-align:left;font-weight:bold;margin:0 0 10px">شماره: '+toFaDigits(esc(num||'.......................'))+'<br>تاریخ: '+toFaDigits(esc(date||'.......................'))+'</div>';
