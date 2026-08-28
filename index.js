@@ -3197,6 +3197,7 @@ function teacherPage() {
       <div class="subtab-content hidden" id="tab-orgform">
         <h3>🏫 فرم سازمان عملی</h3>
         <p class="muted">اطلاعات را همین‌جا پر کنید؛ در پایان با یک کلیک فایل اکسل رسمی (با فرمول، دراپ‌داون و هدر ثابت) دقیقاً با همین اطلاعات ساخته می‌شود.</p>
+        <div class="org-field" style="max-width:220px;margin-bottom:10px"><label>فونت فرم</label><select id="org-font"><option value="default">پیش‌فرض</option><option value="titr">B Titr</option></select></div>
 
         <h4 style="margin-top:20px">۱) مشخصات آموزشگاه</h4>
         <div class="org-field-grid">
@@ -3210,8 +3211,8 @@ function teacherPage() {
           <div class="org-field"><label>مقطع</label><input type="text" id="org-level"></div>
           <div class="org-field"><label>کد فضا</label><input type="text" id="org-spacecode"></div>
           <div class="org-field"><label>نوع اداره</label><select id="org-adminType"><option value=""></option><option>دولتی</option><option>غیردولتی</option></select></div>
-          <div class="org-field"><label>وضعیت ساختمان</label><select id="org-buildingStatus"><option value=""></option><option>ملکی</option><option>استیجاری</option><option>سایر</option></select></div>
-          <div class="org-field"><label>وضعیت</label><select id="org-status"><option value=""></option><option>فعال</option><option>غیرفعال</option></select></div>
+          <div class="org-field"><label>وضعیت ساختمان</label><input type="text" id="org-buildingStatus" placeholder="مثال: ملکی"></div>
+          <div class="org-field"><label>وضعیت</label><input type="text" id="org-status" placeholder="مثال: فعال"></div>
           <div class="org-field"><label>نوع ساختمان</label><select id="org-buildingType"><option value=""></option><option>آجری</option><option>بتنی</option><option>سایر</option></select></div>
           <div class="org-field"><label>شماره تلفن</label><input type="text" id="org-phone"></div>
         </div>
@@ -5642,6 +5643,18 @@ function teacherScript() {
     toast('چسبانده شد: '+lines.length+' ردیف ✅');
   });
 
+  // فونت فرم سازمان عملی (روی خودِ ظرف بیرونی و هر چهار جدول اعمال می‌شود؛ چون جدول‌ها با تغییر ردیف بازسازی نمی‌شوند، نیازی به اعمال دوباره نیست)
+  function orgApplyFont(){
+    var key=document.getElementById('org-font').value;
+    var family=key==='titr'?"'B Titr','BTitr',Tahoma,Arial":'';
+    document.getElementById('tab-orgform').style.fontFamily=family;
+    ['org-stat-table','org-special-table','org-staff-table','org-hours-table'].forEach(function(id){
+      var t=document.getElementById(id);
+      if(t)t.style.fontFamily=family;
+    });
+  }
+  document.getElementById('org-font').addEventListener('change',orgApplyFont);
+
   let ORG_FORM_LOADED=false;
   async function loadOrgFormIfNeeded(){
     orgRenderStatTable();
@@ -6226,7 +6239,7 @@ function teacherScript() {
         ['کد آموزشگاه','text','schoolcode'],['نام مدیر','text','principal'],
         ['جنسیت','list','gender',['پسر','دختر','مختلط']],['مقطع','text','level'],
         ['کد فضا','text','spacecode'],['نوع اداره','list','adminType',['دولتی','غیردولتی']],
-        ['وضعیت ساختمان','list','buildingStatus',['ملکی','استیجاری','سایر']],['وضعیت','list','status',['فعال','غیرفعال']],
+        ['وضعیت ساختمان','text','buildingStatus'],['وضعیت','text','status'],
         ['نوع ساختمان','list','buildingType',['آجری','بتنی','سایر']],['شماره تلفن','text','phone']
       ];
       let r=3;
