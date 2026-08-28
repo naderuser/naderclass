@@ -7728,8 +7728,12 @@ function teacherScript() {
         statusEl.textContent='در حال استخراج متن صفحه '+i+' از '+pdf2wordDoc.numPages+'...';
         btn.textContent='⏳ '+i+'/'+pdf2wordDoc.numPages;
         const blocks=await extractPdfPageBlocks(i);
-        const pageBreak=i>1?'style="page-break-before:always"':'';
-        bodyHtml+='<div '+pageBreak+'>';
+        // نکتهٔ مهم: page-break-before:always روی <div> توسط Word به‌صورت قابل‌اعتماد تفسیر نمی‌شود (بسته به نسخهٔ
+        // Word/فونت نصب‌شده می‌تواند صفحه‌ها را با هم ادغام کند یا برعکس باعث افزایش غیرمنتظرهٔ تعداد صفحه شود).
+        // به‌جای آن از نشانهٔ استاندارد و قابل‌اعتماد Word برای شکست صفحه استفاده می‌شود (<br> با mso-special-character)
+        // که در فایل‌های Word/HTML همیشه به‌عنوان یک شکست صفحهٔ واقعی شناسایی می‌شود.
+        if(i>1)bodyHtml+='<br clear="all" style="mso-special-character:line-break;page-break-before:always">';
+        bodyHtml+='<div>';
         if(blocks.length===0){
           bodyHtml+='<p style="color:#999">[این صفحه متن قابل استخراج ندارد — احتمالاً عکس یا اسکن است]</p>';
         }else{
@@ -7759,9 +7763,14 @@ function teacherScript() {
       }
       const htmlDoc='<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">'+
         '<head><meta charset="utf-8"><title>'+escapeHtml(pdf2wordFileName)+'</title>'+
-        '<!--[if gte mso 9]><xml><w:WordDocument><w:View>Print</w:View><w:Zoom>100</w:Zoom></w:WordDocument></xml><![endif]-->'+
-        '<style>@page{size:21cm 29.7cm;margin:2cm}body{font-family:"B Nazanin","Vazirmatn","Tahoma",sans-serif;font-size:14pt;direction:rtl;text-align:right}p{margin:0 0 6px 0}table{margin:0 0 6px 0}</style>'+
-        '</head><body dir="rtl">'+bodyHtml+'</body></html>';
+        '<!--[if gte mso 9]><xml><w:WordDocument><w:View>Print</w:View><w:Zoom>100</w:Zoom><w:DoNotOptimizeForBrowser/></w:WordDocument></xml><![endif]-->'+
+        '<style>'+
+        '@page WordSection1{size:21cm 29.7cm;margin:2cm;mso-page-orientation:portrait}'+
+        'div.WordSection1{page:WordSection1}'+
+        '@page{size:21cm 29.7cm;margin:2cm}'+
+        'body{font-family:"B Nazanin","Vazirmatn","Tahoma",sans-serif;font-size:14pt;direction:rtl;text-align:right}'+
+        'p{margin:0 0 6px 0}table{margin:0 0 6px 0}</style>'+
+        '</head><body dir="rtl"><div class="WordSection1">'+bodyHtml+'</div></body></html>';
       pdf2wordBlob=new Blob(['\ufeff'+htmlDoc],{type:'application/msword'});
       let doneMsg='✅ تبدیل انجام شد — '+pdf2wordDoc.numPages+' صفحه استخراج شد.';
       if(ocrFixCount>0)doneMsg+=' ('+ocrFixCount+' بخش با فونت خراب توسط OCR ترمیم شد'+(ocrFailCount>0?'، '+ocrFailCount+' مورد نیاز به بازبینی دستی دارد':'')+')';
