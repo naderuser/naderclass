@@ -1855,6 +1855,10 @@ async function studentPage(env, id) {
         <select id="rc-view-month" style="flex:0 0 auto;min-width:140px"></select>
       </div>
       <div id="rc-view-content" style="margin-top:14px"></div>
+      <div class="row hidden" id="rc-view-download-row" style="margin-top:10px;flex-wrap:wrap;gap:8px">
+        <button class="btn sec sm" id="btn-rc-view-word">📄 دانلود Word</button>
+        <button class="btn sec sm" id="btn-rc-view-pdf">🖨️ چاپ / دانلود PDF</button>
+      </div>
       <button class="btn sec" id="btn-rc-view-back" style="margin-top:14px">↩️ بازگشت</button>
     </div>
 
@@ -2000,11 +2004,20 @@ async function studentPage(env, id) {
     // ===== مشاهده‌ی کارنامه‌ی ماهیانه توسط دانش‌آموز =====
     const RC_MONTHS=['مهر','آبان','آذر','دی','بهمن','اسفند','فروردین','اردیبهشت'];
     const RC_LEVEL_LABELS={excellent:'🌟 خیلی خوب',good:'✅ خوب',acceptable:'📌 قابل‌قبول','needs-improve':'📖 نیاز به تلاش'};
+    const RC_FONTS={default:'',titr:"'B Titr','BTitr',Tahoma,Arial",nazanin:"'B Nazanin','BNazanin',Tahoma,Arial"};
+    function rcFontFaceCss(fontFamily){
+      var css='';
+      if(fontFamily&&fontFamily.indexOf('Titr')!==-1)css+='@font-face{font-family:"BTitr";src:url(https://cdn.jsdelivr.net/gh/intuxicated/css-persian@master/fonts/BTitrBold.ttf)}';
+      if(fontFamily&&fontFamily.indexOf('Nazanin')!==-1)css+='@font-face{font-family:"BNazanin";src:url(https://cdn.jsdelivr.net/gh/intuxicated/css-persian@master/fonts/BNazanin.ttf)}';
+      return css;
+    }
     let RC_MONTHS_DATA={};
+    let RC_CURRENT_MONTH='';
     async function loadReportCardMonths(){
       const sel=document.getElementById('rc-view-month');
       sel.innerHTML='<option value="">در حال بارگذاری...</option>';
       document.getElementById('rc-view-content').innerHTML='';
+      document.getElementById('rc-view-download-row').classList.add('hidden');
       try{
         const res=await fetch('/api/student/reportcard/'+encodeURIComponent(ID));
         const j=await res.json();
@@ -2032,7 +2045,9 @@ async function studentPage(env, id) {
     function renderReportCardMonth(month){
       const rec=RC_MONTHS_DATA[month];
       const el=document.getElementById('rc-view-content');
-      if(!rec){ el.innerHTML='<p class="muted">اطلاعاتی برای این ماه ثبت نشده.</p>'; return; }
+      const downloadRow=document.getElementById('rc-view-download-row');
+      if(!rec){ el.innerHTML='<p class="muted">اطلاعاتی برای این ماه ثبت نشده.</p>'; downloadRow.classList.add('hidden'); return; }
+      RC_CURRENT_MONTH=month;
       let h='';
       if(rec.photo)h+='<img src="'+rec.photo+'" style="width:70px;height:70px;border-radius:50%;object-fit:cover;border:1px solid #94a3b8;margin-bottom:10px">';
       h+='<p><b>نام مدرسه:</b> '+esc((rec.meta&&rec.meta.school)||'—')+'</p>';
@@ -2049,7 +2064,35 @@ async function studentPage(env, id) {
       h+='</table>';
       if(rec.generalNote)h+='<p style="margin-top:10px"><b>توضیحات کلی معلم:</b><br>'+esc(rec.generalNote)+'</p>';
       el.innerHTML=h;
+      downloadRow.classList.remove('hidden');
     }
+    function rcViewFontFamily(){
+      const rec=RC_MONTHS_DATA[RC_CURRENT_MONTH];
+      return (rec&&RC_FONTS[rec.font])||undefined;
+    }
+    document.getElementById('btn-rc-view-word').onclick=function(){
+      const rec=RC_MONTHS_DATA[RC_CURRENT_MONTH];
+      if(!rec)return;
+      const bodyHtml=document.getElementById('rc-view-content').innerHTML;
+      const title='کارنامه‌ی توصیفی - ماه '+RC_CURRENT_MONTH;
+      const ff=rcViewFontFamily()||'tahoma,Arial';
+      const style='<style>'+rcFontFaceCss(ff)+'@page Section1 {size:21cm 29.7cm;margin:1.5cm} div.Section1{page:Section1} body{direction:rtl;font-family:'+ff+';padding:6px}h1,h2,h3{text-align:center}table{width:100%;border-collapse:collapse;margin:10px 0}th,td{border:1px solid #333;padding:6px;text-align:center;font-size:12px;font-family:'+ff+'}th{background:#dbeafe}</style>';
+      const blob=new Blob(['<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word"><head><meta charset="utf-8">'+style+'<title>'+esc(title)+'</title></head><body><div class="Section1"><h2>'+esc(title)+'</h2>'+bodyHtml+'</div></body></html>'],{type:'application/msword'});
+      const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='کارنامه-'+RC_CURRENT_MONTH+'.doc';document.body.appendChild(a);a.click();a.remove();
+    };
+    document.getElementById('btn-rc-view-pdf').onclick=function(){
+      const rec=RC_MONTHS_DATA[RC_CURRENT_MONTH];
+      if(!rec)return;
+      const bodyHtml=document.getElementById('rc-view-content').innerHTML;
+      const title='کارنامه‌ی توصیفی - ماه '+RC_CURRENT_MONTH;
+      const ff=rcViewFontFamily()||'tahoma,Arial';
+      const style='<style>'+rcFontFaceCss(ff)+'@page{size:A4 portrait;margin:10mm}body{direction:rtl;font-family:'+ff+';padding:6px}h1,h2,h3{text-align:center}table{width:100%;border-collapse:collapse;margin:8px 0}th,td{border:1px solid #333;padding:6px;text-align:center;font-size:12px;font-family:'+ff+'}th{background:#dbeafe}</style>';
+      const w=window.open('','_blank');
+      if(!w){toast('اجازه‌ی باز کردن پنجره‌ی چاپ داده نشد (popup blocked)');return;}
+      w.document.write('<html><head><meta charset="utf-8">'+style+'<title>'+esc(title)+'</title></head><body><h2>'+esc(title)+'</h2>'+bodyHtml+'</body></html>');
+      w.document.close();
+      setTimeout(function(){w.print();},500);
+    };
 
     function renderResult(res){
       document.getElementById('step-exam').classList.add('hidden');
