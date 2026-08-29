@@ -11266,7 +11266,7 @@ function teacherScript() {
     evs.forEach(function(e){
       var tr=document.createElement('tr');
       var typeTxt=e.delta>0?'<span style="color:#15803d;font-weight:700">➕ مثبت</span>':'<span style="color:#dc2626;font-weight:700">➖ منفی</span>';
-      tr.innerHTML='<td>'+esc(behLabelOf(e.uuid))+'</td><td>'+toFaDigits(e.day)+'</td><td>'+typeTxt+'</td><td>'+esc(e.reason||'—')+'</td><td><button class="btn sm danger" type="button" onclick="lbBehDeleteEvent(\''+e.id+'\')">🗑️</button></td>';
+      tr.innerHTML='<td>'+esc(behLabelOf(e.uuid))+'</td><td>'+toFaDigits(e.day)+'</td><td>'+typeTxt+'</td><td>'+esc(e.reason||'—')+'</td><td><button class="btn sm danger" type="button" onclick="lbBehDeleteEvent(\\''+e.id+'\\')">🗑️</button></td>';
       tbody.appendChild(tr);
     });
   }
