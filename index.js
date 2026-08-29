@@ -1265,6 +1265,28 @@ const SHARED_CSS = `
   .lb-menu-btn .lb-t{font-weight:700;font-size:14px}
   .lb-menu-btn small{color:var(--muted);font-size:11px}
   .lb-panel{margin-top:8px}
+  .lb-cert-wrap{display:flex;gap:20px;flex-wrap:wrap;align-items:flex-start;margin-top:10px}
+  .lb-cert-form{flex:1 1 320px;min-width:280px;display:flex;flex-direction:column;gap:8px}
+  .lb-cert-form label{font-weight:700;font-size:13px;margin-top:4px}
+  .lb-cert-templates{display:flex;gap:8px;flex-wrap:wrap}
+  .lb-cert-tpl-btn{padding:8px 14px;border-radius:10px;border:1.5px solid var(--line);background:#f8fafc;cursor:pointer;font-family:inherit;font-weight:700;font-size:13px}
+  .lb-cert-tpl-btn.active{border-color:var(--primary);box-shadow:0 0 0 2px var(--primary) inset}
+  .lb-cert-preview-wrap{flex:1 1 460px;min-width:320px;display:flex;justify-content:center}
+  .lb-cert-sheet{position:relative;width:100%;max-width:640px;aspect-ratio:1.41/1;box-sizing:border-box;padding:26px;border-radius:6px;font-family:tahoma,Arial;text-align:center;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;overflow:hidden}
+  .lb-cert-sheet::before{content:'';position:absolute;inset:10px;border:2.5px solid var(--cert-accent,#b8860b);border-radius:4px;pointer-events:none}
+  .lb-cert-sheet::after{content:'';position:absolute;inset:16px;border:1px solid var(--cert-accent,#b8860b);border-radius:2px;pointer-events:none;opacity:.6}
+  .lb-cert-sheet .cert-badge{font-size:44px;line-height:1}
+  .lb-cert-sheet .cert-kind{font-size:26px;font-weight:800;color:var(--cert-accent,#b8860b);margin:0}
+  .lb-cert-sheet .cert-school{font-size:13px;font-weight:700;color:#475569;margin:0}
+  .lb-cert-sheet .cert-intro{font-size:13px;color:#334155;margin:6px 0 0}
+  .lb-cert-sheet .cert-name{font-size:30px;font-weight:800;color:#1e293b;margin:4px 0;font-family:"BTitr","B Titr",tahoma,Arial;border-bottom:2px solid var(--cert-accent,#b8860b);padding-bottom:6px;display:inline-block}
+  .lb-cert-sheet .cert-reason{font-size:13.5px;color:#334155;max-width:88%;line-height:1.9}
+  .lb-cert-sheet .cert-footer{display:flex;justify-content:space-between;width:88%;margin-top:18px;font-size:12px;color:#475569;font-weight:700}
+  .lb-cert-gold{background:linear-gradient(135deg,#fffdf5,#fdf6e3);--cert-accent:#b8860b}
+  .lb-cert-blue{background:linear-gradient(135deg,#f3f8ff,#e6f0ff);--cert-accent:#1d4ed8}
+  .lb-cert-green{background:linear-gradient(135deg,#f3fdf6,#e5f9ec);--cert-accent:#15803d}
+  .lb-cert-purple{background:linear-gradient(135deg,#faf5ff,#f1e6ff);--cert-accent:#7e22ce}
+  [data-theme="dark"] .lb-cert-tpl-btn{background:#0f172a}
   .lb-meta-form{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;margin:14px 0}
   .lb-meta-form label{display:block;font-size:12px;color:var(--muted);margin-bottom:3px}
   .lb-meta-form input{width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:8px;font-family:inherit}
@@ -3832,6 +3854,7 @@ function teacherPage() {
             <button class="lb-menu-btn" data-lb="weekly2"><span class="lb-ico">🗓️</span><span class="lb-t">برنامه درسی هفتگی (تک‌پایه)</span></button>
             <button class="lb-menu-btn" data-lb="staff"><span class="lb-ico">🧑‍🏫</span><span class="lb-t">اطلاعات پرسنلی همکاران مدرسه</span></button>
             <button class="lb-menu-btn" data-lb="minutes"><span class="lb-ico">📝</span><span class="lb-t">صورتجلسه</span><small>فرم عمومی صورتجلسه مدرسه</small></button>
+            <button class="lb-menu-btn" data-lb="certificate"><span class="lb-ico">🏆</span><span class="lb-t">تقدیرنامه‌ساز</span><small>قالب آماده برای چاپ با اسم و دلیل تشویق</small></button>
           </div>
         </div>
 
@@ -4329,6 +4352,53 @@ function teacherPage() {
           </div>
         </div>
 
+        <!-- ===== تقدیرنامه‌ساز ===== -->
+        <div class="lb-panel hidden" id="lb-panel-certificate">
+          <button class="btn sm gray lb-back-btn">← بازگشت به دفتر</button>
+          <h3>🏆 تقدیرنامه‌ساز</h3>
+          <div class="lb-cert-wrap">
+            <div class="lb-cert-form">
+              <label>نام مدرسه</label>
+              <input id="cert-school" placeholder=".......................">
+              <label>عنوان سند</label>
+              <select id="cert-kind">
+                <option value="تقدیرنامه">تقدیرنامه</option>
+                <option value="لوح تقدیر">لوح تقدیر</option>
+                <option value="گواهی افتخار">گواهی افتخار</option>
+                <option value="کارت تشویقی">کارت تشویقی</option>
+              </select>
+              <label>دانش‌آموز</label>
+              <div class="row" style="gap:8px">
+                <select id="cert-student-select" style="flex:1"><option value="">— انتخاب از لیست دانش‌آموزان —</option></select>
+              </div>
+              <input id="cert-name" placeholder="یا نام را اینجا مستقیم تایپ کنید" style="margin-top:6px">
+              <label>متن مقدمه</label>
+              <input id="cert-intro" placeholder="این تقدیرنامه به پاس ...">
+              <label>دلیل تشویق</label>
+              <textarea id="cert-reason" rows="3" class="lb-textarea" placeholder="مثلاً: کسب رتبه‌ی اول در مسابقات علمی کلاس، تلاش و پشتکار در طول سال تحصیلی و ..."></textarea>
+              <div class="lb-meta-form">
+                <div><label>اعطاکننده (معلم/مدیر)</label><input id="cert-issuer" placeholder="......................."></div>
+                <div><label>تاریخ</label><input id="cert-date" placeholder="......................."></div>
+              </div>
+              <label>قالب رنگی</label>
+              <div class="lb-cert-templates">
+                <button type="button" class="lb-cert-tpl-btn active" data-tpl="gold">🟡 طلایی</button>
+                <button type="button" class="lb-cert-tpl-btn" data-tpl="blue">🔵 آبی</button>
+                <button type="button" class="lb-cert-tpl-btn" data-tpl="green">🟢 سبز</button>
+                <button type="button" class="lb-cert-tpl-btn" data-tpl="purple">🟣 بنفش</button>
+              </div>
+            </div>
+            <div class="lb-cert-preview-wrap">
+              <div id="cert-preview" class="lb-cert-sheet lb-cert-gold"></div>
+            </div>
+          </div>
+          <div class="row" style="margin-top:14px">
+            <button class="btn primary" id="btn-cert-save">💾 ذخیره</button>
+            <button class="btn primary" id="btn-cert-word">📄 دانلود Word</button>
+            <button class="btn gray" id="btn-cert-pdf">🖨️ چاپ / دانلود PDF</button>
+            <button class="btn danger" type="button" id="btn-cert-clear">🗑️ پاک کردن فرم</button>
+          </div>
+        </div>
 
       </div>
 
@@ -8962,6 +9032,7 @@ function teacherScript() {
       if(b.dataset.lb==='weekly2')lbLoadWeekly2IfNeeded();
       if(b.dataset.lb==='staff')lbLoadStaffIfNeeded();
       if(b.dataset.lb==='minutes')lbLoadMinutesIfNeeded();
+      if(b.dataset.lb==='certificate')lbLoadCertificateIfNeeded();
     };
   });
   document.querySelectorAll('.lb-back-btn').forEach(function(b){
@@ -10877,6 +10948,134 @@ function teacherScript() {
       lbRenderMinutesDecisions();
       lbRenderMinutesAttendees();
     }
+  }
+
+  /* ---- تقدیرنامه‌ساز ---- */
+  var CERT_TPL='gold';
+  var CERT_STUDENTS_LOADED=false;
+  async function lbCertLoadStudentsIfNeeded(){
+    if(CERT_STUDENTS_LOADED)return;
+    CERT_STUDENTS_LOADED=true;
+    try{
+      var d=await api('/api/teacher/students');
+      var sel=document.getElementById('cert-student-select');
+      (d.students||[]).forEach(function(s){
+        var opt=document.createElement('option');
+        opt.value=s.uuid;opt.textContent=s.label;
+        opt.dataset.label=s.label;
+        sel.appendChild(opt);
+      });
+    }catch(e){}
+  }
+  document.getElementById('cert-student-select').addEventListener('change',function(){
+    var opt=this.selectedOptions[0];
+    if(opt&&opt.dataset.label)document.getElementById('cert-name').value=opt.dataset.label;
+    lbCertRenderPreview();
+  });
+  document.querySelectorAll('.lb-cert-tpl-btn').forEach(function(b){
+    b.onclick=function(){
+      document.querySelectorAll('.lb-cert-tpl-btn').forEach(function(x){x.classList.remove('active');});
+      b.classList.add('active');
+      CERT_TPL=b.dataset.tpl;
+      lbCertRenderPreview();
+    };
+  });
+  ['cert-school','cert-kind','cert-name','cert-intro','cert-reason','cert-issuer','cert-date'].forEach(function(id){
+    var el=document.getElementById(id);
+    el.addEventListener('input',lbCertRenderPreview);
+    el.addEventListener('change',lbCertRenderPreview);
+  });
+  function lbCertBadge(tpl){
+    return {gold:'🏆',blue:'🎖️',green:'🌿',purple:'🎗️'}[tpl]||'🏆';
+  }
+  function lbCertData(){
+    return {
+      school:document.getElementById('cert-school').value,
+      kind:document.getElementById('cert-kind').value,
+      name:document.getElementById('cert-name').value,
+      intro:document.getElementById('cert-intro').value,
+      reason:document.getElementById('cert-reason').value,
+      issuer:document.getElementById('cert-issuer').value,
+      date:document.getElementById('cert-date').value,
+      tpl:CERT_TPL
+    };
+  }
+  function lbCertInnerHtml(d,forExport){
+    var badge=lbCertBadge(d.tpl);
+    var h='';
+    h+='<div class="cert-badge">'+badge+'</div>';
+    h+='<p class="cert-kind">'+esc(d.kind||'تقدیرنامه')+'</p>';
+    if(d.school)h+='<p class="cert-school">'+esc(d.school)+'</p>';
+    h+='<p class="cert-intro">'+esc(d.intro||'این سند به پاس تلاش و شایستگی به')+'</p>';
+    h+='<div class="cert-name">'+esc(d.name||'.......................')+'</div>';
+    h+='<p class="cert-reason">'+esc(d.reason||'')+'</p>';
+    h+='<div class="cert-footer"><span>'+esc(d.date?('تاریخ: '+d.date):'')+'</span><span>'+esc(d.issuer?('اعطاکننده: '+d.issuer):'')+'</span></div>';
+    return h;
+  }
+  function lbCertRenderPreview(){
+    var d=lbCertData();
+    var el=document.getElementById('cert-preview');
+    el.className='lb-cert-sheet lb-cert-'+d.tpl;
+    el.innerHTML=lbCertInnerHtml(d,false);
+  }
+  function lbCertExportHtml(){
+    var d=lbCertData();
+    var accents={gold:'#b8860b',blue:'#1d4ed8',green:'#15803d',purple:'#7e22ce'};
+    var bgs={gold:'#fdf6e3',blue:'#e6f0ff',green:'#e5f9ec',purple:'#f1e6ff'};
+    var accent=accents[d.tpl]||accents.gold;
+    var bg=bgs[d.tpl]||bgs.gold;
+    var badge=lbCertBadge(d.tpl);
+    var h='<div style="width:100%;box-sizing:border-box;padding:26px;border:3px solid '+accent+';border-radius:6px;text-align:center;background:'+bg+';font-family:tahoma,Arial">';
+    h+='<div style="position:relative;padding:14px;border:1px solid '+accent+';border-radius:4px">';
+    h+='<div style="font-size:44px">'+badge+'</div>';
+    h+='<p style="font-size:26px;font-weight:800;color:'+accent+';margin:6px 0">'+esc(d.kind||'تقدیرنامه')+'</p>';
+    if(d.school)h+='<p style="font-size:13px;font-weight:700;color:#475569;margin:0 0 8px">'+esc(d.school)+'</p>';
+    h+='<p style="font-size:13px;color:#334155;margin:6px 0 0">'+esc(d.intro||'این سند به پاس تلاش و شایستگی به')+'</p>';
+    h+='<div style="font-size:30px;font-weight:800;color:#1e293b;margin:10px 0;border-bottom:2px solid '+accent+';display:inline-block;padding-bottom:6px">'+esc(d.name||'.......................')+'</div>';
+    h+='<p style="font-size:13.5px;color:#334155;max-width:88%;line-height:1.9;margin:6px auto">'+esc(d.reason||'')+'</p>';
+    h+='<div style="display:flex;justify-content:space-between;width:88%;margin:22px auto 0;font-size:12px;color:#475569;font-weight:700">';
+    h+='<span>'+esc(d.date?('تاریخ: '+d.date):'')+'</span><span>'+esc(d.issuer?('اعطاکننده: '+d.issuer):'')+'</span></div>';
+    h+='</div></div>';
+    return h;
+  }
+  document.getElementById('btn-cert-word').onclick=function(){
+    lbWordExport(document.getElementById('cert-kind').value||'تقدیرنامه',lbCertExportHtml(),'تقدیرنامه',true);
+  };
+  document.getElementById('btn-cert-pdf').onclick=function(){
+    lbPrintExport(document.getElementById('cert-kind').value||'تقدیرنامه',lbCertExportHtml(),true);
+  };
+  document.getElementById('btn-cert-save').onclick=function(){
+    lbSave('certificate',lbCertData());
+  };
+  document.getElementById('btn-cert-clear').onclick=function(){
+    if(!confirm('آیا از پاک‌کردن تمام اطلاعات تقدیرنامه مطمئن هستید؟ این کار قابل بازگشت نیست.'))return;
+    ['cert-school','cert-name','cert-intro','cert-reason','cert-issuer','cert-date'].forEach(function(id){document.getElementById(id).value='';});
+    document.getElementById('cert-kind').value='تقدیرنامه';
+    document.getElementById('cert-student-select').value='';
+    CERT_TPL='gold';
+    document.querySelectorAll('.lb-cert-tpl-btn').forEach(function(x){x.classList.remove('active');});
+    document.querySelector('.lb-cert-tpl-btn[data-tpl="gold"]').classList.add('active');
+    lbCertRenderPreview();
+    toast('فرم تقدیرنامه پاک شد ✅');
+  };
+  var LB_CERT_LOADED=false;
+  async function lbLoadCertificateIfNeeded(){
+    await lbCertLoadStudentsIfNeeded();
+    if(LB_CERT_LOADED){lbCertRenderPreview();return;}
+    LB_CERT_LOADED=true;
+    var saved=await lbLoad('certificate');
+    if(saved){
+      document.getElementById('cert-school').value=saved.school||'';
+      document.getElementById('cert-kind').value=saved.kind||'تقدیرنامه';
+      document.getElementById('cert-name').value=saved.name||'';
+      document.getElementById('cert-intro').value=saved.intro||'';
+      document.getElementById('cert-reason').value=saved.reason||'';
+      document.getElementById('cert-issuer').value=saved.issuer||'';
+      document.getElementById('cert-date').value=saved.date||'';
+      CERT_TPL=saved.tpl||'gold';
+      document.querySelectorAll('.lb-cert-tpl-btn').forEach(function(x){x.classList.toggle('active',x.dataset.tpl===CERT_TPL);});
+    }
+    lbCertRenderPreview();
   }
 
   // ===================== پایان دفتر مدیریت کلاسی =====================
