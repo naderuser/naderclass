@@ -1186,9 +1186,16 @@ const SHARED_CSS = `
   [data-theme="dark"] .tab{background:#334155;color:#e2e8f0}
   .tab.active{background:var(--primary);color:#fff}
   .dash-flex>.tab-content{flex:1;min-width:0;margin-top:0}
+  .mobile-menu-btn{display:none}
+  .tabs-overlay{display:none}
   @media (max-width:760px){
     .dash-flex{flex-direction:column}
-    .tabs{flex-direction:row;flex-wrap:wrap;width:auto;flex:0 0 auto}
+    .mobile-menu-btn{display:inline-flex;align-items:center;gap:6px;background:var(--primary);color:#fff;border:none;padding:10px 16px;border-radius:10px;font-weight:700;font-size:14px;cursor:pointer;margin:16px 0 0}
+    .tabs{position:fixed;top:0;right:0;height:100vh;width:78vw;max-width:280px;background:var(--card);box-shadow:-6px 0 24px rgba(0,0,0,.25);z-index:301;flex-wrap:nowrap;padding:64px 14px 14px;transform:translateX(100%);transition:transform .25s ease;overflow-y:auto}
+    .tabs.open{transform:translateX(0)}
+    .tabs .tab{text-align:center;font-size:14px;padding:12px 14px}
+    .tabs-overlay.open{display:block;position:fixed;inset:0;background:rgba(15,23,42,.5);z-index:300}
+    .dash-flex>.tab-content{margin-top:16px}
   }
   .subtab{padding:8px 14px;border-radius:8px;background:#e2e8f0;cursor:pointer;font-weight:600;font-size:13px}
   [data-theme="dark"] .subtab{background:#334155;color:#e2e8f0}
@@ -3068,8 +3075,10 @@ function teacherPage() {
     </div>
 
     <div id="dash" class="hidden">
+      <button class="mobile-menu-btn" id="mobile-menu-btn" type="button">☰ منو</button>
+      <div class="tabs-overlay" id="tabs-overlay"></div>
       <div class="dash-flex">
-      <div class="tabs">
+      <div class="tabs" id="tabs-panel">
         <div class="tab active" data-tab="examonline">🎓 آزمون آنلاین</div>
         <div class="tab" data-tab="examsheet">🖨️ ساخت آزمون</div>
         <div class="tab" data-tab="schedule">📅 برنامه هفتگی</div>
@@ -4545,11 +4554,19 @@ function teacherScript() {
     loadStudents();loadQuestions();loadSchedule();
   }
 
+  var tabsPanel=document.getElementById('tabs-panel');
+  var tabsOverlay=document.getElementById('tabs-overlay');
+  var mobileMenuBtn=document.getElementById('mobile-menu-btn');
+  function closeMobileMenu(){tabsPanel.classList.remove('open');tabsOverlay.classList.remove('open');}
+  mobileMenuBtn.onclick=function(){tabsPanel.classList.add('open');tabsOverlay.classList.add('open');};
+  tabsOverlay.onclick=closeMobileMenu;
+
   document.querySelectorAll('.tab[data-tab]').forEach(t=>t.onclick=()=>{
     document.querySelectorAll('.tab[data-tab]').forEach(x=>x.classList.remove('active'));
     t.classList.add('active');
     document.querySelectorAll('.tab-content').forEach(c=>c.classList.add('hidden'));
     document.getElementById('tab-'+t.dataset.tab).classList.remove('hidden');
+    closeMobileMenu();
     if(t.dataset.tab==='tablesorg'){if(typeof loadTableIfNeeded==='function')loadTableIfNeeded();if(typeof loadOrgFormIfNeeded==='function')loadOrgFormIfNeeded();}
     if(t.dataset.tab==='schedule'){document.getElementById('btn-gen-schedule').click();if(typeof loadScheduleThemeIfNeeded==='function')loadScheduleThemeIfNeeded();if(typeof loadScheduleFontIfNeeded==='function')loadScheduleFontIfNeeded();}
     if(t.dataset.tab==='classroom'){renderClassLinks();setTimeout(function(){if(typeof clsResizeBoard==='function')clsResizeBoard();},50);}
