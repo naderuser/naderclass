@@ -2555,7 +2555,7 @@ async function studentClassPage(env, id) {
           <div class="cls-board-box" style="position:relative">
             <canvas id="board" width="900" height="500" title="برای بزرگ‌نمایی کلیک کنید"></canvas>
             <div id="cls-board-backdrop" class="hidden"></div>
-            <div id="cls-cam-pip" class="t-cam-pip" style="display:flex;align-items:center;justify-content:center;overflow:hidden;padding:0">
+            <div id="cls-cam-pip" class="t-cam-oncanvas" style="display:flex;align-items:center;justify-content:center;overflow:hidden;padding:0">
               <div id="cls-video-backdrop" class="hidden"></div>
               <img id="cls-teacher-video" class="hidden" title="برای بزرگ‌نمایی کلیک کنید" style="width:100%;height:100%;object-fit:cover;display:block;cursor:zoom-in">
               <div id="cls-cam-placeholder" class="cls-cam-placeholder">🎥 دوربین معلم خاموش است</div>
@@ -2637,11 +2637,23 @@ async function studentClassPage(env, id) {
 
     // ===== لایه‌ی پس‌زمینه (صفحه‌ی PDF که معلم روی تخته گذاشته) =====
     let boardBgImg=null;
+    function updateCamLayout(){
+      const vid=document.getElementById('cls-cam-pip');
+      if(!vid)return;
+      if(boardBgImg){
+        vid.classList.remove('t-cam-oncanvas');
+        vid.classList.add('t-cam-corner');
+      }else{
+        vid.classList.remove('t-cam-corner');
+        vid.classList.add('t-cam-oncanvas');
+      }
+    }
     function setBoardBg(dataUrl,w,h){
       if(!dataUrl){
         boardBgImg=null;
         resizeCanvasTo(w||BOARD_DEFAULT_W,h||BOARD_DEFAULT_H);
         ctx.clearRect(0,0,canvas.width,canvas.height);
+        updateCamLayout();
         return;
       }
       const img=new Image();
@@ -2650,6 +2662,7 @@ async function studentClassPage(env, id) {
         resizeCanvasTo(w||img.naturalWidth,h||img.naturalHeight);
         ctx.clearRect(0,0,canvas.width,canvas.height);
         ctx.drawImage(img,0,0,canvas.width,canvas.height);
+        updateCamLayout();
       };
       img.src=dataUrl;
     }
@@ -2659,6 +2672,7 @@ async function studentClassPage(env, id) {
         resizeCanvasTo(w||BOARD_DEFAULT_W,h||BOARD_DEFAULT_H);
         ctx.clearRect(0,0,canvas.width,canvas.height);
         (strokes||[]).forEach(drawStroke);
+        updateCamLayout();
         return;
       }
       const img=new Image();
@@ -2668,6 +2682,7 @@ async function studentClassPage(env, id) {
         ctx.clearRect(0,0,canvas.width,canvas.height);
         ctx.drawImage(img,0,0,canvas.width,canvas.height);
         (strokes||[]).forEach(drawStroke);
+        updateCamLayout();
       };
       img.src=dataUrl;
     }
@@ -2789,6 +2804,7 @@ async function studentClassPage(env, id) {
           img.src=m.data;
           img.classList.remove('hidden');
           document.getElementById('cls-cam-placeholder').classList.add('hidden');
+          updateCamLayout();
         }
         else if(m.type==='video-stop'){
           const img=document.getElementById('cls-teacher-video');
@@ -3603,7 +3619,6 @@ function teacherPage() {
               <button class="btn sm danger" id="brd-clear" style="flex:0 0 auto">🗑️ پاک کردن یادداشت‌ها</button>
               <button class="btn sm sec" id="brd-zoom" style="flex:0 0 auto" title="بزرگ‌نمایی تخته">🔍 بزرگ‌نمایی</button>
             </div>
-            <p class="muted" style="font-size:12px;margin-top:6px">روی تخته با خط مشکی بکشید؛ ترسیم برای همه دانش‌آموزان متصل به‌صورت زنده نمایش داده می‌شود. وقتی دوربین روشن باشد و PDF روی تخته نباشد، تصویر دقیقاً روی تخته نمایش داده می‌شود؛ به‌محض نمایش PDF، تصویر کوچک می‌شود تا PDF کامل دیده شود.</p>
 
             <div class="cls-pdf-panel" id="cls-pdf-panel" style="margin-top:12px">
               <div class="row" style="align-items:center;flex-wrap:wrap">
@@ -3619,6 +3634,8 @@ function teacherPage() {
                 <button class="btn sm danger" id="cls-pdf-remove-bg" style="flex:0 0 auto">حذف PDF از تخته</button>
               </div>
             </div>
+
+            <p class="muted" style="font-size:12px;margin-top:6px">روی تخته با خط مشکی بکشید؛ ترسیم برای همه دانش‌آموزان متصل به‌صورت زنده نمایش داده می‌شود. وقتی دوربین روشن باشد و PDF روی تخته نباشد، تصویر دقیقاً روی تخته نمایش داده می‌شود؛ به‌محض نمایش PDF، تصویر کوچک می‌شود تا PDF کامل دیده شود.</p>
           </div>
           <div class="cls-chat-col">
             <h4 style="margin:0 0 6px">👥 حاضرین (<span id="cls-online-count">0</span>)</h4>
