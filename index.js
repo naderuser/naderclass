@@ -612,6 +612,20 @@ async function handleApi(req, env, url, path) {
     }
   }
 
+  /* --- کارنامه‌ی ماهیانه‌ی دانش‌آموز (عمومی، فقط خواندنی) --- */
+  if (path.startsWith("/api/student/reportcard/")) {
+    const uuid = decodeURIComponent(path.slice("/api/student/reportcard/".length));
+    const studentRaw = await env.EXAM_KV.get("student:" + uuid);
+    if (!studentRaw) return json({ ok: false, error: "لینک نامعتبر است" }, 404);
+    const RC_MONTHS = ["مهر", "آبان", "آذر", "دی", "بهمن", "اسفند", "فروردین", "اردیبهشت"];
+    const months = {};
+    for (const m of RC_MONTHS) {
+      const raw = await env.EXAM_KV.get("lbdata:reportcard:student:" + uuid + ":" + m);
+      if (raw) months[m] = JSON.parse(raw);
+    }
+    return json({ ok: true, months });
+  }
+
   /* --- از این به بعد فقط معلم --- */
   if (path.startsWith("/api/teacher/")) {
     if (!(await isTeacher(req, env))) return json({ ok: false, error: "دسترسی غیرمجاز" }, 401);
@@ -1823,7 +1837,19 @@ async function studentPage(env, id) {
       <div class="row" style="gap:14px;flex-wrap:wrap">
         <button class="btn" id="btn-choice-exam" style="flex:1;min-width:200px;padding:22px 16px;font-size:16px">📝 ورود به آزمون</button>
         <button class="btn sec" id="btn-choice-worksheet" style="flex:1;min-width:200px;padding:22px 16px;font-size:16px">📓 ورود به کاربرگ</button>
+        <button class="btn sec" id="btn-choice-reportcard" style="flex:1;min-width:200px;padding:22px 16px;font-size:16px">🗓️ مشاهده کارنامه ماهیانه</button>
       </div>
+    </div>
+
+    <!-- کارنامه ماهیانه -->
+    <div class="card hidden" id="step-reportcard">
+      <h3>🗓️ کارنامه ماهیانه</h3>
+      <div class="row" style="align-items:center">
+        <label style="flex:0 0 auto">ماه:</label>
+        <select id="rc-view-month" style="flex:0 0 auto;min-width:140px"></select>
+      </div>
+      <div id="rc-view-content" style="margin-top:14px"></div>
+      <button class="btn sec" id="btn-rc-view-back" style="margin-top:14px">↩️ بازگشت</button>
     </div>
 
     <!-- مرحله ۱: اطلاعات دانش‌آموز -->
@@ -1954,6 +1980,69 @@ async function studentPage(env, id) {
       document.getElementById('btn-choice-worksheet').onclick=function(){
         location.href = '/w/' + encodeURIComponent(ID);
       };
+      document.getElementById('btn-choice-reportcard').onclick=async function(){
+        document.getElementById('step-choice').classList.add('hidden');
+        document.getElementById('step-reportcard').classList.remove('hidden');
+        await loadReportCardMonths();
+      };
+      document.getElementById('btn-rc-view-back').onclick=function(){
+        document.getElementById('step-reportcard').classList.add('hidden');
+        document.getElementById('step-choice').classList.remove('hidden');
+      };
+    }
+
+    // ===== مشاهده‌ی کارنامه‌ی ماهیانه توسط دانش‌آموز =====
+    const RC_MONTHS=['مهر','آبان','آذر','دی','بهمن','اسفند','فروردین','اردیبهشت'];
+    const RC_LEVEL_LABELS={excellent:'🌟 خیلی خوب',good:'✅ خوب',acceptable:'📌 قابل‌قبول','needs-improve':'📖 نیاز به تلاش'};
+    let RC_MONTHS_DATA={};
+    async function loadReportCardMonths(){
+      const sel=document.getElementById('rc-view-month');
+      sel.innerHTML='<option value="">در حال بارگذاری...</option>';
+      document.getElementById('rc-view-content').innerHTML='';
+      try{
+        const res=await fetch('/api/student/reportcard/'+encodeURIComponent(ID));
+        const j=await res.json();
+        RC_MONTHS_DATA=(j&&j.months)||{};
+      }catch(e){ RC_MONTHS_DATA={}; }
+      const available=RC_MONTHS.filter(function(m){return RC_MONTHS_DATA[m];});
+      sel.innerHTML='';
+      if(!available.length){
+        sel.innerHTML='<option value="">هنوز کارنامه‌ای ثبت نشده</option>';
+        document.getElementById('rc-view-content').innerHTML='<p class="muted">هنوز کارنامه‌ای برای شما ثبت نشده است.</p>';
+        return;
+      }
+      available.forEach(function(m){
+        const opt=document.createElement('option');
+        opt.value=m; opt.textContent=m;
+        sel.appendChild(opt);
+      });
+      const lastMonth=available[available.length-1];
+      sel.value=lastMonth;
+      renderReportCardMonth(lastMonth);
+    }
+    document.getElementById('rc-view-month').addEventListener('change',function(){
+      if(this.value)renderReportCardMonth(this.value);
+    });
+    function renderReportCardMonth(month){
+      const rec=RC_MONTHS_DATA[month];
+      const el=document.getElementById('rc-view-content');
+      if(!rec){ el.innerHTML='<p class="muted">اطلاعاتی برای این ماه ثبت نشده.</p>'; return; }
+      let h='';
+      if(rec.photo)h+='<img src="'+rec.photo+'" style="width:70px;height:70px;border-radius:50%;object-fit:cover;border:1px solid #94a3b8;margin-bottom:10px">';
+      h+='<p><b>نام مدرسه:</b> '+esc((rec.meta&&rec.meta.school)||'—')+'</p>';
+      h+='<p><b>نام آموزگار:</b> '+esc((rec.meta&&rec.meta.teacher)||'—')+'</p>';
+      h+='<p><b>سال تحصیلی:</b> '+esc((rec.meta&&rec.meta.year)||'—')+'</p>';
+      h+='<p><b>نام دانش‌آموز:</b> '+esc(rec.name||'—')+'</p>';
+      h+='<p><b>تعداد غیبت:</b> '+esc(rec.absence||'۰')+' روز</p>';
+      h+='<table style="width:100%;border-collapse:collapse;margin-top:10px"><tr><th style="border:1px solid #ccc;padding:6px;background:#f1f5f9">درس</th><th style="border:1px solid #ccc;padding:6px;background:#f1f5f9">ارزشیابی</th><th style="border:1px solid #ccc;padding:6px;background:#f1f5f9">توضیح</th></tr>';
+      const data=rec.data||{};
+      Object.keys(data).forEach(function(subj){
+        const d=data[subj]||{};
+        h+='<tr><td style="border:1px solid #ccc;padding:6px">'+esc(subj)+'</td><td style="border:1px solid #ccc;padding:6px">'+esc(RC_LEVEL_LABELS[d.level]||'—')+'</td><td style="border:1px solid #ccc;padding:6px">'+esc(d.note||'')+'</td></tr>';
+      });
+      h+='</table>';
+      if(rec.generalNote)h+='<p style="margin-top:10px"><b>توضیحات کلی معلم:</b><br>'+esc(rec.generalNote)+'</p>';
+      el.innerHTML=h;
     }
 
     function renderResult(res){
@@ -3920,10 +4009,16 @@ function teacherPage() {
               <option value="4">پایه پنجم دبستان</option>
               <option value="5">پایه ششم دبستان</option>
             </select>
-            <label style="flex:0 0 auto">نوبت:</label>
-            <select id="rc-term-select" style="flex:0 0 auto;min-width:120px">
-              <option value="اول">نوبت اول</option>
-              <option value="دوم">نوبت دوم</option>
+            <label style="flex:0 0 auto">ماه:</label>
+            <select id="rc-month-select" style="flex:0 0 auto;min-width:120px">
+              <option value="مهر">مهر</option>
+              <option value="آبان">آبان</option>
+              <option value="آذر">آذر</option>
+              <option value="دی">دی</option>
+              <option value="بهمن">بهمن</option>
+              <option value="اسفند">اسفند</option>
+              <option value="فروردین">فروردین</option>
+              <option value="اردیبهشت">اردیبهشت</option>
             </select>
           </div>
           <div class="row" style="align-items:center;flex-wrap:wrap;gap:8px">
@@ -3951,6 +4046,14 @@ function teacherPage() {
             <label style="margin-top:10px;display:block">توضیحات کلی معلم درباره‌ی روند یادگیری و رفتار دانش‌آموز</label>
             <textarea id="rc-general-note" rows="4" class="lb-textarea" placeholder="توضیحات کلی، نقاط قوت و پیشنهاد برای بهبود..."></textarea>
             <p class="muted" style="font-size:12px;margin-top:6px">سطوح ارزشیابی: 🌟 خیلی خوب | ✅ خوب | 📌 قابل‌قبول | 📖 نیاز به تلاش</p>
+            <div class="row" style="justify-content:center;align-items:center;margin-top:10px">
+              <span style="font-weight:700">🔤 فونت:</span>
+              <select id="rc-font" style="padding:8px;border:1px solid #ddd;border-radius:6px;width:auto">
+                <option value="default">پیش‌فرض</option>
+                <option value="titr">B Titr</option>
+                <option value="nazanin">B Nazanin</option>
+              </select>
+            </div>
             <div class="row" style="margin-top:12px">
               <button class="btn primary" id="btn-rc-save">💾 ذخیره</button>
               <button class="btn primary" id="btn-rc-word">📄 دانلود Word</button>
@@ -9714,6 +9817,9 @@ function teacherScript() {
   var RC_DATA={}; // { subjectName: {level:'', note:''} }
   var RC_CURRENT_UUID=null;
   var RC_PHOTO='';
+  function rcSelectedMonth(){
+    return document.getElementById('rc-month-select').value;
+  }
   function rcSetPhoto(dataUrl){
     RC_PHOTO=dataUrl||'';
     var img=document.getElementById('rc-photo-preview');
@@ -9730,6 +9836,20 @@ function teacherScript() {
     }catch(e){toast(e.message);}
   });
   document.getElementById('btn-rc-photo-remove').onclick=function(){rcSetPhoto('');};
+
+  // فونت: پیش‌فرض / B Titr / B Nazanin
+  var RC_FONTS={default:'',titr:"'B Titr','BTitr',Tahoma,Arial",nazanin:"'B Nazanin','BNazanin',Tahoma,Arial"};
+  function rcFontKey(){
+    var el=document.getElementById('rc-font');
+    return el?el.value:'default';
+  }
+  function rcFontFamily(){
+    return RC_FONTS[rcFontKey()]||undefined;
+  }
+  document.getElementById('rc-font').addEventListener('change',function(){
+    var panel=document.getElementById('lb-panel-reportcard');
+    if(panel)panel.style.fontFamily=RC_FONTS[rcFontKey()]||'';
+  });
 
   var RC_LEVEL_LABELS={excellent:'🌟 خیلی خوب',good:'✅ خوب',acceptable:'📌 قابل‌قبول','needs-improve':'📖 نیاز به تلاش'};
   var RC_LEVEL_OPTIONS=[['excellent','🌟 خیلی خوب'],['good','✅ خوب'],['acceptable','📌 قابل‌قبول'],['needs-improve','📖 نیاز به تلاش']];
@@ -9780,6 +9900,9 @@ function teacherScript() {
     RC_CURRENT_UUID=null;
     rcRenderStudentList(rcSelectedGradeIdx());
   });
+  document.getElementById('rc-month-select').addEventListener('change',function(){
+    if(RC_CURRENT_UUID)rcLoadStudent(RC_CURRENT_UUID);
+  });
 
   async function rcRenderStudentList(gradeIdx){
     var sel=document.getElementById('rc-student-select');
@@ -9820,19 +9943,37 @@ function teacherScript() {
   }
   document.getElementById('btn-rc-new').onclick=rcNew;
   async function rcLoadStudent(uuidStr){
-    var rec=await lbLoad('reportcard:student:'+uuidStr);
-    if(!rec){toast('این کارنامه پیدا نشد');return;}
+    var month=rcSelectedMonth();
+    var rec=await lbLoad('reportcard:student:'+uuidStr+':'+month);
     RC_CURRENT_UUID=uuidStr;
+    if(!rec){
+      // این دانش‌آموز برای این ماه هنوز کارنامه‌ای ندارد؛ فرم خالی نشان داده می‌شود تا معلم تکمیل کند
+      RC_DATA={};
+      var nameFromList=document.getElementById('rc-student-select').selectedOptions[0]?document.getElementById('rc-student-select').selectedOptions[0].textContent:'';
+      document.getElementById('rc-student-name').value=nameFromList||'';
+      document.getElementById('rc-absence').value='';
+      document.getElementById('rc-general-note').value='';
+      rcSetPhoto('');
+      document.getElementById('btn-rc-delete').classList.add('hidden');
+      document.getElementById('rc-form-wrap').classList.remove('hidden');
+      rcRenderSubjects();
+      toast('برای «'+(nameFromList||'این دانش‌آموز')+'» در ماه '+month+' هنوز کارنامه‌ای ثبت نشده؛ می‌توانید تکمیل کنید');
+      return;
+    }
     RC_DATA=rec.data||{};
     document.getElementById('rc-student-name').value=rec.name||'';
     document.getElementById('rc-absence').value=rec.absence||'';
     document.getElementById('rc-general-note').value=rec.generalNote||'';
-    document.getElementById('rc-term-select').value=rec.term||'اول';
     rcSetPhoto(rec.photo||'');
     if(rec.meta){
       document.getElementById('rc-school').value=rec.meta.school||'';
       document.getElementById('rc-teacher').value=rec.meta.teacher||'';
       document.getElementById('rc-year').value=rec.meta.year||'';
+    }
+    if(rec.font){
+      document.getElementById('rc-font').value=rec.font;
+      var panel=document.getElementById('lb-panel-reportcard');
+      if(panel)panel.style.fontFamily=RC_FONTS[rec.font]||'';
     }
     document.getElementById('btn-rc-delete').classList.remove('hidden');
     document.getElementById('rc-form-wrap').classList.remove('hidden');
@@ -9845,19 +9986,12 @@ function teacherScript() {
   document.getElementById('btn-rc-delete').onclick=async function(){
     if(!RC_CURRENT_UUID)return;
     var studentName=document.getElementById('rc-student-name').value||'این دانش‌آموز';
-    if(!confirm('آیا از حذف کارنامه‌ی «'+studentName+'» مطمئن هستید؟ این کار قابل بازگشت نیست.'))return;
-    var gradeIdx=rcSelectedGradeIdx();
-    var ok=await lbSave('reportcard:student:'+RC_CURRENT_UUID,null,true);
+    var month=rcSelectedMonth();
+    if(!confirm('آیا از حذف کارنامه‌ی «'+studentName+'» برای ماه '+month+' مطمئن هستید؟ این کار قابل بازگشت نیست.'))return;
+    var ok=await lbSave('reportcard:student:'+RC_CURRENT_UUID+':'+month,null,true);
     if(ok){
-      var key='reportcard:list:'+gradeIdx;
-      var list=(await lbLoad(key))||[];
-      list=list.filter(function(s){return s.uuid!==RC_CURRENT_UUID;});
-      await lbSave(key,list,true);
-      await rcRenderStudentList(gradeIdx);
-      document.getElementById('rc-form-wrap').classList.add('hidden');
-      document.getElementById('btn-rc-delete').classList.add('hidden');
-      RC_CURRENT_UUID=null;
-      toast('کارنامه حذف شد ✅');
+      toast('کارنامه‌ی ماه '+month+' حذف شد ✅');
+      rcLoadStudent(RC_CURRENT_UUID);
     }else{
       toast('خطا در حذف اطلاعات');
     }
@@ -9866,42 +10000,45 @@ function teacherScript() {
     var name=document.getElementById('rc-student-name').value.trim();
     if(!name){toast('لطفاً ابتدا نام دانش‌آموز را وارد کنید');return;}
     var gradeIdx=rcSelectedGradeIdx();
+    var month=rcSelectedMonth();
     if(!RC_CURRENT_UUID)RC_CURRENT_UUID=uid();
     var rec={
       uuid:RC_CURRENT_UUID,
       name:name,
       grade:gradeIdx,
-      term:document.getElementById('rc-term-select').value,
+      month:month,
       absence:document.getElementById('rc-absence').value,
       generalNote:document.getElementById('rc-general-note').value,
       photo:RC_PHOTO,
+      font:rcFontKey(),
       meta:{school:document.getElementById('rc-school').value,teacher:document.getElementById('rc-teacher').value,year:document.getElementById('rc-year').value},
       data:RC_DATA
     };
-    var ok=await lbSave('reportcard:student:'+RC_CURRENT_UUID,rec,true);
+    var ok=await lbSave('reportcard:student:'+RC_CURRENT_UUID+':'+month,rec,true);
     if(ok){
       await rcUpdateListEntry(gradeIdx,RC_CURRENT_UUID,name);
       var sel=document.getElementById('rc-student-select');
       await rcRenderStudentList(gradeIdx);
       sel.value=RC_CURRENT_UUID;
-      toast('کارنامه‌ی «'+name+'» ذخیره شد');
+      document.getElementById('btn-rc-delete').classList.remove('hidden');
+      toast('کارنامه‌ی «'+name+'» برای ماه '+month+' ذخیره شد');
     }else{
       toast('خطا در ذخیره اطلاعات');
     }
   };
   function rcExportHtml(){
     var gradeText=document.getElementById('rc-grade-select').selectedOptions[0].textContent;
-    var termText=document.getElementById('rc-term-select').selectedOptions[0].textContent;
+    var monthText=rcSelectedMonth();
     var photoHtml=RC_PHOTO?('<img src="'+RC_PHOTO+'" style="float:left;width:70px;height:70px;border-radius:50%;object-fit:cover;border:1px solid #94a3b8;margin:0 8px 6px 0">'):'';
     var meta=lbMetaBlock([['نام مدرسه','rc-school'],['نام آموزگار','rc-teacher'],['سال تحصیلی','rc-year'],['نام دانش‌آموز','rc-student-name']]);
-    meta=photoHtml+'<p class="lb-meta"><b>پایه تحصیلی:</b> '+esc(gradeText)+' &nbsp;&nbsp; <b>نوبت:</b> '+esc(termText)+' &nbsp;&nbsp; <b>تعداد غیبت:</b> '+esc(document.getElementById('rc-absence').value||'۰')+' روز</p>'+meta+'<div style="clear:both"></div>';
+    meta=photoHtml+'<p class="lb-meta"><b>پایه تحصیلی:</b> '+esc(gradeText)+' &nbsp;&nbsp; <b>ماه:</b> '+esc(monthText)+' &nbsp;&nbsp; <b>تعداد غیبت:</b> '+esc(document.getElementById('rc-absence').value||'۰')+' روز</p>'+meta+'<div style="clear:both"></div>';
     var table=rcBuildSubjectsHtml(true);
     var note='<p style="margin-top:14px"><b>توضیحات کلی معلم:</b><br>'+esc(document.getElementById('rc-general-note').value||'')+'</p>';
     var sign='<p style="margin-top:30px">امضای آموزگار: ......................... &nbsp;&nbsp;&nbsp;&nbsp; امضای مدیر: .........................</p>';
     return meta+table+note+sign;
   }
-  document.getElementById('btn-rc-word').onclick=function(){lbWordExport('کارنامه‌ی توصیفی دانش‌آموز',rcExportHtml(),'کارنامه-دانش-آموز',false);};
-  document.getElementById('btn-rc-pdf').onclick=function(){lbPrintExport('کارنامه‌ی توصیفی دانش‌آموز',rcExportHtml(),false);};
+  document.getElementById('btn-rc-word').onclick=function(){lbWordExport('کارنامه‌ی توصیفی دانش‌آموز',rcExportHtml(),'کارنامه-دانش-آموز',false,rcFontFamily());};
+  document.getElementById('btn-rc-pdf').onclick=function(){lbPrintExport('کارنامه‌ی توصیفی دانش‌آموز',rcExportHtml(),false,rcFontFamily());};
   document.getElementById('btn-rc-excel').onclick=function(){
     var studentName=document.getElementById('rc-student-name').value||'دانش‌آموز';
     var subjects=rcActiveSubjects(rcSelectedGradeIdx());
