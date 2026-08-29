@@ -1298,23 +1298,6 @@ const SHARED_CSS = `
   .lb-cert-font-nastaliq .cert-name{font-family:"Noto Nastaliq Urdu",tahoma,Arial;font-size:28px}
   .lb-cert-font-nastaliq .cert-reason,.lb-cert-font-nastaliq .cert-intro{font-family:"BNazanin","B Nazanin",tahoma,Arial}
   [data-theme="dark"] .lb-cert-tpl-btn{background:#0f172a}
-  .lb-seating-wrap{display:flex;gap:18px;flex-wrap:wrap;align-items:flex-start}
-  .lb-seating-pool{flex:0 0 220px;min-width:200px}
-  .lb-seat-pool-list{display:flex;flex-direction:column;gap:6px;max-height:520px;overflow-y:auto;padding:8px;border:1px solid var(--line);border-radius:10px;background:#f8fafc}
-  [data-theme="dark"] .lb-seat-pool-list{background:#0f172a}
-  .lb-seat-chip{padding:8px 10px;border-radius:8px;background:#fff;border:1.5px solid var(--line);cursor:grab;font-size:13px;font-weight:700;text-align:center;user-select:none}
-  [data-theme="dark"] .lb-seat-chip{background:#1e293b}
-  .lb-seat-chip.selected{border-color:var(--primary);box-shadow:0 0 0 2px var(--primary) inset;background:#eef2ff}
-  .lb-seat-chip:active{cursor:grabbing}
-  .lb-seating-room{flex:1 1 380px;min-width:300px}
-  .lb-seating-board{text-align:center;background:#334155;color:#fff;border-radius:8px;padding:8px;font-weight:700;font-size:13px;margin-bottom:16px}
-  .lb-seat-grid{display:grid;gap:12px;justify-content:center}
-  .lb-seat{aspect-ratio:1.3/1;border:2px dashed var(--line);border-radius:10px;display:flex;align-items:center;justify-content:center;text-align:center;font-size:12.5px;font-weight:700;padding:6px;background:#fff;cursor:pointer;min-width:80px}
-  [data-theme="dark"] .lb-seat{background:#1e293b}
-  .lb-seat.filled{border-style:solid;border-color:var(--primary);background:#eef2ff;color:#1e293b}
-  [data-theme="dark"] .lb-seat.filled{background:#1e3a8a;color:#fff}
-  .lb-seat.dragover{border-color:#16a34a;background:#dcfce7}
-  .lb-seat .seat-empty{color:var(--muted);font-weight:400;font-size:11px}
   .lb-meta-form{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;margin:14px 0}
   .lb-meta-form label{display:block;font-size:12px;color:var(--muted);margin-bottom:3px}
   .lb-meta-form input{width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:8px;font-family:inherit}
@@ -3883,7 +3866,7 @@ function teacherPage() {
             <button class="lb-menu-btn" data-lb="staff"><span class="lb-ico">🧑‍🏫</span><span class="lb-t">اطلاعات پرسنلی همکاران مدرسه</span></button>
             <button class="lb-menu-btn" data-lb="minutes"><span class="lb-ico">📝</span><span class="lb-t">صورتجلسه</span><small>فرم عمومی صورتجلسه مدرسه</small></button>
             <button class="lb-menu-btn" data-lb="certificate"><span class="lb-ico">🏆</span><span class="lb-t">تقدیرنامه‌ساز</span><small>قالب آماده برای چاپ با اسم و دلیل تشویق</small></button>
-            <button class="lb-menu-btn" data-lb="seating"><span class="lb-ico">🪑</span><span class="lb-t">چیدمان کلاس</span><small>نقشه صندلی؛ درگ-دراپ اسم دانش‌آموزها</small></button>
+            <button class="lb-menu-btn" data-lb="behavior"><span class="lb-ico">⭐</span><span class="lb-t">رفتار و انضباط</span><small>ثبت امتیاز روزانه + نمودار ماهانه</small></button>
           </div>
         </div>
 
@@ -4449,34 +4432,48 @@ function teacherPage() {
           </div>
         </div>
 
-        <!-- ===== چیدمان کلاس ===== -->
-        <div class="lb-panel hidden" id="lb-panel-seating">
+        <!-- ===== رفتار و انضباط ===== -->
+        <div class="lb-panel hidden" id="lb-panel-behavior">
           <button class="btn sm gray lb-back-btn">← بازگشت به دفتر</button>
-          <h3>🪑 چیدمان کلاس (نقشه صندلی)</h3>
-          <div class="row" style="align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px">
-            <label style="font-weight:700;font-size:13px">تعداد ردیف</label>
-            <input id="seat-rows" type="number" min="1" max="12" value="4" style="width:64px">
-            <label style="font-weight:700;font-size:13px">تعداد نیمکت در هر ردیف</label>
-            <input id="seat-cols" type="number" min="1" max="8" value="3" style="width:64px">
-            <button class="btn sm gray" id="btn-seat-rebuild">🔄 ساخت / تغییر چیدمان</button>
-            <button class="btn sm gray" id="btn-seat-random">🎲 چیدمان تصادفی</button>
-            <button class="btn sm danger" type="button" id="btn-seat-clear">🗑️ خالی‌کردن همه</button>
-          </div>
-          <p class="muted" style="font-size:12.5px;margin:0 0 10px">راهنما: روی اسم دانش‌آموز از لیست بکشید (درگ) و روی نیمکت رها کنید — یا روی اسم بزنید تا انتخاب شود، سپس روی نیمکت موردنظر بزنید. برای خالی‌کردن یک نیمکت، وقتی هیچ اسمی انتخاب نیست، روی همان نیمکت بزنید.</p>
-          <div class="lb-seating-wrap">
-            <div class="lb-seating-pool">
-              <h4 style="margin:0 0 8px;font-size:13px">دانش‌آموزان (بدون جایگاه)</h4>
-              <div id="seat-pool" class="lb-seat-pool-list"></div>
+          <h3>⭐ رفتار و انضباط</h3>
+          <div class="lb-meta-form">
+            <div><label>دانش‌آموز</label><select id="beh-student"><option value="">— انتخاب دانش‌آموز —</option></select></div>
+            <div><label>ماه</label>
+              <select id="beh-month">
+                <option>مهر</option><option>آبان</option><option>آذر</option><option>دی</option><option>بهمن</option><option>اسفند</option><option>فروردین</option><option>اردیبهشت</option><option>خرداد</option>
+              </select>
             </div>
-            <div class="lb-seating-room">
-              <div class="lb-seating-board">🖊️ تخته کلاس</div>
-              <div id="seat-grid" class="lb-seat-grid"></div>
-            </div>
+            <div><label>روز</label><input id="beh-day" type="number" min="1" max="31" value="1"></div>
           </div>
+          <label style="font-weight:700;font-size:13px">دلیل (اختیاری)</label>
+          <input id="beh-reason" placeholder="مثلاً: کمک به هم‌کلاسی / شلوغ‌کاری در صف و ..." style="margin-bottom:10px">
+          <div class="row">
+            <button class="btn primary" id="btn-beh-plus">➕ ثبت امتیاز مثبت</button>
+            <button class="btn danger" id="btn-beh-minus">➖ ثبت امتیاز منفی</button>
+          </div>
+
+          <h3 style="margin-top:22px">📊 نمودار ماهانه</h3>
+          <div class="row" style="align-items:center">
+            <label style="font-weight:700;font-size:13px">نمایش ماه:</label>
+            <select id="beh-chart-month">
+              <option>مهر</option><option>آبان</option><option>آذر</option><option>دی</option><option>بهمن</option><option>اسفند</option><option>فروردین</option><option>اردیبهشت</option><option>خرداد</option>
+            </select>
+          </div>
+          <div style="margin:14px 0 6px;text-align:center">
+            <canvas id="beh-chart" width="700" height="320" style="max-width:100%;background:#fff;border:1px solid var(--line);border-radius:10px"></canvas>
+          </div>
+          <p class="muted" style="font-size:12px;text-align:center">🟩 سبز = امتیاز مثبت خالص &nbsp;|&nbsp; 🟥 قرمز = امتیاز منفی خالص</p>
+
+          <div class="lb-preview">
+            <table class="lb-table lb-table-tight" id="beh-table">
+              <thead><tr><th>دانش‌آموز</th><th>روز</th><th>نوع</th><th>دلیل</th><th>حذف</th></tr></thead>
+              <tbody></tbody>
+            </table>
+          </div>
+
           <div class="row" style="margin-top:14px">
-            <button class="btn primary" id="btn-seat-save">💾 ذخیره چیدمان</button>
-            <button class="btn primary" id="btn-seat-word">📄 دانلود Word</button>
-            <button class="btn gray" id="btn-seat-pdf">🖨️ چاپ / دانلود PDF</button>
+            <button class="btn primary" id="btn-beh-word">📄 دانلود Word</button>
+            <button class="btn gray" id="btn-beh-pdf">🖨️ چاپ / دانلود PDF</button>
           </div>
         </div>
 
@@ -9113,7 +9110,7 @@ function teacherScript() {
       if(b.dataset.lb==='staff')lbLoadStaffIfNeeded();
       if(b.dataset.lb==='minutes')lbLoadMinutesIfNeeded();
       if(b.dataset.lb==='certificate')lbLoadCertificateIfNeeded();
-      if(b.dataset.lb==='seating')lbLoadSeatingIfNeeded();
+      if(b.dataset.lb==='behavior')lbLoadBehaviorIfNeeded();
     };
   });
   document.querySelectorAll('.lb-back-btn').forEach(function(b){
@@ -9249,15 +9246,19 @@ function teacherScript() {
   }
   // چسباندن هوشمند (مثل اکسل): چند مقدار کپی‌شده از یک ستون (یا چند ستون) را در خانه‌های زیرین/کناری پخش می‌کند
   // و در صورت نیاز، بدون پاک‌کردن داده‌های موجود، ردیف‌های جدید هم اضافه می‌کند
-  function lbEnablePaste(tableId){
+  // نکته: ستون‌ها بر اساس موقعیت ورودی‌ها (input/textarea) در هر ردیف شمارش می‌شوند، نه موقعیت td/th؛
+  // این باعث می‌شود جدول‌هایی با rowspan نامنظم (مثل برنامه هفتگی) هم درست تراز بمانند.
+  function lbEnablePaste(tableId,allowAddRows){
+    if(allowAddRows===undefined)allowAddRows=true;
     var tableEl=document.getElementById(tableId);
     if(!tableEl)return;
     tableEl.addEventListener('paste',function(e){
       var target=e.target;
-      if(!target||target.tagName!=='INPUT')return;
-      var td=target.closest('td');var tr=td.closest('tr');var tbody=tr.parentElement;
-      var tds=Array.from(tr.children);
-      var colIdx=tds.indexOf(td);
+      if(!target||(target.tagName!=='INPUT'&&target.tagName!=='TEXTAREA'))return;
+      var tr=target.closest('tr');if(!tr)return;
+      var tbody=tr.parentElement;
+      var rowInputs=Array.from(tr.querySelectorAll('input,textarea'));
+      var colIdx=rowInputs.indexOf(target);
       var rows=Array.from(tbody.children);
       var rowIdx=rows.indexOf(tr);
       var text=(e.clipboardData||window.clipboardData).getData('text');
@@ -9268,21 +9269,26 @@ function teacherScript() {
       var isMulti=grid.length>1||(grid[0]&&grid[0].length>1);
       if(!isMulti)return;
       e.preventDefault();
-      var colCount=tds.length;
-      var neededRows=rowIdx+grid.length;
-      while(rows.length<neededRows){
-        lbAddSimpleRow(tableId,colCount);
-        rows=Array.from(tbody.children);
+      if(allowAddRows){
+        var colCount=tr.children.length;
+        var neededRows=rowIdx+grid.length;
+        while(rows.length<neededRows){
+          lbAddSimpleRow(tableId,colCount);
+          rows=Array.from(tbody.children);
+        }
       }
       grid.forEach(function(rowArr,ri){
         var targetTr=rows[rowIdx+ri];
         if(!targetTr)return;
-        var targetTds=Array.from(targetTr.children);
+        var targetInputs=Array.from(targetTr.querySelectorAll('input,textarea'));
         rowArr.forEach(function(val,ci){
           var cc=colIdx+ci;
-          if(cc>=targetTds.length||cc===0)return;
-          var inp=targetTds[cc].querySelector('input,textarea');
-          if(inp)inp.value=val.trim();
+          if(cc>=targetInputs.length)return;
+          var inp=targetInputs[cc];
+          if(inp){
+            inp.value=val.trim();
+            inp.dispatchEvent(new Event('input',{bubbles:true}));
+          }
         });
       });
       toast('چسبانده شد: '+grid.length+' ردیف ✅');
@@ -9442,6 +9448,8 @@ function teacherScript() {
   document.getElementById('btn-lbr-addrow').onclick=function(){lbAddSimpleRow('lbr-table',LB_ROSTER_HEADERS.length);};
   document.getElementById('btn-lbr-build').click();
   lbEnablePaste('lbr-table');
+  lbEnablePaste('lb-weekly-preview',false);
+  lbEnablePaste('lb-weekly2-preview',false);
   function lbRosterExportHtml(){
     var meta=lbMetaBlock([['نام مدرسه','lbr-school'],['نام آموزگار','lbr-teacher'],['پایه تحصیلی','lbr-grade'],['سال تحصیلی','lbr-year']]);
     var rows=lbTableToRows(document.getElementById('lbr-table'));
@@ -11189,186 +11197,160 @@ function teacherScript() {
     lbCertRenderPreview();
   }
 
-  /* ---- چیدمان کلاس (نقشه صندلی) ---- */
-  var SEAT_STUDENTS=[];
-  var SEAT_STUDENTS_LOADED=false;
-  var SEAT_STATE={rows:4,cols:3,seats:[]};
-  var SEAT_SELECTED=null;
-  async function lbSeatLoadStudentsIfNeeded(){
-    if(SEAT_STUDENTS_LOADED)return;
-    SEAT_STUDENTS_LOADED=true;
+  /* ---- رفتار و انضباط ---- */
+  var BEH_MONTHS=['مهر','آبان','آذر','دی','بهمن','اسفند','فروردین','اردیبهشت','خرداد'];
+  var BEH_STUDENTS=[];
+  var BEH_STUDENTS_LOADED=false;
+  var BEH_STATE={events:[]};
+  async function lbBehLoadStudentsIfNeeded(){
+    if(BEH_STUDENTS_LOADED)return;
+    BEH_STUDENTS_LOADED=true;
     try{
       var d=await api('/api/teacher/students');
-      SEAT_STUDENTS=(d.students||[]).map(function(s){return {uuid:s.uuid,label:s.label};});
-    }catch(e){SEAT_STUDENTS=[];}
+      BEH_STUDENTS=(d.students||[]).map(function(s){return {uuid:s.uuid,label:s.label};});
+      var sel=document.getElementById('beh-student');
+      BEH_STUDENTS.forEach(function(s){
+        var opt=document.createElement('option');
+        opt.value=s.uuid;opt.textContent=s.label;
+        sel.appendChild(opt);
+      });
+    }catch(e){}
   }
-  function seatLabelOf(uuid){
-    var s=SEAT_STUDENTS.find(function(x){return x.uuid===uuid;});
-    return s?s.label:'';
+  function behLabelOf(uuid){
+    var s=BEH_STUDENTS.find(function(x){return x.uuid===uuid;});
+    return s?s.label:'(نامشخص)';
   }
-  function seatEnsureArrayLength(){
-    var n=SEAT_STATE.rows*SEAT_STATE.cols;
-    var arr=SEAT_STATE.seats.slice(0,n);
-    while(arr.length<n)arr.push(null);
-    SEAT_STATE.seats=arr;
+  document.getElementById('btn-beh-plus').onclick=function(){lbBehAddEvent(1);};
+  document.getElementById('btn-beh-minus').onclick=function(){lbBehAddEvent(-1);};
+  function lbBehAddEvent(delta){
+    var uuid=document.getElementById('beh-student').value;
+    if(!uuid){toast('لطفاً ابتدا دانش‌آموز را انتخاب کنید');return;}
+    var monthIdx=document.getElementById('beh-month').selectedIndex;
+    var day=Math.max(1,Math.min(31,parseInt(toEnDigits(document.getElementById('beh-day').value),10)||1));
+    var reason=document.getElementById('beh-reason').value;
+    BEH_STATE.events.push({id:Date.now()+'_'+Math.floor(Math.random()*10000),uuid:uuid,month:monthIdx,day:day,delta:delta,reason:reason});
+    document.getElementById('beh-reason').value='';
+    document.getElementById('beh-chart-month').selectedIndex=monthIdx;
+    lbSave('behavior',BEH_STATE);
+    lbBehRenderAll();
+    toast(delta>0?'امتیاز مثبت ثبت شد ⭐':'امتیاز منفی ثبت شد');
   }
-  function seatAssignedUuids(){
-    return SEAT_STATE.seats.filter(function(u){return !!u;});
+  function lbBehDeleteEvent(id){
+    if(!confirm('این رکورد حذف شود؟'))return;
+    BEH_STATE.events=BEH_STATE.events.filter(function(e){return e.id!==id;});
+    lbSave('behavior',BEH_STATE);
+    lbBehRenderAll();
   }
-  function seatUnassignFromEverywhere(uuid){
-    SEAT_STATE.seats=SEAT_STATE.seats.map(function(u){return u===uuid?null:u;});
+  window.lbBehDeleteEvent=lbBehDeleteEvent;
+  function lbBehCurrentMonthIdx(){
+    return document.getElementById('beh-chart-month').selectedIndex;
   }
-  function seatAssign(uuid,idx){
-    var occupant=SEAT_STATE.seats[idx];
-    seatUnassignFromEverywhere(uuid);
-    SEAT_STATE.seats[idx]=uuid;
-    if(occupant&&occupant!==uuid){
-      // occupant bumped back to pool automatically (not placed elsewhere)
-    }
-    SEAT_SELECTED=null;
-    lbSeatRenderAll();
+  function lbBehEventsForMonth(monthIdx){
+    return BEH_STATE.events.filter(function(e){return e.month===monthIdx;}).sort(function(a,b){return a.day-b.day;});
   }
-  function seatUnassign(idx){
-    SEAT_STATE.seats[idx]=null;
-    lbSeatRenderAll();
+  function lbBehNetScores(monthIdx){
+    var evs=lbBehEventsForMonth(monthIdx);
+    var map={};
+    evs.forEach(function(e){map[e.uuid]=(map[e.uuid]||0)+e.delta;});
+    return Object.keys(map).map(function(uuid){return {uuid:uuid,label:behLabelOf(uuid),net:map[uuid]};});
   }
-  function lbSeatRenderPool(){
-    var pool=document.getElementById('seat-pool');
-    var assigned=seatAssignedUuids();
-    var free=SEAT_STUDENTS.filter(function(s){return assigned.indexOf(s.uuid)===-1;});
-    pool.innerHTML='';
-    if(!free.length){
-      pool.innerHTML='<div class="muted" style="font-size:12px;text-align:center;padding:10px">همه دانش‌آموزان جای‌گذاری شدند ✅</div>';
+  function lbBehRenderTable(){
+    var monthIdx=lbBehCurrentMonthIdx();
+    var evs=lbBehEventsForMonth(monthIdx);
+    var tbody=document.querySelector('#beh-table tbody');
+    tbody.innerHTML='';
+    if(!evs.length){
+      tbody.innerHTML='<tr><td colspan="5" class="muted" style="text-align:center">رکوردی برای این ماه ثبت نشده</td></tr>';
       return;
     }
-    free.forEach(function(s){
-      var chip=document.createElement('div');
-      chip.className='lb-seat-chip'+(SEAT_SELECTED===s.uuid?' selected':'');
-      chip.textContent=s.label;
-      chip.draggable=true;
-      chip.dataset.uuid=s.uuid;
-      chip.addEventListener('dragstart',function(e){e.dataTransfer.setData('text/plain',s.uuid);});
-      chip.addEventListener('click',function(){
-        SEAT_SELECTED=(SEAT_SELECTED===s.uuid)?null:s.uuid;
-        lbSeatRenderPool();
-      });
-      pool.appendChild(chip);
+    evs.forEach(function(e){
+      var tr=document.createElement('tr');
+      var typeTxt=e.delta>0?'<span style="color:#15803d;font-weight:700">➕ مثبت</span>':'<span style="color:#dc2626;font-weight:700">➖ منفی</span>';
+      tr.innerHTML='<td>'+esc(behLabelOf(e.uuid))+'</td><td>'+toFaDigits(e.day)+'</td><td>'+typeTxt+'</td><td>'+esc(e.reason||'—')+'</td><td><button class="btn sm danger" type="button" onclick="lbBehDeleteEvent(\''+e.id+'\')">🗑️</button></td>';
+      tbody.appendChild(tr);
     });
   }
-  function lbSeatBuildGridDom(){
-    var grid=document.getElementById('seat-grid');
-    grid.style.gridTemplateColumns='repeat('+SEAT_STATE.cols+',1fr)';
-    grid.innerHTML='';
-    for(var i=0;i<SEAT_STATE.rows*SEAT_STATE.cols;i++){
-      var seat=document.createElement('div');
-      seat.className='lb-seat';
-      seat.dataset.idx=i;
-      seat.addEventListener('dragover',function(e){e.preventDefault();this.classList.add('dragover');});
-      seat.addEventListener('dragleave',function(){this.classList.remove('dragover');});
-      seat.addEventListener('drop',function(e){
-        e.preventDefault();
-        this.classList.remove('dragover');
-        var uuid=e.dataTransfer.getData('text/plain');
-        if(uuid)seatAssign(uuid,+this.dataset.idx);
-      });
-      seat.addEventListener('click',function(){
-        var idx=+this.dataset.idx;
-        if(SEAT_SELECTED){
-          seatAssign(SEAT_SELECTED,idx);
-        }else if(SEAT_STATE.seats[idx]){
-          seatUnassign(idx);
-        }
-      });
-      grid.appendChild(seat);
+  function lbBehDrawChart(){
+    var monthIdx=lbBehCurrentMonthIdx();
+    var scores=lbBehNetScores(monthIdx);
+    var canvas=document.getElementById('beh-chart');
+    var ctx=canvas.getContext('2d');
+    var w=canvas.width,h=canvas.height;
+    ctx.clearRect(0,0,w,h);
+    var padTop=20,padBottom=44,padLeft=34,padRight=20;
+    var chartH=h-padTop-padBottom;
+    var chartW=w-padLeft-padRight;
+    var midY=padTop+chartH/2;
+    if(!scores.length){
+      ctx.fillStyle='#9ca3af';
+      ctx.font='13px Tahoma, Arial';
+      ctx.textAlign='center';
+      ctx.fillText('برای این ماه امتیازی ثبت نشده است',w/2,h/2);
+      return;
     }
-  }
-  function lbSeatRenderGrid(){
-    var cells=document.querySelectorAll('#seat-grid .lb-seat');
-    cells.forEach(function(cell){
-      var idx=+cell.dataset.idx;
-      var uuid=SEAT_STATE.seats[idx];
-      if(uuid){
-        cell.classList.add('filled');
-        cell.textContent=seatLabelOf(uuid);
-      }else{
-        cell.classList.remove('filled');
-        cell.innerHTML='<span class="seat-empty">خالی</span>';
-      }
+    var maxAbs=Math.max(3,Math.max.apply(null,scores.map(function(s){return Math.abs(s.net);})));
+    var n=scores.length;
+    var gap=18;
+    var barW=(chartW-gap*(n-1))/n;
+    ctx.strokeStyle='#e5e7eb';
+    ctx.lineWidth=1;
+    ctx.beginPath();ctx.moveTo(padLeft,midY);ctx.lineTo(w-padRight,midY);ctx.stroke();
+    scores.forEach(function(s,i){
+      var x=padLeft+i*(barW+gap);
+      var barH=(Math.abs(s.net)/maxAbs)*(chartH/2);
+      var y=s.net>=0?midY-barH:midY;
+      ctx.fillStyle=s.net>0?'#bbf7d0':(s.net<0?'#fecaca':'#e5e7eb');
+      ctx.strokeStyle=s.net>0?'#22c55e':(s.net<0?'#ef4444':'#9ca3af');
+      ctx.lineWidth=2;
+      ctx.fillRect(x,y,barW,Math.max(barH,1));
+      ctx.strokeRect(x,y,barW,Math.max(barH,1));
+      ctx.fillStyle='#111827';
+      ctx.textAlign='center';
+      ctx.font='bold 12px Tahoma, Arial';
+      var labelY=s.net>=0?y-6:y+barH+16;
+      ctx.fillText((s.net>0?'+':'')+toFaDigits(s.net),x+barW/2,labelY);
+      ctx.font='11px Tahoma, Arial';
+      ctx.fillStyle='#374151';
+      var nameY=padTop+chartH+16;
+      ctx.fillText(s.label,x+barW/2,nameY);
     });
   }
-  function lbSeatRenderAll(){
-    seatEnsureArrayLength();
-    lbSeatRenderGrid();
-    lbSeatRenderPool();
+  function lbBehRenderAll(){
+    lbBehRenderTable();
+    lbBehDrawChart();
   }
-  document.getElementById('btn-seat-rebuild').onclick=function(){
-    var r=Math.max(1,Math.min(12,parseInt(document.getElementById('seat-rows').value,10)||4));
-    var c=Math.max(1,Math.min(8,parseInt(document.getElementById('seat-cols').value,10)||3));
-    SEAT_STATE.rows=r;SEAT_STATE.cols=c;
-    document.getElementById('seat-rows').value=r;
-    document.getElementById('seat-cols').value=c;
-    seatEnsureArrayLength();
-    lbSeatBuildGridDom();
-    lbSeatRenderAll();
-  };
-  document.getElementById('btn-seat-random').onclick=function(){
-    var all=SEAT_STUDENTS.map(function(s){return s.uuid;});
-    for(var i=all.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var t=all[i];all[i]=all[j];all[j]=t;}
-    var n=SEAT_STATE.rows*SEAT_STATE.cols;
-    var seats=new Array(n).fill(null);
-    for(var k=0;k<Math.min(n,all.length);k++)seats[k]=all[k];
-    SEAT_STATE.seats=seats;
-    SEAT_SELECTED=null;
-    lbSeatRenderAll();
-  };
-  document.getElementById('btn-seat-clear').onclick=function(){
-    if(!confirm('آیا از خالی‌کردن همه‌ی نیمکت‌ها مطمئن هستید؟'))return;
-    SEAT_STATE.seats=new Array(SEAT_STATE.rows*SEAT_STATE.cols).fill(null);
-    SEAT_SELECTED=null;
-    lbSeatRenderAll();
-  };
-  document.getElementById('btn-seat-save').onclick=function(){
-    lbSave('seating',SEAT_STATE);
-  };
-  function lbSeatExportHtml(){
-    var rows=SEAT_STATE.rows,cols=SEAT_STATE.cols;
-    var h='<div style="text-align:center;background:#334155;color:#fff;border-radius:8px;padding:8px;font-weight:700;font-size:13px;margin-bottom:16px">🖊️ تخته کلاس</div>';
-    h+='<table style="width:100%;border-collapse:collapse" dir="rtl">';
-    for(var r=0;r<rows;r++){
-      h+='<tr>';
-      for(var c=0;c<cols;c++){
-        var idx=r*cols+c;
-        var uuid=SEAT_STATE.seats[idx];
-        var label=uuid?seatLabelOf(uuid):'—';
-        h+='<td style="border:1.5px solid #94a3b8;border-radius:6px;padding:14px 6px;text-align:center;font-weight:700;font-size:13px;min-width:90px">'+esc(label)+'</td>';
-      }
-      h+='</tr>';
-    }
+  document.getElementById('beh-chart-month').addEventListener('change',lbBehRenderAll);
+  function lbBehExportHtml(){
+    var monthIdx=lbBehCurrentMonthIdx();
+    var monthName=BEH_MONTHS[monthIdx];
+    var evs=lbBehEventsForMonth(monthIdx);
+    var scores=lbBehNetScores(monthIdx);
+    var canvas=document.getElementById('beh-chart');
+    var imgData=canvas.toDataURL('image/png');
+    var h='<p style="text-align:center;font-weight:bold;font-size:15px">رفتار و انضباط — ماه '+esc(monthName)+'</p>';
+    h+='<div style="text-align:center;margin:14px 0"><img src="'+imgData+'" style="max-width:100%;width:600px"></div>';
+    h+='<table><tr><th>دانش‌آموز</th><th>روز</th><th>نوع</th><th>دلیل</th></tr>';
+    evs.forEach(function(e){
+      h+='<tr><td>'+esc(behLabelOf(e.uuid))+'</td><td>'+toFaDigits(e.day)+'</td><td>'+(e.delta>0?'مثبت':'منفی')+'</td><td>'+esc(e.reason||'—')+'</td></tr>';
+    });
     h+='</table>';
+    if(scores.length){
+      h+='<p style="margin-top:14px;font-weight:bold">جمع امتیاز خالص این ماه:</p><ul>';
+      scores.forEach(function(s){h+='<li>'+esc(s.label)+': '+(s.net>0?'+':'')+toFaDigits(s.net)+'</li>';});
+      h+='</ul>';
+    }
     return h;
   }
-  document.getElementById('btn-seat-word').onclick=function(){
-    lbWordExport('چیدمان کلاس',lbSeatExportHtml(),'چیدمان_کلاس',false);
-  };
-  document.getElementById('btn-seat-pdf').onclick=function(){
-    lbPrintExport('چیدمان کلاس',lbSeatExportHtml(),false);
-  };
-  var LB_SEAT_LOADED=false;
-  async function lbLoadSeatingIfNeeded(){
-    await lbSeatLoadStudentsIfNeeded();
-    if(LB_SEAT_LOADED){lbSeatRenderAll();return;}
-    LB_SEAT_LOADED=true;
-    var saved=await lbLoad('seating');
-    if(saved&&saved.rows&&saved.cols){
-      SEAT_STATE.rows=saved.rows;
-      SEAT_STATE.cols=saved.cols;
-      SEAT_STATE.seats=saved.seats||[];
-    }
-    document.getElementById('seat-rows').value=SEAT_STATE.rows;
-    document.getElementById('seat-cols').value=SEAT_STATE.cols;
-    seatEnsureArrayLength();
-    lbSeatBuildGridDom();
-    lbSeatRenderAll();
+  document.getElementById('btn-beh-word').onclick=function(){lbWordExport('رفتار و انضباط',lbBehExportHtml(),'رفتار-و-انضباط',false);};
+  document.getElementById('btn-beh-pdf').onclick=function(){lbPrintExport('رفتار و انضباط',lbBehExportHtml(),false);};
+  var LB_BEH_LOADED=false;
+  async function lbLoadBehaviorIfNeeded(){
+    await lbBehLoadStudentsIfNeeded();
+    if(LB_BEH_LOADED){lbBehRenderAll();return;}
+    LB_BEH_LOADED=true;
+    var saved=await lbLoad('behavior');
+    if(saved&&saved.events)BEH_STATE=saved;
+    lbBehRenderAll();
   }
 
   // ===================== پایان دفتر مدیریت کلاسی =====================
