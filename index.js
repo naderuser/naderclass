@@ -4026,9 +4026,9 @@ function teacherPage() {
             <select id="rc-student-select" style="flex:0 0 auto;min-width:220px">
               <option value="">— انتخاب دانش‌آموز —</option>
             </select>
-            <button class="btn sm sec" id="btn-rc-new">🆕 دانش‌آموز جدید</button>
             <button class="btn sm danger hidden" id="btn-rc-delete">🗑️ حذف این کارنامه</button>
           </div>
+          <p class="muted" style="margin:4px 0 0">دانش‌آموز موردنظر را نمی‌بینید؟ ابتدا از بخش «لیست اسامی دانش‌آموزان» او را اضافه کنید؛ فقط کارنامه‌ی دانش‌آموزانی که در همان بخش ثبت شده‌اند در پنل خودشان نمایش داده می‌شود.</p>
           <div id="rc-form-wrap" class="hidden">
             <div class="row" style="align-items:center;gap:14px;margin:10px 0">
               <img id="rc-photo-preview" class="hidden" style="width:44px;height:44px;border-radius:50%;object-fit:cover;border:1px solid var(--line)">
@@ -9905,43 +9905,31 @@ function teacherScript() {
   });
 
   async function rcRenderStudentList(gradeIdx){
+    // فهرست دانش‌آموزان همان فهرست واقعی و ثبت‌نامی کلاس است (همان شناسه‌ای که برای ورود دانش‌آموز
+    // به پنل خودش استفاده می‌شود) تا کارنامه‌ی ذخیره‌شده دقیقاً زیر همان شناسه قرار بگیرد و در پنل
+    // دانش‌آموز قابل مشاهده باشد. قبلاً این فهرست جدا و با شناسه‌های تصادفیِ بی‌ربط به حساب واقعی
+    // دانش‌آموز نگه‌داری می‌شد که باعث می‌شد کارنامه هیچ‌وقت در پنل دانش‌آموز دیده نشود.
     var sel=document.getElementById('rc-student-select');
+    var prevVal=sel.value;
     sel.innerHTML='<option value="">در حال بارگذاری...</option>';
-    var list=(await lbLoad('reportcard:list:'+gradeIdx))||[];
+    var d=await api('/api/teacher/students');
+    var list=(d&&d.ok&&d.students)||[];
     sel.innerHTML='<option value="">— انتخاب دانش‌آموز —</option>';
     list.forEach(function(s){
       var opt=document.createElement('option');
       opt.value=s.uuid;
-      opt.textContent=s.name;
+      opt.textContent=s.label||'(بدون نام)';
       sel.appendChild(opt);
     });
     if(!list.length){
       var opt2=document.createElement('option');
       opt2.value='';opt2.disabled=true;
-      opt2.textContent='هنوز کارنامه‌ای برای این پایه ثبت نشده';
+      opt2.textContent='هنوز دانش‌آموزی در «لیست اسامی دانش‌آموزان» ثبت نشده';
       sel.appendChild(opt2);
+    }else if(prevVal && list.some(function(s){return s.uuid===prevVal;})){
+      sel.value=prevVal;
     }
   }
-  async function rcUpdateListEntry(gradeIdx,uuidStr,name){
-    var key='reportcard:list:'+gradeIdx;
-    var list=(await lbLoad(key))||[];
-    var idx=list.findIndex(function(s){return s.uuid===uuidStr;});
-    if(idx>=0)list[idx].name=name;else list.push({uuid:uuidStr,name:name});
-    await lbSave(key,list,true);
-  }
-  function rcNew(){
-    RC_CURRENT_UUID=null;
-    RC_DATA={};
-    document.getElementById('rc-student-name').value='';
-    document.getElementById('rc-absence').value='';
-    document.getElementById('rc-general-note').value='';
-    document.getElementById('rc-student-select').value='';
-    document.getElementById('btn-rc-delete').classList.add('hidden');
-    rcSetPhoto('');
-    document.getElementById('rc-form-wrap').classList.remove('hidden');
-    rcRenderSubjects();
-  }
-  document.getElementById('btn-rc-new').onclick=rcNew;
   async function rcLoadStudent(uuidStr){
     var month=rcSelectedMonth();
     var rec=await lbLoad('reportcard:student:'+uuidStr+':'+month);
@@ -9999,9 +9987,9 @@ function teacherScript() {
   document.getElementById('btn-rc-save').onclick=async function(){
     var name=document.getElementById('rc-student-name').value.trim();
     if(!name){toast('لطفاً ابتدا نام دانش‌آموز را وارد کنید');return;}
+    if(!RC_CURRENT_UUID){toast('لطفاً ابتدا دانش‌آموز را از فهرست «— انتخاب دانش‌آموز —» انتخاب کنید تا کارنامه در پنل خودش نمایش داده شود');return;}
     var gradeIdx=rcSelectedGradeIdx();
     var month=rcSelectedMonth();
-    if(!RC_CURRENT_UUID)RC_CURRENT_UUID=uid();
     var rec={
       uuid:RC_CURRENT_UUID,
       name:name,
@@ -10016,12 +10004,8 @@ function teacherScript() {
     };
     var ok=await lbSave('reportcard:student:'+RC_CURRENT_UUID+':'+month,rec,true);
     if(ok){
-      await rcUpdateListEntry(gradeIdx,RC_CURRENT_UUID,name);
-      var sel=document.getElementById('rc-student-select');
-      await rcRenderStudentList(gradeIdx);
-      sel.value=RC_CURRENT_UUID;
       document.getElementById('btn-rc-delete').classList.remove('hidden');
-      toast('کارنامه‌ی «'+name+'» برای ماه '+month+' ذخیره شد');
+      toast('کارنامه‌ی «'+name+'» برای ماه '+month+' ذخیره شد ✅ و در پنل دانش‌آموز قابل مشاهده است');
     }else{
       toast('خطا در ذخیره اطلاعات');
     }
