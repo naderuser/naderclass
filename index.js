@@ -1134,7 +1134,7 @@ const SHARED_CSS = `
   .theme-btn.active{border-color:var(--primary);background:var(--primary);color:#fff}
   *{box-sizing:border-box}
   body{margin:0;font-family:'Vazirmatn',Tahoma,system-ui,sans-serif;background:var(--bg);color:var(--text);direction:rtl;transition:background .3s,color .3s;}
-  .wrap{max-width:960px;margin:0 auto;padding:18px;}
+  .wrap{max-width:1180px;margin:0 auto;padding:18px;}
   .header{background:linear-gradient(135deg,#1e3a8a,#2563eb);color:#fff;border-radius:18px;padding:22px;text-align:center;box-shadow:0 10px 30px rgba(37,99,235,.25);}
   [data-theme="dark"] body{background:linear-gradient(180deg,#0f172a,#1e293b);}
   [data-theme="light"] body{background:linear-gradient(180deg,#eef2ff,#f8fafc);}
@@ -1180,10 +1180,16 @@ const SHARED_CSS = `
   .ans-grade-table th:nth-child(4),.ans-grade-table td:nth-child(4){min-width:100px}
   .ans-grade-table th:nth-child(5),.ans-grade-table td:nth-child(5){min-width:140px}
   [data-theme="dark"] th{background:#334155}
-  .tabs{display:flex;gap:8px;margin-top:16px;flex-wrap:wrap}
-  .tab{padding:9px 16px;border-radius:10px;background:#e2e8f0;cursor:pointer;font-weight:600;font-size:14px}
+  .dash-flex{display:flex;gap:16px;align-items:flex-start;margin-top:16px}
+  .tabs{display:flex;flex-direction:column;gap:6px;flex:0 0 180px;width:180px}
+  .tab{padding:9px 12px;border-radius:10px;background:#e2e8f0;cursor:pointer;font-weight:600;font-size:13px;line-height:1.4;text-align:center}
   [data-theme="dark"] .tab{background:#334155;color:#e2e8f0}
   .tab.active{background:var(--primary);color:#fff}
+  .dash-flex>.tab-content{flex:1;min-width:0;margin-top:0}
+  @media (max-width:760px){
+    .dash-flex{flex-direction:column}
+    .tabs{flex-direction:row;flex-wrap:wrap;width:auto;flex:0 0 auto}
+  }
   .subtab{padding:8px 14px;border-radius:8px;background:#e2e8f0;cursor:pointer;font-weight:600;font-size:13px}
   [data-theme="dark"] .subtab{background:#334155;color:#e2e8f0}
   .subtab.active{background:var(--primary);color:#fff}
@@ -3062,6 +3068,7 @@ function teacherPage() {
     </div>
 
     <div id="dash" class="hidden">
+      <div class="dash-flex">
       <div class="tabs">
         <div class="tab active" data-tab="examonline">🎓 آزمون آنلاین</div>
         <div class="tab" data-tab="examsheet">🖨️ ساخت آزمون</div>
@@ -4446,6 +4453,7 @@ function teacherPage() {
         <label>رمز عبور جدید</label><input id="new-pass" type="password" autocomplete="new-password">
         <p class="muted" id="pass-msg"></p>
         <button class="btn" id="btn-change-pass">ذخیره رمز جدید</button>
+      </div>
       </div>
     </div>
   </div>
