@@ -1272,15 +1272,15 @@ const SHARED_CSS = `
   .lb-cert-tpl-btn{padding:8px 14px;border-radius:10px;border:1.5px solid var(--line);background:#f8fafc;cursor:pointer;font-family:inherit;font-weight:700;font-size:13px}
   .lb-cert-tpl-btn.active{border-color:var(--primary);box-shadow:0 0 0 2px var(--primary) inset}
   .lb-cert-preview-wrap{flex:1 1 380px;min-width:300px;display:flex;justify-content:center}
-  .lb-cert-sheet{position:relative;width:100%;max-width:460px;aspect-ratio:0.707/1;box-sizing:border-box;padding:30px 22px;border-radius:6px;font-family:tahoma,Arial;text-align:center;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;overflow:hidden}
+  .lb-cert-sheet{position:relative;width:100%;max-width:460px;min-height:640px;box-sizing:border-box;padding:30px 22px;border-radius:6px;font-family:tahoma,Arial;text-align:center;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;overflow:visible}
   .lb-cert-sheet::before{content:'';position:absolute;inset:10px;border:2.5px solid var(--cert-accent,#b8860b);border-radius:4px;pointer-events:none}
   .lb-cert-sheet::after{content:'';position:absolute;inset:16px;border:1px solid var(--cert-accent,#b8860b);border-radius:2px;pointer-events:none;opacity:.6}
   .lb-cert-sheet .cert-numbox{position:absolute;top:24px;right:26px;text-align:right;font-size:10.5px;line-height:1.7;color:#334155;font-family:tahoma,Arial;font-weight:700}
   .lb-cert-sheet .cert-badge{font-size:38px;line-height:1}
-  .lb-cert-sheet .cert-kind{font-size:24px;font-weight:800;color:var(--cert-accent,#b8860b);margin:0}
-  .lb-cert-sheet .cert-intro{font-size:12.5px;color:#334155;margin:6px 0 0}
-  .lb-cert-sheet .cert-name{font-size:26px;font-weight:800;color:#1e293b;margin:4px 0;border-bottom:2px solid var(--cert-accent,#b8860b);padding-bottom:6px;display:inline-block}
-  .lb-cert-sheet .cert-reason{font-size:13px;color:#334155;max-width:88%;line-height:1.9}
+  .lb-cert-sheet .cert-kind{font-size:24px;font-weight:800;color:var(--cert-accent,#b8860b);margin:0;max-width:92%;overflow-wrap:break-word;word-break:break-word}
+  .lb-cert-sheet .cert-intro{font-size:12.5px;color:#334155;margin:6px 0 0;max-width:88%;overflow-wrap:break-word;word-break:break-word}
+  .lb-cert-sheet .cert-name{font-size:26px;font-weight:800;color:#1e293b;margin:4px 0;border-bottom:2px solid var(--cert-accent,#b8860b);padding-bottom:6px;display:inline-block;max-width:92%;overflow-wrap:break-word;word-break:break-word}
+  .lb-cert-sheet .cert-reason{font-size:13px;color:#334155;max-width:88%;line-height:1.9;overflow-wrap:break-word;word-break:break-word;white-space:pre-line}
   .lb-cert-sheet .cert-footer{display:flex;justify-content:space-between;width:88%;margin-top:16px;font-size:11.5px;color:#475569;font-weight:700}
   .lb-cert-gold{background:linear-gradient(135deg,#fffdf5,#fdf6e3);--cert-accent:#b8860b}
   .lb-cert-blue{background:linear-gradient(135deg,#f3f8ff,#e6f0ff);--cert-accent:#1d4ed8}
@@ -4405,6 +4405,11 @@ function teacherPage() {
                 <option value="nazanin">بی‌نازنین</option>
                 <option value="nastaliq" selected>ایران نستعلیق</option>
               </select>
+              <label>اندازه فونت متن تقدیرنامه (دلیل تشویق)</label>
+              <div class="row" style="align-items:center;gap:8px">
+                <input type="range" id="cert-font-size" min="10" max="26" step="1" value="13" style="flex:1">
+                <span id="cert-font-size-val" style="min-width:34px;font-weight:700">۱۳</span>
+              </div>
               <label>قالب</label>
               <div class="lb-cert-templates">
                 <button type="button" class="lb-cert-tpl-btn active" data-tpl="gold">🟡 طلایی</button>
@@ -11012,6 +11017,10 @@ function teacherScript() {
     el.addEventListener('input',lbCertRenderPreview);
     el.addEventListener('change',lbCertRenderPreview);
   });
+  document.getElementById('cert-font-size').addEventListener('input',function(){
+    document.getElementById('cert-font-size-val').textContent=toFaDigits(this.value);
+    lbCertRenderPreview();
+  });
   function lbCertBadge(tpl){
     return {gold:'🏆',blue:'🎖️',green:'🌿',purple:'🎗️',champion:'🥇'}[tpl]||'🏆';
   }
@@ -11030,6 +11039,7 @@ function teacherScript() {
       reason:document.getElementById('cert-reason').value,
       issuer:document.getElementById('cert-issuer').value,
       font:document.getElementById('cert-font').value,
+      fontSize:document.getElementById('cert-font-size').value,
       tpl:CERT_TPL
     };
   }
@@ -11040,6 +11050,7 @@ function teacherScript() {
   }
   function lbCertInnerHtml(d){
     var badge=lbCertBadge(d.tpl);
+    var fs=parseInt(d.fontSize,10)||13;
     var h='';
     h+='<div class="cert-numbox">شماره: '+esc(d.num||'.......')+'<br>تاریخ: '+esc(d.date||'.......')+'</div>';
     if(d.tpl==='champion')h+='<p class="cert-bismillah">بسم الله الرحمن الرحیم</p>';
@@ -11047,7 +11058,7 @@ function teacherScript() {
     h+='<p class="cert-kind">'+esc(d.kind||'تقدیرنامه')+'</p>';
     h+='<p class="cert-intro">'+esc(d.intro||'این سند به پاس تلاش و شایستگی به')+'</p>';
     h+='<div class="cert-name">'+esc(lbCertFullName(d))+'</div>';
-    h+='<p class="cert-reason">'+esc(d.reason||'')+'</p>';
+    h+='<p class="cert-reason" style="font-size:'+fs+'px">'+esc(d.reason||'')+'</p>';
     if(d.issuer)h+='<div class="cert-footer" style="justify-content:center"><span>'+esc(d.issuer)+'</span></div>';
     return h;
   }
@@ -11066,15 +11077,16 @@ function teacherScript() {
     var badge=lbCertBadge(d.tpl);
     var titleFont=lbCertFontFamilyCss(d.font);
     var bodyFont=(d.font==='nastaliq')?lbCertFontFamilyCss('nazanin'):titleFont;
-    var h='<div style="position:relative;width:100%;box-sizing:border-box;padding:26px;border:3px solid '+accent+';border-radius:6px;text-align:center;background:'+bg+';font-family:tahoma,Arial">';
-    h+='<div style="position:relative;padding:16px;border:1.5px solid '+accent+';border-radius:4px">';
+    var fs=parseInt(d.fontSize,10)||13;
+    var h='<div style="position:relative;width:100%;box-sizing:border-box;padding:26px;border:3px solid '+accent+';border-radius:6px;text-align:center;background:'+bg+';font-family:tahoma,Arial;overflow:visible">';
+    h+='<div style="position:relative;padding:16px;border:1.5px solid '+accent+';border-radius:4px;overflow:visible">';
     h+='<div style="position:absolute;top:6px;right:10px;text-align:right;font-size:11px;font-weight:700;color:#334155;line-height:1.8">شماره: '+esc(d.num||'.......')+'<br>تاریخ: '+esc(d.date||'.......')+'</div>';
     if(d.tpl==='champion')h+='<p style="font-size:15px;font-weight:700;color:'+accent+';margin:2px 0 10px">بسم الله الرحمن الرحیم</p>';
     h+='<div style="font-size:40px;margin-top:'+(d.tpl==='champion'?'0':'6px')+'">'+badge+'</div>';
-    h+='<p style="font-size:28px;font-weight:800;color:'+accent+';margin:8px 0;font-family:'+titleFont+'">'+esc(d.kind||'تقدیرنامه')+'</p>';
-    h+='<p style="font-size:13px;color:#334155;margin:6px 0 0;font-family:'+bodyFont+'">'+esc(d.intro||'این سند به پاس تلاش و شایستگی به')+'</p>';
-    h+='<div style="font-size:26px;font-weight:800;color:#1e293b;margin:10px 0;border-bottom:2px solid '+accent+';display:inline-block;padding-bottom:6px;font-family:'+titleFont+'">'+esc(lbCertFullName(d))+'</div>';
-    h+='<p style="font-size:13.5px;color:#334155;max-width:88%;line-height:1.9;margin:6px auto;font-family:'+bodyFont+'">'+esc(d.reason||'')+'</p>';
+    h+='<p style="font-size:28px;font-weight:800;color:'+accent+';margin:8px auto;max-width:92%;overflow-wrap:break-word;word-break:break-word;font-family:'+titleFont+'">'+esc(d.kind||'تقدیرنامه')+'</p>';
+    h+='<p style="font-size:13px;color:#334155;margin:6px auto 0;max-width:88%;overflow-wrap:break-word;word-break:break-word;font-family:'+bodyFont+'">'+esc(d.intro||'این سند به پاس تلاش و شایستگی به')+'</p>';
+    h+='<div style="font-size:26px;font-weight:800;color:#1e293b;margin:10px auto;border-bottom:2px solid '+accent+';display:inline-block;padding-bottom:6px;max-width:92%;overflow-wrap:break-word;word-break:break-word;font-family:'+titleFont+'">'+esc(lbCertFullName(d))+'</div>';
+    h+='<p style="font-size:'+fs+'px;color:#334155;max-width:88%;line-height:1.9;margin:6px auto;overflow-wrap:break-word;word-break:break-word;white-space:pre-line;font-family:'+bodyFont+'">'+esc(d.reason||'')+'</p>';
     if(d.issuer)h+='<p style="margin:22px auto 0;font-size:12px;color:#475569;font-weight:700">'+esc(d.issuer)+'</p>';
     h+='</div></div>';
     return h;
@@ -11094,6 +11106,8 @@ function teacherScript() {
     document.getElementById('cert-kind').value='تقدیرنامه';
     document.getElementById('cert-salute').value='جناب آقای';
     document.getElementById('cert-font').value='nastaliq';
+    document.getElementById('cert-font-size').value='13';
+    document.getElementById('cert-font-size-val').textContent='۱۳';
     document.getElementById('cert-student-select').value='';
     CERT_TPL='gold';
     document.querySelectorAll('.lb-cert-tpl-btn').forEach(function(x){x.classList.remove('active');});
@@ -11117,6 +11131,8 @@ function teacherScript() {
       document.getElementById('cert-reason').value=saved.reason||'';
       document.getElementById('cert-issuer').value=saved.issuer||'';
       document.getElementById('cert-font').value=saved.font||'nastaliq';
+      document.getElementById('cert-font-size').value=saved.fontSize||'13';
+      document.getElementById('cert-font-size-val').textContent=toFaDigits(saved.fontSize||'13');
       CERT_TPL=saved.tpl||'gold';
       document.querySelectorAll('.lb-cert-tpl-btn').forEach(function(x){x.classList.toggle('active',x.dataset.tpl===CERT_TPL);});
     }
