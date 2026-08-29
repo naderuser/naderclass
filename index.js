@@ -3866,7 +3866,6 @@ function teacherPage() {
             <button class="lb-menu-btn" data-lb="staff"><span class="lb-ico">🧑‍🏫</span><span class="lb-t">اطلاعات پرسنلی همکاران مدرسه</span></button>
             <button class="lb-menu-btn" data-lb="minutes"><span class="lb-ico">📝</span><span class="lb-t">صورتجلسه</span><small>فرم عمومی صورتجلسه مدرسه</small></button>
             <button class="lb-menu-btn" data-lb="certificate"><span class="lb-ico">🏆</span><span class="lb-t">تقدیرنامه‌ساز</span><small>قالب آماده برای چاپ با اسم و دلیل تشویق</small></button>
-            <button class="lb-menu-btn" data-lb="behavior"><span class="lb-ico">⭐</span><span class="lb-t">رفتار و انضباط</span><small>ثبت امتیاز روزانه + نمودار ماهانه</small></button>
           </div>
         </div>
 
@@ -4429,51 +4428,6 @@ function teacherPage() {
             <button class="btn primary" id="btn-cert-word">📄 دانلود Word</button>
             <button class="btn gray" id="btn-cert-pdf">🖨️ چاپ / دانلود PDF</button>
             <button class="btn danger" type="button" id="btn-cert-clear">🗑️ پاک کردن فرم</button>
-          </div>
-        </div>
-
-        <!-- ===== رفتار و انضباط ===== -->
-        <div class="lb-panel hidden" id="lb-panel-behavior">
-          <button class="btn sm gray lb-back-btn">← بازگشت به دفتر</button>
-          <h3>⭐ رفتار و انضباط</h3>
-          <div class="lb-meta-form">
-            <div><label>دانش‌آموز</label><select id="beh-student"><option value="">— انتخاب دانش‌آموز —</option></select></div>
-            <div><label>ماه</label>
-              <select id="beh-month">
-                <option>مهر</option><option>آبان</option><option>آذر</option><option>دی</option><option>بهمن</option><option>اسفند</option><option>فروردین</option><option>اردیبهشت</option><option>خرداد</option>
-              </select>
-            </div>
-            <div><label>روز</label><input id="beh-day" type="number" min="1" max="31" value="1"></div>
-          </div>
-          <label style="font-weight:700;font-size:13px">دلیل (اختیاری)</label>
-          <input id="beh-reason" placeholder="مثلاً: کمک به هم‌کلاسی / شلوغ‌کاری در صف و ..." style="margin-bottom:10px">
-          <div class="row">
-            <button class="btn primary" id="btn-beh-plus">➕ ثبت امتیاز مثبت</button>
-            <button class="btn danger" id="btn-beh-minus">➖ ثبت امتیاز منفی</button>
-          </div>
-
-          <h3 style="margin-top:22px">📊 نمودار ماهانه</h3>
-          <div class="row" style="align-items:center">
-            <label style="font-weight:700;font-size:13px">نمایش ماه:</label>
-            <select id="beh-chart-month">
-              <option>مهر</option><option>آبان</option><option>آذر</option><option>دی</option><option>بهمن</option><option>اسفند</option><option>فروردین</option><option>اردیبهشت</option><option>خرداد</option>
-            </select>
-          </div>
-          <div style="margin:14px 0 6px;text-align:center">
-            <canvas id="beh-chart" width="700" height="320" style="max-width:100%;background:#fff;border:1px solid var(--line);border-radius:10px"></canvas>
-          </div>
-          <p class="muted" style="font-size:12px;text-align:center">🟩 سبز = امتیاز مثبت خالص &nbsp;|&nbsp; 🟥 قرمز = امتیاز منفی خالص</p>
-
-          <div class="lb-preview">
-            <table class="lb-table lb-table-tight" id="beh-table">
-              <thead><tr><th>دانش‌آموز</th><th>روز</th><th>نوع</th><th>دلیل</th><th>حذف</th></tr></thead>
-              <tbody></tbody>
-            </table>
-          </div>
-
-          <div class="row" style="margin-top:14px">
-            <button class="btn primary" id="btn-beh-word">📄 دانلود Word</button>
-            <button class="btn gray" id="btn-beh-pdf">🖨️ چاپ / دانلود PDF</button>
           </div>
         </div>
 
@@ -9110,7 +9064,6 @@ function teacherScript() {
       if(b.dataset.lb==='staff')lbLoadStaffIfNeeded();
       if(b.dataset.lb==='minutes')lbLoadMinutesIfNeeded();
       if(b.dataset.lb==='certificate')lbLoadCertificateIfNeeded();
-      if(b.dataset.lb==='behavior')lbLoadBehaviorIfNeeded();
     };
   });
   document.querySelectorAll('.lb-back-btn').forEach(function(b){
@@ -9404,6 +9357,7 @@ function teacherScript() {
   document.getElementById('lbp-grade-select').addEventListener('change',function(){
     lbLoadPacingIfNeeded(lbSelectedGradeIdx()).then(lbRenderPacing);
   });
+  lbEnablePaste('lb-pacing-preview',false);
   document.getElementById('btn-lbp-save').onclick=function(){
     var idx=lbSelectedGradeIdx();
     lbSave('pacing:'+idx,{
@@ -9767,6 +9721,7 @@ function teacherScript() {
     lbAddSimpleRow('lba-table',days+2);
   };
   document.getElementById('btn-lba-build').click();
+  lbEnablePaste('lba-table');
   function lbAbsenceExportHtml(){
     var month=document.getElementById('lba-month').value;
     var meta=lbMetaBlock([['نام مدرسه','lba-school'],['نام آموزگار','lba-teacher'],['پایه تحصیلی','lba-grade'],['سال تحصیلی','lba-year']]);
@@ -11195,162 +11150,6 @@ function teacherScript() {
       document.querySelectorAll('.lb-cert-tpl-btn').forEach(function(x){x.classList.toggle('active',x.dataset.tpl===CERT_TPL);});
     }
     lbCertRenderPreview();
-  }
-
-  /* ---- رفتار و انضباط ---- */
-  var BEH_MONTHS=['مهر','آبان','آذر','دی','بهمن','اسفند','فروردین','اردیبهشت','خرداد'];
-  var BEH_STUDENTS=[];
-  var BEH_STUDENTS_LOADED=false;
-  var BEH_STATE={events:[]};
-  async function lbBehLoadStudentsIfNeeded(){
-    if(BEH_STUDENTS_LOADED)return;
-    BEH_STUDENTS_LOADED=true;
-    try{
-      var d=await api('/api/teacher/students');
-      BEH_STUDENTS=(d.students||[]).map(function(s){return {uuid:s.uuid,label:s.label};});
-      var sel=document.getElementById('beh-student');
-      BEH_STUDENTS.forEach(function(s){
-        var opt=document.createElement('option');
-        opt.value=s.uuid;opt.textContent=s.label;
-        sel.appendChild(opt);
-      });
-    }catch(e){}
-  }
-  function behLabelOf(uuid){
-    var s=BEH_STUDENTS.find(function(x){return x.uuid===uuid;});
-    return s?s.label:'(نامشخص)';
-  }
-  document.getElementById('btn-beh-plus').onclick=function(){lbBehAddEvent(1);};
-  document.getElementById('btn-beh-minus').onclick=function(){lbBehAddEvent(-1);};
-  function lbBehAddEvent(delta){
-    var uuid=document.getElementById('beh-student').value;
-    if(!uuid){toast('لطفاً ابتدا دانش‌آموز را انتخاب کنید');return;}
-    var monthIdx=document.getElementById('beh-month').selectedIndex;
-    var day=Math.max(1,Math.min(31,parseInt(toEnDigits(document.getElementById('beh-day').value),10)||1));
-    var reason=document.getElementById('beh-reason').value;
-    BEH_STATE.events.push({id:Date.now()+'_'+Math.floor(Math.random()*10000),uuid:uuid,month:monthIdx,day:day,delta:delta,reason:reason});
-    document.getElementById('beh-reason').value='';
-    document.getElementById('beh-chart-month').selectedIndex=monthIdx;
-    lbSave('behavior',BEH_STATE);
-    lbBehRenderAll();
-    toast(delta>0?'امتیاز مثبت ثبت شد ⭐':'امتیاز منفی ثبت شد');
-  }
-  function lbBehDeleteEvent(id){
-    if(!confirm('این رکورد حذف شود؟'))return;
-    BEH_STATE.events=BEH_STATE.events.filter(function(e){return e.id!==id;});
-    lbSave('behavior',BEH_STATE);
-    lbBehRenderAll();
-  }
-  window.lbBehDeleteEvent=lbBehDeleteEvent;
-  function lbBehCurrentMonthIdx(){
-    return document.getElementById('beh-chart-month').selectedIndex;
-  }
-  function lbBehEventsForMonth(monthIdx){
-    return BEH_STATE.events.filter(function(e){return e.month===monthIdx;}).sort(function(a,b){return a.day-b.day;});
-  }
-  function lbBehNetScores(monthIdx){
-    var evs=lbBehEventsForMonth(monthIdx);
-    var map={};
-    evs.forEach(function(e){map[e.uuid]=(map[e.uuid]||0)+e.delta;});
-    return Object.keys(map).map(function(uuid){return {uuid:uuid,label:behLabelOf(uuid),net:map[uuid]};});
-  }
-  function lbBehRenderTable(){
-    var monthIdx=lbBehCurrentMonthIdx();
-    var evs=lbBehEventsForMonth(monthIdx);
-    var tbody=document.querySelector('#beh-table tbody');
-    tbody.innerHTML='';
-    if(!evs.length){
-      tbody.innerHTML='<tr><td colspan="5" class="muted" style="text-align:center">رکوردی برای این ماه ثبت نشده</td></tr>';
-      return;
-    }
-    evs.forEach(function(e){
-      var tr=document.createElement('tr');
-      var typeTxt=e.delta>0?'<span style="color:#15803d;font-weight:700">➕ مثبت</span>':'<span style="color:#dc2626;font-weight:700">➖ منفی</span>';
-      tr.innerHTML='<td>'+esc(behLabelOf(e.uuid))+'</td><td>'+toFaDigits(e.day)+'</td><td>'+typeTxt+'</td><td>'+esc(e.reason||'—')+'</td><td><button class="btn sm danger" type="button" onclick="lbBehDeleteEvent(\\''+e.id+'\\')">🗑️</button></td>';
-      tbody.appendChild(tr);
-    });
-  }
-  function lbBehDrawChart(){
-    var monthIdx=lbBehCurrentMonthIdx();
-    var scores=lbBehNetScores(monthIdx);
-    var canvas=document.getElementById('beh-chart');
-    var ctx=canvas.getContext('2d');
-    var w=canvas.width,h=canvas.height;
-    ctx.clearRect(0,0,w,h);
-    var padTop=20,padBottom=44,padLeft=34,padRight=20;
-    var chartH=h-padTop-padBottom;
-    var chartW=w-padLeft-padRight;
-    var midY=padTop+chartH/2;
-    if(!scores.length){
-      ctx.fillStyle='#9ca3af';
-      ctx.font='13px Tahoma, Arial';
-      ctx.textAlign='center';
-      ctx.fillText('برای این ماه امتیازی ثبت نشده است',w/2,h/2);
-      return;
-    }
-    var maxAbs=Math.max(3,Math.max.apply(null,scores.map(function(s){return Math.abs(s.net);})));
-    var n=scores.length;
-    var gap=18;
-    var barW=(chartW-gap*(n-1))/n;
-    ctx.strokeStyle='#e5e7eb';
-    ctx.lineWidth=1;
-    ctx.beginPath();ctx.moveTo(padLeft,midY);ctx.lineTo(w-padRight,midY);ctx.stroke();
-    scores.forEach(function(s,i){
-      var x=padLeft+i*(barW+gap);
-      var barH=(Math.abs(s.net)/maxAbs)*(chartH/2);
-      var y=s.net>=0?midY-barH:midY;
-      ctx.fillStyle=s.net>0?'#bbf7d0':(s.net<0?'#fecaca':'#e5e7eb');
-      ctx.strokeStyle=s.net>0?'#22c55e':(s.net<0?'#ef4444':'#9ca3af');
-      ctx.lineWidth=2;
-      ctx.fillRect(x,y,barW,Math.max(barH,1));
-      ctx.strokeRect(x,y,barW,Math.max(barH,1));
-      ctx.fillStyle='#111827';
-      ctx.textAlign='center';
-      ctx.font='bold 12px Tahoma, Arial';
-      var labelY=s.net>=0?y-6:y+barH+16;
-      ctx.fillText((s.net>0?'+':'')+toFaDigits(s.net),x+barW/2,labelY);
-      ctx.font='11px Tahoma, Arial';
-      ctx.fillStyle='#374151';
-      var nameY=padTop+chartH+16;
-      ctx.fillText(s.label,x+barW/2,nameY);
-    });
-  }
-  function lbBehRenderAll(){
-    lbBehRenderTable();
-    lbBehDrawChart();
-  }
-  document.getElementById('beh-chart-month').addEventListener('change',lbBehRenderAll);
-  function lbBehExportHtml(){
-    var monthIdx=lbBehCurrentMonthIdx();
-    var monthName=BEH_MONTHS[monthIdx];
-    var evs=lbBehEventsForMonth(monthIdx);
-    var scores=lbBehNetScores(monthIdx);
-    var canvas=document.getElementById('beh-chart');
-    var imgData=canvas.toDataURL('image/png');
-    var h='<p style="text-align:center;font-weight:bold;font-size:15px">رفتار و انضباط — ماه '+esc(monthName)+'</p>';
-    h+='<div style="text-align:center;margin:14px 0"><img src="'+imgData+'" style="max-width:100%;width:600px"></div>';
-    h+='<table><tr><th>دانش‌آموز</th><th>روز</th><th>نوع</th><th>دلیل</th></tr>';
-    evs.forEach(function(e){
-      h+='<tr><td>'+esc(behLabelOf(e.uuid))+'</td><td>'+toFaDigits(e.day)+'</td><td>'+(e.delta>0?'مثبت':'منفی')+'</td><td>'+esc(e.reason||'—')+'</td></tr>';
-    });
-    h+='</table>';
-    if(scores.length){
-      h+='<p style="margin-top:14px;font-weight:bold">جمع امتیاز خالص این ماه:</p><ul>';
-      scores.forEach(function(s){h+='<li>'+esc(s.label)+': '+(s.net>0?'+':'')+toFaDigits(s.net)+'</li>';});
-      h+='</ul>';
-    }
-    return h;
-  }
-  document.getElementById('btn-beh-word').onclick=function(){lbWordExport('رفتار و انضباط',lbBehExportHtml(),'رفتار-و-انضباط',false);};
-  document.getElementById('btn-beh-pdf').onclick=function(){lbPrintExport('رفتار و انضباط',lbBehExportHtml(),false);};
-  var LB_BEH_LOADED=false;
-  async function lbLoadBehaviorIfNeeded(){
-    await lbBehLoadStudentsIfNeeded();
-    if(LB_BEH_LOADED){lbBehRenderAll();return;}
-    LB_BEH_LOADED=true;
-    var saved=await lbLoad('behavior');
-    if(saved&&saved.events)BEH_STATE=saved;
-    lbBehRenderAll();
   }
 
   // ===================== پایان دفتر مدیریت کلاسی =====================
