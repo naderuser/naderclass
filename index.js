@@ -3667,6 +3667,7 @@ function teacherPage() {
             <button class="lb-menu-btn" data-lb="passrate"><span class="lb-ico">🎯</span><span class="lb-t">درصد قبولی دانش‌آموزان</span><small>نمودار به تفکیک پایه</small></button>
             <button class="lb-menu-btn" data-lb="absence"><span class="lb-ico">📋</span><span class="lb-t">ثبت غیبت دانش‌آموزان</span></button>
             <button class="lb-menu-btn" data-lb="performance"><span class="lb-ico">📈</span><span class="lb-t">ثبت سطوح عملکرد دانش‌آموز</span></button>
+            <button class="lb-menu-btn" data-lb="reportcard"><span class="lb-ico">🎓</span><span class="lb-t">کارنامه‌ساز</span><small>ارزشیابی توصیفی هر دانش‌آموز</small></button>
             <button class="lb-menu-btn" data-lb="council"><span class="lb-ico">🗣️</span><span class="lb-t">صورتجلسه شورای آموزشی اولیا</span></button>
             <button class="lb-menu-btn" data-lb="meetings"><span class="lb-ico">🤝</span><span class="lb-t">جلسات فردی با اولیا</span></button>
             <button class="lb-menu-btn" data-lb="weekly"><span class="lb-ico">📅</span><span class="lb-t">برنامه درسی هفتگی (چندپایه)</span></button>
@@ -3900,6 +3901,61 @@ function teacherPage() {
               <button class="btn sec" id="btn-lb-performance-excel">📊 دانلود Excel</button>
               <button class="btn gray" id="btn-lb-performance-pdf">🖨️ چاپ / دانلود PDF</button>
               <button class="btn danger" type="button" onclick="lbClearContainer('lb-performance-preview')">🗑️ پاک کردن جدول</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- ===== کارنامه‌ساز ===== -->
+        <div class="lb-panel hidden" id="lb-panel-reportcard">
+          <button class="btn sm gray lb-back-btn">← بازگشت به دفتر</button>
+          <h3>🎓 کارنامه‌ساز (ارزشیابی توصیفی)</h3>
+          <p class="muted">تکمیل کارنامه‌ی توصیفی هر دانش‌آموز به تفکیک درس‌های همان پایه</p>
+          <div class="row" style="align-items:center">
+            <label style="flex:0 0 auto">پایه تحصیلی:</label>
+            <select id="rc-grade-select" style="flex:0 0 auto;min-width:180px">
+              <option value="0">پایه اول دبستان</option>
+              <option value="1">پایه دوم دبستان</option>
+              <option value="2">پایه سوم دبستان</option>
+              <option value="3">پایه چهارم دبستان</option>
+              <option value="4">پایه پنجم دبستان</option>
+              <option value="5">پایه ششم دبستان</option>
+            </select>
+            <label style="flex:0 0 auto">نوبت:</label>
+            <select id="rc-term-select" style="flex:0 0 auto;min-width:120px">
+              <option value="اول">نوبت اول</option>
+              <option value="دوم">نوبت دوم</option>
+            </select>
+          </div>
+          <div class="row" style="align-items:center;flex-wrap:wrap;gap:8px">
+            <label style="flex:0 0 auto">دانش‌آموز:</label>
+            <select id="rc-student-select" style="flex:0 0 auto;min-width:220px">
+              <option value="">— انتخاب دانش‌آموز —</option>
+            </select>
+            <button class="btn sm sec" id="btn-rc-new">🆕 دانش‌آموز جدید</button>
+            <button class="btn sm danger hidden" id="btn-rc-delete">🗑️ حذف این کارنامه</button>
+          </div>
+          <div id="rc-form-wrap" class="hidden">
+            <div class="row" style="align-items:center;gap:14px;margin:10px 0">
+              <img id="rc-photo-preview" class="hidden" style="width:44px;height:44px;border-radius:50%;object-fit:cover;border:1px solid var(--line)">
+              <label class="btn sm sec" style="cursor:pointer">📷 عکس پروفایل دانش‌آموز<input type="file" accept="image/*" id="rc-photo-input" style="display:none"></label>
+              <button class="btn sm gray hidden" id="btn-rc-photo-remove">🗑️ حذف عکس</button>
+            </div>
+            <div class="lb-meta-form">
+              <div><label>نام مدرسه</label><input id="rc-school" placeholder="......................."></div>
+              <div><label>نام آموزگار</label><input id="rc-teacher" placeholder="......................."></div>
+              <div><label>سال تحصیلی</label><input id="rc-year" placeholder="......................."></div>
+              <div><label>نام دانش‌آموز</label><input id="rc-student-name" placeholder="نام و نام خانوادگی دانش‌آموز"></div>
+              <div><label>تعداد غیبت (روز)</label><input id="rc-absence" placeholder="۰" style="width:80px"></div>
+            </div>
+            <div class="lb-preview" id="rc-subjects-preview"></div>
+            <label style="margin-top:10px;display:block">توضیحات کلی معلم درباره‌ی روند یادگیری و رفتار دانش‌آموز</label>
+            <textarea id="rc-general-note" rows="4" class="lb-textarea" placeholder="توضیحات کلی، نقاط قوت و پیشنهاد برای بهبود..."></textarea>
+            <p class="muted" style="font-size:12px;margin-top:6px">سطوح ارزشیابی: 🌟 خیلی خوب | ✅ خوب | 📌 قابل‌قبول | 📖 نیاز به تلاش</p>
+            <div class="row" style="margin-top:12px">
+              <button class="btn primary" id="btn-rc-save">💾 ذخیره</button>
+              <button class="btn primary" id="btn-rc-word">📄 دانلود Word</button>
+              <button class="btn sec" id="btn-rc-excel">📊 دانلود Excel</button>
+              <button class="btn gray" id="btn-rc-pdf">🖨️ چاپ / دانلود PDF</button>
             </div>
           </div>
         </div>
@@ -8690,6 +8746,11 @@ function teacherScript() {
         LB_PERF_CURRENT_UUID=null;
         lbRenderPerfStudentList(lbSelectedPerfGradeIdx());
       }
+      if(b.dataset.lb==='reportcard'){
+        document.getElementById('rc-form-wrap').classList.add('hidden');
+        RC_CURRENT_UUID=null;
+        rcRenderStudentList(rcSelectedGradeIdx());
+      }
       if(b.dataset.lb==='council')lbLoadCouncilIfNeeded();
       if(b.dataset.lb==='meetings')lbLoadMeetingsIfNeeded();
       if(b.dataset.lb==='weekly')lbLoadWeeklyIfNeeded();
@@ -9635,6 +9696,222 @@ function teacherScript() {
         rows.push(row);
       });
       lbAddExcelSheet(wb,'سطوح عملکرد',rows);
+    });
+  };
+
+
+  // ===================== کارنامه‌ساز (ارزشیابی توصیفی) =====================
+  function rcSelectedGradeIdx(){
+    return parseInt(document.getElementById('rc-grade-select').value,10)||0;
+  }
+  function rcActiveSubjects(gradeIdx){
+    var out=[];
+    LB_PERF_SUBJECTS_BY_GRADE.forEach(function(subj){
+      if(subj.grades[gradeIdx])out.push(subj.name);
+    });
+    return out;
+  }
+  var RC_DATA={}; // { subjectName: {level:'', note:''} }
+  var RC_CURRENT_UUID=null;
+  var RC_PHOTO='';
+  function rcSetPhoto(dataUrl){
+    RC_PHOTO=dataUrl||'';
+    var img=document.getElementById('rc-photo-preview');
+    var removeBtn=document.getElementById('btn-rc-photo-remove');
+    if(RC_PHOTO){img.src=RC_PHOTO;img.classList.remove('hidden');removeBtn.classList.remove('hidden');}
+    else{img.src='';img.classList.add('hidden');removeBtn.classList.add('hidden');}
+  }
+  document.getElementById('rc-photo-input').addEventListener('change',async function(){
+    var f=this.files&&this.files[0];this.value='';
+    if(!f)return;
+    try{
+      var dataUrl=await resizeProfilePhoto(f);
+      rcSetPhoto(dataUrl);
+    }catch(e){toast(e.message);}
+  });
+  document.getElementById('btn-rc-photo-remove').onclick=function(){rcSetPhoto('');};
+
+  var RC_LEVEL_LABELS={excellent:'🌟 خیلی خوب',good:'✅ خوب',acceptable:'📌 قابل‌قبول','needs-improve':'📖 نیاز به تلاش'};
+  var RC_LEVEL_OPTIONS=[['excellent','🌟 خیلی خوب'],['good','✅ خوب'],['acceptable','📌 قابل‌قبول'],['needs-improve','📖 نیاز به تلاش']];
+  function rcBuildSubjectsHtml(forExport){
+    var subjects=rcActiveSubjects(rcSelectedGradeIdx());
+    var h='<table class="lb-table"><thead><tr><th>نام درس</th><th>ارزشیابی</th><th>توضیح معلم (اختیاری)</th></tr></thead><tbody id="rc-subjects-tbody">';
+    subjects.forEach(function(name){
+      var saved=RC_DATA[name]||{};
+      var level=saved.level||'';
+      if(forExport){
+        h+='<tr><td style="font-weight:700">'+esc(name)+'</td><td>'+esc(RC_LEVEL_LABELS[level]||'—')+'</td><td>'+esc(saved.note||'')+'</td></tr>';
+      }else{
+        var sel='<select class="rc-level" data-key="'+esc(name)+'"><option value="">—</option>';
+        RC_LEVEL_OPTIONS.forEach(function(o){
+          sel+='<option value="'+o[0]+'"'+(level===o[0]?' selected':'')+'>'+o[1]+'</option>';
+        });
+        sel+='</select>';
+        h+='<tr><td style="font-weight:700;background:#f1f5f9">'+esc(name)+'</td><td>'+sel+'</td><td><input type="text" class="rc-note" data-key="'+esc(name)+'" value="'+esc(saved.note||'')+'" placeholder="توضیح کوتاه"></td></tr>';
+      }
+    });
+    h+='</tbody></table>';
+    return h;
+  }
+  function rcBindSubjectInputs(el){
+    el.querySelectorAll('.rc-level').forEach(function(sel){
+      sel.addEventListener('change',function(){
+        var key=sel.dataset.key;
+        if(!RC_DATA[key])RC_DATA[key]={};
+        RC_DATA[key].level=sel.value;
+      });
+    });
+    el.querySelectorAll('.rc-note').forEach(function(inp){
+      inp.addEventListener('input',function(){
+        var key=inp.dataset.key;
+        if(!RC_DATA[key])RC_DATA[key]={};
+        RC_DATA[key].note=inp.value;
+      });
+    });
+  }
+  function rcRenderSubjects(){
+    var el=document.getElementById('rc-subjects-preview');
+    el.innerHTML=rcBuildSubjectsHtml(false);
+    rcBindSubjectInputs(el);
+  }
+  document.getElementById('rc-grade-select').addEventListener('change',function(){
+    document.getElementById('rc-form-wrap').classList.add('hidden');
+    document.getElementById('btn-rc-delete').classList.add('hidden');
+    RC_CURRENT_UUID=null;
+    rcRenderStudentList(rcSelectedGradeIdx());
+  });
+
+  async function rcRenderStudentList(gradeIdx){
+    var sel=document.getElementById('rc-student-select');
+    sel.innerHTML='<option value="">در حال بارگذاری...</option>';
+    var list=(await lbLoad('reportcard:list:'+gradeIdx))||[];
+    sel.innerHTML='<option value="">— انتخاب دانش‌آموز —</option>';
+    list.forEach(function(s){
+      var opt=document.createElement('option');
+      opt.value=s.uuid;
+      opt.textContent=s.name;
+      sel.appendChild(opt);
+    });
+    if(!list.length){
+      var opt2=document.createElement('option');
+      opt2.value='';opt2.disabled=true;
+      opt2.textContent='هنوز کارنامه‌ای برای این پایه ثبت نشده';
+      sel.appendChild(opt2);
+    }
+  }
+  async function rcUpdateListEntry(gradeIdx,uuidStr,name){
+    var key='reportcard:list:'+gradeIdx;
+    var list=(await lbLoad(key))||[];
+    var idx=list.findIndex(function(s){return s.uuid===uuidStr;});
+    if(idx>=0)list[idx].name=name;else list.push({uuid:uuidStr,name:name});
+    await lbSave(key,list,true);
+  }
+  function rcNew(){
+    RC_CURRENT_UUID=null;
+    RC_DATA={};
+    document.getElementById('rc-student-name').value='';
+    document.getElementById('rc-absence').value='';
+    document.getElementById('rc-general-note').value='';
+    document.getElementById('rc-student-select').value='';
+    document.getElementById('btn-rc-delete').classList.add('hidden');
+    rcSetPhoto('');
+    document.getElementById('rc-form-wrap').classList.remove('hidden');
+    rcRenderSubjects();
+  }
+  document.getElementById('btn-rc-new').onclick=rcNew;
+  async function rcLoadStudent(uuidStr){
+    var rec=await lbLoad('reportcard:student:'+uuidStr);
+    if(!rec){toast('این کارنامه پیدا نشد');return;}
+    RC_CURRENT_UUID=uuidStr;
+    RC_DATA=rec.data||{};
+    document.getElementById('rc-student-name').value=rec.name||'';
+    document.getElementById('rc-absence').value=rec.absence||'';
+    document.getElementById('rc-general-note').value=rec.generalNote||'';
+    document.getElementById('rc-term-select').value=rec.term||'اول';
+    rcSetPhoto(rec.photo||'');
+    if(rec.meta){
+      document.getElementById('rc-school').value=rec.meta.school||'';
+      document.getElementById('rc-teacher').value=rec.meta.teacher||'';
+      document.getElementById('rc-year').value=rec.meta.year||'';
+    }
+    document.getElementById('btn-rc-delete').classList.remove('hidden');
+    document.getElementById('rc-form-wrap').classList.remove('hidden');
+    rcRenderSubjects();
+  }
+  document.getElementById('rc-student-select').addEventListener('change',function(){
+    if(this.value)rcLoadStudent(this.value);
+    else{document.getElementById('rc-form-wrap').classList.add('hidden');document.getElementById('btn-rc-delete').classList.add('hidden');}
+  });
+  document.getElementById('btn-rc-delete').onclick=async function(){
+    if(!RC_CURRENT_UUID)return;
+    var studentName=document.getElementById('rc-student-name').value||'این دانش‌آموز';
+    if(!confirm('آیا از حذف کارنامه‌ی «'+studentName+'» مطمئن هستید؟ این کار قابل بازگشت نیست.'))return;
+    var gradeIdx=rcSelectedGradeIdx();
+    var ok=await lbSave('reportcard:student:'+RC_CURRENT_UUID,null,true);
+    if(ok){
+      var key='reportcard:list:'+gradeIdx;
+      var list=(await lbLoad(key))||[];
+      list=list.filter(function(s){return s.uuid!==RC_CURRENT_UUID;});
+      await lbSave(key,list,true);
+      await rcRenderStudentList(gradeIdx);
+      document.getElementById('rc-form-wrap').classList.add('hidden');
+      document.getElementById('btn-rc-delete').classList.add('hidden');
+      RC_CURRENT_UUID=null;
+      toast('کارنامه حذف شد ✅');
+    }else{
+      toast('خطا در حذف اطلاعات');
+    }
+  };
+  document.getElementById('btn-rc-save').onclick=async function(){
+    var name=document.getElementById('rc-student-name').value.trim();
+    if(!name){toast('لطفاً ابتدا نام دانش‌آموز را وارد کنید');return;}
+    var gradeIdx=rcSelectedGradeIdx();
+    if(!RC_CURRENT_UUID)RC_CURRENT_UUID=uid();
+    var rec={
+      uuid:RC_CURRENT_UUID,
+      name:name,
+      grade:gradeIdx,
+      term:document.getElementById('rc-term-select').value,
+      absence:document.getElementById('rc-absence').value,
+      generalNote:document.getElementById('rc-general-note').value,
+      photo:RC_PHOTO,
+      meta:{school:document.getElementById('rc-school').value,teacher:document.getElementById('rc-teacher').value,year:document.getElementById('rc-year').value},
+      data:RC_DATA
+    };
+    var ok=await lbSave('reportcard:student:'+RC_CURRENT_UUID,rec,true);
+    if(ok){
+      await rcUpdateListEntry(gradeIdx,RC_CURRENT_UUID,name);
+      var sel=document.getElementById('rc-student-select');
+      await rcRenderStudentList(gradeIdx);
+      sel.value=RC_CURRENT_UUID;
+      toast('کارنامه‌ی «'+name+'» ذخیره شد');
+    }else{
+      toast('خطا در ذخیره اطلاعات');
+    }
+  };
+  function rcExportHtml(){
+    var gradeText=document.getElementById('rc-grade-select').selectedOptions[0].textContent;
+    var termText=document.getElementById('rc-term-select').selectedOptions[0].textContent;
+    var photoHtml=RC_PHOTO?('<img src="'+RC_PHOTO+'" style="float:left;width:70px;height:70px;border-radius:50%;object-fit:cover;border:1px solid #94a3b8;margin:0 8px 6px 0">'):'';
+    var meta=lbMetaBlock([['نام مدرسه','rc-school'],['نام آموزگار','rc-teacher'],['سال تحصیلی','rc-year'],['نام دانش‌آموز','rc-student-name']]);
+    meta=photoHtml+'<p class="lb-meta"><b>پایه تحصیلی:</b> '+esc(gradeText)+' &nbsp;&nbsp; <b>نوبت:</b> '+esc(termText)+' &nbsp;&nbsp; <b>تعداد غیبت:</b> '+esc(document.getElementById('rc-absence').value||'۰')+' روز</p>'+meta+'<div style="clear:both"></div>';
+    var table=rcBuildSubjectsHtml(true);
+    var note='<p style="margin-top:14px"><b>توضیحات کلی معلم:</b><br>'+esc(document.getElementById('rc-general-note').value||'')+'</p>';
+    var sign='<p style="margin-top:30px">امضای آموزگار: ......................... &nbsp;&nbsp;&nbsp;&nbsp; امضای مدیر: .........................</p>';
+    return meta+table+note+sign;
+  }
+  document.getElementById('btn-rc-word').onclick=function(){lbWordExport('کارنامه‌ی توصیفی دانش‌آموز',rcExportHtml(),'کارنامه-دانش-آموز',false);};
+  document.getElementById('btn-rc-pdf').onclick=function(){lbPrintExport('کارنامه‌ی توصیفی دانش‌آموز',rcExportHtml(),false);};
+  document.getElementById('btn-rc-excel').onclick=function(){
+    var studentName=document.getElementById('rc-student-name').value||'دانش‌آموز';
+    var subjects=rcActiveSubjects(rcSelectedGradeIdx());
+    lbExcelExport('کارنامه-'+studentName,function(wb){
+      var rows=[['نام درس','ارزشیابی','توضیح معلم']];
+      subjects.forEach(function(name){
+        var saved=RC_DATA[name]||{};
+        rows.push([name, RC_LEVEL_LABELS[saved.level]||'', saved.note||'']);
+      });
+      lbAddExcelSheet(wb,'کارنامه',rows);
     });
   };
 
