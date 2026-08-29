@@ -3589,40 +3589,36 @@ function teacherPage() {
           <button class="btn sm sec hidden cls-opt-btn" id="btn-cam-flip">🔄 چرخش دوربین</button>
         </div>
 
-        <div class="cls-pdf-panel" id="cls-pdf-panel" style="margin-bottom:12px">
-          <div class="row" style="align-items:center;flex-wrap:wrap">
-            <label class="btn sm sec" style="cursor:pointer;flex:0 0 auto">📄 افزودن PDF<input type="file" accept="application/pdf" id="cls-pdf-file" style="display:none"></label>
-            <span id="cls-pdf-name" class="muted" style="font-size:12px"></span>
-            <button class="btn sm danger hidden" id="cls-pdf-remove-file" style="flex:0 0 auto">🗑️ حذف فایل PDF</button>
-          </div>
-          <div id="cls-pdf-nav" class="row hidden" style="align-items:center;margin-top:6px;flex-wrap:wrap">
-            <button class="btn sm gray" id="cls-pdf-prev" style="flex:0 0 auto">◀ قبلی</button>
-            <span style="flex:0 0 auto">صفحه <input type="number" id="cls-pdf-pagenum" min="1" value="1" style="width:60px;text-align:center"> از <span id="cls-pdf-total">1</span></span>
-            <button class="btn sm gray" id="cls-pdf-next" style="flex:0 0 auto">بعدی ▶</button>
-            <button class="btn sm primary" id="cls-pdf-show" style="flex:0 0 auto">🖼️ نمایش این صفحه روی تخته</button>
-            <button class="btn sm danger" id="cls-pdf-remove-bg" style="flex:0 0 auto">حذف PDF از تخته</button>
-          </div>
-        </div>
-
         <div class="cls-wrap">
           <div class="cls-board-col" style="position:relative">
-            <div class="row" style="margin-bottom:8px;flex-wrap:wrap">
-              <input type="color" id="brd-color" value="#111827" style="flex:0 0 44px;padding:2px;height:38px">
-              <input type="range" id="brd-size" min="1" max="20" value="3" style="flex:1;min-width:80px">
-              <button class="btn sm gray active" id="brd-tool-pen" style="flex:0 0 auto">✏️ قلم</button>
-              <button class="btn sm gray" id="brd-tool-line" style="flex:0 0 auto">📏 خط راست</button>
-              <button class="btn sm gray" id="brd-tool-text" style="flex:0 0 auto">🔤 متن</button>
-              <button class="btn sm gray" id="brd-tool-eraser" style="flex:0 0 auto">🧽 پاک‌کن</button>
-              <button class="btn sm danger" id="brd-clear" style="flex:0 0 auto">🗑️ پاک کردن یادداشت‌ها</button>
-              <button class="btn sm sec" id="brd-zoom" style="flex:0 0 auto" title="بزرگ‌نمایی تخته">🔍 بزرگ‌نمایی</button>
-            </div>
             <div class="t-board-wrap" style="position:relative">
               <canvas id="t-board" width="900" height="500" style="width:100%;background:#fff;border:1px solid var(--line);border-radius:10px;touch-action:none;display:block;cursor:crosshair"></canvas>
               <video id="t-cam-preview" autoplay muted playsinline class="hidden t-cam-oncanvas"></video>
             </div>
             <img id="t-board-zoom-img" class="hidden" style="position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);width:min(94vw,900px);height:auto;max-height:88vh;object-fit:contain;z-index:41;cursor:zoom-out;box-shadow:0 10px 40px rgba(0,0,0,.5);border-radius:10px;background:#fff">
             <div id="t-board-zoom-backdrop" class="hidden" style="position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:40"></div>
-            <p class="muted" style="font-size:12px;margin-top:6px">روی تخته بکشید؛ ترسیم برای همه دانش‌آموزان متصل به‌صورت زنده نمایش داده می‌شود. وقتی دوربین روشن باشد و PDF روی تخته نباشد، تصویر دقیقاً روی تخته نمایش داده می‌شود؛ به‌محض نمایش PDF، تصویر کوچک می‌شود تا PDF کامل دیده شود.</p>
+            <div class="row" style="margin-top:8px;flex-wrap:wrap">
+              <input type="range" id="brd-size" min="1" max="20" value="3" style="flex:1;min-width:80px">
+              <button class="btn sm gray" id="brd-tool-eraser" style="flex:0 0 auto">🧽 پاک‌کن</button>
+              <button class="btn sm danger" id="brd-clear" style="flex:0 0 auto">🗑️ پاک کردن یادداشت‌ها</button>
+              <button class="btn sm sec" id="brd-zoom" style="flex:0 0 auto" title="بزرگ‌نمایی تخته">🔍 بزرگ‌نمایی</button>
+            </div>
+            <p class="muted" style="font-size:12px;margin-top:6px">روی تخته با خط مشکی بکشید؛ ترسیم برای همه دانش‌آموزان متصل به‌صورت زنده نمایش داده می‌شود. وقتی دوربین روشن باشد و PDF روی تخته نباشد، تصویر دقیقاً روی تخته نمایش داده می‌شود؛ به‌محض نمایش PDF، تصویر کوچک می‌شود تا PDF کامل دیده شود.</p>
+
+            <div class="cls-pdf-panel" id="cls-pdf-panel" style="margin-top:12px">
+              <div class="row" style="align-items:center;flex-wrap:wrap">
+                <label class="btn sm sec" style="cursor:pointer;flex:0 0 auto">📄 افزودن PDF<input type="file" accept="application/pdf" id="cls-pdf-file" style="display:none"></label>
+                <span id="cls-pdf-name" class="muted" style="font-size:12px"></span>
+                <button class="btn sm danger hidden" id="cls-pdf-remove-file" style="flex:0 0 auto">🗑️ حذف فایل PDF</button>
+              </div>
+              <div id="cls-pdf-nav" class="row hidden" style="align-items:center;margin-top:6px;flex-wrap:wrap">
+                <button class="btn sm gray" id="cls-pdf-prev" style="flex:0 0 auto">◀ قبلی</button>
+                <span style="flex:0 0 auto">صفحه <input type="number" id="cls-pdf-pagenum" min="1" value="1" style="width:60px;text-align:center"> از <span id="cls-pdf-total">1</span></span>
+                <button class="btn sm gray" id="cls-pdf-next" style="flex:0 0 auto">بعدی ▶</button>
+                <button class="btn sm primary" id="cls-pdf-show" style="flex:0 0 auto">🖼️ نمایش این صفحه روی تخته</button>
+                <button class="btn sm danger" id="cls-pdf-remove-bg" style="flex:0 0 auto">حذف PDF از تخته</button>
+              </div>
+            </div>
           </div>
           <div class="cls-chat-col">
             <h4 style="margin:0 0 6px">👥 حاضرین (<span id="cls-online-count">0</span>)</h4>
@@ -8336,54 +8332,27 @@ function teacherScript() {
     toast('فایل PDF حذف شد');
   };
 
-  let brdMode='pen'; // pen | line | text | eraser
-  let clsLineStart=null, clsLineSnapshot=null;
-  function clsSetMode(mode){
-    brdMode=mode;
-    ['pen','line','text','eraser'].forEach(function(m){
-      document.getElementById('brd-tool-'+m).classList.toggle('active', m===mode);
-    });
+  let brdMode='pen'; // pen | eraser
+  const BRD_COLOR='#000000';
+  function clsSetEraser(on){
+    brdMode = on ? 'eraser' : 'pen';
+    const btn=document.getElementById('brd-tool-eraser');
+    btn.classList.toggle('active', on);
+    btn.textContent = on ? '✏️ برگشت به قلم' : '🧽 پاک‌کن';
   }
-  document.getElementById('brd-tool-pen').onclick=function(){clsSetMode('pen');};
-  document.getElementById('brd-tool-line').onclick=function(){clsSetMode('line');};
-  document.getElementById('brd-tool-text').onclick=function(){clsSetMode('text');};
-  document.getElementById('brd-tool-eraser').onclick=function(){clsSetMode('eraser');};
+  document.getElementById('brd-tool-eraser').onclick=function(){ clsSetEraser(brdMode!=='eraser'); };
 
   function clsStartStroke(e){
     e.preventDefault();
     const pt=clsPointFromEvent(e);
-
-    if(brdMode==='text'){
-      const text=window.prompt('متن مورد نظر را بنویسید:');
-      if(text && text.trim()){
-        const stroke={ type:'text', text: text.trim(), x: pt[0], y: pt[1], color: document.getElementById('brd-color').value, size: parseInt(document.getElementById('brd-size').value)||3 };
-        clsDrawLocal(stroke);
-        clsSend({type:'draw', stroke});
-      }
-      return;
-    }
-
     clsDrawing=true;
-    if(brdMode==='line'){
-      clsLineStart=pt;
-      try{ clsLineSnapshot=tCtx.getImageData(0,0,tBoard.width,tBoard.height); }catch(err){ clsLineSnapshot=null; }
-      return;
-    }
-
     const eraseOn=brdMode==='eraser';
-    clsCurrentStroke={ color: document.getElementById('brd-color').value, size: parseInt(document.getElementById('brd-size').value)||3, erase: eraseOn, points: [pt] };
+    clsCurrentStroke={ color: BRD_COLOR, size: parseInt(document.getElementById('brd-size').value)||3, erase: eraseOn, points: [pt] };
   }
   function clsMoveStroke(e){
     if(!clsDrawing)return;
     e.preventDefault();
     const pt=clsPointFromEvent(e);
-
-    if(brdMode==='line'){
-      if(clsLineSnapshot) tCtx.putImageData(clsLineSnapshot,0,0);
-      clsDrawLocal({ color: document.getElementById('brd-color').value, size: parseInt(document.getElementById('brd-size').value)||3, points:[clsLineStart, pt] });
-      return;
-    }
-
     clsCurrentStroke.points.push(pt);
     if(clsCurrentStroke.points.length>=2){
       const tail={ ...clsCurrentStroke, points: clsCurrentStroke.points.slice(-2) };
@@ -8392,14 +8361,6 @@ function teacherScript() {
     }
   }
   function clsEndStroke(e){
-    if(clsDrawing && brdMode==='line' && clsLineStart){
-      const pt=clsPointFromEvent(e);
-      if(clsLineSnapshot) tCtx.putImageData(clsLineSnapshot,0,0);
-      const stroke={ color: document.getElementById('brd-color').value, size: parseInt(document.getElementById('brd-size').value)||3, points:[clsLineStart, pt] };
-      clsDrawLocal(stroke);
-      clsSend({type:'draw', stroke});
-      clsLineStart=null; clsLineSnapshot=null;
-    }
     clsDrawing=false; clsCurrentStroke=null;
   }
 
