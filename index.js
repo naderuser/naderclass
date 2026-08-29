@@ -8600,7 +8600,7 @@ function teacherScript() {
       // نکته: عمداً فقط عرض تقریبی درخواست می‌شود، نه عرض+ارتفاع با هم؛ وقتی هر دو با هم
       // درخواست شوند و با نسبت واقعی دوربین گوشی جور نباشد، خیلی از گوشی‌های اندروید به‌جای
       // برش تصویر، دور آن را با نوار سیاه پر می‌کنند و تصویر خیلی کوچک و وسط‌چین دیده می‌شود.
-      clsCamStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:clsCamFacing,width:{ideal:320}}, audio:true});
+      clsCamStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:clsCamFacing,width:{ideal:480}}, audio:true});
       preview.srcObject=clsCamStream;
       preview.classList.remove('hidden');
       clsUpdateCamLayout();
@@ -8620,13 +8620,13 @@ function teacherScript() {
         try{
           // اندازه‌ی بوم گرفتن عکس را دقیقاً برابر نسبت واقعی تصویر دوربین قرار می‌دهیم
           // تا فریم ارسالی بدون نوار سیاه و بدون کشیدگی باشد.
-          const vw=preview.videoWidth||320, vh=preview.videoHeight||240;
+          const vw=preview.videoWidth||480, vh=preview.videoHeight||360;
           if(cap.width!==vw||cap.height!==vh){cap.width=vw;cap.height=vh;}
           capCtx.drawImage(preview,0,0,cap.width,cap.height);
-          const dataUrl=cap.toDataURL('image/jpeg',0.4);
+          const dataUrl=cap.toDataURL('image/jpeg',0.7);
           clsSend({type:'video-frame', data: dataUrl});
         }catch(e){}
-      },130); // حدود ۷-۸ فریم در ثانیه؛ روان‌تر از حالت قبل با تأخیر کمتر تا دانش‌آموز از معلم عقب نماند
+      },150); // حدود ۶-۷ فریم در ثانیه؛ کیفیت تصویر بالاتر رفته، سرعت کمی متعادل‌تر شده تا حجم ارسالی زیاد نشود
     }catch(e){ toast('دسترسی به دوربین یا میکروفون داده نشد'); }
   };
 
@@ -8643,7 +8643,7 @@ function teacherScript() {
     clsCamStream=null;
     preview.srcObject=null;
     try{
-      const newStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{exact:nextFacing},width:{ideal:320}}, audio:true});
+      const newStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{exact:nextFacing},width:{ideal:480}}, audio:true});
       clsCamStream=newStream;
       clsCamFacing=nextFacing;
       preview.srcObject=clsCamStream;
@@ -8657,7 +8657,7 @@ function teacherScript() {
       toast('این دستگاه دوربین دومی ندارد یا اجازه دسترسی به آن را نمی‌دهد');
       // تلاش برای بازگرداندن دوربین قبلی تا تصویر کلاً قطع نشود
       try{
-        clsCamStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:prevFacing,width:{ideal:320}}, audio:true});
+        clsCamStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:prevFacing,width:{ideal:480}}, audio:true});
         clsCamFacing=prevFacing;
         preview.srcObject=clsCamStream;
         if(wasAudioFromCam && clsCamStream.getAudioTracks().length){
