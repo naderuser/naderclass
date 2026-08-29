@@ -3027,6 +3027,18 @@ function teacherPage() {
           <button class="btn" id="btn-add-student" style="flex:0 0 auto">➕ ساخت لینک اختصاصی</button>
         </div>
         <p class="muted">برای هر دانش‌آموز یک UUID و لینک جداگانه ساخته می‌شود. عکس پروفایل اختیاری است (حداکثر ۲ مگابایت).</p>
+        <div class="row" style="align-items:center;margin-top:10px">
+          <label style="flex:0 0 auto">نمایش دانش‌آموزان پایه:</label>
+          <select id="students-filter-grade" style="flex:0 0 auto;min-width:150px">
+            <option value="0">پایه اول دبستان</option>
+            <option value="1">پایه دوم دبستان</option>
+            <option value="2">پایه سوم دبستان</option>
+            <option value="3">پایه چهارم دبستان</option>
+            <option value="4">پایه پنجم دبستان</option>
+            <option value="5">پایه ششم دبستان</option>
+            <option value="all">همه‌ی پایه‌ها</option>
+          </select>
+        </div>
         <div id="students-list"></div>
       </div>
 
@@ -4405,9 +4417,15 @@ function teacherScript() {
   // ===== دانش‌آموزان =====
   let TEACHER_STUDENTS=[];
   const GRADE_LABELS=['پایه اول','پایه دوم','پایه سوم','پایه چهارم','پایه پنجم','پایه ششم'];
+  function renderStudentsFiltered(){
+    const filterVal=document.getElementById('students-filter-grade').value;
+    const list=filterVal==='all'?TEACHER_STUDENTS:TEACHER_STUDENTS.filter(s=>(Number.isInteger(s.grade)?s.grade:0)===parseInt(filterVal,10));
+    renderStudentsTable(list);
+  }
+  document.getElementById('students-filter-grade').addEventListener('change',renderStudentsFiltered);
   function renderStudentsTable(students){
     const box=document.getElementById('students-list');
-    if(!students.length){box.innerHTML='<p class="muted">هنوز دانش‌آموزی ساخته نشده است.</p>';return;}
+    if(!students.length){box.innerHTML='<p class="muted">دانش‌آموزی در این پایه ثبت نشده است.</p>';return;}
     box.innerHTML='<table><tr><th>عکس</th><th>#</th><th>نام</th><th>پایه</th><th>لینک اختصاصی</th><th>وضعیت</th><th></th></tr>'+
       students.map((s,i)=>{
         const link=location.origin+'/s/'+s.uuid;
@@ -4431,14 +4449,14 @@ function teacherScript() {
   async function loadStudents(){
     const d=await api('/api/teacher/students');
     TEACHER_STUDENTS=d.students||[];
-    renderStudentsTable(TEACHER_STUDENTS);
+    renderStudentsFiltered();
   }
   window.copyLink=(l)=>{navigator.clipboard.writeText(l).then(()=>toast('لینک کپی شد'));};
   window.delStudent=async(id)=>{
     if(!confirm('حذف این دانش‌آموز و پاسخنامه‌اش؟'))return;
     // حذف فوری از فهرست نمایشی؛ درخواست حذف واقعی در پس‌زمینه انجام می‌شود تا کاربر منتظر پاسخ سرور نماند
     TEACHER_STUDENTS=TEACHER_STUDENTS.filter(s=>s.uuid!==id);
-    renderStudentsTable(TEACHER_STUDENTS);
+    renderStudentsFiltered();
     await api('/api/teacher/students/'+id,{method:'DELETE'});
   };
 
@@ -4526,6 +4544,7 @@ function teacherScript() {
         toast('پایه بروزرسانی شد ✅');
         const idx=TEACHER_STUDENTS.findIndex(s=>s.uuid===id);
         if(idx>-1)TEACHER_STUDENTS[idx]={...TEACHER_STUDENTS[idx],grade};
+        renderStudentsFiltered();
       }else{
         toast('خطا: '+(r.error||'ثبت نشد'));
         if(prevGrade!==null)sel.value=String(prevGrade);
@@ -4542,7 +4561,7 @@ function teacherScript() {
       if(r.ok){
         toast('عکس پروفایل بروزرسانی شد ✅');
         const idx=TEACHER_STUDENTS.findIndex(s=>s.uuid===id);
-        if(idx>-1){TEACHER_STUDENTS[idx]={...TEACHER_STUDENTS[idx],photo};renderStudentsTable(TEACHER_STUDENTS);}
+        if(idx>-1){TEACHER_STUDENTS[idx]={...TEACHER_STUDENTS[idx],photo};renderStudentsFiltered();}
         else loadStudents();
       }
       else{toast('خطا: '+(r.error||'ثبت نشد'));}
@@ -4562,7 +4581,9 @@ function teacherScript() {
       // بجای دریافت دوباره‌ی کل فهرست از سرور (که با افزایش تعداد دانش‌آموزان کند می‌شود)،
       // دانش‌آموز تازه‌ساخته‌شده مستقیم به فهرست محلی اضافه و بلافاصله نمایش داده می‌شود
       TEACHER_STUDENTS.unshift({...r.student,status:'pending'});
-      renderStudentsTable(TEACHER_STUDENTS);
+      // فیلتر نمایش را روی همان پایه‌ای که دانش‌آموز در آن ساخته شد قرار می‌دهیم تا بلافاصله دیده شود
+      document.getElementById('students-filter-grade').value=String(grade);
+      renderStudentsFiltered();
       toast('دانش‌آموز ساخته شد ✅');
     }finally{btn.disabled=false;}
   };
@@ -9947,11 +9968,14 @@ function teacherScript() {
     // به پنل خودش استفاده می‌شود) تا کارنامه‌ی ذخیره‌شده دقیقاً زیر همان شناسه قرار بگیرد و در پنل
     // دانش‌آموز قابل مشاهده باشد. قبلاً این فهرست جدا و با شناسه‌های تصادفیِ بی‌ربط به حساب واقعی
     // دانش‌آموز نگه‌داری می‌شد که باعث می‌شد کارنامه هیچ‌وقت در پنل دانش‌آموز دیده نشود.
+    // فهرست بر اساس همان «پایه»ی واقعی هر دانش‌آموز (که در بخش دانش‌آموزان تعیین می‌شود) فیلتر می‌شود
+    // تا هر دانش‌آموز فقط زیر پایه‌ی خودش دیده شود.
     var sel=document.getElementById('rc-student-select');
     var prevVal=sel.value;
     sel.innerHTML='<option value="">در حال بارگذاری...</option>';
     var d=await api('/api/teacher/students');
-    var list=(d&&d.ok&&d.students)||[];
+    var all=(d&&d.ok&&d.students)||[];
+    var list=all.filter(function(s){return (Number.isInteger(s.grade)?s.grade:0)===gradeIdx;});
     sel.innerHTML='<option value="">— انتخاب دانش‌آموز —</option>';
     list.forEach(function(s){
       var opt=document.createElement('option');
@@ -9962,7 +9986,7 @@ function teacherScript() {
     if(!list.length){
       var opt2=document.createElement('option');
       opt2.value='';opt2.disabled=true;
-      opt2.textContent='هنوز دانش‌آموزی در «لیست اسامی دانش‌آموزان» ثبت نشده';
+      opt2.textContent='دانش‌آموزی در این پایه ثبت نشده (از بخش «لیست اسامی دانش‌آموزان» اضافه کنید)';
       sel.appendChild(opt2);
     }else if(prevVal && list.some(function(s){return s.uuid===prevVal;})){
       sel.value=prevVal;
