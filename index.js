@@ -1330,10 +1330,8 @@ const SHARED_CSS = `
   .cls-sec-head .cls-chevron{margin-right:auto;transition:transform .2s;font-size:12px;opacity:.85}
   .cls-sec-head.open .cls-chevron{transform:rotate(180deg)}
   .cls-badge-count{background:#2563eb;color:#fff;border-radius:999px;padding:1px 8px;font-size:12px;font-weight:700}
-  .cls-cam-box{position:relative;width:100%;aspect-ratio:16/10;background:#111827;display:flex;align-items:center;justify-content:center;overflow:hidden}
-  #cls-teacher-video{width:100%;height:100%;object-fit:cover;display:block;cursor:zoom-in}
-  .cls-cam-placeholder{color:#94a3b8;font-size:13px;text-align:center;padding:10px}
   .cls-board-box{width:100%;background:#fff;padding:8px}
+  #cls-cam-pip .cls-cam-placeholder{color:#e5e7eb;font-size:10px;line-height:1.3;text-align:center;padding:4px}
   .cls-users-list{max-height:220px;overflow:auto;padding:10px 14px}
   .cls-users-list.hidden{display:none}
   .cls-user-row{display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--line);font-size:14px}
@@ -1342,9 +1340,6 @@ const SHARED_CSS = `
   .cls-user-row.role-teacher{font-weight:700;color:var(--primary)}
   .cls-chat-wrap{padding:10px 14px}
   .cls-chat-wrap.hidden{display:none}
-  @media (max-width:760px){
-    .cls-cam-box{aspect-ratio:4/3}
-  }
 
   .mt-ph{display:inline-block;min-width:18px;min-height:1.1em;border:1px dashed #94a3b8;border-radius:4px;padding:0 3px;outline:none}
   .mt-ph:empty:before{content:attr(data-ph);color:#94a3b8;font-size:.7em}
@@ -1672,10 +1667,12 @@ const SHARED_CSS = `
   [data-theme="dark"] .cls-options-drawer{background:#1e293b}
   @keyframes clsDrawerOpen{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:translateY(0)}}
   .cls-opt-btn{width:100%;justify-content:flex-start;text-align:right;padding:11px 14px;font-size:14px}
-  .t-cam-pip{position:fixed;bottom:18px;left:18px;width:200px;height:150px;object-fit:cover;border-radius:12px;border:2px solid #fff;box-shadow:0 4px 16px rgba(0,0,0,.4);background:#000;z-index:45;cursor:move}
+  .t-cam-pip{position:fixed;bottom:18px;left:18px;width:200px;height:150px;object-fit:cover;border-radius:12px;border:2px solid #fff;box-shadow:0 4px 16px rgba(0,0,0,.4);background:#000;z-index:45}
+  .t-cam-inline{display:block;width:220px;max-width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:12px;border:1px solid var(--line);background:#000;margin-bottom:10px}
   @media(max-width:640px){
     .cls-wrap{flex-direction:column}
     .t-cam-pip{width:110px;height:82px;bottom:14px;left:10px}
+    .t-cam-inline{width:160px}
   }
 
   /* ---- ساخت آزمون (برگه چاپی) ---- */
@@ -2557,19 +2554,15 @@ async function studentClassPage(env, id) {
       </div>
       <div class="cls-stack">
         <div class="cls-sec">
-          <div class="cls-sec-head">🎥 دوربین معلم</div>
-          <div class="cls-cam-box">
-            <div id="cls-video-backdrop" class="hidden"></div>
-            <img id="cls-teacher-video" class="hidden" title="برای بزرگ‌نمایی کلیک کنید">
-            <div id="cls-cam-placeholder" class="cls-cam-placeholder">دوربین معلم هنوز روشن نشده است</div>
-          </div>
-        </div>
-
-        <div class="cls-sec">
           <div class="cls-sec-head">📝 تخته آنلاین</div>
-          <div class="cls-board-box">
+          <div class="cls-board-box" style="position:relative">
             <canvas id="board" width="900" height="500" title="برای بزرگ‌نمایی کلیک کنید"></canvas>
             <div id="cls-board-backdrop" class="hidden"></div>
+            <div id="cls-cam-pip" class="t-cam-pip" style="display:flex;align-items:center;justify-content:center;overflow:hidden;padding:0">
+              <div id="cls-video-backdrop" class="hidden"></div>
+              <img id="cls-teacher-video" class="hidden" title="برای بزرگ‌نمایی کلیک کنید" style="width:100%;height:100%;object-fit:cover;display:block;cursor:zoom-in">
+              <div id="cls-cam-placeholder" class="cls-cam-placeholder">🎥 دوربین معلم خاموش است</div>
+            </div>
           </div>
           <p class="muted" style="font-size:12px;padding:0 14px 10px">تخته کلاس (و فایل PDF روی آن) توسط معلم کنترل می‌شود. صدای معلم به‌صورت خودکار پخش می‌شود.</p>
         </div>
@@ -3626,10 +3619,10 @@ function teacherPage() {
               <button class="btn sm danger" id="brd-clear" style="flex:0 0 auto">🗑️ پاک کردن یادداشت‌ها</button>
               <button class="btn sm sec" id="brd-zoom" style="flex:0 0 auto" title="بزرگ‌نمایی تخته">🔍 بزرگ‌نمایی</button>
             </div>
+            <video id="t-cam-preview" autoplay muted playsinline class="hidden t-cam-inline"></video>
             <canvas id="t-board" width="900" height="500" style="width:100%;background:#fff;border:1px solid var(--line);border-radius:10px;touch-action:none;display:block;cursor:crosshair"></canvas>
             <img id="t-board-zoom-img" class="hidden" style="position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);width:min(94vw,900px);height:auto;max-height:88vh;object-fit:contain;z-index:41;cursor:zoom-out;box-shadow:0 10px 40px rgba(0,0,0,.5);border-radius:10px;background:#fff">
             <div id="t-board-zoom-backdrop" class="hidden" style="position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:40"></div>
-            <video id="t-cam-preview" autoplay muted playsinline class="hidden t-cam-pip"></video>
             <p class="muted" style="font-size:12px;margin-top:6px">روی تخته بکشید؛ ترسیم برای همه دانش‌آموزان متصل به‌صورت زنده نمایش داده می‌شود.</p>
           </div>
           <div class="cls-chat-col">
@@ -8596,36 +8589,6 @@ function teacherScript() {
     }catch(e){ toast('دسترسی به میکروفون داده نشد'); }
   };
 
-  (function setupCamPipDrag(){
-    const pip=document.getElementById('t-cam-preview');
-    if(!pip)return;
-    let dragging=false,offX=0,offY=0;
-    function start(x,y){
-      dragging=true;
-      const r=pip.getBoundingClientRect();
-      offX=x-r.left;offY=y-r.top;
-      pip.style.transition='none';
-    }
-    function move(x,y){
-      if(!dragging)return;
-      let left=x-offX, top=y-offY;
-      const maxLeft=window.innerWidth-pip.offsetWidth-4;
-      const maxTop=window.innerHeight-pip.offsetHeight-4;
-      left=Math.max(4,Math.min(left,maxLeft));
-      top=Math.max(4,Math.min(top,maxTop));
-      pip.style.left=left+'px';
-      pip.style.top=top+'px';
-      pip.style.bottom='auto';
-    }
-    function end(){dragging=false;}
-    pip.addEventListener('mousedown',e=>{start(e.clientX,e.clientY);e.preventDefault();});
-    window.addEventListener('mousemove',e=>move(e.clientX,e.clientY));
-    window.addEventListener('mouseup',end);
-    pip.addEventListener('touchstart',e=>{const t=e.touches[0];start(t.clientX,t.clientY);},{passive:true});
-    window.addEventListener('touchmove',e=>{if(!dragging)return;const t=e.touches[0];move(t.clientX,t.clientY);},{passive:true});
-    window.addEventListener('touchend',end);
-  })();
-
   document.getElementById('btn-cam-toggle').onclick=async function(){
     const preview=document.getElementById('t-cam-preview');
     if(clsCamStream){
@@ -8636,7 +8599,6 @@ function teacherScript() {
       preview.srcObject=null;
       this.textContent='📷 روشن کردن تصویر';
       document.getElementById('btn-cam-flip').classList.add('hidden');
-      document.getElementById('cls-pdf-panel').style.paddingLeft='';
       clsCamFacing='user';
       clsSend({type:'video-stop'});
       if(clsAudioFromCam){ clsStopMicRecorder(); clsAudioFromCam=false; }
@@ -8651,7 +8613,6 @@ function teacherScript() {
       preview.classList.remove('hidden');
       this.textContent='🔴 خاموش کردن تصویر';
       document.getElementById('btn-cam-flip').classList.remove('hidden');
-      document.getElementById('cls-pdf-panel').style.paddingLeft='108px';
       // اگر میکروفون از قبل روشن نبود، صدا را هم همراه تصویر روشن کن (مثل یک تماس تصویری واقعی)
       if(!(clsRecorder && clsRecorder.state==='recording') && clsCamStream.getAudioTracks().length){
         clsStartMicRecorder(new MediaStream(clsCamStream.getAudioTracks()));
@@ -8715,7 +8676,6 @@ function teacherScript() {
         toast('دسترسی به دوربین قطع شد؛ لطفاً دوباره روی «روشن کردن تصویر» بزنید');
         document.getElementById('btn-cam-toggle').textContent='📷 روشن کردن تصویر';
         document.getElementById('btn-cam-flip').classList.add('hidden');
-        document.getElementById('cls-pdf-panel').style.paddingLeft='';
       }
     }
   };
