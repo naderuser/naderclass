@@ -1271,21 +1271,32 @@ const SHARED_CSS = `
   .lb-cert-templates{display:flex;gap:8px;flex-wrap:wrap}
   .lb-cert-tpl-btn{padding:8px 14px;border-radius:10px;border:1.5px solid var(--line);background:#f8fafc;cursor:pointer;font-family:inherit;font-weight:700;font-size:13px}
   .lb-cert-tpl-btn.active{border-color:var(--primary);box-shadow:0 0 0 2px var(--primary) inset}
-  .lb-cert-preview-wrap{flex:1 1 460px;min-width:320px;display:flex;justify-content:center}
-  .lb-cert-sheet{position:relative;width:100%;max-width:640px;aspect-ratio:1.41/1;box-sizing:border-box;padding:26px;border-radius:6px;font-family:tahoma,Arial;text-align:center;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;overflow:hidden}
+  .lb-cert-preview-wrap{flex:1 1 380px;min-width:300px;display:flex;justify-content:center}
+  .lb-cert-sheet{position:relative;width:100%;max-width:460px;aspect-ratio:0.707/1;box-sizing:border-box;padding:30px 22px;border-radius:6px;font-family:tahoma,Arial;text-align:center;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;overflow:hidden}
   .lb-cert-sheet::before{content:'';position:absolute;inset:10px;border:2.5px solid var(--cert-accent,#b8860b);border-radius:4px;pointer-events:none}
   .lb-cert-sheet::after{content:'';position:absolute;inset:16px;border:1px solid var(--cert-accent,#b8860b);border-radius:2px;pointer-events:none;opacity:.6}
-  .lb-cert-sheet .cert-badge{font-size:44px;line-height:1}
-  .lb-cert-sheet .cert-kind{font-size:26px;font-weight:800;color:var(--cert-accent,#b8860b);margin:0}
-  .lb-cert-sheet .cert-school{font-size:13px;font-weight:700;color:#475569;margin:0}
-  .lb-cert-sheet .cert-intro{font-size:13px;color:#334155;margin:6px 0 0}
-  .lb-cert-sheet .cert-name{font-size:30px;font-weight:800;color:#1e293b;margin:4px 0;font-family:"BTitr","B Titr",tahoma,Arial;border-bottom:2px solid var(--cert-accent,#b8860b);padding-bottom:6px;display:inline-block}
-  .lb-cert-sheet .cert-reason{font-size:13.5px;color:#334155;max-width:88%;line-height:1.9}
-  .lb-cert-sheet .cert-footer{display:flex;justify-content:space-between;width:88%;margin-top:18px;font-size:12px;color:#475569;font-weight:700}
+  .lb-cert-sheet .cert-numbox{position:absolute;top:24px;right:26px;text-align:right;font-size:10.5px;line-height:1.7;color:#334155;font-family:tahoma,Arial;font-weight:700}
+  .lb-cert-sheet .cert-badge{font-size:38px;line-height:1}
+  .lb-cert-sheet .cert-kind{font-size:24px;font-weight:800;color:var(--cert-accent,#b8860b);margin:0}
+  .lb-cert-sheet .cert-intro{font-size:12.5px;color:#334155;margin:6px 0 0}
+  .lb-cert-sheet .cert-name{font-size:26px;font-weight:800;color:#1e293b;margin:4px 0;border-bottom:2px solid var(--cert-accent,#b8860b);padding-bottom:6px;display:inline-block}
+  .lb-cert-sheet .cert-reason{font-size:13px;color:#334155;max-width:88%;line-height:1.9}
+  .lb-cert-sheet .cert-footer{display:flex;justify-content:space-between;width:88%;margin-top:16px;font-size:11.5px;color:#475569;font-weight:700}
   .lb-cert-gold{background:linear-gradient(135deg,#fffdf5,#fdf6e3);--cert-accent:#b8860b}
   .lb-cert-blue{background:linear-gradient(135deg,#f3f8ff,#e6f0ff);--cert-accent:#1d4ed8}
   .lb-cert-green{background:linear-gradient(135deg,#f3fdf6,#e5f9ec);--cert-accent:#15803d}
   .lb-cert-purple{background:linear-gradient(135deg,#faf5ff,#f1e6ff);--cert-accent:#7e22ce}
+  .lb-cert-champion{background:#fdfdfb;--cert-accent:#1d4ed8;padding:14px}
+  .lb-cert-champion::before{inset:8px;border:3px solid #1d4ed8;border-radius:10px}
+  .lb-cert-champion::after{inset:15px;border:2px solid #b8860b;border-radius:8px;opacity:1}
+  .lb-cert-champion .cert-bismillah{font-size:15px;font-weight:700;color:#1d4ed8;margin:2px 0}
+  .lb-cert-champion .cert-kind{font-size:30px;color:#1d4ed8}
+  .lb-cert-champion .cert-name{border-bottom:2px solid #b8860b}
+  .lb-cert-font-titr .cert-kind,.lb-cert-font-titr .cert-name{font-family:"BTitr","B Titr",tahoma,Arial}
+  .lb-cert-font-nazanin .cert-kind,.lb-cert-font-nazanin .cert-name,.lb-cert-font-nazanin .cert-reason,.lb-cert-font-nazanin .cert-intro{font-family:"BNazanin","B Nazanin",tahoma,Arial}
+  .lb-cert-font-nastaliq .cert-kind{font-family:"Noto Nastaliq Urdu",tahoma,Arial;font-size:32px}
+  .lb-cert-font-nastaliq .cert-name{font-family:"Noto Nastaliq Urdu",tahoma,Arial;font-size:28px}
+  .lb-cert-font-nastaliq .cert-reason,.lb-cert-font-nastaliq .cert-intro{font-family:"BNazanin","B Nazanin",tahoma,Arial}
   [data-theme="dark"] .lb-cert-tpl-btn{background:#0f172a}
   .lb-meta-form{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;margin:14px 0}
   .lb-meta-form label{display:block;font-size:12px;color:var(--muted);margin-bottom:3px}
@@ -1810,7 +1821,7 @@ const SHARED_CSS = `
   .exam-time-status .time-icon{font-size:24px}
 `;
 
-const FONT_LINK = `<link rel="preconnect" href="https://cdn.jsdelivr.net"><link href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css" rel="stylesheet">`;
+const FONT_LINK = `<link rel="preconnect" href="https://cdn.jsdelivr.net"><link href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css" rel="stylesheet"><link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Noto+Nastaliq+Urdu:wght@400..700&display=swap" rel="stylesheet">`;
 
 function pageHeader() {
   return `<div class="header"><h1>${esc(APP_TITLE)}</h1><h2>${esc(APP_DESIGNER)}</h2></div>`;
@@ -4358,34 +4369,49 @@ function teacherPage() {
           <h3>🏆 تقدیرنامه‌ساز</h3>
           <div class="lb-cert-wrap">
             <div class="lb-cert-form">
-              <label>نام مدرسه</label>
-              <input id="cert-school" placeholder=".......................">
               <label>عنوان سند</label>
               <select id="cert-kind">
                 <option value="تقدیرنامه">تقدیرنامه</option>
                 <option value="لوح تقدیر">لوح تقدیر</option>
+                <option value="لوح قهرمانی">لوح قهرمانی</option>
                 <option value="گواهی افتخار">گواهی افتخار</option>
                 <option value="کارت تشویقی">کارت تشویقی</option>
               </select>
+              <div class="lb-meta-form">
+                <div><label>شماره</label><input id="cert-num" placeholder="......."></div>
+                <div><label>تاریخ</label><input id="cert-date" placeholder="......."></div>
+              </div>
               <label>دانش‌آموز</label>
               <div class="row" style="gap:8px">
                 <select id="cert-student-select" style="flex:1"><option value="">— انتخاب از لیست دانش‌آموزان —</option></select>
               </div>
-              <input id="cert-name" placeholder="یا نام را اینجا مستقیم تایپ کنید" style="margin-top:6px">
+              <div class="row" style="gap:8px;margin-top:6px">
+                <select id="cert-salute" style="flex:0 0 auto;min-width:130px">
+                  <option value="جناب آقای">جناب آقای</option>
+                  <option value="سرکار خانم">سرکار خانم</option>
+                  <option value="دانش‌آموز عزیز">دانش‌آموز عزیز</option>
+                </select>
+                <input id="cert-name" placeholder="یا نام را اینجا مستقیم تایپ کنید" style="flex:1">
+              </div>
               <label>متن مقدمه</label>
               <input id="cert-intro" placeholder="این تقدیرنامه به پاس ...">
               <label>دلیل تشویق</label>
               <textarea id="cert-reason" rows="3" class="lb-textarea" placeholder="مثلاً: کسب رتبه‌ی اول در مسابقات علمی کلاس، تلاش و پشتکار در طول سال تحصیلی و ..."></textarea>
-              <div class="lb-meta-form">
-                <div><label>اعطاکننده (معلم/مدیر)</label><input id="cert-issuer" placeholder="......................."></div>
-                <div><label>تاریخ</label><input id="cert-date" placeholder="......................."></div>
-              </div>
-              <label>قالب رنگی</label>
+              <label>اعطاکننده (معلم/مدیر/اداره)</label>
+              <input id="cert-issuer" placeholder=".......................">
+              <label>فونت متن</label>
+              <select id="cert-font">
+                <option value="titr">بی‌تیتر</option>
+                <option value="nazanin">بی‌نازنین</option>
+                <option value="nastaliq" selected>ایران نستعلیق</option>
+              </select>
+              <label>قالب</label>
               <div class="lb-cert-templates">
                 <button type="button" class="lb-cert-tpl-btn active" data-tpl="gold">🟡 طلایی</button>
                 <button type="button" class="lb-cert-tpl-btn" data-tpl="blue">🔵 آبی</button>
                 <button type="button" class="lb-cert-tpl-btn" data-tpl="green">🟢 سبز</button>
                 <button type="button" class="lb-cert-tpl-btn" data-tpl="purple">🟣 بنفش</button>
+                <button type="button" class="lb-cert-tpl-btn" data-tpl="champion">🕌 قهرمانی (تشریفاتی)</button>
               </div>
             </div>
             <div class="lb-cert-preview-wrap">
@@ -9054,6 +9080,7 @@ function teacherScript() {
     var css='';
     if(fontFamily&&fontFamily.indexOf('Titr')!==-1)css+='@font-face{font-family:"BTitr";src:url(https://cdn.jsdelivr.net/gh/intuxicated/css-persian@master/fonts/BTitrBold.ttf)}';
     if(fontFamily&&fontFamily.indexOf('Nazanin')!==-1)css+='@font-face{font-family:"BNazanin";src:url(https://cdn.jsdelivr.net/gh/intuxicated/css-persian@master/fonts/BNazanin.ttf)}';
+    if(fontFamily&&fontFamily.indexOf('Nastaliq')!==-1)css+='@import url(https://fonts.googleapis.com/css2?family=Noto+Nastaliq+Urdu:wght@400..700&display=swap);';
     return css;
   }
   function lbWordExport(title,bodyHtml,filename,landscape,fontFamily){
@@ -10980,77 +11007,93 @@ function teacherScript() {
       lbCertRenderPreview();
     };
   });
-  ['cert-school','cert-kind','cert-name','cert-intro','cert-reason','cert-issuer','cert-date'].forEach(function(id){
+  ['cert-kind','cert-num','cert-date','cert-salute','cert-name','cert-intro','cert-reason','cert-issuer','cert-font'].forEach(function(id){
     var el=document.getElementById(id);
     el.addEventListener('input',lbCertRenderPreview);
     el.addEventListener('change',lbCertRenderPreview);
   });
   function lbCertBadge(tpl){
-    return {gold:'🏆',blue:'🎖️',green:'🌿',purple:'🎗️'}[tpl]||'🏆';
+    return {gold:'🏆',blue:'🎖️',green:'🌿',purple:'🎗️',champion:'🥇'}[tpl]||'🏆';
+  }
+  function lbCertFontFamilyCss(key){
+    var m={titr:'"BTitr","B Titr",tahoma,Arial',nazanin:'"BNazanin","B Nazanin",tahoma,Arial',nastaliq:'"Noto Nastaliq Urdu",tahoma,Arial'};
+    return m[key]||m.nastaliq;
   }
   function lbCertData(){
     return {
-      school:document.getElementById('cert-school').value,
       kind:document.getElementById('cert-kind').value,
+      num:document.getElementById('cert-num').value,
+      date:document.getElementById('cert-date').value,
+      salute:document.getElementById('cert-salute').value,
       name:document.getElementById('cert-name').value,
       intro:document.getElementById('cert-intro').value,
       reason:document.getElementById('cert-reason').value,
       issuer:document.getElementById('cert-issuer').value,
-      date:document.getElementById('cert-date').value,
+      font:document.getElementById('cert-font').value,
       tpl:CERT_TPL
     };
   }
-  function lbCertInnerHtml(d,forExport){
+  function lbCertFullName(d){
+    var salute=d.salute||'';
+    var name=d.name||'.......................';
+    return (salute?salute+' ':'')+name;
+  }
+  function lbCertInnerHtml(d){
     var badge=lbCertBadge(d.tpl);
     var h='';
+    h+='<div class="cert-numbox">شماره: '+esc(d.num||'.......')+'<br>تاریخ: '+esc(d.date||'.......')+'</div>';
+    if(d.tpl==='champion')h+='<p class="cert-bismillah">بسم الله الرحمن الرحیم</p>';
     h+='<div class="cert-badge">'+badge+'</div>';
     h+='<p class="cert-kind">'+esc(d.kind||'تقدیرنامه')+'</p>';
-    if(d.school)h+='<p class="cert-school">'+esc(d.school)+'</p>';
     h+='<p class="cert-intro">'+esc(d.intro||'این سند به پاس تلاش و شایستگی به')+'</p>';
-    h+='<div class="cert-name">'+esc(d.name||'.......................')+'</div>';
+    h+='<div class="cert-name">'+esc(lbCertFullName(d))+'</div>';
     h+='<p class="cert-reason">'+esc(d.reason||'')+'</p>';
-    h+='<div class="cert-footer"><span>'+esc(d.date?('تاریخ: '+d.date):'')+'</span><span>'+esc(d.issuer?('اعطاکننده: '+d.issuer):'')+'</span></div>';
+    if(d.issuer)h+='<div class="cert-footer" style="justify-content:center"><span>'+esc(d.issuer)+'</span></div>';
     return h;
   }
   function lbCertRenderPreview(){
     var d=lbCertData();
     var el=document.getElementById('cert-preview');
-    el.className='lb-cert-sheet lb-cert-'+d.tpl;
-    el.innerHTML=lbCertInnerHtml(d,false);
+    el.className='lb-cert-sheet lb-cert-'+d.tpl+' lb-cert-font-'+d.font;
+    el.innerHTML=lbCertInnerHtml(d);
   }
   function lbCertExportHtml(){
     var d=lbCertData();
-    var accents={gold:'#b8860b',blue:'#1d4ed8',green:'#15803d',purple:'#7e22ce'};
-    var bgs={gold:'#fdf6e3',blue:'#e6f0ff',green:'#e5f9ec',purple:'#f1e6ff'};
+    var accents={gold:'#b8860b',blue:'#1d4ed8',green:'#15803d',purple:'#7e22ce',champion:'#1d4ed8'};
+    var bgs={gold:'#fdf6e3',blue:'#e6f0ff',green:'#e5f9ec',purple:'#f1e6ff',champion:'#fdfdfb'};
     var accent=accents[d.tpl]||accents.gold;
     var bg=bgs[d.tpl]||bgs.gold;
     var badge=lbCertBadge(d.tpl);
-    var h='<div style="width:100%;box-sizing:border-box;padding:26px;border:3px solid '+accent+';border-radius:6px;text-align:center;background:'+bg+';font-family:tahoma,Arial">';
-    h+='<div style="position:relative;padding:14px;border:1px solid '+accent+';border-radius:4px">';
-    h+='<div style="font-size:44px">'+badge+'</div>';
-    h+='<p style="font-size:26px;font-weight:800;color:'+accent+';margin:6px 0">'+esc(d.kind||'تقدیرنامه')+'</p>';
-    if(d.school)h+='<p style="font-size:13px;font-weight:700;color:#475569;margin:0 0 8px">'+esc(d.school)+'</p>';
-    h+='<p style="font-size:13px;color:#334155;margin:6px 0 0">'+esc(d.intro||'این سند به پاس تلاش و شایستگی به')+'</p>';
-    h+='<div style="font-size:30px;font-weight:800;color:#1e293b;margin:10px 0;border-bottom:2px solid '+accent+';display:inline-block;padding-bottom:6px">'+esc(d.name||'.......................')+'</div>';
-    h+='<p style="font-size:13.5px;color:#334155;max-width:88%;line-height:1.9;margin:6px auto">'+esc(d.reason||'')+'</p>';
-    h+='<div style="display:flex;justify-content:space-between;width:88%;margin:22px auto 0;font-size:12px;color:#475569;font-weight:700">';
-    h+='<span>'+esc(d.date?('تاریخ: '+d.date):'')+'</span><span>'+esc(d.issuer?('اعطاکننده: '+d.issuer):'')+'</span></div>';
+    var titleFont=lbCertFontFamilyCss(d.font);
+    var bodyFont=(d.font==='nastaliq')?lbCertFontFamilyCss('nazanin'):titleFont;
+    var h='<div style="position:relative;width:100%;box-sizing:border-box;padding:26px;border:3px solid '+accent+';border-radius:6px;text-align:center;background:'+bg+';font-family:tahoma,Arial">';
+    h+='<div style="position:relative;padding:16px;border:1.5px solid '+accent+';border-radius:4px">';
+    h+='<div style="position:absolute;top:6px;right:10px;text-align:right;font-size:11px;font-weight:700;color:#334155;line-height:1.8">شماره: '+esc(d.num||'.......')+'<br>تاریخ: '+esc(d.date||'.......')+'</div>';
+    if(d.tpl==='champion')h+='<p style="font-size:15px;font-weight:700;color:'+accent+';margin:2px 0 10px">بسم الله الرحمن الرحیم</p>';
+    h+='<div style="font-size:40px;margin-top:'+(d.tpl==='champion'?'0':'6px')+'">'+badge+'</div>';
+    h+='<p style="font-size:28px;font-weight:800;color:'+accent+';margin:8px 0;font-family:'+titleFont+'">'+esc(d.kind||'تقدیرنامه')+'</p>';
+    h+='<p style="font-size:13px;color:#334155;margin:6px 0 0;font-family:'+bodyFont+'">'+esc(d.intro||'این سند به پاس تلاش و شایستگی به')+'</p>';
+    h+='<div style="font-size:26px;font-weight:800;color:#1e293b;margin:10px 0;border-bottom:2px solid '+accent+';display:inline-block;padding-bottom:6px;font-family:'+titleFont+'">'+esc(lbCertFullName(d))+'</div>';
+    h+='<p style="font-size:13.5px;color:#334155;max-width:88%;line-height:1.9;margin:6px auto;font-family:'+bodyFont+'">'+esc(d.reason||'')+'</p>';
+    if(d.issuer)h+='<p style="margin:22px auto 0;font-size:12px;color:#475569;font-weight:700">'+esc(d.issuer)+'</p>';
     h+='</div></div>';
     return h;
   }
   document.getElementById('btn-cert-word').onclick=function(){
-    lbWordExport(document.getElementById('cert-kind').value||'تقدیرنامه',lbCertExportHtml(),'تقدیرنامه',true);
+    lbWordExport(document.getElementById('cert-kind').value||'تقدیرنامه',lbCertExportHtml(),'تقدیرنامه',false);
   };
   document.getElementById('btn-cert-pdf').onclick=function(){
-    lbPrintExport(document.getElementById('cert-kind').value||'تقدیرنامه',lbCertExportHtml(),true);
+    lbPrintExport(document.getElementById('cert-kind').value||'تقدیرنامه',lbCertExportHtml(),false);
   };
   document.getElementById('btn-cert-save').onclick=function(){
     lbSave('certificate',lbCertData());
   };
   document.getElementById('btn-cert-clear').onclick=function(){
     if(!confirm('آیا از پاک‌کردن تمام اطلاعات تقدیرنامه مطمئن هستید؟ این کار قابل بازگشت نیست.'))return;
-    ['cert-school','cert-name','cert-intro','cert-reason','cert-issuer','cert-date'].forEach(function(id){document.getElementById(id).value='';});
+    ['cert-num','cert-date','cert-name','cert-intro','cert-reason','cert-issuer'].forEach(function(id){document.getElementById(id).value='';});
     document.getElementById('cert-kind').value='تقدیرنامه';
+    document.getElementById('cert-salute').value='جناب آقای';
+    document.getElementById('cert-font').value='nastaliq';
     document.getElementById('cert-student-select').value='';
     CERT_TPL='gold';
     document.querySelectorAll('.lb-cert-tpl-btn').forEach(function(x){x.classList.remove('active');});
@@ -11065,13 +11108,15 @@ function teacherScript() {
     LB_CERT_LOADED=true;
     var saved=await lbLoad('certificate');
     if(saved){
-      document.getElementById('cert-school').value=saved.school||'';
       document.getElementById('cert-kind').value=saved.kind||'تقدیرنامه';
+      document.getElementById('cert-num').value=saved.num||'';
+      document.getElementById('cert-date').value=saved.date||'';
+      document.getElementById('cert-salute').value=saved.salute||'جناب آقای';
       document.getElementById('cert-name').value=saved.name||'';
       document.getElementById('cert-intro').value=saved.intro||'';
       document.getElementById('cert-reason').value=saved.reason||'';
       document.getElementById('cert-issuer').value=saved.issuer||'';
-      document.getElementById('cert-date').value=saved.date||'';
+      document.getElementById('cert-font').value=saved.font||'nastaliq';
       CERT_TPL=saved.tpl||'gold';
       document.querySelectorAll('.lb-cert-tpl-btn').forEach(function(x){x.classList.toggle('active',x.dataset.tpl===CERT_TPL);});
     }
