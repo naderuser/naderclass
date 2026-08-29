@@ -1313,14 +1313,10 @@ const SHARED_CSS = `
   [data-theme="dark"] .cls-pdf-panel{background:#0f172a}
   #cls-pdf-nav input[type="number"]{padding:4px;border:1px solid #cbd5e1;border-radius:6px}
 
-  /* ---- چیدمان کلاس آنلاین برای معلم (تخته + گفتگو کنار هم) ---- */
-  .cls-wrap{display:flex;gap:12px;flex-wrap:wrap}
-  .cls-board-col{flex:1 1 520px;min-width:280px}
-  .cls-chat-col{flex:0 0 300px;min-width:260px}
-  @media (max-width:760px){
-    .cls-board-col{flex:1 1 100%}
-    .cls-chat-col{flex:1 1 100%;min-width:0}
-  }
+  /* ---- چیدمان کلاس آنلاین برای معلم (تخته بالا، گفتگو پایین) ---- */
+  .cls-wrap{display:flex;flex-direction:column;gap:12px}
+  .cls-board-col{width:100%}
+  .cls-chat-col{width:100%}
 
   /* ---- چیدمان کلاس آنلاین برای دانش‌آموز (موبایل): دوربین بالا، تخته وسط، کاربران و گفتگو پایین ---- */
   .cls-stack{display:flex;flex-direction:column;gap:12px}
@@ -1668,11 +1664,12 @@ const SHARED_CSS = `
   @keyframes clsDrawerOpen{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:translateY(0)}}
   .cls-opt-btn{width:100%;justify-content:flex-start;text-align:right;padding:11px 14px;font-size:14px}
   .t-cam-pip{position:fixed;bottom:18px;left:18px;width:200px;height:150px;object-fit:cover;border-radius:12px;border:2px solid #fff;box-shadow:0 4px 16px rgba(0,0,0,.4);background:#000;z-index:45}
-  .t-cam-inline{display:block;width:220px;max-width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:12px;border:1px solid var(--line);background:#000;margin-bottom:10px}
+  .t-cam-oncanvas{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:10px;border:1px solid var(--line);background:#000;z-index:5}
+  .t-cam-corner{position:absolute;bottom:10px;left:10px;width:150px;height:112px;object-fit:cover;border-radius:10px;border:2px solid #fff;box-shadow:0 4px 16px rgba(0,0,0,.4);background:#000;z-index:6}
   @media(max-width:640px){
     .cls-wrap{flex-direction:column}
     .t-cam-pip{width:110px;height:82px;bottom:14px;left:10px}
-    .t-cam-inline{width:160px}
+    .t-cam-corner{width:100px;height:75px;bottom:8px;left:8px}
   }
 
   /* ---- ساخت آزمون (برگه چاپی) ---- */
@@ -3619,11 +3616,13 @@ function teacherPage() {
               <button class="btn sm danger" id="brd-clear" style="flex:0 0 auto">🗑️ پاک کردن یادداشت‌ها</button>
               <button class="btn sm sec" id="brd-zoom" style="flex:0 0 auto" title="بزرگ‌نمایی تخته">🔍 بزرگ‌نمایی</button>
             </div>
-            <video id="t-cam-preview" autoplay muted playsinline class="hidden t-cam-inline"></video>
-            <canvas id="t-board" width="900" height="500" style="width:100%;background:#fff;border:1px solid var(--line);border-radius:10px;touch-action:none;display:block;cursor:crosshair"></canvas>
+            <div class="t-board-wrap" style="position:relative">
+              <canvas id="t-board" width="900" height="500" style="width:100%;background:#fff;border:1px solid var(--line);border-radius:10px;touch-action:none;display:block;cursor:crosshair"></canvas>
+              <video id="t-cam-preview" autoplay muted playsinline class="hidden t-cam-oncanvas"></video>
+            </div>
             <img id="t-board-zoom-img" class="hidden" style="position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);width:min(94vw,900px);height:auto;max-height:88vh;object-fit:contain;z-index:41;cursor:zoom-out;box-shadow:0 10px 40px rgba(0,0,0,.5);border-radius:10px;background:#fff">
             <div id="t-board-zoom-backdrop" class="hidden" style="position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:40"></div>
-            <p class="muted" style="font-size:12px;margin-top:6px">روی تخته بکشید؛ ترسیم برای همه دانش‌آموزان متصل به‌صورت زنده نمایش داده می‌شود.</p>
+            <p class="muted" style="font-size:12px;margin-top:6px">روی تخته بکشید؛ ترسیم برای همه دانش‌آموزان متصل به‌صورت زنده نمایش داده می‌شود. وقتی دوربین روشن باشد و PDF روی تخته نباشد، تصویر دقیقاً روی تخته نمایش داده می‌شود؛ به‌محض نمایش PDF، تصویر کوچک می‌شود تا PDF کامل دیده شود.</p>
           </div>
           <div class="cls-chat-col">
             <h4 style="margin:0 0 6px">👥 حاضرین (<span id="cls-online-count">0</span>)</h4>
@@ -8191,11 +8190,23 @@ function teacherScript() {
 
   // ===== لایه‌ی پس‌زمینه (صفحه‌ی PDF روی تخته) =====
   let clsBoardBgImg=null;
+  function clsUpdateCamLayout(){
+    const preview=document.getElementById('t-cam-preview');
+    if(!preview)return;
+    if(clsBoardBgImg){
+      preview.classList.remove('t-cam-oncanvas');
+      preview.classList.add('t-cam-corner');
+    }else{
+      preview.classList.remove('t-cam-corner');
+      preview.classList.add('t-cam-oncanvas');
+    }
+  }
   function clsSetBoardBg(dataUrl,w,h){
     if(!dataUrl){
       clsBoardBgImg=null;
       clsResizeBoardTo(w||CLS_BOARD_DEFAULT_W,h||CLS_BOARD_DEFAULT_H);
       tCtx.clearRect(0,0,tBoard.width,tBoard.height);
+      clsUpdateCamLayout();
       return;
     }
     const img=new Image();
@@ -8204,6 +8215,7 @@ function teacherScript() {
       clsResizeBoardTo(w||img.naturalWidth,h||img.naturalHeight);
       tCtx.clearRect(0,0,tBoard.width,tBoard.height);
       tCtx.drawImage(img,0,0,tBoard.width,tBoard.height);
+      clsUpdateCamLayout();
     };
     img.onerror=()=>{toast('خطا در بارگذاری تصویر پس‌زمینه');};
     img.src=dataUrl;
@@ -8214,6 +8226,7 @@ function teacherScript() {
       clsResizeBoardTo(w||CLS_BOARD_DEFAULT_W,h||CLS_BOARD_DEFAULT_H);
       tCtx.clearRect(0,0,tBoard.width,tBoard.height);
       (strokes||[]).forEach(clsDrawLocal);
+      clsUpdateCamLayout();
       return;
     }
     const img=new Image();
@@ -8223,6 +8236,7 @@ function teacherScript() {
       tCtx.clearRect(0,0,tBoard.width,tBoard.height);
       tCtx.drawImage(img,0,0,tBoard.width,tBoard.height);
       (strokes||[]).forEach(clsDrawLocal);
+      clsUpdateCamLayout();
     };
     img.onerror=()=>{toast('خطا در بارگذاری تصویر پس‌زمینه');};
     img.src=dataUrl;
@@ -8611,6 +8625,7 @@ function teacherScript() {
       clsCamStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:clsCamFacing,width:{ideal:320}}, audio:true});
       preview.srcObject=clsCamStream;
       preview.classList.remove('hidden');
+      clsUpdateCamLayout();
       this.textContent='🔴 خاموش کردن تصویر';
       document.getElementById('btn-cam-flip').classList.remove('hidden');
       // اگر میکروفون از قبل روشن نبود، صدا را هم همراه تصویر روشن کن (مثل یک تماس تصویری واقعی)
