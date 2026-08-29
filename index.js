@@ -743,7 +743,9 @@ async function handleApi(req, env, url, path) {
         if (body.photo.length > 2_800_000) return json({ ok: false, error: "حجم عکس پروفایل بیش از حد مجاز است (حداکثر ۲ مگابایت)" }, 400);
         photo = body.photo;
       }
-      const rec = { uuid: id, label: String(body.label || "").slice(0, 120), photo, createdAt: Date.now() };
+      let grade = parseInt(body.grade, 10);
+      if (!Number.isInteger(grade) || grade < 0 || grade > 5) grade = 0;
+      const rec = { uuid: id, label: String(body.label || "").slice(0, 120), photo, grade, createdAt: Date.now() };
       await env.EXAM_KV.put("student:" + id, JSON.stringify(rec));
       return json({ ok: true, student: rec });
     }
@@ -763,6 +765,10 @@ async function handleApi(req, env, url, path) {
         }
       }
       if (typeof body.label === "string") rec.label = body.label.slice(0, 120);
+      if (body.grade !== undefined) {
+        const g = parseInt(body.grade, 10);
+        if (Number.isInteger(g) && g >= 0 && g <= 5) rec.grade = g;
+      }
       await env.EXAM_KV.put("student:" + id, JSON.stringify(rec));
       return json({ ok: true, student: rec });
     }
@@ -3008,6 +3014,14 @@ function teacherPage() {
         <h3>👨‍🎓 ساخت دانش‌آموز جدید</h3>
         <div class="row" style="align-items:center">
           <input id="new-label" placeholder="نام دانش‌آموز (اختیاری)">
+          <select id="new-grade" style="flex:0 0 auto;min-width:150px">
+            <option value="0">پایه اول دبستان</option>
+            <option value="1">پایه دوم دبستان</option>
+            <option value="2">پایه سوم دبستان</option>
+            <option value="3">پایه چهارم دبستان</option>
+            <option value="4">پایه پنجم دبستان</option>
+            <option value="5">پایه ششم دبستان</option>
+          </select>
           <label class="btn sec sm" style="flex:0 0 auto;cursor:pointer">📷 عکس پروفایل<input type="file" accept="image/*" id="new-student-photo" style="display:none"></label>
           <img id="new-student-photo-preview" class="hidden" style="width:36px;height:36px;border-radius:50%;object-fit:cover;flex:0 0 auto">
           <button class="btn" id="btn-add-student" style="flex:0 0 auto">➕ ساخت لینک اختصاصی</button>
@@ -4390,17 +4404,23 @@ function teacherScript() {
 
   // ===== دانش‌آموزان =====
   let TEACHER_STUDENTS=[];
+  const GRADE_LABELS=['پایه اول','پایه دوم','پایه سوم','پایه چهارم','پایه پنجم','پایه ششم'];
   function renderStudentsTable(students){
     const box=document.getElementById('students-list');
     if(!students.length){box.innerHTML='<p class="muted">هنوز دانش‌آموزی ساخته نشده است.</p>';return;}
-    box.innerHTML='<table><tr><th>عکس</th><th>#</th><th>نام</th><th>لینک اختصاصی</th><th>وضعیت</th><th></th></tr>'+
+    box.innerHTML='<table><tr><th>عکس</th><th>#</th><th>نام</th><th>پایه</th><th>لینک اختصاصی</th><th>وضعیت</th><th></th></tr>'+
       students.map((s,i)=>{
         const link=location.origin+'/s/'+s.uuid;
         let st='<span class="pill no">در انتظار</span>';
         if(s.status==='submitted')st='<span class="pill gr">ثبت‌شده (تصحیح‌نشده)</span>';
         if(s.status==='graded')st='<span class="pill ok">تصحیح‌شده</span>';
         const avatar=s.photo?'<img src="'+s.photo+'" style="width:36px;height:36px;border-radius:50%;object-fit:cover;display:block">':'<div style="width:36px;height:36px;border-radius:50%;background:#e2e8f0;display:flex;align-items:center;justify-content:center;font-size:16px">🧑‍🎓</div>';
+        const gradeIdx=Number.isInteger(s.grade)?s.grade:0;
+        const gradeSel='<select style="min-width:110px" data-prev="'+gradeIdx+'" onchange="changeStudentGrade(\\''+s.uuid+'\\',this)">'+
+          GRADE_LABELS.map((lbl,gi)=>'<option value="'+gi+'"'+(gi===gradeIdx?' selected':'')+'>'+lbl+'</option>').join('')+
+          '</select>';
         return '<tr><td>'+avatar+'</td><td>'+(i+1)+'</td><td>'+esc(s.label||'-')+'</td>'+
+          '<td>'+gradeSel+'</td>'+
           '<td><div class="link-box">'+link+'</div></td>'+
           '<td>'+st+'</td>'+
           '<td><button class="btn sm" onclick="copyLink(\\''+link+'\\')">کپی</button> '+
@@ -4496,6 +4516,23 @@ function teacherScript() {
     }catch(e){toast(e.message);}
   });
 
+  window.changeStudentGrade=async(id,sel)=>{
+    const grade=parseInt(sel.value,10)||0;
+    const prevGrade=sel.dataset.prev!==undefined?parseInt(sel.dataset.prev,10):null;
+    sel.disabled=true;
+    try{
+      const r=await api('/api/teacher/students/'+id,{method:'PATCH',headers:{'content-type':'application/json'},body:JSON.stringify({grade})});
+      if(r.ok){
+        toast('پایه بروزرسانی شد ✅');
+        const idx=TEACHER_STUDENTS.findIndex(s=>s.uuid===id);
+        if(idx>-1)TEACHER_STUDENTS[idx]={...TEACHER_STUDENTS[idx],grade};
+      }else{
+        toast('خطا: '+(r.error||'ثبت نشد'));
+        if(prevGrade!==null)sel.value=String(prevGrade);
+      }
+    }catch(e){toast(e.message);if(prevGrade!==null)sel.value=String(prevGrade);}
+    finally{sel.disabled=false;sel.dataset.prev=sel.value;}
+  };
   window.changeStudentPhoto=async(id,input)=>{
     const f=input.files&&input.files[0];input.value='';
     if(!f)return;
@@ -4514,9 +4551,10 @@ function teacherScript() {
 
   document.getElementById('btn-add-student').onclick=async()=>{
     const label=document.getElementById('new-label').value.trim();
+    const grade=parseInt(document.getElementById('new-grade').value,10)||0;
     const btn=document.getElementById('btn-add-student');btn.disabled=true;
     try{
-      const r=await api('/api/teacher/students',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({label,photo:newStudentPhoto})});
+      const r=await api('/api/teacher/students',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({label,grade,photo:newStudentPhoto})});
       if(!r.ok){toast('خطا: '+(r.error||'ساخته نشد'));return;}
       document.getElementById('new-label').value='';
       newStudentPhoto='';
