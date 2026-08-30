@@ -1207,6 +1207,8 @@ const SHARED_CSS = `
     .tabs{position:fixed;top:0;right:0;height:100vh;width:78vw;max-width:280px;background:var(--card);box-shadow:-6px 0 24px rgba(0,0,0,.25);z-index:301;flex-wrap:nowrap;padding:64px 14px 14px;transform:translateX(100%);transition:transform .25s ease;overflow-y:auto}
     .tabs.open{transform:translateX(0)}
     .tabs .tab{text-align:center;font-size:14px;padding:12px 14px}
+    .tabs .tab-parent{font-size:14px;padding:12px 14px}
+    .tabs .tab-child{font-size:13px;padding:11px 14px}
     .tabs-overlay.open{display:block;position:fixed;inset:0;background:rgba(15,23,42,.5);z-index:300}
     .dash-flex>.tab-content{margin-top:16px}
   }
