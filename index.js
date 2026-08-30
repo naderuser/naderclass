@@ -1207,7 +1207,9 @@ const SHARED_CSS = `
   .ans-grade-table th:nth-child(5),.ans-grade-table td:nth-child(5){min-width:140px}
   .dash-flex{display:flex;gap:16px;align-items:flex-start;margin-top:16px}
   .tabs{display:flex;flex-direction:column;gap:6px;flex:0 0 180px;width:180px}
-  .tab{padding:9px 12px;border-radius:12px;background:var(--soft);border:1px solid var(--line);cursor:pointer;font-weight:600;font-size:13px;line-height:1.4;text-align:center;text-decoration:none;color:var(--text);display:block;transition:all .15s ease}
+  .tab{padding:9px 12px;border-radius:12px;background:var(--soft);border:1px solid var(--line);cursor:pointer;font-weight:600;font-size:13px;line-height:1.4;text-decoration:none;color:var(--text);display:flex;align-items:center;justify-content:center;gap:7px;text-align:right;transition:all .15s ease}
+  .tab .tab-ico{flex:0 0 auto;font-size:15px;line-height:1}
+  .tab .tab-label{flex:0 1 auto}
   .tab:hover{background:var(--soft-2)}
   .tab.active{background:var(--primary);color:#fff;border-color:var(--primary)}
   .dash-flex>.tab-content{flex:1;min-width:0;margin-top:0}
@@ -1218,7 +1220,7 @@ const SHARED_CSS = `
     .mobile-menu-btn{display:inline-flex;align-items:center;gap:6px;background:var(--primary);color:#fff;border:none;padding:10px 16px;border-radius:12px;font-weight:700;font-size:14px;cursor:pointer;margin:16px 0 0;box-shadow:0 3px 10px rgba(18,32,48,.16)}
     .tabs{position:fixed;top:0;right:0;height:100vh;width:78vw;max-width:280px;background:var(--card);border-left:2px solid var(--text);box-shadow:-6px 0 24px rgba(0,0,0,.25);z-index:301;flex-wrap:nowrap;padding:64px 14px 14px;transform:translateX(100%);transition:transform .25s ease;overflow-y:auto}
     .tabs.open{transform:translateX(0)}
-    .tabs .tab{text-align:center;font-size:14px;padding:12px 14px}
+    .tabs .tab{font-size:14px;padding:12px 14px}
     .tabs .tab-parent{font-size:14px;padding:12px 14px}
     .tabs .tab-child{font-size:13px;padding:11px 14px}
     .tabs-overlay.open{display:block;position:fixed;inset:0;background:rgba(15,23,42,.5);z-index:300}
@@ -1228,10 +1230,12 @@ const SHARED_CSS = `
   .subtab:hover{background:var(--soft-2)}
   .subtab.active{background:var(--primary);color:#fff;border-color:var(--primary)}
   .tab-group{display:flex;flex-direction:column;gap:4px}
-  .tab-parent{display:flex;align-items:center;justify-content:space-between;gap:6px;padding:9px 12px;border-radius:12px;background:var(--soft);border:1px solid var(--line);cursor:pointer;font-weight:600;font-size:13px;line-height:1.4;color:var(--text);user-select:none;transition:all .15s ease}
+  .tab-parent{display:flex;align-items:center;gap:7px;padding:9px 12px;border-radius:12px;background:var(--soft);border:1px solid var(--line);cursor:pointer;font-weight:600;font-size:13px;line-height:1.4;color:var(--text);user-select:none;transition:all .15s ease}
+  .tab-parent .tab-ico{flex:0 0 auto;font-size:15px;line-height:1}
+  .tab-parent .tab-label{flex:1;text-align:right}
   .tab-parent:hover{background:var(--soft-2)}
   .tab-parent.open{background:var(--soft-2)}
-  .tab-parent .tab-arrow{font-size:10px;transition:transform .2s ease;flex:0 0 auto}
+  .tab-parent .tab-arrow{font-size:10px;transition:transform .2s ease;flex:0 0 auto;align-self:center}
   .tab-parent.open .tab-arrow{transform:rotate(180deg)}
   .tab-children{display:flex;flex-direction:column;gap:3px;max-height:0;overflow:hidden;transition:max-height .25s ease;padding-right:10px}
   .tab-children.open{max-height:600px;margin-top:4px}
@@ -3125,10 +3129,10 @@ function teacherPage() {
       <div class="tabs-overlay" id="tabs-overlay"></div>
       <div class="dash-flex">
       <div class="tabs" id="tabs-panel">
-        <a class="tab active" data-tab="home" href="/teacher?tab=home">🏠 صفحه اصلی</a>
+        <a class="tab active" data-tab="home" href="/teacher?tab=home"><span class="tab-ico">🏠</span><span class="tab-label">صفحه اصلی</span></a>
 
         <div class="tab-group">
-          <div class="tab-parent" data-tab="examonline"><span>🎓 آزمون آنلاین</span><span class="tab-arrow">▾</span></div>
+          <div class="tab-parent" data-tab="examonline"><span class="tab-ico">🎓</span><span class="tab-label">آزمون آنلاین</span><span class="tab-arrow">▾</span></div>
           <div class="tab-children" id="tab-children-examonline">
             <a class="tab-child" href="/teacher?tab=examonline&subtab=students" target="_blank" rel="noopener">👥 دانش‌آموزان</a>
             <a class="tab-child" href="/teacher?tab=examonline&subtab=questions" target="_blank" rel="noopener">📝 طراحی سوالات</a>
@@ -3137,11 +3141,11 @@ function teacherPage() {
           </div>
         </div>
 
-        <a class="tab" data-tab="examsheet" href="/teacher?tab=examsheet" target="_blank" rel="noopener">🖨️ ساخت آزمون</a>
-        <a class="tab" data-tab="schedule" href="/teacher?tab=schedule" target="_blank" rel="noopener">📅 برنامه هفتگی</a>
+        <a class="tab" data-tab="examsheet" href="/teacher?tab=examsheet" target="_blank" rel="noopener"><span class="tab-ico">🖨️</span><span class="tab-label">ساخت آزمون</span></a>
+        <a class="tab" data-tab="schedule" href="/teacher?tab=schedule" target="_blank" rel="noopener"><span class="tab-ico">📅</span><span class="tab-label">برنامه هفتگی</span></a>
 
         <div class="tab-group">
-          <div class="tab-parent" data-tab="tablesorg"><span>📊 جدول‌ساز</span><span class="tab-arrow">▾</span></div>
+          <div class="tab-parent" data-tab="tablesorg"><span class="tab-ico">📊</span><span class="tab-label">جدول‌ساز</span><span class="tab-arrow">▾</span></div>
           <div class="tab-children" id="tab-children-tablesorg">
             <a class="tab-child" href="/teacher?tab=tablesorg&subtab=tables" target="_blank" rel="noopener">📊 جدول‌ساز حرفه‌ای</a>
             <a class="tab-child" href="/teacher?tab=tablesorg&subtab=orgform" target="_blank" rel="noopener">🏫 سازمان عملی</a>
@@ -3149,7 +3153,7 @@ function teacherPage() {
         </div>
 
         <div class="tab-group">
-          <div class="tab-parent" data-tab="imgtools"><span>🖼️ ابزار عکس</span><span class="tab-arrow">▾</span></div>
+          <div class="tab-parent" data-tab="imgtools"><span class="tab-ico">🖼️</span><span class="tab-label">ابزار عکس</span><span class="tab-arrow">▾</span></div>
           <div class="tab-children" id="tab-children-imgtools">
             <a class="tab-child" href="/teacher?tab=imgtools&subtab=scan" target="_blank" rel="noopener">📷 اسکنر</a>
             <a class="tab-child" href="/teacher?tab=imgtools&subtab=resize" target="_blank" rel="noopener">🗜️ کاهش حجم</a>
@@ -3160,17 +3164,17 @@ function teacherPage() {
         </div>
 
         <div class="tab-group">
-          <div class="tab-parent" data-tab="translateai"><span>🌐 ترجمه و هوش مصنوعی</span><span class="tab-arrow">▾</span></div>
+          <div class="tab-parent" data-tab="translateai"><span class="tab-ico">🌐</span><span class="tab-label">ترجمه و هوش مصنوعی</span><span class="tab-arrow">▾</span></div>
           <div class="tab-children" id="tab-children-translateai">
             <a class="tab-child" href="/teacher?tab=translateai&subtab=translate" target="_blank" rel="noopener">🌐 ترجمه</a>
             <a class="tab-child" href="/teacher?tab=translateai&subtab=ai" target="_blank" rel="noopener">🤖 هوش مصنوعی</a>
           </div>
         </div>
 
-        <a class="tab" data-tab="classroom" href="/teacher?tab=classroom" target="_blank" rel="noopener">🖥️ کلاس آنلاین</a>
+        <a class="tab" data-tab="classroom" href="/teacher?tab=classroom" target="_blank" rel="noopener"><span class="tab-ico">🖥️</span><span class="tab-label">کلاس آنلاین</span></a>
 
         <div class="tab-group">
-          <div class="tab-parent" data-tab="logbook"><span>📖 دفتر مدیریت کلاسی</span><span class="tab-arrow">▾</span></div>
+          <div class="tab-parent" data-tab="logbook"><span class="tab-ico">📖</span><span class="tab-label">دفتر مدیریت کلاسی</span><span class="tab-arrow">▾</span></div>
           <div class="tab-children" id="tab-children-logbook">
             <a class="tab-child" href="/teacher?tab=logbook&lb=pacing" target="_blank" rel="noopener">📈 جدول بودجه‌بندی آموزشی</a>
             <a class="tab-child" href="/teacher?tab=logbook&lb=roster" target="_blank" rel="noopener">👥 لیست اسامی دانش‌آموزان</a>
@@ -3189,9 +3193,9 @@ function teacherPage() {
           </div>
         </div>
 
-        <a class="tab" data-tab="settings" href="/teacher?tab=settings">⚙️ تنظیمات</a>
+        <a class="tab" data-tab="settings" href="/teacher?tab=settings"><span class="tab-ico">⚙️</span><span class="tab-label">تنظیمات</span></a>
         <div style="flex:1"></div>
-        <div class="tab" id="btn-logout" style="background:#fee2e2;color:#991b1b">🚪 خروج</div>
+        <div class="tab" id="btn-logout" style="background:#fee2e2;color:#991b1b"><span class="tab-ico">🚪</span><span class="tab-label">خروج</span></div>
       </div>
 
       <div class="card tab-content" id="tab-home">
