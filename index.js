@@ -1153,7 +1153,7 @@ const SHARED_CSS = `
   .th-designer .en{opacity:.85;font-weight:400}
   @media (max-width:600px){.th-topbar{justify-content:center}}
   .home-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px;margin-top:14px}
-  .home-card{border:2px solid var(--text);border-radius:18px;padding:16px;cursor:pointer;background:var(--card);transition:transform .15s,box-shadow .15s;text-align:right;text-decoration:none;color:var(--text);display:block;box-shadow:0 5px 0 rgba(0,0,0,.16)}
+  .home-card{border:2px solid var(--text);border-radius:18px;padding:16px;cursor:pointer;background:var(--soft);transition:transform .15s,box-shadow .15s;text-align:right;text-decoration:none;color:var(--text);display:block;box-shadow:0 5px 0 rgba(0,0,0,.16)}
   .home-card:hover{transform:translateY(-3px);box-shadow:0 7px 0 rgba(0,0,0,.16);border-color:var(--primary)}
   .home-card h4{margin:0 0 6px;font-size:15px}
   .home-card ul{margin:8px 0 0;padding-inline-start:18px;font-size:12.5px;color:var(--muted);line-height:1.9}
