@@ -1141,6 +1141,17 @@ const SHARED_CSS = `
   .header h1{margin:4px 0;font-size:22px}
   .header h2{margin:4px 0;font-size:15px;font-weight:500;opacity:.95}
   .header h3{margin:4px 0;font-size:13px;font-weight:400;opacity:.9}
+  .teacher-header{position:relative}
+  .th-topbar{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px}
+  .th-left-cluster{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+  .th-home{background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.35);border-radius:10px;padding:7px 14px;font-size:13px;font-weight:600;text-decoration:none;display:inline-flex;align-items:center;gap:6px;transition:background .2s}
+  .th-home:hover{background:rgba(255,255,255,.3)}
+  .th-clock{background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.35);border-radius:10px;padding:7px 14px;font-size:14px;font-weight:700;letter-spacing:1px;font-variant-numeric:tabular-nums;direction:ltr}
+  .th-en-badge{background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.35);border-radius:10px;padding:7px 14px;font-size:12px;font-weight:600;letter-spacing:.3px;white-space:nowrap}
+  .th-desc{margin:6px auto 10px;font-size:13px;opacity:.92;max-width:640px;line-height:1.9;padding:0 6px}
+  .th-designer{display:inline-flex;align-items:center;gap:8px;background:rgba(255,255,255,.12);border:1px dashed rgba(255,255,255,.45);border-radius:999px;padding:6px 16px;font-size:12px;margin-top:4px}
+  .th-designer .en{opacity:.85;font-weight:400}
+  @media (max-width:600px){.th-topbar{justify-content:center}}
   .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px;margin-top:16px;box-shadow:0 4px 16px rgba(15,23,42,.06)}
   label{display:block;font-size:14px;margin:10px 0 6px;font-weight:600}
   input,textarea,select{width:100%;padding:11px 12px;border:1px solid #cbd5e1;border-radius:10px;font-family:inherit;font-size:15px;background:#fff}
@@ -1838,6 +1849,21 @@ const FONT_LINK = `<link rel="preconnect" href="https://cdn.jsdelivr.net"><link 
 
 function pageHeader() {
   return `<div class="header"><h1>${esc(APP_TITLE)}</h1><h2>${esc(APP_DESIGNER)}</h2></div>`;
+}
+
+function teacherHeader() {
+  return `<div class="header teacher-header">
+    <div class="th-topbar">
+      <div class="th-left-cluster">
+        <a class="th-home" href="/">🏠 صفحه اصلی</a>
+        <div class="th-clock" id="th-clock">--:--:--</div>
+      </div>
+      <div class="th-en-badge">Teacher's Educational Assistant</div>
+    </div>
+    <h1>${esc(APP_TITLE)}</h1>
+    <p class="th-desc">پنل جامع مدیریت کلاس درس، طراحی و برگزاری آزمون آنلاین، دفتر مدیریت کلاسی، ابزارهای تصویر و اسکن، و دستیار هوش مصنوعی — همه در یک پنل یکپارچه برای معلمان</p>
+    <div class="th-designer">🎨 ${esc(APP_DESIGNER)} <span class="en">Designer: Nader Akshik</span></div>
+  </div>`;
 }
 
 /* ------------------------- صفحه اصلی ------------------------- */
@@ -3064,7 +3090,7 @@ function teacherPage() {
   <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
   </head>
   <body><div class="wrap">
-    ${pageHeader()}
+    ${teacherHeader()}
 
     <div class="card" id="login">
       <h3 id="login-head">🔐 ورود معلم</h3>
@@ -4553,6 +4579,21 @@ function teacherScript() {
     document.getElementById('dash').classList.remove('hidden');
     loadStudents();loadQuestions();loadSchedule();
   }
+
+  (function(){
+    var clockEl=document.getElementById('th-clock');
+    if(clockEl){
+      function thTickClock(){
+        var now=new Date();
+        var hh=String(now.getHours()).padStart(2,'0');
+        var mm=String(now.getMinutes()).padStart(2,'0');
+        var ss=String(now.getSeconds()).padStart(2,'0');
+        clockEl.textContent=hh+':'+mm+':'+ss;
+      }
+      thTickClock();
+      setInterval(thTickClock,1000);
+    }
+  })();
 
   var tabsPanel=document.getElementById('tabs-panel');
   var tabsOverlay=document.getElementById('tabs-overlay');
