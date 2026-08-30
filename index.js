@@ -1127,8 +1127,8 @@ const SHARED_CSS = `
   @font-face{font-family:"BMitra";src:url(https://cdn.jsdelivr.net/gh/intuxicated/css-persian@master/fonts/BMitra.ttf);font-weight:bold}
   @font-face{font-family:"BTitr";src:url(https://cdn.jsdelivr.net/gh/intuxicated/css-persian@master/fonts/BTitrBold.ttf);font-weight:bold}
   @font-face{font-family:"BKoodak";src:url(https://cdn.jsdelivr.net/gh/intuxicated/css-persian@master/fonts/BKoodakBold.ttf);font-weight:bold}
-  :root{--bg:#F5F3FF;--card:#FFFFFF;--primary:#6C3EB8;--primary-2:#8B5CF6;--accent:#F59E0B;--muted:#6b7280;--line:#E6E1F5;--danger:#DC2626;--text:#1E1B2E;--soft:#EDE9FE;--soft-2:#DDD6FE;}
-  [data-theme="light"]{--bg:#F5F3FF;--card:#FFFFFF;--primary:#6C3EB8;--primary-2:#8B5CF6;--muted:#6b7280;--line:#E6E1F5;--text:#1E1B2E;--soft:#EDE9FE;--soft-2:#DDD6FE;}
+  :root{--bg:#F5F3FF;--card:#F3EEFF;--primary:#6C3EB8;--primary-2:#8B5CF6;--accent:#F59E0B;--muted:#6b7280;--line:#E6E1F5;--danger:#DC2626;--text:#1E1B2E;--soft:#EDE9FE;--soft-2:#DDD6FE;}
+  [data-theme="light"]{--bg:#F5F3FF;--card:#F3EEFF;--primary:#6C3EB8;--primary-2:#8B5CF6;--muted:#6b7280;--line:#E6E1F5;--text:#1E1B2E;--soft:#EDE9FE;--soft-2:#DDD6FE;}
   [data-theme="dark"]{--bg:#0F0E17;--card:#1A1A2E;--primary:#8B5CF6;--primary-2:#A78BFA;--muted:#94A3B8;--line:#2D2B45;--text:#F1F5F9;--soft:#2D2B45;--soft-2:#3D3A5C;}
   .theme-btn{padding:10px 20px;border:2px solid var(--line);border-radius:999px;background:var(--card);color:var(--text);font-size:14px;cursor:pointer;transition:all .2s}
   .theme-btn:hover{border-color:var(--primary);background:var(--primary);color:#fff}
@@ -1234,8 +1234,12 @@ const SHARED_CSS = `
   .tab-child:hover{background:var(--soft)}
   [data-theme="dark"] .tab-child:hover{background:var(--soft)}
   .nav-ic{vertical-align:-3px;flex:none}
+  .nav-ic:not(.lb-fa){display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;min-width:22px;border-radius:8px;background:rgba(255,255,255,.85);color:var(--primary);font-size:12px;box-shadow:0 2px 6px rgba(0,0,0,.12);vertical-align:middle;margin-inline-end:2px}
+  [data-theme="dark"] .nav-ic:not(.lb-fa){background:rgba(255,255,255,.10);color:var(--primary-2)}
+  .tab.active .nav-ic:not(.lb-fa),.subtab.active .nav-ic:not(.lb-fa){background:rgba(255,255,255,.3);color:#fff}
+  h2 .nav-ic:not(.lb-fa),h3 .nav-ic:not(.lb-fa),h4 .nav-ic:not(.lb-fa){width:26px;height:26px;font-size:13px;border-radius:9px}
   .lb-ico svg.nav-ic{width:30px;height:30px;stroke-width:1.5;display:block;vertical-align:baseline}
-  .home-card h4 .nav-ic{vertical-align:-3px}
+  .home-card h4 .nav-ic{vertical-align:middle}
   .hidden{display:none}
   .toast{position:fixed;bottom:18px;right:18px;background:#1E1B2E;color:#F5F3FF;padding:12px 18px;border-radius:999px;opacity:0;transition:.3s;z-index:50}
   .toast.show{opacity:1}
@@ -3200,7 +3204,7 @@ function teacherPage() {
           </div>
         </div>
 
-        <a class="tab" data-tab="settings" href="/teacher?tab=settings" target="_blank" rel="noopener"><i class="fas fa-gear nav-ic"></i> تنظیمات</a>
+        <a class="tab" data-tab="settings" href="/teacher?tab=settings"><i class="fas fa-gear nav-ic"></i> تنظیمات</a>
         <div style="flex:1"></div>
         <div class="tab" id="btn-logout" style="background:#fee2e2;color:#991b1b">🚪 خروج</div>
       </div>
@@ -3263,7 +3267,7 @@ function teacherPage() {
               <li>📅 برنامه هفتگی، 🏆 تقدیرنامه‌ساز</li>
             </ul>
           </a>
-          <a class="home-card" href="/teacher?tab=settings" target="_blank" rel="noopener">
+          <a class="home-card" href="/teacher?tab=settings">
             <h4><i class="fas fa-gear nav-ic"></i> تنظیمات</h4>
             <ul><li>تنظیمات حساب و پنل</li></ul>
           </a>
@@ -4673,6 +4677,7 @@ function teacherPage() {
           <button class="color-swatch" data-color="ocean" style="background:linear-gradient(135deg,#1d4ed8,#0d9488)" title="اقیانوسی (آبی)"></button>
           <button class="color-swatch" data-color="emerald" style="background:linear-gradient(135deg,#059669,#10b981)" title="زمردی (سبز)"></button>
           <button class="color-swatch" data-color="rose" style="background:linear-gradient(135deg,#e11d48,#fb7185)" title="رزی (صورتی)"></button>
+          <button class="color-swatch" data-color="skyblue" style="background:linear-gradient(135deg,#0EA5E9,#38BDF8)" title="آبی کم‌رنگ (آسمانی)"></button>
         </div>
         <h3>🤖 موتور هوش مصنوعی</h3>
         <p class="muted" style="margin-bottom:20px">تمام قابلیت‌های هوش مصنوعی (ترجمه، استخراج متن از عکس/PDF، چت دستیار و ...) با موتور ✨ Gemini انجام می‌شود.</p>
@@ -4741,16 +4746,18 @@ function teacherScript() {
   }
 
   const COLOR_THEMES={
-    academy:{light:{bg:'#F5F3FF',card:'#FFFFFF',primary:'#6C3EB8','primary-2':'#8B5CF6',accent:'#F59E0B',muted:'#6b7280',line:'#E6E1F5',text:'#1E1B2E',danger:'#DC2626',soft:'#EDE9FE','soft-2':'#DDD6FE'},
+    academy:{light:{bg:'#F5F3FF',card:'#F3EEFF',primary:'#6C3EB8','primary-2':'#8B5CF6',accent:'#F59E0B',muted:'#6b7280',line:'#E6E1F5',text:'#1E1B2E',danger:'#DC2626',soft:'#EDE9FE','soft-2':'#DDD6FE'},
              dark:{bg:'#0F0E17',card:'#1A1A2E',primary:'#8B5CF6','primary-2':'#A78BFA',accent:'#FBBF24',muted:'#94A3B8',line:'#2D2B45',text:'#F1F5F9',danger:'#F87171',soft:'#2D2B45','soft-2':'#3D3A5C'}},
-    tea:{light:{bg:'#F4EDDD',card:'#FFFCF3',primary:'#AE4E28','primary-2':'#C08A2E',accent:'#3E7C4F',muted:'#6b6455',line:'#E4D8B8',text:'#1C3327',danger:'#C0392B',soft:'#F3E4C8','soft-2':'#E4D8B8'},
+    tea:{light:{bg:'#F4EDDD',card:'#FAF3E4',primary:'#AE4E28','primary-2':'#C08A2E',accent:'#3E7C4F',muted:'#6b6455',line:'#E4D8B8',text:'#1C3327',danger:'#C0392B',soft:'#F3E4C8','soft-2':'#E4D8B8'},
          dark:{bg:'#15271E',card:'#1C3327',primary:'#D9793F','primary-2':'#E8A44C',accent:'#4F9464',muted:'#A9B7A9',line:'#33473A',text:'#F4EDDD',danger:'#F16A5C',soft:'#26392c','soft-2':'#33473A'}},
-    ocean:{light:{bg:'#f1f5f9',card:'#ffffff',primary:'#1d4ed8','primary-2':'#2563eb',accent:'#0d9488',muted:'#64748b',line:'#e2e8f0',text:'#0f172a',danger:'#dc2626',soft:'#e0e7ff','soft-2':'#c7d2fe'},
+    ocean:{light:{bg:'#f1f5f9',card:'#e9f0fb',primary:'#1d4ed8','primary-2':'#2563eb',accent:'#0d9488',muted:'#64748b',line:'#e2e8f0',text:'#0f172a',danger:'#dc2626',soft:'#e0e7ff','soft-2':'#c7d2fe'},
           dark:{bg:'#0f172a',card:'#1e293b',primary:'#3b82f6','primary-2':'#60a5fa',accent:'#14b8a6',muted:'#94a3b8',line:'#334155',text:'#f1f5f9',danger:'#f87171',soft:'#334155','soft-2':'#475569'}},
-    emerald:{light:{bg:'#f0fdf6',card:'#ffffff',primary:'#059669','primary-2':'#10b981',accent:'#0891b2',muted:'#64748b',line:'#d1fae5',text:'#0f2e22',danger:'#dc2626',soft:'#d1fae5','soft-2':'#a7f3d0'},
+    emerald:{light:{bg:'#f0fdf6',card:'#e6fbef',primary:'#059669','primary-2':'#10b981',accent:'#0891b2',muted:'#64748b',line:'#d1fae5',text:'#0f2e22',danger:'#dc2626',soft:'#d1fae5','soft-2':'#a7f3d0'},
             dark:{bg:'#052e22',card:'#0e3d2e',primary:'#34d399','primary-2':'#6ee7b7',accent:'#22d3ee',muted:'#9fc9b8',line:'#155e46',text:'#ecfdf5',danger:'#f87171',soft:'#155e46','soft-2':'#1c6e53'}},
-    rose:{light:{bg:'#fff1f4',card:'#ffffff',primary:'#e11d48','primary-2':'#fb7185',accent:'#7c3aed',muted:'#64748b',line:'#fecdd3',text:'#3f0d17',danger:'#b91c1c',soft:'#fecdd3','soft-2':'#fda4af'},
+    rose:{light:{bg:'#fff1f4',card:'#ffedf1',primary:'#e11d48','primary-2':'#fb7185',accent:'#7c3aed',muted:'#64748b',line:'#fecdd3',text:'#3f0d17',danger:'#b91c1c',soft:'#fecdd3','soft-2':'#fda4af'},
          dark:{bg:'#2b0a13',card:'#3b0f1c',primary:'#fb7185','primary-2':'#fda4af',accent:'#a78bfa',muted:'#c99aa4',line:'#5c1a2a',text:'#fff1f4',danger:'#f87171',soft:'#5c1a2a','soft-2':'#6e2130'}},
+    skyblue:{light:{bg:'#EAF6FF',card:'#DFF2FF',primary:'#0EA5E9','primary-2':'#38BDF8',accent:'#6366F1',muted:'#5b7d8f',line:'#CDEBFC',text:'#0B2A3B',danger:'#DC2626',soft:'#D6EEFF','soft-2':'#BFE4FB'},
+            dark:{bg:'#07202E',card:'#0F3049',primary:'#38BDF8','primary-2':'#7DD3FC',accent:'#818CF8',muted:'#93B4C7',line:'#164860',text:'#EAF6FF',danger:'#F87171',soft:'#164860','soft-2':'#1D5975'}},
   };
   function applyColorTheme(name){
     const mode=document.documentElement.getAttribute('data-theme')||'light';
