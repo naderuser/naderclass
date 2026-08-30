@@ -4665,6 +4665,7 @@ function teacherPage() {
           <button class="color-swatch" data-color="skyblue" style="background:linear-gradient(135deg,#0EA5E9,#38BDF8)" title="آبی کم‌رنگ (آسمانی)"></button>
           <button class="color-swatch" data-color="goldnight" style="background:linear-gradient(135deg,#1a1030,#F5A623)" title="شب طلایی (تیره و پرمیوم)"></button>
           <button class="color-swatch" data-color="turquoise" style="background:linear-gradient(135deg,#0F9B8E,#14B8A6)" title="فیروزه‌ای"></button>
+          <button class="color-swatch" data-color="crystal" style="background:linear-gradient(135deg,#5B8DB8,#A5E6FF)" title="کریستالی (شیشه‌ای و مدرن)"></button>
         </div>
         <h3>🤖 موتور هوش مصنوعی</h3>
         <p class="muted" style="margin-bottom:20px">تمام قابلیت‌های هوش مصنوعی (ترجمه، استخراج متن از عکس/PDF، چت دستیار و ...) با موتور ✨ Gemini انجام می‌شود.</p>
@@ -4749,6 +4750,8 @@ function teacherScript() {
               dark:{bg:'#0E0D17',card:'#1E1E2C',primary:'#F5A623','primary-2':'#FBBF24',accent:'#F472B6',muted:'#9691A8',line:'#2E2A45',text:'#F5F3FF',danger:'#F87171',soft:'#241F35','soft-2':'#322B4A'}},
     turquoise:{light:{bg:'#EAFBF9',card:'#E0F7F4',primary:'#0F9B8E','primary-2':'#14B8A6',accent:'#F59E0B',muted:'#5b8f89',line:'#CFEEEA',text:'#0B2C29',danger:'#DC2626',soft:'#D3F5EF','soft-2':'#BEEBE3'},
                dark:{bg:'#052220',card:'#0C332E',primary:'#14B8A6','primary-2':'#2DD4BF',accent:'#FBBF24',muted:'#8FC2BA',line:'#164F45',text:'#EAFBF9',danger:'#F87171',soft:'#164F45','soft-2':'#1D6156'}},
+    crystal:{light:{bg:'#F4F8FB',card:'#FFFFFF',primary:'#4A7FA8','primary-2':'#8FC4E8',accent:'#38BDF8',muted:'#64748b',line:'#DCE8F0',text:'#1E293B',danger:'#DC2626',soft:'#EAF3FA','soft-2':'#D7E8F3'},
+             dark:{bg:'#0B1420',card:'#141F2E',primary:'#5FA8D3','primary-2':'#A5E6FF',accent:'#93C5FD',muted:'#94A3B8',line:'#22344A',text:'#EAF3FA',danger:'#F87171',soft:'#182740','soft-2':'#20344C'}},
   };
   function applyColorTheme(name){
     const mode=document.documentElement.getAttribute('data-theme')||'light';
