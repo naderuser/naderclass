@@ -1137,7 +1137,7 @@ const SHARED_CSS = `
   .color-swatch.active{box-shadow:0 4px 0 rgba(0,0,0,.2),0 0 0 3px var(--primary)}
   *{box-sizing:border-box}
   html{scroll-behavior:smooth}
-  body{margin:0;font-family:'Vazirmatn',Tahoma,system-ui,sans-serif;background:radial-gradient(circle at 1px 1px, var(--line) 1px, transparent 1px) 0 0/26px 26px, var(--bg);color:var(--text);direction:rtl;transition:background .3s,color .3s;-webkit-font-smoothing:antialiased;}
+  body{margin:0;font-family:'Vazirmatn',Tahoma,system-ui,sans-serif;background:radial-gradient(circle at 1px 1px, var(--line) 1px, transparent 1px) 0 0/26px 26px, radial-gradient(ellipse at top, var(--soft) 0%, var(--bg) 65%);color:var(--text);direction:rtl;transition:background .3s,color .3s;-webkit-font-smoothing:antialiased;}
   .wrap{max-width:1180px;margin:0 auto;padding:18px;}
   .header{position:relative;background:linear-gradient(135deg,var(--primary),var(--primary-2));color:#fff;border:2px solid var(--text);border-radius:22px;padding:28px 22px;text-align:center;box-shadow:var(--shadow);}
   .header::before{content:'';position:absolute;inset:8px;border:1.5px dashed rgba(255,255,255,.6);border-radius:16px;pointer-events:none}
