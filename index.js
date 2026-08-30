@@ -1195,7 +1195,7 @@ const SHARED_CSS = `
   [data-theme="dark"] th{background:#334155}
   .dash-flex{display:flex;gap:16px;align-items:flex-start;margin-top:16px}
   .tabs{display:flex;flex-direction:column;gap:6px;flex:0 0 180px;width:180px}
-  .tab{padding:9px 12px;border-radius:10px;background:#e2e8f0;cursor:pointer;font-weight:600;font-size:13px;line-height:1.4;text-align:center}
+  .tab{padding:9px 12px;border-radius:10px;background:#e2e8f0;cursor:pointer;font-weight:600;font-size:13px;line-height:1.4;text-align:center;text-decoration:none;color:var(--text);display:block}
   [data-theme="dark"] .tab{background:#334155;color:#e2e8f0}
   .tab.active{background:var(--primary);color:#fff}
   .dash-flex>.tab-content{flex:1;min-width:0;margin-top:0}
@@ -3103,16 +3103,16 @@ function teacherPage() {
       <div class="tabs-overlay" id="tabs-overlay"></div>
       <div class="dash-flex">
       <div class="tabs" id="tabs-panel">
-        <div class="tab active" data-tab="home">🏠 صفحه اصلی</div>
-        <div class="tab" data-tab="examonline">🎓 آزمون آنلاین</div>
-        <div class="tab" data-tab="examsheet">🖨️ ساخت آزمون</div>
-        <div class="tab" data-tab="schedule">📅 برنامه هفتگی</div>
-        <div class="tab" data-tab="tablesorg">📊 جدول‌ساز</div>
-        <div class="tab" data-tab="imgtools">🖼️ ابزار عکس</div>
-        <div class="tab" data-tab="translateai">🌐🤖 ترجمه و هوش مصنوعی</div>
-        <div class="tab" data-tab="classroom">🖥️ کلاس آنلاین</div>
-        <div class="tab" data-tab="logbook">📔 دفتر مدیریت کلاسی</div>
-        <div class="tab" data-tab="settings">⚙️ تنظیمات</div>
+        <a class="tab active" data-tab="home" href="/teacher?tab=home" target="_blank" rel="noopener">🏠 صفحه اصلی</a>
+        <a class="tab" data-tab="examonline" href="/teacher?tab=examonline" target="_blank" rel="noopener">🎓 آزمون آنلاین</a>
+        <a class="tab" data-tab="examsheet" href="/teacher?tab=examsheet" target="_blank" rel="noopener">🖨️ ساخت آزمون</a>
+        <a class="tab" data-tab="schedule" href="/teacher?tab=schedule" target="_blank" rel="noopener">📅 برنامه هفتگی</a>
+        <a class="tab" data-tab="tablesorg" href="/teacher?tab=tablesorg" target="_blank" rel="noopener">📊 جدول‌ساز</a>
+        <a class="tab" data-tab="imgtools" href="/teacher?tab=imgtools" target="_blank" rel="noopener">🖼️ ابزار عکس</a>
+        <a class="tab" data-tab="translateai" href="/teacher?tab=translateai" target="_blank" rel="noopener">🌐🤖 ترجمه و هوش مصنوعی</a>
+        <a class="tab" data-tab="classroom" href="/teacher?tab=classroom" target="_blank" rel="noopener">🖥️ کلاس آنلاین</a>
+        <a class="tab" data-tab="logbook" href="/teacher?tab=logbook" target="_blank" rel="noopener">📔 دفتر مدیریت کلاسی</a>
+        <a class="tab" data-tab="settings" href="/teacher?tab=settings" target="_blank" rel="noopener">⚙️ تنظیمات</a>
         <div style="flex:1"></div>
         <div class="tab" id="btn-logout" style="background:#fee2e2;color:#991b1b">🚪 خروج</div>
       </div>
@@ -4644,10 +4644,7 @@ function teacherScript() {
     loadStudents();loadQuestions();loadSchedule();
     try{
       var wantTab=new URLSearchParams(location.search).get('tab');
-      if(wantTab){
-        var target=document.querySelector('.tab[data-tab="'+wantTab+'"]');
-        if(target)target.click();
-      }
+      if(wantTab)activateSection(wantTab);
     }catch(e){}
   }
 
@@ -4673,17 +4670,22 @@ function teacherScript() {
   mobileMenuBtn.onclick=function(){tabsPanel.classList.add('open');tabsOverlay.classList.add('open');};
   tabsOverlay.onclick=closeMobileMenu;
 
-  document.querySelectorAll('.tab[data-tab]').forEach(t=>t.onclick=()=>{
-    document.querySelectorAll('.tab[data-tab]').forEach(x=>x.classList.remove('active'));
-    t.classList.add('active');
-    document.querySelectorAll('.tab-content').forEach(c=>c.classList.add('hidden'));
-    document.getElementById('tab-'+t.dataset.tab).classList.remove('hidden');
-    closeMobileMenu();
-    if(t.dataset.tab==='tablesorg'){if(typeof loadTableIfNeeded==='function')loadTableIfNeeded();if(typeof loadOrgFormIfNeeded==='function')loadOrgFormIfNeeded();}
-    if(t.dataset.tab==='schedule'){document.getElementById('btn-gen-schedule').click();if(typeof loadScheduleThemeIfNeeded==='function')loadScheduleThemeIfNeeded();if(typeof loadScheduleFontIfNeeded==='function')loadScheduleFontIfNeeded();}
-    if(t.dataset.tab==='classroom'){renderClassLinks();setTimeout(function(){if(typeof clsResizeBoard==='function')clsResizeBoard();},50);}
-    if(t.dataset.tab==='examsheet'){if(typeof loadExamSheetIfNeeded==='function')loadExamSheetIfNeeded();}
+  document.querySelectorAll('.tab[data-tab]').forEach(function(t){
+    t.addEventListener('click', function(){ closeMobileMenu(); });
   });
+
+  function activateSection(tabName){
+    document.querySelectorAll('.tab[data-tab]').forEach(x=>x.classList.remove('active'));
+    var tEl=document.querySelector('.tab[data-tab="'+tabName+'"]');
+    if(tEl)tEl.classList.add('active');
+    document.querySelectorAll('.tab-content').forEach(c=>c.classList.add('hidden'));
+    var cEl=document.getElementById('tab-'+tabName);
+    if(cEl)cEl.classList.remove('hidden');
+    if(tabName==='tablesorg'){if(typeof loadTableIfNeeded==='function')loadTableIfNeeded();if(typeof loadOrgFormIfNeeded==='function')loadOrgFormIfNeeded();}
+    if(tabName==='schedule'){document.getElementById('btn-gen-schedule').click();if(typeof loadScheduleThemeIfNeeded==='function')loadScheduleThemeIfNeeded();if(typeof loadScheduleFontIfNeeded==='function')loadScheduleFontIfNeeded();}
+    if(tabName==='classroom'){renderClassLinks();setTimeout(function(){if(typeof clsResizeBoard==='function')clsResizeBoard();},50);}
+    if(tabName==='examsheet'){if(typeof loadExamSheetIfNeeded==='function')loadExamSheetIfNeeded();}
+  }
 
   document.querySelectorAll('.subtab[data-subtab]').forEach(t=>t.onclick=()=>{
     document.querySelectorAll('.subtab[data-subtab]').forEach(x=>x.classList.remove('active'));
