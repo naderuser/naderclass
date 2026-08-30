@@ -1146,18 +1146,18 @@ const SHARED_CSS = `
     background-attachment:fixed;
   }
   .wrap{max-width:1180px;margin:0 auto;padding:18px;position:relative}
-  .header{position:relative;background:linear-gradient(120deg,var(--primary),var(--primary-2));color:#fff;border:1px solid rgba(255,255,255,.14);border-radius:16px;padding:28px 22px;text-align:center;box-shadow:var(--shadow);}
+  .header{position:relative;background:linear-gradient(rgba(0,0,0,.22),rgba(0,0,0,.22)),linear-gradient(120deg,var(--primary),var(--primary-2));color:#fff;border:1px solid rgba(255,255,255,.14);border-radius:16px;padding:28px 22px;text-align:center;box-shadow:var(--shadow);}
   .header::before{content:'';position:absolute;right:0;left:0;bottom:0;height:3px;background:linear-gradient(90deg,transparent,var(--accent),transparent);border-radius:0 0 16px 16px;pointer-events:none}
   .header::after{content:'';position:absolute;right:8%;left:8%;top:-26px;height:60px;background:radial-gradient(60% 100% at 50% 100%, color-mix(in srgb, var(--primary-2) 55%, transparent) 0%, transparent 75%);filter:blur(6px);pointer-events:none;z-index:-1}
-  .header h1{position:relative;margin:4px 0;font-size:22px;font-weight:800;color:#fff;letter-spacing:.2px}
-  .header h2{position:relative;margin:4px 0;font-size:15px;font-weight:500;color:rgba(255,255,255,.85)}
-  .header h3{position:relative;margin:4px 0;font-size:13px;font-weight:400;color:rgba(255,255,255,.8)}
+  .header h1{position:relative;margin:4px 0;font-size:22px;font-weight:800;color:#fff;letter-spacing:.2px;text-shadow:0 1px 3px rgba(0,0,0,.4)}
+  .header h2{position:relative;margin:4px 0;font-size:15px;font-weight:500;color:rgba(255,255,255,.92);text-shadow:0 1px 3px rgba(0,0,0,.4)}
+  .header h3{position:relative;margin:4px 0;font-size:13px;font-weight:400;color:rgba(255,255,255,.88);text-shadow:0 1px 3px rgba(0,0,0,.4)}
   .teacher-header{position:relative;padding:20px 18px}
   .teacher-header h1{font-size:18px;margin:2px 0}
   .th-topbar{position:relative;display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px}
-  .th-clock{background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.3);color:#fff;border-radius:8px;padding:5px 12px;font-size:13px;font-weight:700;letter-spacing:1px;font-variant-numeric:tabular-nums;direction:ltr}
-  .th-en-badge{background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.3);color:#fff;border-radius:8px;padding:5px 12px;font-size:11px;font-weight:600;letter-spacing:.3px;white-space:nowrap}
-  .th-designer{position:relative;display:inline-flex;align-items:center;gap:8px;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.3);color:#fff;border-radius:999px;padding:4px 14px;font-size:11px;margin-top:2px}
+  .th-clock{background:rgba(0,0,0,.32);border:1px solid rgba(255,255,255,.35);color:#fff;border-radius:8px;padding:5px 12px;font-size:13px;font-weight:700;letter-spacing:1px;font-variant-numeric:tabular-nums;direction:ltr;text-shadow:0 1px 2px rgba(0,0,0,.4)}
+  .th-en-badge{background:rgba(0,0,0,.32);border:1px solid rgba(255,255,255,.35);color:#fff;border-radius:8px;padding:5px 12px;font-size:11px;font-weight:600;letter-spacing:.3px;white-space:nowrap;text-shadow:0 1px 2px rgba(0,0,0,.4)}
+  .th-designer{position:relative;display:inline-flex;align-items:center;gap:8px;background:rgba(0,0,0,.32);border:1px solid rgba(255,255,255,.35);color:#fff;border-radius:999px;padding:4px 14px;font-size:11px;margin-top:2px;text-shadow:0 1px 2px rgba(0,0,0,.4)}
   .th-designer .en{opacity:.85;font-weight:400}
   @media (max-width:600px){.th-topbar{justify-content:center}}
   .home-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px;margin-top:14px}
@@ -4664,6 +4664,7 @@ function teacherPage() {
           <button class="color-swatch" data-color="rose" style="background:linear-gradient(135deg,#e11d48,#fb7185)" title="رزی (صورتی)"></button>
           <button class="color-swatch" data-color="skyblue" style="background:linear-gradient(135deg,#0EA5E9,#38BDF8)" title="آبی کم‌رنگ (آسمانی)"></button>
           <button class="color-swatch" data-color="goldnight" style="background:linear-gradient(135deg,#1a1030,#F5A623)" title="شب طلایی (تیره و پرمیوم)"></button>
+          <button class="color-swatch" data-color="turquoise" style="background:linear-gradient(135deg,#0F9B8E,#14B8A6)" title="فیروزه‌ای"></button>
         </div>
         <h3>🤖 موتور هوش مصنوعی</h3>
         <p class="muted" style="margin-bottom:20px">تمام قابلیت‌های هوش مصنوعی (ترجمه، استخراج متن از عکس/PDF، چت دستیار و ...) با موتور ✨ Gemini انجام می‌شود.</p>
@@ -4746,6 +4747,8 @@ function teacherScript() {
             dark:{bg:'#07202E',card:'#0F3049',primary:'#38BDF8','primary-2':'#7DD3FC',accent:'#818CF8',muted:'#93B4C7',line:'#164860',text:'#EAF6FF',danger:'#F87171',soft:'#164860','soft-2':'#1D5975'}},
     goldnight:{light:{bg:'#FBF6EC',card:'#FFF7E6',primary:'#B45309','primary-2':'#D97706',accent:'#DB2777',muted:'#7A6E5C',line:'#F0DFB8',text:'#241A0F',danger:'#DC2626',soft:'#FCEBC5','soft-2':'#F8DC9A'},
               dark:{bg:'#0E0D17',card:'#1E1E2C',primary:'#F5A623','primary-2':'#FBBF24',accent:'#F472B6',muted:'#9691A8',line:'#2E2A45',text:'#F5F3FF',danger:'#F87171',soft:'#241F35','soft-2':'#322B4A'}},
+    turquoise:{light:{bg:'#EAFBF9',card:'#E0F7F4',primary:'#0F9B8E','primary-2':'#14B8A6',accent:'#F59E0B',muted:'#5b8f89',line:'#CFEEEA',text:'#0B2C29',danger:'#DC2626',soft:'#D3F5EF','soft-2':'#BEEBE3'},
+               dark:{bg:'#052220',card:'#0C332E',primary:'#14B8A6','primary-2':'#2DD4BF',accent:'#FBBF24',muted:'#8FC2BA',line:'#164F45',text:'#EAFBF9',danger:'#F87171',soft:'#164F45','soft-2':'#1D6156'}},
   };
   function applyColorTheme(name){
     const mode=document.documentElement.getAttribute('data-theme')||'light';
