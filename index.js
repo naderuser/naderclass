@@ -1139,16 +1139,16 @@ const SHARED_CSS = `
   html{scroll-behavior:smooth}
   body{margin:0;min-height:100vh;font-family:'Vazirmatn',Tahoma,system-ui,sans-serif;color:var(--text);direction:rtl;transition:background .3s,color .3s;-webkit-font-smoothing:antialiased;
     background:
-      radial-gradient(1100px 620px at 18% -12%, rgba(45,212,191,.30) 0%, transparent 62%),
-      radial-gradient(900px 560px at 105% 8%, rgba(20,184,166,.24) 0%, transparent 58%),
-      radial-gradient(1200px 720px at 50% 120%, rgba(16,185,129,.30) 0%, transparent 60%),
-      linear-gradient(160deg,#03130F 0%,#071E19 42%,#020D0A 100%);
+      radial-gradient(1100px 620px at 18% -12%, var(--soft-2) 0%, transparent 62%),
+      radial-gradient(900px 560px at 105% 8%, var(--soft) 0%, transparent 58%),
+      radial-gradient(1200px 720px at 50% 120%, var(--soft-2) 0%, transparent 60%),
+      var(--bg);
     background-attachment:fixed;
   }
   .wrap{max-width:1180px;margin:0 auto;padding:18px;position:relative}
-  .header{position:relative;background:linear-gradient(120deg,var(--primary),var(--primary-2));color:#fff;border:1px solid rgba(255,255,255,.14);border-radius:16px;padding:28px 22px;text-align:center;box-shadow:0 20px 50px rgba(0,0,0,.45), 0 0 60px rgba(45,212,191,.18);}
+  .header{position:relative;background:linear-gradient(120deg,var(--primary),var(--primary-2));color:#fff;border:1px solid rgba(255,255,255,.14);border-radius:16px;padding:28px 22px;text-align:center;box-shadow:var(--shadow);}
   .header::before{content:'';position:absolute;right:0;left:0;bottom:0;height:3px;background:linear-gradient(90deg,transparent,var(--accent),transparent);border-radius:0 0 16px 16px;pointer-events:none}
-  .header::after{content:'';position:absolute;right:6%;left:6%;top:auto;bottom:-34px;height:44px;background:radial-gradient(60% 100% at 50% 0%, rgba(45,212,191,.55) 0%, transparent 75%);filter:blur(10px);pointer-events:none;z-index:-1}
+  .header::after{content:'';position:absolute;right:8%;left:8%;top:-26px;height:60px;background:radial-gradient(60% 100% at 50% 100%, color-mix(in srgb, var(--primary-2) 55%, transparent) 0%, transparent 75%);filter:blur(6px);pointer-events:none;z-index:-1}
   .header h1{position:relative;margin:4px 0;font-size:22px;font-weight:800;color:#fff;letter-spacing:.2px}
   .header h2{position:relative;margin:4px 0;font-size:15px;font-weight:500;color:rgba(255,255,255,.85)}
   .header h3{position:relative;margin:4px 0;font-size:13px;font-weight:400;color:rgba(255,255,255,.8)}
@@ -1165,7 +1165,7 @@ const SHARED_CSS = `
   .home-card:hover{transform:translateY(-3px);box-shadow:0 6px 18px rgba(18,32,48,.10);border-color:var(--primary)}
   .home-card h4{margin:0 0 6px;font-size:15px}
   .home-card ul{margin:8px 0 0;padding-inline-start:18px;font-size:12.5px;color:var(--muted);line-height:1.9}
-  .card{background:linear-gradient(165deg, var(--card) 0%, var(--soft) 100%);border:1px solid var(--line);border-radius:20px;padding:20px;margin-top:16px;box-shadow:var(--shadow), 0 24px 60px rgba(0,0,0,.35);transition:transform .15s ease}
+  .card{background:linear-gradient(165deg, var(--card) 0%, var(--soft) 100%);border:1px solid var(--line);border-radius:20px;padding:20px;margin-top:16px;box-shadow:var(--shadow);transition:transform .15s ease}
   label{display:block;font-size:14px;margin:10px 0 6px;font-weight:600}
   input,textarea,select{width:100%;padding:11px 12px;border:2px solid var(--line);border-radius:12px;font-family:inherit;font-size:15px;background:var(--card);color:var(--text);transition:border-color .15s ease}
   input:focus,textarea:focus,select:focus{outline:none;border-color:var(--primary)}
