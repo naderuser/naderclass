@@ -1139,18 +1139,18 @@ const SHARED_CSS = `
   html{scroll-behavior:smooth}
   body{margin:0;font-family:'Vazirmatn',Tahoma,system-ui,sans-serif;background:radial-gradient(circle at 1px 1px, var(--line) 1px, transparent 1px) 0 0/26px 26px, var(--bg);color:var(--text);direction:rtl;transition:background .3s,color .3s;-webkit-font-smoothing:antialiased;}
   .wrap{max-width:1180px;margin:0 auto;padding:18px;}
-  .header{position:relative;background:var(--card);color:var(--text);border:2px solid var(--text);border-radius:22px;padding:28px 22px;text-align:center;box-shadow:var(--shadow);}
-  .header::before{content:'';position:absolute;inset:8px;border:1.5px dashed var(--primary);border-radius:16px;pointer-events:none}
-  .header h1{position:relative;margin:4px 0;font-size:22px;font-weight:900}
-  .header h2{position:relative;margin:4px 0;font-size:15px;font-weight:500;color:var(--muted)}
-  .header h3{position:relative;margin:4px 0;font-size:13px;font-weight:400;color:var(--muted)}
+  .header{position:relative;background:linear-gradient(135deg,var(--primary),var(--primary-2));color:#fff;border:2px solid var(--text);border-radius:22px;padding:28px 22px;text-align:center;box-shadow:var(--shadow);}
+  .header::before{content:'';position:absolute;inset:8px;border:1.5px dashed rgba(255,255,255,.6);border-radius:16px;pointer-events:none}
+  .header h1{position:relative;margin:4px 0;font-size:22px;font-weight:900;color:#fff}
+  .header h2{position:relative;margin:4px 0;font-size:15px;font-weight:500;color:rgba(255,255,255,.85)}
+  .header h3{position:relative;margin:4px 0;font-size:13px;font-weight:400;color:rgba(255,255,255,.8)}
   .teacher-header{position:relative;padding:20px 18px}
   .teacher-header h1{font-size:18px;margin:2px 0}
   .th-topbar{position:relative;display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px}
-  .th-clock{background:var(--soft);border:1.5px solid var(--text);color:var(--text);border-radius:8px;padding:5px 12px;font-size:13px;font-weight:700;letter-spacing:1px;font-variant-numeric:tabular-nums;direction:ltr}
-  .th-en-badge{background:var(--soft);border:1.5px solid var(--text);color:var(--text);border-radius:8px;padding:5px 12px;font-size:11px;font-weight:600;letter-spacing:.3px;white-space:nowrap}
-  .th-designer{position:relative;display:inline-flex;align-items:center;gap:8px;background:var(--soft);border:1.5px dashed var(--primary);color:var(--text);border-radius:999px;padding:4px 14px;font-size:11px;margin-top:2px}
-  .th-designer .en{opacity:.75;font-weight:400}
+  .th-clock{background:rgba(255,255,255,.18);border:1.5px solid rgba(255,255,255,.6);color:#fff;border-radius:8px;padding:5px 12px;font-size:13px;font-weight:700;letter-spacing:1px;font-variant-numeric:tabular-nums;direction:ltr}
+  .th-en-badge{background:rgba(255,255,255,.18);border:1.5px solid rgba(255,255,255,.6);color:#fff;border-radius:8px;padding:5px 12px;font-size:11px;font-weight:600;letter-spacing:.3px;white-space:nowrap}
+  .th-designer{position:relative;display:inline-flex;align-items:center;gap:8px;background:rgba(255,255,255,.18);border:1.5px dashed rgba(255,255,255,.7);color:#fff;border-radius:999px;padding:4px 14px;font-size:11px;margin-top:2px}
+  .th-designer .en{opacity:.85;font-weight:400}
   @media (max-width:600px){.th-topbar{justify-content:center}}
   .home-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px;margin-top:14px}
   .home-card{border:2px solid var(--text);border-radius:18px;padding:16px;cursor:pointer;background:var(--card);transition:transform .15s,box-shadow .15s;text-align:right;text-decoration:none;color:var(--text);display:block;box-shadow:0 5px 0 rgba(0,0,0,.16)}
@@ -1199,8 +1199,8 @@ const SHARED_CSS = `
   .ans-grade-table th:nth-child(5),.ans-grade-table td:nth-child(5){min-width:140px}
   .dash-flex{display:flex;gap:16px;align-items:flex-start;margin-top:16px}
   .tabs{display:flex;flex-direction:column;gap:6px;flex:0 0 180px;width:180px}
-  .tab{padding:9px 12px;border-radius:12px;background:var(--card);border:2px solid var(--text);cursor:pointer;font-weight:600;font-size:13px;line-height:1.4;text-align:center;text-decoration:none;color:var(--text);display:block;transition:all .15s ease}
-  .tab:hover{background:var(--soft)}
+  .tab{padding:9px 12px;border-radius:12px;background:var(--soft);border:2px solid var(--text);cursor:pointer;font-weight:600;font-size:13px;line-height:1.4;text-align:center;text-decoration:none;color:var(--text);display:block;transition:all .15s ease}
+  .tab:hover{background:var(--soft-2)}
   .tab.active{background:var(--primary);color:#fff;border-color:var(--primary)}
   .dash-flex>.tab-content{flex:1;min-width:0;margin-top:0}
   .mobile-menu-btn{display:none}
@@ -1216,12 +1216,12 @@ const SHARED_CSS = `
     .tabs-overlay.open{display:block;position:fixed;inset:0;background:rgba(15,23,42,.5);z-index:300}
     .dash-flex>.tab-content{margin-top:16px}
   }
-  .subtab{padding:8px 14px;border-radius:12px;background:var(--card);border:2px solid var(--text);cursor:pointer;font-weight:600;font-size:13px;transition:all .15s ease}
-  .subtab:hover{background:var(--soft)}
+  .subtab{padding:8px 14px;border-radius:12px;background:var(--soft);border:2px solid var(--text);cursor:pointer;font-weight:600;font-size:13px;transition:all .15s ease}
+  .subtab:hover{background:var(--soft-2)}
   .subtab.active{background:var(--primary);color:#fff;border-color:var(--primary)}
   .tab-group{display:flex;flex-direction:column;gap:4px}
-  .tab-parent{display:flex;align-items:center;justify-content:space-between;gap:6px;padding:9px 12px;border-radius:12px;background:var(--card);border:2px solid var(--text);cursor:pointer;font-weight:600;font-size:13px;line-height:1.4;color:var(--text);user-select:none;transition:all .15s ease}
-  .tab-parent:hover{background:var(--soft)}
+  .tab-parent{display:flex;align-items:center;justify-content:space-between;gap:6px;padding:9px 12px;border-radius:12px;background:var(--soft);border:2px solid var(--text);cursor:pointer;font-weight:600;font-size:13px;line-height:1.4;color:var(--text);user-select:none;transition:all .15s ease}
+  .tab-parent:hover{background:var(--soft-2)}
   .tab-parent.open{background:var(--soft-2)}
   .tab-parent .tab-arrow{font-size:10px;transition:transform .2s ease;flex:0 0 auto}
   .tab-parent.open .tab-arrow{transform:rotate(180deg)}
