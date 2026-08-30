@@ -1126,18 +1126,22 @@ const SHARED_CSS = `
   @font-face{font-family:"BNazanin";src:url(https://cdn.jsdelivr.net/gh/intuxicated/css-persian@master/fonts/BNazanin.ttf);font-weight:bold}
   @font-face{font-family:"BMitra";src:url(https://cdn.jsdelivr.net/gh/intuxicated/css-persian@master/fonts/BMitra.ttf);font-weight:bold}
   @font-face{font-family:"BTitr";src:url(https://cdn.jsdelivr.net/gh/intuxicated/css-persian@master/fonts/BTitrBold.ttf);font-weight:bold}
-  :root{--bg:#F4EDDD;--card:#FFFCF3;--primary:#AE4E28;--primary-2:#C08A2E;--accent:#3E7C4F;--muted:#6b6455;--line:#E4D8B8;--danger:#C0392B;--text:#1C3327;}
-  [data-theme="light"]{--bg:#F4EDDD;--card:#FFFCF3;--primary:#AE4E28;--primary-2:#C08A2E;--muted:#6b6455;--line:#E4D8B8;--text:#1C3327;}
-  [data-theme="dark"]{--bg:#15271E;--card:#1C3327;--primary:#D9793F;--primary-2:#E8A44C;--muted:#A9B7A9;--line:#33473A;--text:#F4EDDD;}
+  @font-face{font-family:"BKoodak";src:url(https://cdn.jsdelivr.net/gh/intuxicated/css-persian@master/fonts/BKoodakBold.ttf);font-weight:bold}
+  :root{--bg:#F5F3FF;--card:#FFFFFF;--primary:#6C3EB8;--primary-2:#8B5CF6;--accent:#F59E0B;--muted:#6b7280;--line:#E6E1F5;--danger:#DC2626;--text:#1E1B2E;--soft:#EDE9FE;--soft-2:#DDD6FE;}
+  [data-theme="light"]{--bg:#F5F3FF;--card:#FFFFFF;--primary:#6C3EB8;--primary-2:#8B5CF6;--muted:#6b7280;--line:#E6E1F5;--text:#1E1B2E;--soft:#EDE9FE;--soft-2:#DDD6FE;}
+  [data-theme="dark"]{--bg:#0F0E17;--card:#1A1A2E;--primary:#8B5CF6;--primary-2:#A78BFA;--muted:#94A3B8;--line:#2D2B45;--text:#F1F5F9;--soft:#2D2B45;--soft-2:#3D3A5C;}
   .theme-btn{padding:10px 20px;border:2px solid var(--line);border-radius:999px;background:var(--card);color:var(--text);font-size:14px;cursor:pointer;transition:all .2s}
   .theme-btn:hover{border-color:var(--primary);background:var(--primary);color:#fff}
   .theme-btn.active{border-color:var(--primary);background:var(--primary);color:#fff}
+  .color-swatch{width:42px;height:42px;border-radius:50%;border:3px solid var(--card);box-shadow:0 0 0 2px var(--line);cursor:pointer;transition:transform .15s,box-shadow .15s;padding:0}
+  .color-swatch:hover{transform:scale(1.08)}
+  .color-swatch.active{box-shadow:0 0 0 3px var(--primary)}
   *{box-sizing:border-box}
   body{margin:0;font-family:'Vazirmatn',Tahoma,system-ui,sans-serif;background:var(--bg);color:var(--text);direction:rtl;transition:background .3s,color .3s;}
   .wrap{max-width:1180px;margin:0 auto;padding:18px;}
-  .header{background:linear-gradient(135deg,#1C3327,#3E5A46);color:#F4EDDD;border-radius:18px;padding:22px;text-align:center;box-shadow:0 10px 30px rgba(28,51,39,.3);}
-  [data-theme="dark"] body{background:linear-gradient(180deg,#0d1912,#15271E);}
-  [data-theme="light"] body{background:linear-gradient(180deg,#F8F2E3,#F4EDDD);}
+  .header{background:linear-gradient(135deg,#1E1B2E,#3B2A63);color:#fff;border-radius:22px;padding:22px;text-align:center;box-shadow:0 12px 34px rgba(108,62,184,.35);}
+  [data-theme="dark"] body{background:linear-gradient(180deg,#0a0910,#0F0E17);}
+  [data-theme="light"] body{background:linear-gradient(180deg,#F8F6FF,#F5F3FF);}
   .header h1{margin:4px 0;font-size:22px}
   .header h2{margin:4px 0;font-size:15px;font-weight:500;opacity:.95}
   .header h3{margin:4px 0;font-size:13px;font-weight:400;opacity:.9}
@@ -1150,17 +1154,17 @@ const SHARED_CSS = `
   .th-designer .en{opacity:.85;font-weight:400}
   @media (max-width:600px){.th-topbar{justify-content:center}}
   .home-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px;margin-top:14px}
-  .home-card{border:1px solid var(--line);border-radius:14px;padding:16px;cursor:pointer;background:var(--card);transition:transform .15s,box-shadow .15s;text-align:right;text-decoration:none;color:var(--text);display:block}
+  .home-card{border:1px solid var(--line);border-radius:20px;padding:16px;cursor:pointer;background:var(--card);transition:transform .15s,box-shadow .15s;text-align:right;text-decoration:none;color:var(--text);display:block}
   .home-card:hover{transform:translateY(-3px);box-shadow:0 8px 20px rgba(15,23,42,.1);border-color:var(--primary)}
   .home-card h4{margin:0 0 6px;font-size:15px}
   .home-card ul{margin:8px 0 0;padding-inline-start:18px;font-size:12.5px;color:var(--muted);line-height:1.9}
-  .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px;margin-top:16px;box-shadow:0 4px 16px rgba(15,23,42,.06)}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:22px;padding:20px;margin-top:16px;box-shadow:0 8px 26px rgba(108,62,184,.08)}
   label{display:block;font-size:14px;margin:10px 0 6px;font-weight:600}
   input,textarea,select{width:100%;padding:11px 12px;border:1px solid var(--line);border-radius:10px;font-family:inherit;font-size:15px;background:var(--card);color:var(--text)}
-  input:focus,textarea:focus,select:focus{outline:none;border-color:var(--primary-2);box-shadow:0 0 0 3px rgba(192,138,46,.18)}
+  input:focus,textarea:focus,select:focus{outline:none;border-color:var(--primary-2);box-shadow:0 0 0 3px rgba(139,92,246,.22)}
   textarea{min-height:90px;resize:vertical}
   .btn{display:inline-flex;align-items:center;gap:8px;background:var(--primary);color:#fff;border:none;padding:11px 22px;border-radius:999px;font-size:15px;font-weight:600;cursor:pointer;font-family:inherit;text-decoration:none;transition:background .2s,transform .15s,box-shadow .2s}
-  .btn:hover{background:var(--primary-2);transform:translateY(-1px);box-shadow:0 8px 18px -8px rgba(174,78,40,.5)}
+  .btn:hover{background:var(--primary-2);transform:translateY(-1px);box-shadow:0 8px 18px -8px rgba(108,62,184,.45)}
   .btn:active{transform:translateY(0)}
   .btn.sec{background:var(--accent)}.btn.sec:hover{background:#4f9464}
   .btn.gray{background:#7a7260}.btn.gray:hover{background:#5f5849}
@@ -1173,19 +1177,19 @@ const SHARED_CSS = `
   .q-block{border:1px solid var(--line);border-radius:12px;padding:14px;margin-top:12px;background:var(--card)}
   [data-theme="dark"] .q-block{background:#20302a}
   .q-block .qhead{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap}
-  .badge{background:#F3E4C8;color:#7c4a1e;border-radius:999px;padding:2px 10px;font-size:12px}
-  [data-theme="dark"] .badge{background:#33473A;color:#E8A44C}
+  .badge{background:var(--soft);color:var(--primary);border-radius:999px;padding:2px 10px;font-size:12px}
+  [data-theme="dark"] .badge{background:var(--soft-2);color:var(--primary-2)}
   .opt-row{display:flex;gap:8px;align-items:center;margin-top:6px}
   .opt-row input[type=text]{flex:1}
   .toolbar{display:flex;flex-wrap:wrap;gap:4px;margin:6px 0}
-  .toolbar button{background:#F3E4C8;border:1px solid #E4D8B8;border-radius:8px;padding:4px 9px;cursor:pointer;font-size:15px;min-width:32px}
-  [data-theme="dark"] .toolbar button{background:#26392c;border-color:#33473A;color:#F4EDDD}
-  .toolbar button:hover{background:#E4D8B8}
+  .toolbar button{background:var(--soft);border:1px solid var(--soft-2);border-radius:8px;padding:4px 9px;cursor:pointer;font-size:15px;min-width:32px}
+  [data-theme="dark"] .toolbar button{background:var(--soft);border-color:var(--soft-2);color:var(--text)}
+  .toolbar button:hover{background:var(--soft-2)}
   .toolbar .grp-label{font-size:12px;color:var(--muted);align-self:center;margin-left:6px}
   .imgprev{height:auto;border:1px solid var(--line);border-radius:8px;margin-top:6px;display:block}
   table{width:100%;border-collapse:collapse;margin-top:10px}
   th,td{border:1px solid var(--line);padding:8px;text-align:right;font-size:14px;vertical-align:top}
-  th{background:#F3E4C8}
+  th{background:var(--soft)}
   .ans-table-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
   .ans-grade-table{min-width:640px}
   .ans-grade-table th:nth-child(1),.ans-grade-table td:nth-child(1){min-width:32px}
@@ -1193,11 +1197,11 @@ const SHARED_CSS = `
   .ans-grade-table th:nth-child(3),.ans-grade-table td:nth-child(3){min-width:200px}
   .ans-grade-table th:nth-child(4),.ans-grade-table td:nth-child(4){min-width:100px}
   .ans-grade-table th:nth-child(5),.ans-grade-table td:nth-child(5){min-width:140px}
-  [data-theme="dark"] th{background:#26392c}
+  [data-theme="dark"] th{background:var(--soft)}
   .dash-flex{display:flex;gap:16px;align-items:flex-start;margin-top:16px}
   .tabs{display:flex;flex-direction:column;gap:6px;flex:0 0 180px;width:180px}
-  .tab{padding:9px 12px;border-radius:999px;background:#F3E4C8;cursor:pointer;font-weight:600;font-size:13px;line-height:1.4;text-align:center;text-decoration:none;color:var(--text);display:block}
-  [data-theme="dark"] .tab{background:#26392c;color:#F4EDDD}
+  .tab{padding:9px 12px;border-radius:999px;background:var(--soft);cursor:pointer;font-weight:600;font-size:13px;line-height:1.4;text-align:center;text-decoration:none;color:var(--text);display:block}
+  [data-theme="dark"] .tab{background:var(--soft);color:var(--text)}
   .tab.active{background:var(--primary);color:#fff}
   .dash-flex>.tab-content{flex:1;min-width:0;margin-top:0}
   .mobile-menu-btn{display:none}
@@ -1213,32 +1217,32 @@ const SHARED_CSS = `
     .tabs-overlay.open{display:block;position:fixed;inset:0;background:rgba(15,23,42,.5);z-index:300}
     .dash-flex>.tab-content{margin-top:16px}
   }
-  .subtab{padding:8px 14px;border-radius:999px;background:#F3E4C8;cursor:pointer;font-weight:600;font-size:13px}
-  [data-theme="dark"] .subtab{background:#26392c;color:#F4EDDD}
+  .subtab{padding:8px 14px;border-radius:999px;background:var(--soft);cursor:pointer;font-weight:600;font-size:13px}
+  [data-theme="dark"] .subtab{background:var(--soft);color:var(--text)}
   .subtab.active{background:var(--primary);color:#fff}
   .tab-group{display:flex;flex-direction:column;gap:4px}
-  .tab-parent{display:flex;align-items:center;justify-content:space-between;gap:6px;padding:9px 12px;border-radius:999px;background:#F3E4C8;cursor:pointer;font-weight:600;font-size:13px;line-height:1.4;color:var(--text);user-select:none}
-  [data-theme="dark"] .tab-parent{background:#26392c;color:#F4EDDD}
-  .tab-parent.open{background:#E4D8B8}
-  [data-theme="dark"] .tab-parent.open{background:#33473A}
+  .tab-parent{display:flex;align-items:center;justify-content:space-between;gap:6px;padding:9px 12px;border-radius:999px;background:var(--soft);cursor:pointer;font-weight:600;font-size:13px;line-height:1.4;color:var(--text);user-select:none}
+  [data-theme="dark"] .tab-parent{background:var(--soft);color:var(--text)}
+  .tab-parent.open{background:var(--soft-2)}
+  [data-theme="dark"] .tab-parent.open{background:var(--soft-2)}
   .tab-parent .tab-arrow{font-size:10px;transition:transform .2s ease;flex:0 0 auto}
   .tab-parent.open .tab-arrow{transform:rotate(180deg)}
   .tab-children{display:flex;flex-direction:column;gap:3px;max-height:0;overflow:hidden;transition:max-height .25s ease;padding-right:10px}
   .tab-children.open{max-height:600px;margin-top:4px}
   .tab-child{display:block;padding:7px 10px;border-radius:8px;background:var(--card);font-size:12px;font-weight:600;text-decoration:none;color:var(--text);border:1px solid var(--line)}
-  [data-theme="dark"] .tab-child{background:#1C3327;color:#F4EDDD}
-  .tab-child:hover{background:#F3E4C8}
-  [data-theme="dark"] .tab-child:hover{background:#26392c}
+  [data-theme="dark"] .tab-child{background:var(--card);color:var(--text)}
+  .tab-child:hover{background:var(--soft)}
+  [data-theme="dark"] .tab-child:hover{background:var(--soft)}
   .nav-ic{vertical-align:-3px;flex:none}
   .lb-ico svg.nav-ic{width:30px;height:30px;stroke-width:1.5;display:block;vertical-align:baseline}
   .home-card h4 .nav-ic{vertical-align:-3px}
   .hidden{display:none}
-  .toast{position:fixed;bottom:18px;right:18px;background:#1C3327;color:#F4EDDD;padding:12px 18px;border-radius:999px;opacity:0;transition:.3s;z-index:50}
+  .toast{position:fixed;bottom:18px;right:18px;background:#1E1B2E;color:#F5F3FF;padding:12px 18px;border-radius:999px;opacity:0;transition:.3s;z-index:50}
   .toast.show{opacity:1}
-  .link-box{font-family:monospace;direction:ltr;text-align:left;background:#F3E4C8;border-radius:8px;padding:8px;font-size:12px;word-break:break-all}
-  [data-theme="dark"] .link-box{background:#26392c;color:#F4EDDD}
+  .link-box{font-family:monospace;direction:ltr;text-align:left;background:var(--soft);border-radius:8px;padding:8px;font-size:12px;word-break:break-all}
+  [data-theme="dark"] .link-box{background:var(--soft);color:var(--text)}
   .pill{font-size:12px;padding:2px 8px;border-radius:999px}
-  .pill.ok{background:#dcfce7;color:#166534}.pill.no{background:#fee2e2;color:#991b1b}.pill.gr{background:#F3E4C8;color:#7c4a1e}
+  .pill.ok{background:#dcfce7;color:#166534}.pill.no{background:#fee2e2;color:#991b1b}.pill.gr{background:var(--soft);color:var(--primary)}
   
   /* ===== استایل‌های نتیجه آزمون ===== */
   .mark.correct{color:#166534;font-weight:700}
@@ -1303,9 +1307,9 @@ const SHARED_CSS = `
 
   /* ---- دفتر مدیریت کلاسی ---- */
   .lb-menu-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px;margin-top:16px}
-  .lb-menu-btn{display:flex;flex-direction:column;align-items:center;gap:6px;padding:22px 14px;border-radius:14px;border:1px solid var(--line);background:#f8fafc;cursor:pointer;font-family:inherit;text-align:center;transition:transform .15s,box-shadow .15s}
+  .lb-menu-btn{display:flex;flex-direction:column;align-items:center;gap:6px;padding:22px 14px;border-radius:18px;border:1px solid var(--line);background:var(--soft);cursor:pointer;font-family:inherit;text-align:center;transition:transform .15s,box-shadow .15s}
   .lb-menu-btn:hover{transform:translateY(-2px);box-shadow:0 8px 20px rgba(0,0,0,.08);border-color:var(--primary)}
-  [data-theme="dark"] .lb-menu-btn{background:#0f172a}
+  
   .lb-menu-btn .lb-ico{font-size:32px}
   .lb-menu-btn .lb-t{font-weight:700;font-size:14px}
   .lb-menu-btn small{color:var(--muted);font-size:11px}
@@ -1318,8 +1322,11 @@ const SHARED_CSS = `
   .lb-cert-tpl-btn.active{border-color:var(--primary);box-shadow:0 0 0 2px var(--primary) inset}
   .lb-cert-preview-wrap{flex:1 1 380px;min-width:300px;display:flex;justify-content:center}
   .lb-cert-sheet{position:relative;width:100%;max-width:460px;min-height:640px;box-sizing:border-box;padding:30px 22px;border-radius:6px;font-family:tahoma,Arial;text-align:center;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;overflow:visible}
-  .lb-cert-sheet::before{content:'';position:absolute;inset:10px;border:2.5px solid var(--cert-accent,#b8860b);border-radius:4px;pointer-events:none}
-  .lb-cert-sheet::after{content:'';position:absolute;inset:16px;border:1px solid var(--cert-accent,#b8860b);border-radius:2px;pointer-events:none;opacity:.6}
+  .lb-cert-sheet::before{content:'';position:absolute;inset:var(--cert-frame-pad,10px);border:2.5px solid var(--cert-accent,#b8860b);border-radius:4px;pointer-events:none}
+  .lb-cert-sheet::after{content:'';position:absolute;inset:calc(var(--cert-frame-pad,10px) + 6px);border:1px solid var(--cert-accent,#b8860b);border-radius:2px;pointer-events:none;opacity:.6}
+  .lb-cert-bg-layer{position:absolute;inset:0;overflow:hidden;border-radius:6px;z-index:-1}
+  .lb-cert-bg-fill{position:absolute;inset:0;background-repeat:no-repeat;background-size:cover;background-position:center;cursor:grab;touch-action:none}
+  .lb-cert-bg-fill:active{cursor:grabbing}
   .lb-cert-sheet .cert-numbox{position:absolute;top:24px;right:26px;text-align:right;font-size:10.5px;line-height:1.7;color:#334155;font-family:tahoma,Arial;font-weight:700}
   .lb-cert-sheet .cert-badge{font-size:38px;line-height:1}
   .lb-cert-sheet .cert-kind{font-size:24px;font-weight:800;color:var(--cert-accent,#b8860b);margin:0;max-width:92%;overflow-wrap:break-word;word-break:break-word}
@@ -1327,6 +1334,9 @@ const SHARED_CSS = `
   .lb-cert-sheet .cert-name{font-size:26px;font-weight:800;color:#1e293b;margin:4px 0;border-bottom:2px solid var(--cert-accent,#b8860b);padding-bottom:6px;display:inline-block;max-width:92%;overflow-wrap:break-word;word-break:break-word}
   .lb-cert-sheet .cert-reason{font-size:13px;color:#334155;max-width:88%;line-height:1.9;overflow-wrap:break-word;word-break:break-word;white-space:pre-line}
   .lb-cert-sheet .cert-footer{display:flex;justify-content:space-between;width:88%;margin-top:16px;font-size:11.5px;color:#475569;font-weight:700}
+  .lb-cert-sheet .cert-sign{display:flex;flex-direction:column;align-items:center;gap:4px;margin-top:14px}
+  .lb-cert-sheet .cert-sign img{max-height:70px;max-width:160px;object-fit:contain}
+  .lb-cert-sheet .cert-sign span{font-size:11.5px;color:#475569;font-weight:700}
   .lb-cert-gold{background:linear-gradient(135deg,#fffdf5,#fdf6e3);--cert-accent:#b8860b}
   .lb-cert-blue{background:linear-gradient(135deg,#f3f8ff,#e6f0ff);--cert-accent:#1d4ed8}
   .lb-cert-green{background:linear-gradient(135deg,#f3fdf6,#e5f9ec);--cert-accent:#15803d}
@@ -1342,6 +1352,10 @@ const SHARED_CSS = `
   .lb-cert-font-nastaliq .cert-kind{font-family:"Noto Nastaliq Urdu",tahoma,Arial;font-size:32px}
   .lb-cert-font-nastaliq .cert-name{font-family:"Noto Nastaliq Urdu",tahoma,Arial;font-size:28px}
   .lb-cert-font-nastaliq .cert-reason,.lb-cert-font-nastaliq .cert-intro{font-family:"BNazanin","B Nazanin",tahoma,Arial}
+  .lb-cert-font-vazirmatn .cert-kind,.lb-cert-font-vazirmatn .cert-name,.lb-cert-font-vazirmatn .cert-reason,.lb-cert-font-vazirmatn .cert-intro{font-family:"Vazirmatn",tahoma,Arial}
+  .lb-cert-font-koodak .cert-kind,.lb-cert-font-koodak .cert-name{font-family:"BKoodak","B Koodak",tahoma,Arial}
+  .lb-cert-font-koodak .cert-reason,.lb-cert-font-koodak .cert-intro{font-family:"BNazanin","B Nazanin",tahoma,Arial}
+  .lb-cert-font-mitra .cert-kind,.lb-cert-font-mitra .cert-name,.lb-cert-font-mitra .cert-reason,.lb-cert-font-mitra .cert-intro{font-family:"BMitra","B Mitra",tahoma,Arial}
   [data-theme="dark"] .lb-cert-tpl-btn{background:#0f172a}
   .lb-meta-form{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;margin:14px 0}
   .lb-meta-form label{display:block;font-size:12px;color:var(--muted);margin-bottom:3px}
@@ -1866,7 +1880,7 @@ const SHARED_CSS = `
   .exam-time-status .time-icon{font-size:24px}
 `;
 
-const FONT_LINK = `<link rel="preconnect" href="https://cdn.jsdelivr.net"><link href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css" rel="stylesheet"><link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Noto+Nastaliq+Urdu:wght@400..700&display=swap" rel="stylesheet">`;
+const FONT_LINK = `<link rel="preconnect" href="https://cdn.jsdelivr.net"><link href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css" rel="stylesheet"><link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Noto+Nastaliq+Urdu:wght@400..700&display=swap" rel="stylesheet"><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">`;
 
 function pageHeader() {
   return `<div class="header"><h1>${esc(APP_TITLE)}</h1><h2>${esc(APP_DESIGNER)}</h2></div>`;
@@ -2545,7 +2559,7 @@ async function workSheetPage(env, id) {
   <body><div class="wrap">
     ${pageHeader()}
     <div class="card">
-      <h2><svg class="nav-ic" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 3.5h7l4 4V20a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4.5a1 1 0 0 1 1-1Z"/><path d="M14 3.5V8h4"/><path d="M9 12.5h6M9 15.5h6M9 9.5h2"/></svg> کاربرگ</h2>
+      <h2><i class="fas fa-file-lines nav-ic"></i> کاربرگ</h2>
       <div id="ws-label" class="muted" style="margin-bottom:14px"></div>
 
       <div id="ws-teacher-file-box">
@@ -3122,126 +3136,126 @@ function teacherPage() {
       <div class="tabs-overlay" id="tabs-overlay"></div>
       <div class="dash-flex">
       <div class="tabs" id="tabs-panel">
-        <a class="tab active" data-tab="home" href="/teacher?tab=home"><svg class="nav-ic" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 11 12 4l8 7"/><path d="M6 10v9h5v-6h2v6h5v-9"/></svg> صفحه اصلی</a>
+        <a class="tab active" data-tab="home" href="/teacher?tab=home"><i class="fas fa-house nav-ic"></i> صفحه اصلی</a>
 
         <div class="tab-group">
-          <div class="tab-parent" data-tab="examonline"><span><svg class="nav-ic" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 9l10-5 10 5-10 5L2 9Z"/><path d="M6 11.5V17c0 1.4 2.7 3 6 3s6-1.6 6-3v-5.5"/><path d="M22 9v6"/></svg> آزمون آنلاین</span><span class="tab-arrow">▾</span></div>
+          <div class="tab-parent" data-tab="examonline"><span><i class="fas fa-graduation-cap nav-ic"></i> آزمون آنلاین</span><span class="tab-arrow">▾</span></div>
           <div class="tab-children" id="tab-children-examonline">
-            <a class="tab-child" href="/teacher?tab=examonline&subtab=students" target="_blank" rel="noopener"><svg class="nav-ic" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3"/><path d="M3.5 19c0-3 2.5-5 5.5-5s5.5 2 5.5 5"/><circle cx="17" cy="9" r="2.3"/><path d="M15 19c.3-2 1.7-3.5 3.5-4"/></svg> دانش‌آموزان</a>
-            <a class="tab-child" href="/teacher?tab=examonline&subtab=questions" target="_blank" rel="noopener"><svg class="nav-ic" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 16.5V20h3.5L18.4 9.1a1.6 1.6 0 0 0 0-2.3l-1.2-1.2a1.6 1.6 0 0 0-2.3 0L4 16.5Z"/><path d="M13 6.5l4 4"/></svg> طراحی سوالات</a>
-            <a class="tab-child" href="/teacher?tab=examonline&subtab=answers" target="_blank" rel="noopener"><svg class="nav-ic" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M8 12.3l2.6 2.6 5.4-5.8"/></svg> تصحیح و پاسخنامه‌ها</a>
-            <a class="tab-child" href="/teacher?tab=examonline&subtab=worksheet" target="_blank" rel="noopener"><svg class="nav-ic" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 3.5h7l4 4V20a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4.5a1 1 0 0 1 1-1Z"/><path d="M14 3.5V8h4"/><path d="M9 12.5h6M9 15.5h6M9 9.5h2"/></svg> کاربرگ</a>
+            <a class="tab-child" href="/teacher?tab=examonline&subtab=students" target="_blank" rel="noopener"><i class="fas fa-users nav-ic"></i> دانش‌آموزان</a>
+            <a class="tab-child" href="/teacher?tab=examonline&subtab=questions" target="_blank" rel="noopener"><i class="fas fa-pen-to-square nav-ic"></i> طراحی سوالات</a>
+            <a class="tab-child" href="/teacher?tab=examonline&subtab=answers" target="_blank" rel="noopener"><i class="fas fa-square-check nav-ic"></i> تصحیح و پاسخنامه‌ها</a>
+            <a class="tab-child" href="/teacher?tab=examonline&subtab=worksheet" target="_blank" rel="noopener"><i class="fas fa-file-lines nav-ic"></i> کاربرگ</a>
           </div>
         </div>
 
-        <a class="tab" data-tab="examsheet" href="/teacher?tab=examsheet" target="_blank" rel="noopener"><svg class="nav-ic" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V4h12v5"/><rect x="4" y="9" width="16" height="8" rx="1.5"/><path d="M8 14h8v6H8z"/></svg> ساخت آزمون</a>
-        <a class="tab" data-tab="schedule" href="/teacher?tab=schedule" target="_blank" rel="noopener"><svg class="nav-ic" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="15" rx="2"/><path d="M3.5 9.5h17"/><path d="M8 3v4M16 3v4"/></svg> برنامه هفتگی</a>
+        <a class="tab" data-tab="examsheet" href="/teacher?tab=examsheet" target="_blank" rel="noopener"><i class="fas fa-print nav-ic"></i> ساخت آزمون</a>
+        <a class="tab" data-tab="schedule" href="/teacher?tab=schedule" target="_blank" rel="noopener"><i class="fas fa-calendar-days nav-ic"></i> برنامه هفتگی</a>
 
         <div class="tab-group">
-          <div class="tab-parent" data-tab="tablesorg"><span><svg class="nav-ic" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="4.5" width="17" height="15" rx="1.5"/><path d="M3.5 10h17M3.5 15h17M9.5 4.5v15M15 4.5v15"/></svg> جدول‌ساز</span><span class="tab-arrow">▾</span></div>
+          <div class="tab-parent" data-tab="tablesorg"><span><i class="fas fa-table-cells nav-ic"></i> جدول‌ساز</span><span class="tab-arrow">▾</span></div>
           <div class="tab-children" id="tab-children-tablesorg">
-            <a class="tab-child" href="/teacher?tab=tablesorg&subtab=tables" target="_blank" rel="noopener"><svg class="nav-ic" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="4.5" width="17" height="15" rx="1.5"/><path d="M3.5 10h17M3.5 15h17M9.5 4.5v15M15 4.5v15"/></svg> جدول‌ساز حرفه‌ای</a>
-            <a class="tab-child" href="/teacher?tab=tablesorg&subtab=orgform" target="_blank" rel="noopener"><svg class="nav-ic" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V9l8-5 8 5v11"/><path d="M4 20h16"/><path d="M9 20v-6h6v6"/></svg> سازمان عملی</a>
+            <a class="tab-child" href="/teacher?tab=tablesorg&subtab=tables" target="_blank" rel="noopener"><i class="fas fa-table-cells nav-ic"></i> جدول‌ساز حرفه‌ای</a>
+            <a class="tab-child" href="/teacher?tab=tablesorg&subtab=orgform" target="_blank" rel="noopener"><i class="fas fa-school nav-ic"></i> سازمان عملی</a>
           </div>
         </div>
 
         <div class="tab-group">
-          <div class="tab-parent" data-tab="imgtools"><span><svg class="nav-ic" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="4.5" width="17" height="15" rx="2"/><circle cx="8.5" cy="9.5" r="1.5"/><path d="M4 17l5-5 4 4 3.5-3.5L20 16"/></svg> ابزار عکس</span><span class="tab-arrow">▾</span></div>
+          <div class="tab-parent" data-tab="imgtools"><span><i class="fas fa-images nav-ic"></i> ابزار عکس</span><span class="tab-arrow">▾</span></div>
           <div class="tab-children" id="tab-children-imgtools">
-            <a class="tab-child" href="/teacher?tab=imgtools&subtab=scan" target="_blank" rel="noopener"><svg class="nav-ic" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8V6a2 2 0 0 1 2-2h2M18 4h2a2 2 0 0 1 2 2v2M20 16v2a2 2 0 0 1-2 2h-2M6 20H4a2 2 0 0 1-2-2v-2"/><circle cx="12" cy="12" r="3.5"/></svg> اسکنر</a>
-            <a class="tab-child" href="/teacher?tab=imgtools&subtab=resize" target="_blank" rel="noopener"><svg class="nav-ic" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 10 20 4M15 4h5v5"/><path d="M10 14 4 20M9 20H4v-5"/></svg> کاهش حجم</a>
-            <a class="tab-child" href="/teacher?tab=imgtools&subtab=crop" target="_blank" rel="noopener"><svg class="nav-ic" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2v14a2 2 0 0 0 2 2h14"/><path d="M18 22V8a2 2 0 0 0-2-2H2"/></svg> برش عکس</a>
-            <a class="tab-child" href="/teacher?tab=imgtools&subtab=pdf2img" target="_blank" rel="noopener"><svg class="nav-ic" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 3.5h7l4 4V20a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4.5a1 1 0 0 1 1-1Z"/><path d="M14 3.5V8h4"/><circle cx="10" cy="13" r="1.2"/><path d="M8 17.5l2.5-2.5 2 2 2.5-3 2 3"/></svg> PDF به عکس</a>
-            <a class="tab-child" href="/teacher?tab=imgtools&subtab=pdf2word" target="_blank" rel="noopener"><svg class="nav-ic" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 3.5h7l4 4V20a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4.5a1 1 0 0 1 1-1Z"/><path d="M14 3.5V8h4"/><path d="M8.5 12l1 5 1.3-4 1.3 4 1-5"/></svg> PDF به Word</a>
+            <a class="tab-child" href="/teacher?tab=imgtools&subtab=scan" target="_blank" rel="noopener"><i class="fas fa-camera-retro nav-ic"></i> اسکنر</a>
+            <a class="tab-child" href="/teacher?tab=imgtools&subtab=resize" target="_blank" rel="noopener"><i class="fas fa-compress nav-ic"></i> کاهش حجم</a>
+            <a class="tab-child" href="/teacher?tab=imgtools&subtab=crop" target="_blank" rel="noopener"><i class="fas fa-crop-simple nav-ic"></i> برش عکس</a>
+            <a class="tab-child" href="/teacher?tab=imgtools&subtab=pdf2img" target="_blank" rel="noopener"><i class="fas fa-file-image nav-ic"></i> PDF به عکس</a>
+            <a class="tab-child" href="/teacher?tab=imgtools&subtab=pdf2word" target="_blank" rel="noopener"><i class="fas fa-file-word nav-ic"></i> PDF به Word</a>
           </div>
         </div>
 
         <div class="tab-group">
-          <div class="tab-parent" data-tab="translateai"><span><svg class="nav-ic" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M3.5 12h17"/><path d="M12 3.5c2.5 2.4 3.8 5.4 3.8 8.5s-1.3 6.1-3.8 8.5c-2.5-2.4-3.8-5.4-3.8-8.5S9.5 5.9 12 3.5Z"/></svg> ترجمه و هوش مصنوعی</span><span class="tab-arrow">▾</span></div>
+          <div class="tab-parent" data-tab="translateai"><span><i class="fas fa-language nav-ic"></i> ترجمه و هوش مصنوعی</span><span class="tab-arrow">▾</span></div>
           <div class="tab-children" id="tab-children-translateai">
-            <a class="tab-child" href="/teacher?tab=translateai&subtab=translate" target="_blank" rel="noopener"><svg class="nav-ic" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M3.5 12h17"/><path d="M12 3.5c2.5 2.4 3.8 5.4 3.8 8.5s-1.3 6.1-3.8 8.5c-2.5-2.4-3.8-5.4-3.8-8.5S9.5 5.9 12 3.5Z"/></svg> ترجمه</a>
-            <a class="tab-child" href="/teacher?tab=translateai&subtab=ai" target="_blank" rel="noopener"><svg class="nav-ic" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="6" width="12" height="12" rx="2"/><path d="M6 9H3M6 15H3M21 9h-3M21 15h-3M9 6V3M15 6V3M9 21v-3M15 21v-3"/><circle cx="12" cy="12" r="2"/></svg> هوش مصنوعی</a>
+            <a class="tab-child" href="/teacher?tab=translateai&subtab=translate" target="_blank" rel="noopener"><i class="fas fa-language nav-ic"></i> ترجمه</a>
+            <a class="tab-child" href="/teacher?tab=translateai&subtab=ai" target="_blank" rel="noopener"><i class="fas fa-robot nav-ic"></i> هوش مصنوعی</a>
           </div>
         </div>
 
-        <a class="tab" data-tab="classroom" href="/teacher?tab=classroom" target="_blank" rel="noopener"><svg class="nav-ic" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="12" rx="1.5"/><path d="M8 20h8M12 17v3"/></svg> کلاس آنلاین</a>
+        <a class="tab" data-tab="classroom" href="/teacher?tab=classroom" target="_blank" rel="noopener"><i class="fas fa-chalkboard-user nav-ic"></i> کلاس آنلاین</a>
 
         <div class="tab-group">
-          <div class="tab-parent" data-tab="logbook"><span><svg class="nav-ic" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 4h11a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Z"/><path d="M4 8h1M4 12h1M4 16h1"/><path d="M9 8h6M9 12h6M9 16h4"/></svg> دفتر مدیریت کلاسی</span><span class="tab-arrow">▾</span></div>
+          <div class="tab-parent" data-tab="logbook"><span><i class="fas fa-book-open nav-ic"></i> دفتر مدیریت کلاسی</span><span class="tab-arrow">▾</span></div>
           <div class="tab-children" id="tab-children-logbook">
-            <a class="tab-child" href="/teacher?tab=logbook&lb=pacing" target="_blank" rel="noopener"><svg class="nav-ic" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V11M10 20V6M16 20v-9"/><path d="M2.5 20h19"/></svg> جدول بودجه‌بندی آموزشی</a>
-            <a class="tab-child" href="/teacher?tab=logbook&lb=roster" target="_blank" rel="noopener"><svg class="nav-ic" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3"/><path d="M3.5 19c0-3 2.5-5 5.5-5s5.5 2 5.5 5"/><circle cx="17" cy="9" r="2.3"/><path d="M15 19c.3-2 1.7-3.5 3.5-4"/></svg> لیست اسامی دانش‌آموزان</a>
-            <a class="tab-child" href="/teacher?tab=logbook&lb=genderstats" target="_blank" rel="noopener"><svg class="nav-ic" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M12 3.5V12l7.3 4.2"/></svg> آمار دانش‌آموزان</a>
-            <a class="tab-child" href="/teacher?tab=logbook&lb=passrate" target="_blank" rel="noopener"><svg class="nav-ic" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="4.3"/><circle cx="12" cy="12" r=".8" fill="currentColor"/></svg> درصد قبولی دانش‌آموزان</a>
-            <a class="tab-child" href="/teacher?tab=logbook&lb=absence" target="_blank" rel="noopener"><svg class="nav-ic" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="4.5" width="14" height="16" rx="2"/><path d="M9 3.5h6a1 1 0 0 1 1 1V6H8V4.5a1 1 0 0 1 1-1Z"/><path d="M8.5 11h7M8.5 14.5h7M8.5 18h4"/></svg> ثبت غیبت دانش‌آموزان</a>
-            <a class="tab-child" href="/teacher?tab=logbook&lb=performance" target="_blank" rel="noopener"><svg class="nav-ic" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 17l6-6 4 4 7-8"/><path d="M15 6.5h5.5V12"/></svg> ثبت سطوح عملکرد دانش‌آموز</a>
-            <a class="tab-child" href="/teacher?tab=logbook&lb=reportcard" target="_blank" rel="noopener"><svg class="nav-ic" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 9l10-5 10 5-10 5L2 9Z"/><path d="M6 11.5V17c0 1.4 2.7 3 6 3s6-1.6 6-3v-5.5"/><path d="M22 9v6"/></svg> کارنامه‌ساز</a>
-            <a class="tab-child" href="/teacher?tab=logbook&lb=council" target="_blank" rel="noopener"><svg class="nav-ic" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12a8 8 0 1 1 3.3 6.4L4 20l1.2-3.5A7.9 7.9 0 0 1 4 12Z"/></svg> صورتجلسه شورای آموزشی اولیا</a>
-            <a class="tab-child" href="/teacher?tab=logbook&lb=meetings" target="_blank" rel="noopener"><svg class="nav-ic" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="9" r="3"/><circle cx="16" cy="9" r="3"/><path d="M2.5 19c0-3 2.4-5 5.5-5s5.5 2 5.5 5M10.5 19c0-3 2.4-5 5.5-5s5.5 2 5.5 5"/></svg> جلسات فردی با اولیا</a>
-            <a class="tab-child" href="/teacher?tab=logbook&lb=weekly" target="_blank" rel="noopener"><svg class="nav-ic" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="15" rx="2"/><path d="M3.5 9.5h17"/><path d="M8 3v4M16 3v4"/></svg> برنامه درسی هفتگی (چندپایه)</a>
-            <a class="tab-child" href="/teacher?tab=logbook&lb=weekly2" target="_blank" rel="noopener"><svg class="nav-ic" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="15" rx="2"/><path d="M3.5 9.5h17"/><path d="M8 3v4M16 3v4"/></svg> برنامه درسی هفتگی (تک‌پایه)</a>
-            <a class="tab-child" href="/teacher?tab=logbook&lb=staff" target="_blank" rel="noopener"><svg class="nav-ic" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="8.5" cy="11" r="2"/><path d="M6 16c.4-1.7 1.6-2.6 2.5-2.6s2.1.9 2.5 2.6"/><path d="M14 9.5h4M14 12.5h4M14 15.5h2.5"/></svg> اطلاعات پرسنلی همکاران مدرسه</a>
-            <a class="tab-child" href="/teacher?tab=logbook&lb=minutes" target="_blank" rel="noopener"><svg class="nav-ic" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 3.5h7l4 4V20a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4.5a1 1 0 0 1 1-1Z"/><path d="M14 3.5V8h4"/><path d="M9 12.5h6M9 15.5h6M9 9.5h2"/></svg> صورتجلسه</a>
-            <a class="tab-child" href="/teacher?tab=logbook&lb=certificate" target="_blank" rel="noopener"><svg class="nav-ic" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="9" r="5"/><path d="M9 13.5 7 21l5-3 5 3-2-7.5"/></svg> تقدیرنامه‌ساز</a>
+            <a class="tab-child" href="/teacher?tab=logbook&lb=pacing" target="_blank" rel="noopener"><i class="fas fa-chart-column nav-ic"></i> جدول بودجه‌بندی آموزشی</a>
+            <a class="tab-child" href="/teacher?tab=logbook&lb=roster" target="_blank" rel="noopener"><i class="fas fa-users nav-ic"></i> لیست اسامی دانش‌آموزان</a>
+            <a class="tab-child" href="/teacher?tab=logbook&lb=genderstats" target="_blank" rel="noopener"><i class="fas fa-chart-pie nav-ic"></i> آمار دانش‌آموزان</a>
+            <a class="tab-child" href="/teacher?tab=logbook&lb=passrate" target="_blank" rel="noopener"><i class="fas fa-bullseye nav-ic"></i> درصد قبولی دانش‌آموزان</a>
+            <a class="tab-child" href="/teacher?tab=logbook&lb=absence" target="_blank" rel="noopener"><i class="fas fa-clipboard-list nav-ic"></i> ثبت غیبت دانش‌آموزان</a>
+            <a class="tab-child" href="/teacher?tab=logbook&lb=performance" target="_blank" rel="noopener"><i class="fas fa-chart-line nav-ic"></i> ثبت سطوح عملکرد دانش‌آموز</a>
+            <a class="tab-child" href="/teacher?tab=logbook&lb=reportcard" target="_blank" rel="noopener"><i class="fas fa-graduation-cap nav-ic"></i> کارنامه‌ساز</a>
+            <a class="tab-child" href="/teacher?tab=logbook&lb=council" target="_blank" rel="noopener"><i class="fas fa-comments nav-ic"></i> صورتجلسه شورای آموزشی اولیا</a>
+            <a class="tab-child" href="/teacher?tab=logbook&lb=meetings" target="_blank" rel="noopener"><i class="fas fa-handshake nav-ic"></i> جلسات فردی با اولیا</a>
+            <a class="tab-child" href="/teacher?tab=logbook&lb=weekly" target="_blank" rel="noopener"><i class="fas fa-calendar-days nav-ic"></i> برنامه درسی هفتگی (چندپایه)</a>
+            <a class="tab-child" href="/teacher?tab=logbook&lb=weekly2" target="_blank" rel="noopener"><i class="fas fa-calendar-days nav-ic"></i> برنامه درسی هفتگی (تک‌پایه)</a>
+            <a class="tab-child" href="/teacher?tab=logbook&lb=staff" target="_blank" rel="noopener"><i class="fas fa-id-card-clip nav-ic"></i> اطلاعات پرسنلی همکاران مدرسه</a>
+            <a class="tab-child" href="/teacher?tab=logbook&lb=minutes" target="_blank" rel="noopener"><i class="fas fa-file-lines nav-ic"></i> صورتجلسه</a>
+            <a class="tab-child" href="/teacher?tab=logbook&lb=certificate" target="_blank" rel="noopener"><i class="fas fa-award nav-ic"></i> تقدیرنامه‌ساز</a>
           </div>
         </div>
 
-        <a class="tab" data-tab="settings" href="/teacher?tab=settings" target="_blank" rel="noopener"><svg class="nav-ic" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 3v2.2M12 18.8V21M4.9 4.9l1.6 1.6M17.5 17.5l1.6 1.6M3 12h2.2M18.8 12H21M4.9 19.1l1.6-1.6M17.5 6.5l1.6-1.6"/></svg> تنظیمات</a>
+        <a class="tab" data-tab="settings" href="/teacher?tab=settings" target="_blank" rel="noopener"><i class="fas fa-gear nav-ic"></i> تنظیمات</a>
         <div style="flex:1"></div>
         <div class="tab" id="btn-logout" style="background:#fee2e2;color:#991b1b">🚪 خروج</div>
       </div>
 
       <div class="card tab-content" id="tab-home">
-        <h3><svg class="nav-ic" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 11 12 4l8 7"/><path d="M6 10v9h5v-6h2v6h5v-9"/></svg> صفحه اصلی</h3>
+        <h3><i class="fas fa-house nav-ic"></i> صفحه اصلی</h3>
         <p class="muted">به دستیار آموزشی معلم خوش آمدید — یک پنل یکپارچه برای مدیریت کلاس، آزمون‌سازی، دفتر مدیریت کلاسی و ابزارهای هوشمند آموزشی. با کلیک روی هرکدام از بخش‌های زیر، همان بخش در یک تب جدید مرورگر باز می‌شود:</p>
         <div class="home-grid">
           <a class="home-card" href="/teacher?tab=examonline" target="_blank" rel="noopener">
-            <h4><svg class="nav-ic" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 9l10-5 10 5-10 5L2 9Z"/><path d="M6 11.5V17c0 1.4 2.7 3 6 3s6-1.6 6-3v-5.5"/><path d="M22 9v6"/></svg> آزمون آنلاین</h4>
+            <h4><i class="fas fa-graduation-cap nav-ic"></i> آزمون آنلاین</h4>
             <ul>
-              <li><svg class="nav-ic" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3"/><path d="M3.5 19c0-3 2.5-5 5.5-5s5.5 2 5.5 5"/><circle cx="17" cy="9" r="2.3"/><path d="M15 19c.3-2 1.7-3.5 3.5-4"/></svg> دانش‌آموزان</li>
-              <li><svg class="nav-ic" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 16.5V20h3.5L18.4 9.1a1.6 1.6 0 0 0 0-2.3l-1.2-1.2a1.6 1.6 0 0 0-2.3 0L4 16.5Z"/><path d="M13 6.5l4 4"/></svg> طراحی سوالات</li>
-              <li><svg class="nav-ic" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M8 12.3l2.6 2.6 5.4-5.8"/></svg> تصحیح و پاسخنامه‌ها</li>
-              <li><svg class="nav-ic" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 3.5h7l4 4V20a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4.5a1 1 0 0 1 1-1Z"/><path d="M14 3.5V8h4"/><path d="M9 12.5h6M9 15.5h6M9 9.5h2"/></svg> کاربرگ</li>
+              <li><i class="fas fa-users nav-ic"></i> دانش‌آموزان</li>
+              <li><i class="fas fa-pen-to-square nav-ic"></i> طراحی سوالات</li>
+              <li><i class="fas fa-square-check nav-ic"></i> تصحیح و پاسخنامه‌ها</li>
+              <li><i class="fas fa-file-lines nav-ic"></i> کاربرگ</li>
             </ul>
           </a>
           <a class="home-card" href="/teacher?tab=examsheet" target="_blank" rel="noopener">
-            <h4><svg class="nav-ic" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V4h12v5"/><rect x="4" y="9" width="16" height="8" rx="1.5"/><path d="M8 14h8v6H8z"/></svg> ساخت آزمون</h4>
+            <h4><i class="fas fa-print nav-ic"></i> ساخت آزمون</h4>
             <ul><li>طراحی و چاپ برگه آزمون با خروجی Word و PDF</li></ul>
           </a>
           <a class="home-card" href="/teacher?tab=schedule" target="_blank" rel="noopener">
-            <h4><svg class="nav-ic" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="15" rx="2"/><path d="M3.5 9.5h17"/><path d="M8 3v4M16 3v4"/></svg> برنامه هفتگی</h4>
+            <h4><i class="fas fa-calendar-days nav-ic"></i> برنامه هفتگی</h4>
             <ul><li>ساخت و چاپ برنامه هفتگی کلاس</li></ul>
           </a>
           <a class="home-card" href="/teacher?tab=tablesorg" target="_blank" rel="noopener">
-            <h4><svg class="nav-ic" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="4.5" width="17" height="15" rx="1.5"/><path d="M3.5 10h17M3.5 15h17M9.5 4.5v15M15 4.5v15"/></svg> جدول‌ساز</h4>
+            <h4><i class="fas fa-table-cells nav-ic"></i> جدول‌ساز</h4>
             <ul>
-              <li><svg class="nav-ic" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="4.5" width="17" height="15" rx="1.5"/><path d="M3.5 10h17M3.5 15h17M9.5 4.5v15M15 4.5v15"/></svg> جدول‌ساز حرفه‌ای</li>
-              <li><svg class="nav-ic" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V9l8-5 8 5v11"/><path d="M4 20h16"/><path d="M9 20v-6h6v6"/></svg> سازمان عملی</li>
+              <li><i class="fas fa-table-cells nav-ic"></i> جدول‌ساز حرفه‌ای</li>
+              <li><i class="fas fa-school nav-ic"></i> سازمان عملی</li>
             </ul>
           </a>
           <a class="home-card" href="/teacher?tab=imgtools" target="_blank" rel="noopener">
-            <h4><svg class="nav-ic" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="4.5" width="17" height="15" rx="2"/><circle cx="8.5" cy="9.5" r="1.5"/><path d="M4 17l5-5 4 4 3.5-3.5L20 16"/></svg> ابزار عکس</h4>
+            <h4><i class="fas fa-images nav-ic"></i> ابزار عکس</h4>
             <ul>
-              <li><svg class="nav-ic" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8V6a2 2 0 0 1 2-2h2M18 4h2a2 2 0 0 1 2 2v2M20 16v2a2 2 0 0 1-2 2h-2M6 20H4a2 2 0 0 1-2-2v-2"/><circle cx="12" cy="12" r="3.5"/></svg> اسکنر</li>
-              <li><svg class="nav-ic" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 10 20 4M15 4h5v5"/><path d="M10 14 4 20M9 20H4v-5"/></svg> کاهش حجم</li>
-              <li><svg class="nav-ic" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2v14a2 2 0 0 0 2 2h14"/><path d="M18 22V8a2 2 0 0 0-2-2H2"/></svg> برش عکس</li>
-              <li><svg class="nav-ic" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 3.5h7l4 4V20a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4.5a1 1 0 0 1 1-1Z"/><path d="M14 3.5V8h4"/><circle cx="10" cy="13" r="1.2"/><path d="M8 17.5l2.5-2.5 2 2 2.5-3 2 3"/></svg> PDF به عکس</li>
-              <li><svg class="nav-ic" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 3.5h7l4 4V20a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4.5a1 1 0 0 1 1-1Z"/><path d="M14 3.5V8h4"/><path d="M8.5 12l1 5 1.3-4 1.3 4 1-5"/></svg> PDF به Word</li>
+              <li><i class="fas fa-camera-retro nav-ic"></i> اسکنر</li>
+              <li><i class="fas fa-compress nav-ic"></i> کاهش حجم</li>
+              <li><i class="fas fa-crop-simple nav-ic"></i> برش عکس</li>
+              <li><i class="fas fa-file-image nav-ic"></i> PDF به عکس</li>
+              <li><i class="fas fa-file-word nav-ic"></i> PDF به Word</li>
             </ul>
           </a>
           <a class="home-card" href="/teacher?tab=translateai" target="_blank" rel="noopener">
-            <h4><svg class="nav-ic" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M3.5 12h17"/><path d="M12 3.5c2.5 2.4 3.8 5.4 3.8 8.5s-1.3 6.1-3.8 8.5c-2.5-2.4-3.8-5.4-3.8-8.5S9.5 5.9 12 3.5Z"/></svg> ترجمه و هوش مصنوعی</h4>
+            <h4><i class="fas fa-language nav-ic"></i> ترجمه و هوش مصنوعی</h4>
             <ul>
-              <li><svg class="nav-ic" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M3.5 12h17"/><path d="M12 3.5c2.5 2.4 3.8 5.4 3.8 8.5s-1.3 6.1-3.8 8.5c-2.5-2.4-3.8-5.4-3.8-8.5S9.5 5.9 12 3.5Z"/></svg> ترجمه</li>
-              <li><svg class="nav-ic" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="6" width="12" height="12" rx="2"/><path d="M6 9H3M6 15H3M21 9h-3M21 15h-3M9 6V3M15 6V3M9 21v-3M15 21v-3"/><circle cx="12" cy="12" r="2"/></svg> هوش مصنوعی</li>
+              <li><i class="fas fa-language nav-ic"></i> ترجمه</li>
+              <li><i class="fas fa-robot nav-ic"></i> هوش مصنوعی</li>
             </ul>
           </a>
           <a class="home-card" href="/teacher?tab=classroom" target="_blank" rel="noopener">
-            <h4><svg class="nav-ic" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="12" rx="1.5"/><path d="M8 20h8M12 17v3"/></svg> کلاس آنلاین</h4>
+            <h4><i class="fas fa-chalkboard-user nav-ic"></i> کلاس آنلاین</h4>
             <ul><li>برگزاری کلاس آنلاین با تخته، چت و وبکم</li></ul>
           </a>
           <a class="home-card" href="/teacher?tab=logbook" target="_blank" rel="noopener">
-            <h4><svg class="nav-ic" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 4h11a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Z"/><path d="M4 8h1M4 12h1M4 16h1"/><path d="M9 8h6M9 12h6M9 16h4"/></svg> دفتر مدیریت کلاسی</h4>
+            <h4><i class="fas fa-book-open nav-ic"></i> دفتر مدیریت کلاسی</h4>
             <ul>
               <li>📊 بودجه‌بندی آموزشی، 👨‍🎓 لیست اسامی</li>
               <li>📋 غیبت، 📈 عملکرد، 🎓 کارنامه‌ساز</li>
@@ -3250,20 +3264,20 @@ function teacherPage() {
             </ul>
           </a>
           <a class="home-card" href="/teacher?tab=settings" target="_blank" rel="noopener">
-            <h4><svg class="nav-ic" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 3v2.2M12 18.8V21M4.9 4.9l1.6 1.6M17.5 17.5l1.6 1.6M3 12h2.2M18.8 12H21M4.9 19.1l1.6-1.6M17.5 6.5l1.6-1.6"/></svg> تنظیمات</h4>
+            <h4><i class="fas fa-gear nav-ic"></i> تنظیمات</h4>
             <ul><li>تنظیمات حساب و پنل</li></ul>
           </a>
         </div>
       </div>
 
       <div class="card tab-content hidden" id="tab-examonline">
-        <h3><svg class="nav-ic" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 9l10-5 10 5-10 5L2 9Z"/><path d="M6 11.5V17c0 1.4 2.7 3 6 3s6-1.6 6-3v-5.5"/><path d="M22 9v6"/></svg> آزمون آنلاین</h3>
+        <h3><i class="fas fa-graduation-cap nav-ic"></i> آزمون آنلاین</h3>
         <p class="muted">دانش‌آموزان، طراحی سوالات، و تصحیح و پاسخنامه‌ها — همه در یک‌جا</p>
         <div class="subtabs" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;border-bottom:2px solid #e2e8f0;padding-bottom:12px">
-          <div class="subtab active" data-subtab="students"><svg class="nav-ic" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3"/><path d="M3.5 19c0-3 2.5-5 5.5-5s5.5 2 5.5 5"/><circle cx="17" cy="9" r="2.3"/><path d="M15 19c.3-2 1.7-3.5 3.5-4"/></svg> دانش‌آموزان</div>
-          <div class="subtab" data-subtab="questions"><svg class="nav-ic" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 16.5V20h3.5L18.4 9.1a1.6 1.6 0 0 0 0-2.3l-1.2-1.2a1.6 1.6 0 0 0-2.3 0L4 16.5Z"/><path d="M13 6.5l4 4"/></svg> طراحی سوالات</div>
-          <div class="subtab" data-subtab="answers"><svg class="nav-ic" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M8 12.3l2.6 2.6 5.4-5.8"/></svg> تصحیح و پاسخنامه‌ها</div>
-          <div class="subtab" data-subtab="worksheet"><svg class="nav-ic" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 3.5h7l4 4V20a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4.5a1 1 0 0 1 1-1Z"/><path d="M14 3.5V8h4"/><path d="M9 12.5h6M9 15.5h6M9 9.5h2"/></svg> کاربرگ</div>
+          <div class="subtab active" data-subtab="students"><i class="fas fa-users nav-ic"></i> دانش‌آموزان</div>
+          <div class="subtab" data-subtab="questions"><i class="fas fa-pen-to-square nav-ic"></i> طراحی سوالات</div>
+          <div class="subtab" data-subtab="answers"><i class="fas fa-square-check nav-ic"></i> تصحیح و پاسخنامه‌ها</div>
+          <div class="subtab" data-subtab="worksheet"><i class="fas fa-file-lines nav-ic"></i> کاربرگ</div>
         </div>
 
       <div class="subtab-content" id="tab-students">
@@ -3342,7 +3356,7 @@ function teacherPage() {
       </div>
 
       <div class="subtab-content hidden" id="tab-answers">
-        <h3><svg class="nav-ic" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M8 12.3l2.6 2.6 5.4-5.8"/></svg> تصحیح و پاسخنامه‌ها</h3>
+        <h3><i class="fas fa-square-check nav-ic"></i> تصحیح و پاسخنامه‌ها</h3>
         <div class="grading-type-selector" style="margin-bottom:16px;padding:12px;background:#f0f9ff;border-radius:8px;">
           <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
             <input type="radio" name="grading-type" value="descriptive" checked style="width:auto">
@@ -3364,7 +3378,7 @@ function teacherPage() {
       </div>
 
       <div class="subtab-content hidden" id="tab-worksheet">
-        <h3><svg class="nav-ic" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 3.5h7l4 4V20a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4.5a1 1 0 0 1 1-1Z"/><path d="M14 3.5V8h4"/><path d="M9 12.5h6M9 15.5h6M9 9.5h2"/></svg> کاربرگ</h3>
+        <h3><i class="fas fa-file-lines nav-ic"></i> کاربرگ</h3>
         <p class="muted">برای هر دانش‌آموز یک کاربرگ (عکس یا PDF) بارگذاری کنید. دانش‌آموز پس از انجام کاربرگ، عکس آن را برای شما ارسال می‌کند و شما می‌توانید زیر آن بازخورد بنویسید.</p>
         <div class="row" style="align-items:center;flex-wrap:wrap;gap:10px">
           <div style="flex:1;min-width:220px">
@@ -3495,7 +3509,7 @@ function teacherPage() {
       </div>
 
       <div class="card tab-content hidden" id="tab-schedule">
-        <h3><svg class="nav-ic" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="15" rx="2"/><path d="M3.5 9.5h17"/><path d="M8 3v4M16 3v4"/></svg> برنامه هفتگی</h3>
+        <h3><i class="fas fa-calendar-days nav-ic"></i> برنامه هفتگی</h3>
         <div class="row" style="margin-bottom:16px;align-items:center;gap:10px;flex-wrap:wrap">
           <span style="font-weight:700">🎨 تم رنگی:</span>
           <button class="btn sm sch-theme-btn active" data-theme="default">🌈 پیش‌فرض</button>
@@ -3536,14 +3550,14 @@ function teacherPage() {
       </div>
 
       <div class="card tab-content hidden" id="tab-tablesorg">
-        <h3><svg class="nav-ic" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="4.5" width="17" height="15" rx="1.5"/><path d="M3.5 10h17M3.5 15h17M9.5 4.5v15M15 4.5v15"/></svg> جدول‌ساز</h3>
+        <h3><i class="fas fa-table-cells nav-ic"></i> جدول‌ساز</h3>
         <div class="subtabs" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;border-bottom:2px solid #e2e8f0;padding-bottom:12px">
-          <div class="subtab active" data-subtab="tables"><svg class="nav-ic" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="4.5" width="17" height="15" rx="1.5"/><path d="M3.5 10h17M3.5 15h17M9.5 4.5v15M15 4.5v15"/></svg> جدول‌ساز حرفه‌ای</div>
-          <div class="subtab" data-subtab="orgform"><svg class="nav-ic" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V9l8-5 8 5v11"/><path d="M4 20h16"/><path d="M9 20v-6h6v6"/></svg> سازمان عملی</div>
+          <div class="subtab active" data-subtab="tables"><i class="fas fa-table-cells nav-ic"></i> جدول‌ساز حرفه‌ای</div>
+          <div class="subtab" data-subtab="orgform"><i class="fas fa-school nav-ic"></i> سازمان عملی</div>
         </div>
 
       <div class="subtab-content" id="tab-tables">
-        <h3><svg class="nav-ic" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="4.5" width="17" height="15" rx="1.5"/><path d="M3.5 10h17M3.5 15h17M9.5 4.5v15M15 4.5v15"/></svg> جدول‌ساز حرفه‌ای</h3>
+        <h3><i class="fas fa-table-cells nav-ic"></i> جدول‌ساز حرفه‌ای</h3>
         <div class="row" style="margin-bottom:16px">
           <div><label style="display:block;margin-bottom:4px">تعداد سطر:</label><input type="number" id="tbl-rows" value="5" min="1" max="50" style="width:100px;padding:8px;border:1px solid #ddd;border-radius:6px"></div>
           <div><label style="display:block;margin-bottom:4px">تعداد ستون:</label><input type="number" id="tbl-cols" value="4" min="1" max="20" style="width:100px;padding:8px;border:1px solid #ddd;border-radius:6px"></div>
@@ -3658,14 +3672,14 @@ function teacherPage() {
       </div>
 
       <div class="card tab-content hidden" id="tab-imgtools">
-        <h3><svg class="nav-ic" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="4.5" width="17" height="15" rx="2"/><circle cx="8.5" cy="9.5" r="1.5"/><path d="M4 17l5-5 4 4 3.5-3.5L20 16"/></svg> ابزار عکس</h3>
+        <h3><i class="fas fa-images nav-ic"></i> ابزار عکس</h3>
         <p class="muted">اسکنر، کاهش حجم، برش و تبدیل PDF به عکس — همه در یک‌جا</p>
         <div class="subtabs" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;border-bottom:2px solid #e2e8f0;padding-bottom:12px">
-          <div class="subtab active" data-subtab="scan"><svg class="nav-ic" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8V6a2 2 0 0 1 2-2h2M18 4h2a2 2 0 0 1 2 2v2M20 16v2a2 2 0 0 1-2 2h-2M6 20H4a2 2 0 0 1-2-2v-2"/><circle cx="12" cy="12" r="3.5"/></svg> اسکنر</div>
-          <div class="subtab" data-subtab="resize"><svg class="nav-ic" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 10 20 4M15 4h5v5"/><path d="M10 14 4 20M9 20H4v-5"/></svg> کاهش حجم</div>
-          <div class="subtab" data-subtab="crop"><svg class="nav-ic" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2v14a2 2 0 0 0 2 2h14"/><path d="M18 22V8a2 2 0 0 0-2-2H2"/></svg> برش عکس</div>
-          <div class="subtab" data-subtab="pdf2img"><svg class="nav-ic" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 3.5h7l4 4V20a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4.5a1 1 0 0 1 1-1Z"/><path d="M14 3.5V8h4"/><circle cx="10" cy="13" r="1.2"/><path d="M8 17.5l2.5-2.5 2 2 2.5-3 2 3"/></svg> PDF به عکس</div>
-          <div class="subtab" data-subtab="pdf2word"><svg class="nav-ic" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 3.5h7l4 4V20a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4.5a1 1 0 0 1 1-1Z"/><path d="M14 3.5V8h4"/><path d="M8.5 12l1 5 1.3-4 1.3 4 1-5"/></svg> PDF به Word</div>
+          <div class="subtab active" data-subtab="scan"><i class="fas fa-camera-retro nav-ic"></i> اسکنر</div>
+          <div class="subtab" data-subtab="resize"><i class="fas fa-compress nav-ic"></i> کاهش حجم</div>
+          <div class="subtab" data-subtab="crop"><i class="fas fa-crop-simple nav-ic"></i> برش عکس</div>
+          <div class="subtab" data-subtab="pdf2img"><i class="fas fa-file-image nav-ic"></i> PDF به عکس</div>
+          <div class="subtab" data-subtab="pdf2word"><i class="fas fa-file-word nav-ic"></i> PDF به Word</div>
         </div>
 
       <div class="subtab-content" id="tab-scan">
@@ -3755,7 +3769,7 @@ function teacherPage() {
       </div>
 
       <div class="subtab-content hidden" id="tab-crop">
-        <h3><svg class="nav-ic" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2v14a2 2 0 0 0 2 2h14"/><path d="M18 22V8a2 2 0 0 0-2-2H2"/></svg> برش عکس</h3>
+        <h3><i class="fas fa-crop-simple nav-ic"></i> برش عکس</h3>
         <p class="muted">عکس‌های خود را برش بزنید و دانلود کنید (قابل استفاده در گوشی و کامپیوتر)</p>
         <div class="upload-zone" id="crop-drop-zone">
           <input type="file" accept="image/*" id="crop-file" class="hidden">
@@ -3831,10 +3845,10 @@ function teacherPage() {
       </div>
 
       <div class="card tab-content hidden" id="tab-translateai">
-        <h3><svg class="nav-ic" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M3.5 12h17"/><path d="M12 3.5c2.5 2.4 3.8 5.4 3.8 8.5s-1.3 6.1-3.8 8.5c-2.5-2.4-3.8-5.4-3.8-8.5S9.5 5.9 12 3.5Z"/></svg> ترجمه و هوش مصنوعی</h3>
+        <h3><i class="fas fa-language nav-ic"></i> ترجمه و هوش مصنوعی</h3>
         <div class="subtabs" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;border-bottom:2px solid #e2e8f0;padding-bottom:12px">
-          <div class="subtab active" data-subtab="translate"><svg class="nav-ic" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M3.5 12h17"/><path d="M12 3.5c2.5 2.4 3.8 5.4 3.8 8.5s-1.3 6.1-3.8 8.5c-2.5-2.4-3.8-5.4-3.8-8.5S9.5 5.9 12 3.5Z"/></svg> ترجمه</div>
-          <div class="subtab" data-subtab="ai"><svg class="nav-ic" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="6" width="12" height="12" rx="2"/><path d="M6 9H3M6 15H3M21 9h-3M21 15h-3M9 6V3M15 6V3M9 21v-3M15 21v-3"/><circle cx="12" cy="12" r="2"/></svg> هوش مصنوعی</div>
+          <div class="subtab active" data-subtab="translate"><i class="fas fa-language nav-ic"></i> ترجمه</div>
+          <div class="subtab" data-subtab="ai"><i class="fas fa-robot nav-ic"></i> هوش مصنوعی</div>
         </div>
 
       <div class="subtab-content" id="tab-translate">
@@ -3962,7 +3976,7 @@ function teacherPage() {
       </div>
 
       <div class="card tab-content hidden" id="tab-classroom">
-        <h3><svg class="nav-ic" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="12" rx="1.5"/><path d="M8 20h8M12 17v3"/></svg> کلاس آنلاین</h3>
+        <h3><i class="fas fa-chalkboard-user nav-ic"></i> کلاس آنلاین</h3>
         <div class="cls-status" style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
           <span class="dot" id="tdot" style="width:10px;height:10px;border-radius:50%;background:#dc2626;display:inline-block;flex:0 0 auto"></span>
           <span id="t-cls-status" class="muted" style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">کلاس آنلاین شروع نشده</span>
@@ -4029,30 +4043,30 @@ function teacherPage() {
 
       <div class="card tab-content hidden" id="tab-logbook">
         <div id="lb-menu">
-          <h3><svg class="nav-ic" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 4h11a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Z"/><path d="M4 8h1M4 12h1M4 16h1"/><path d="M9 8h6M9 12h6M9 16h4"/></svg> دفتر مدیریت کلاسی</h3>
+          <h3><i class="fas fa-book-open nav-ic"></i> دفتر مدیریت کلاسی</h3>
           <p class="muted">مجموعه‌ی فرم‌های اداری و آموزشی معلم؛ هرکدام را انتخاب کنید تا وارد شوید. همه قابل دانلود Word، Excel و چاپ/PDF هستند.</p>
           <div class="lb-menu-grid">
-            <button class="lb-menu-btn" data-lb="pacing"><span class="lb-ico"><svg class="nav-ic" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V11M10 20V6M16 20v-9"/><path d="M2.5 20h19"/></svg></span><span class="lb-t">جدول بودجه‌بندی آموزشی</span><small>پایه‌های اول تا ششم</small></button>
-            <button class="lb-menu-btn" data-lb="roster"><span class="lb-ico"><svg class="nav-ic" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3"/><path d="M3.5 19c0-3 2.5-5 5.5-5s5.5 2 5.5 5"/><circle cx="17" cy="9" r="2.3"/><path d="M15 19c.3-2 1.7-3.5 3.5-4"/></svg></span><span class="lb-t">لیست اسامی دانش‌آموزان</span></button>
-            <button class="lb-menu-btn" data-lb="genderstats"><span class="lb-ico"><svg class="nav-ic" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M12 3.5V12l7.3 4.2"/></svg></span><span class="lb-t">آمار دانش‌آموزان</span><small>به تفکیک جنسیت</small></button>
-            <button class="lb-menu-btn" data-lb="passrate"><span class="lb-ico"><svg class="nav-ic" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="4.3"/><circle cx="12" cy="12" r=".8" fill="currentColor"/></svg></span><span class="lb-t">درصد قبولی دانش‌آموزان</span><small>نمودار به تفکیک پایه</small></button>
-            <button class="lb-menu-btn" data-lb="absence"><span class="lb-ico"><svg class="nav-ic" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="4.5" width="14" height="16" rx="2"/><path d="M9 3.5h6a1 1 0 0 1 1 1V6H8V4.5a1 1 0 0 1 1-1Z"/><path d="M8.5 11h7M8.5 14.5h7M8.5 18h4"/></svg></span><span class="lb-t">ثبت غیبت دانش‌آموزان</span></button>
-            <button class="lb-menu-btn" data-lb="performance"><span class="lb-ico"><svg class="nav-ic" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 17l6-6 4 4 7-8"/><path d="M15 6.5h5.5V12"/></svg></span><span class="lb-t">ثبت سطوح عملکرد دانش‌آموز</span></button>
-            <button class="lb-menu-btn" data-lb="reportcard"><span class="lb-ico"><svg class="nav-ic" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 9l10-5 10 5-10 5L2 9Z"/><path d="M6 11.5V17c0 1.4 2.7 3 6 3s6-1.6 6-3v-5.5"/><path d="M22 9v6"/></svg></span><span class="lb-t">کارنامه‌ساز</span><small>ارزشیابی توصیفی هر دانش‌آموز</small></button>
-            <button class="lb-menu-btn" data-lb="council"><span class="lb-ico"><svg class="nav-ic" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12a8 8 0 1 1 3.3 6.4L4 20l1.2-3.5A7.9 7.9 0 0 1 4 12Z"/></svg></span><span class="lb-t">صورتجلسه شورای آموزشی اولیا</span></button>
-            <button class="lb-menu-btn" data-lb="meetings"><span class="lb-ico"><svg class="nav-ic" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="9" r="3"/><circle cx="16" cy="9" r="3"/><path d="M2.5 19c0-3 2.4-5 5.5-5s5.5 2 5.5 5M10.5 19c0-3 2.4-5 5.5-5s5.5 2 5.5 5"/></svg></span><span class="lb-t">جلسات فردی با اولیا</span></button>
-            <button class="lb-menu-btn" data-lb="weekly"><span class="lb-ico"><svg class="nav-ic" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="15" rx="2"/><path d="M3.5 9.5h17"/><path d="M8 3v4M16 3v4"/></svg></span><span class="lb-t">برنامه درسی هفتگی (چندپایه)</span></button>
-            <button class="lb-menu-btn" data-lb="weekly2"><span class="lb-ico"><svg class="nav-ic" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="15" rx="2"/><path d="M3.5 9.5h17"/><path d="M8 3v4M16 3v4"/></svg></span><span class="lb-t">برنامه درسی هفتگی (تک‌پایه)</span></button>
-            <button class="lb-menu-btn" data-lb="staff"><span class="lb-ico"><svg class="nav-ic" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="8.5" cy="11" r="2"/><path d="M6 16c.4-1.7 1.6-2.6 2.5-2.6s2.1.9 2.5 2.6"/><path d="M14 9.5h4M14 12.5h4M14 15.5h2.5"/></svg></span><span class="lb-t">اطلاعات پرسنلی همکاران مدرسه</span></button>
-            <button class="lb-menu-btn" data-lb="minutes"><span class="lb-ico"><svg class="nav-ic" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 3.5h7l4 4V20a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4.5a1 1 0 0 1 1-1Z"/><path d="M14 3.5V8h4"/><path d="M9 12.5h6M9 15.5h6M9 9.5h2"/></svg></span><span class="lb-t">صورتجلسه</span><small>فرم عمومی صورتجلسه مدرسه</small></button>
-            <button class="lb-menu-btn" data-lb="certificate"><span class="lb-ico"><svg class="nav-ic" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="9" r="5"/><path d="M9 13.5 7 21l5-3 5 3-2-7.5"/></svg></span><span class="lb-t">تقدیرنامه‌ساز</span><small>قالب آماده برای چاپ با اسم و دلیل تشویق</small></button>
+            <button class="lb-menu-btn" data-lb="pacing"><span class="lb-ico"><i class="fas fa-chart-column nav-ic lb-fa"></i></span><span class="lb-t">جدول بودجه‌بندی آموزشی</span><small>پایه‌های اول تا ششم</small></button>
+            <button class="lb-menu-btn" data-lb="roster"><span class="lb-ico"><i class="fas fa-users nav-ic lb-fa"></i></span><span class="lb-t">لیست اسامی دانش‌آموزان</span></button>
+            <button class="lb-menu-btn" data-lb="genderstats"><span class="lb-ico"><i class="fas fa-chart-pie nav-ic lb-fa"></i></span><span class="lb-t">آمار دانش‌آموزان</span><small>به تفکیک جنسیت</small></button>
+            <button class="lb-menu-btn" data-lb="passrate"><span class="lb-ico"><i class="fas fa-bullseye nav-ic lb-fa"></i></span><span class="lb-t">درصد قبولی دانش‌آموزان</span><small>نمودار به تفکیک پایه</small></button>
+            <button class="lb-menu-btn" data-lb="absence"><span class="lb-ico"><i class="fas fa-clipboard-list nav-ic lb-fa"></i></span><span class="lb-t">ثبت غیبت دانش‌آموزان</span></button>
+            <button class="lb-menu-btn" data-lb="performance"><span class="lb-ico"><i class="fas fa-chart-line nav-ic lb-fa"></i></span><span class="lb-t">ثبت سطوح عملکرد دانش‌آموز</span></button>
+            <button class="lb-menu-btn" data-lb="reportcard"><span class="lb-ico"><i class="fas fa-graduation-cap nav-ic lb-fa"></i></span><span class="lb-t">کارنامه‌ساز</span><small>ارزشیابی توصیفی هر دانش‌آموز</small></button>
+            <button class="lb-menu-btn" data-lb="council"><span class="lb-ico"><i class="fas fa-comments nav-ic lb-fa"></i></span><span class="lb-t">صورتجلسه شورای آموزشی اولیا</span></button>
+            <button class="lb-menu-btn" data-lb="meetings"><span class="lb-ico"><i class="fas fa-handshake nav-ic lb-fa"></i></span><span class="lb-t">جلسات فردی با اولیا</span></button>
+            <button class="lb-menu-btn" data-lb="weekly"><span class="lb-ico"><i class="fas fa-calendar-days nav-ic lb-fa"></i></span><span class="lb-t">برنامه درسی هفتگی (چندپایه)</span></button>
+            <button class="lb-menu-btn" data-lb="weekly2"><span class="lb-ico"><i class="fas fa-calendar-days nav-ic lb-fa"></i></span><span class="lb-t">برنامه درسی هفتگی (تک‌پایه)</span></button>
+            <button class="lb-menu-btn" data-lb="staff"><span class="lb-ico"><i class="fas fa-id-card-clip nav-ic lb-fa"></i></span><span class="lb-t">اطلاعات پرسنلی همکاران مدرسه</span></button>
+            <button class="lb-menu-btn" data-lb="minutes"><span class="lb-ico"><i class="fas fa-file-lines nav-ic lb-fa"></i></span><span class="lb-t">صورتجلسه</span><small>فرم عمومی صورتجلسه مدرسه</small></button>
+            <button class="lb-menu-btn" data-lb="certificate"><span class="lb-ico"><i class="fas fa-award nav-ic lb-fa"></i></span><span class="lb-t">تقدیرنامه‌ساز</span><small>قالب آماده برای چاپ با اسم و دلیل تشویق</small></button>
           </div>
         </div>
 
         <!-- ===== ۱. جدول بودجه‌بندی آموزشی ===== -->
         <div class="lb-panel hidden" id="lb-panel-pacing">
           <button class="btn sm gray lb-back-btn">← بازگشت به دفتر</button>
-          <h3><svg class="nav-ic" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V11M10 20V6M16 20v-9"/><path d="M2.5 20h19"/></svg> جدول بودجه‌بندی آموزشی</h3>
+          <h3><i class="fas fa-chart-column nav-ic"></i> جدول بودجه‌بندی آموزشی</h3>
           <div class="lb-meta-form">
             <div><label>نام مدرسه</label><input id="lbp-school" placeholder="......................."></div>
             <div><label>نام آموزگار</label><input id="lbp-teacher" placeholder="......................."></div>
@@ -4453,7 +4467,7 @@ function teacherPage() {
         <!-- ===== ۹. اطلاعات پرسنلی همکاران مدرسه ===== -->
         <div class="lb-panel hidden" id="lb-panel-staff">
           <button class="btn sm gray lb-back-btn">← بازگشت به دفتر</button>
-          <h3><svg class="nav-ic" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="8.5" cy="11" r="2"/><path d="M6 16c.4-1.7 1.6-2.6 2.5-2.6s2.1.9 2.5 2.6"/><path d="M14 9.5h4M14 12.5h4M14 15.5h2.5"/></svg> اطلاعات پرسنلی همکاران مدرسه</h3>
+          <h3><i class="fas fa-id-card-clip nav-ic"></i> اطلاعات پرسنلی همکاران مدرسه</h3>
           <div class="lb-meta-form">
             <div><label>سال تحصیلی</label><input id="lbs-year" placeholder="......................."></div>
           </div>
@@ -4491,7 +4505,7 @@ function teacherPage() {
         <div class="lb-panel hidden" id="lb-panel-minutes">
           <button class="btn sm gray lb-back-btn">← بازگشت به دفتر</button>
           <div class="row" style="align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:6px">
-            <h3 style="margin:0"><svg class="nav-ic" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 3.5h7l4 4V20a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4.5a1 1 0 0 1 1-1Z"/><path d="M14 3.5V8h4"/><path d="M9 12.5h6M9 15.5h6M9 9.5h2"/></svg> صورتجلسه</h3>
+            <h3 style="margin:0"><i class="fas fa-file-lines nav-ic"></i> صورتجلسه</h3>
             <input id="lbmin-title" placeholder="عنوان صورتجلسه (اختیاری، مثلاً: صورتجلسه شورای معلمان)" style="flex:1;min-width:220px">
           </div>
           <div class="row" style="align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px">
@@ -4546,7 +4560,7 @@ function teacherPage() {
         <!-- ===== تقدیرنامه‌ساز ===== -->
         <div class="lb-panel hidden" id="lb-panel-certificate">
           <button class="btn sm gray lb-back-btn">← بازگشت به دفتر</button>
-          <h3><svg class="nav-ic" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="9" r="5"/><path d="M9 13.5 7 21l5-3 5 3-2-7.5"/></svg> تقدیرنامه‌ساز</h3>
+          <h3><i class="fas fa-award nav-ic"></i> تقدیرنامه‌ساز</h3>
           <div class="lb-cert-wrap">
             <div class="lb-cert-form">
               <label>عنوان سند</label>
@@ -4579,16 +4593,48 @@ function teacherPage() {
               <textarea id="cert-reason" rows="3" class="lb-textarea" placeholder="مثلاً: کسب رتبه‌ی اول در مسابقات علمی کلاس، تلاش و پشتکار در طول سال تحصیلی و ..."></textarea>
               <label>اعطاکننده (معلم/مدیر/اداره)</label>
               <input id="cert-issuer" placeholder=".......................">
+              <label>امضای مدیر / اعطاکننده (عکس، اختیاری)</label>
+              <div class="row" style="gap:8px;align-items:center">
+                <input type="file" id="cert-sign-file" accept="image/*" style="flex:1">
+                <button type="button" class="btn sm gray" id="btn-cert-sign-remove">حذف</button>
+              </div>
               <label>فونت متن</label>
               <select id="cert-font">
                 <option value="titr">بی‌تیتر</option>
                 <option value="nazanin">بی‌نازنین</option>
                 <option value="nastaliq" selected>ایران نستعلیق</option>
+                <option value="vazirmatn">وزیرمتن (مدرن)</option>
+                <option value="koodak">بی‌کودک (گرد و صمیمی)</option>
+                <option value="mitra">بی‌میترا</option>
               </select>
               <label>اندازه فونت متن تقدیرنامه (دلیل تشویق)</label>
               <div class="row" style="align-items:center;gap:8px">
                 <input type="range" id="cert-font-size" min="10" max="26" step="1" value="13" style="flex:1">
                 <span id="cert-font-size-val" style="min-width:34px;font-weight:700">۱۳</span>
+              </div>
+              <label>تصویر پس‌زمینه دلخواه (اختیاری)</label>
+              <div class="row" style="gap:8px;align-items:center">
+                <input type="file" id="cert-bg-file" accept="image/*" style="flex:1">
+                <button type="button" class="btn sm gray" id="btn-cert-bg-remove">حذف</button>
+              </div>
+              <div id="cert-bg-controls" class="hidden" style="display:flex;flex-direction:column;gap:6px;background:#f8fafc;border:1px solid var(--line);border-radius:8px;padding:10px;margin-top:4px">
+                <div class="row" style="align-items:center;gap:8px">
+                  <label style="margin:0;min-width:70px">بزرگ/کوچک</label>
+                  <input type="range" id="cert-bg-zoom" min="50" max="250" step="1" value="100" style="flex:1">
+                  <span id="cert-bg-zoom-val" style="min-width:44px;font-weight:700">۱۰۰٪</span>
+                </div>
+                <div class="row" style="align-items:center;gap:8px">
+                  <label style="margin:0;min-width:70px">شفافیت</label>
+                  <input type="range" id="cert-bg-opacity" min="15" max="100" step="1" value="100" style="flex:1">
+                  <span id="cert-bg-opacity-val" style="min-width:44px;font-weight:700">۱۰۰٪</span>
+                </div>
+                <p class="muted" style="margin:2px 0 0;font-size:11.5px">💡 برای جابه‌جا کردن تصویر، آن را در پیش‌نمایش با موس یا انگشت بکشید (درگ کنید).</p>
+                <button type="button" class="btn sm gray" id="btn-cert-bg-center">وسط‌چین کردن مجدد</button>
+              </div>
+              <label>فاصله قاب تزئینی از لبه کاغذ</label>
+              <div class="row" style="align-items:center;gap:8px">
+                <input type="range" id="cert-frame-pad" min="4" max="40" step="1" value="10" style="flex:1">
+                <span id="cert-frame-pad-val" style="min-width:34px;font-weight:700">۱۰</span>
               </div>
               <label>قالب</label>
               <div class="lb-cert-templates">
@@ -4615,10 +4661,18 @@ function teacherPage() {
 
 
       <div class="card tab-content hidden" id="tab-settings">
-        <h3>🌙 تم</h3>
+        <h3><i class="fas fa-moon nav-ic"></i> تم</h3>
         <div style="display:flex;gap:12px;margin-bottom:20px">
           <button class="theme-btn" data-theme="light" onclick="setTheme('light')">☀️ روشن</button>
           <button class="theme-btn" data-theme="dark" onclick="setTheme('dark')">🌙 تاریک</button>
+        </div>
+        <h3><i class="fas fa-palette nav-ic"></i> رنگ تم</h3>
+        <div style="display:flex;gap:14px;margin-bottom:20px;flex-wrap:wrap;align-items:center" id="color-theme-row">
+          <button class="color-swatch active" data-color="academy" style="background:linear-gradient(135deg,#6C3EB8,#F59E0B)" title="آکادمی (بنفش و کهربایی)"></button>
+          <button class="color-swatch" data-color="tea" style="background:linear-gradient(135deg,#AE4E28,#C08A2E)" title="چایخانه (آجری و زعفرانی)"></button>
+          <button class="color-swatch" data-color="ocean" style="background:linear-gradient(135deg,#1d4ed8,#0d9488)" title="اقیانوسی (آبی)"></button>
+          <button class="color-swatch" data-color="emerald" style="background:linear-gradient(135deg,#059669,#10b981)" title="زمردی (سبز)"></button>
+          <button class="color-swatch" data-color="rose" style="background:linear-gradient(135deg,#e11d48,#fb7185)" title="رزی (صورتی)"></button>
         </div>
         <h3>🤖 موتور هوش مصنوعی</h3>
         <p class="muted" style="margin-bottom:20px">تمام قابلیت‌های هوش مصنوعی (ترجمه، استخراج متن از عکس/PDF، چت دستیار و ...) با موتور ✨ Gemini انجام می‌شود.</p>
@@ -4686,10 +4740,35 @@ function teacherScript() {
     }catch(e){return null;}
   }
 
+  const COLOR_THEMES={
+    academy:{light:{bg:'#F5F3FF',card:'#FFFFFF',primary:'#6C3EB8','primary-2':'#8B5CF6',accent:'#F59E0B',muted:'#6b7280',line:'#E6E1F5',text:'#1E1B2E',danger:'#DC2626',soft:'#EDE9FE','soft-2':'#DDD6FE'},
+             dark:{bg:'#0F0E17',card:'#1A1A2E',primary:'#8B5CF6','primary-2':'#A78BFA',accent:'#FBBF24',muted:'#94A3B8',line:'#2D2B45',text:'#F1F5F9',danger:'#F87171',soft:'#2D2B45','soft-2':'#3D3A5C'}},
+    tea:{light:{bg:'#F4EDDD',card:'#FFFCF3',primary:'#AE4E28','primary-2':'#C08A2E',accent:'#3E7C4F',muted:'#6b6455',line:'#E4D8B8',text:'#1C3327',danger:'#C0392B',soft:'#F3E4C8','soft-2':'#E4D8B8'},
+         dark:{bg:'#15271E',card:'#1C3327',primary:'#D9793F','primary-2':'#E8A44C',accent:'#4F9464',muted:'#A9B7A9',line:'#33473A',text:'#F4EDDD',danger:'#F16A5C',soft:'#26392c','soft-2':'#33473A'}},
+    ocean:{light:{bg:'#f1f5f9',card:'#ffffff',primary:'#1d4ed8','primary-2':'#2563eb',accent:'#0d9488',muted:'#64748b',line:'#e2e8f0',text:'#0f172a',danger:'#dc2626',soft:'#e0e7ff','soft-2':'#c7d2fe'},
+          dark:{bg:'#0f172a',card:'#1e293b',primary:'#3b82f6','primary-2':'#60a5fa',accent:'#14b8a6',muted:'#94a3b8',line:'#334155',text:'#f1f5f9',danger:'#f87171',soft:'#334155','soft-2':'#475569'}},
+    emerald:{light:{bg:'#f0fdf6',card:'#ffffff',primary:'#059669','primary-2':'#10b981',accent:'#0891b2',muted:'#64748b',line:'#d1fae5',text:'#0f2e22',danger:'#dc2626',soft:'#d1fae5','soft-2':'#a7f3d0'},
+            dark:{bg:'#052e22',card:'#0e3d2e',primary:'#34d399','primary-2':'#6ee7b7',accent:'#22d3ee',muted:'#9fc9b8',line:'#155e46',text:'#ecfdf5',danger:'#f87171',soft:'#155e46','soft-2':'#1c6e53'}},
+    rose:{light:{bg:'#fff1f4',card:'#ffffff',primary:'#e11d48','primary-2':'#fb7185',accent:'#7c3aed',muted:'#64748b',line:'#fecdd3',text:'#3f0d17',danger:'#b91c1c',soft:'#fecdd3','soft-2':'#fda4af'},
+         dark:{bg:'#2b0a13',card:'#3b0f1c',primary:'#fb7185','primary-2':'#fda4af',accent:'#a78bfa',muted:'#c99aa4',line:'#5c1a2a',text:'#fff1f4',danger:'#f87171',soft:'#5c1a2a','soft-2':'#6e2130'}},
+  };
+  function applyColorTheme(name){
+    const mode=document.documentElement.getAttribute('data-theme')||'light';
+    const th=COLOR_THEMES[name]||COLOR_THEMES.academy;
+    const vars=th[mode]||th.light;
+    Object.keys(vars).forEach(k=>document.documentElement.style.setProperty('--'+k,vars[k]));
+    localStorage.setItem('panelColorTheme',name);
+    document.querySelectorAll('.color-swatch').forEach(b=>b.classList.toggle('active',b.dataset.color===name));
+  }
+  window.applyColorTheme=applyColorTheme;
+
   const savedTheme=localStorage.getItem('panelTheme')||'light';
   document.documentElement.setAttribute('data-theme',savedTheme);
+  const savedColorTheme=localStorage.getItem('panelColorTheme')||'academy';
+  applyColorTheme(savedColorTheme);
   setTimeout(()=>{document.querySelectorAll('.theme-btn').forEach(b=>b.classList.toggle('active',b.dataset.theme===savedTheme));},100);
-  window.setTheme=function(t){document.documentElement.setAttribute('data-theme',t);localStorage.setItem('panelTheme',t);document.querySelectorAll('.theme-btn').forEach(b=>b.classList.toggle('active',b.dataset.theme===t));};
+  window.setTheme=function(t){document.documentElement.setAttribute('data-theme',t);localStorage.setItem('panelTheme',t);document.querySelectorAll('.theme-btn').forEach(b=>b.classList.toggle('active',b.dataset.theme===t));applyColorTheme(localStorage.getItem('panelColorTheme')||'academy');};
+  document.querySelectorAll('.color-swatch').forEach(function(b){b.addEventListener('click',function(){applyColorTheme(b.dataset.color);});});
 
   // ===== موتور هوش مصنوعی: فقط Gemini =====
   window.getAiProvider=function(){return 'gemini';};
@@ -9327,6 +9406,9 @@ function teacherScript() {
     if(fontFamily&&fontFamily.indexOf('Titr')!==-1)css+='@font-face{font-family:"BTitr";src:url(https://cdn.jsdelivr.net/gh/intuxicated/css-persian@master/fonts/BTitrBold.ttf)}';
     if(fontFamily&&fontFamily.indexOf('Nazanin')!==-1)css+='@font-face{font-family:"BNazanin";src:url(https://cdn.jsdelivr.net/gh/intuxicated/css-persian@master/fonts/BNazanin.ttf)}';
     if(fontFamily&&fontFamily.indexOf('Nastaliq')!==-1)css+='@import url(https://fonts.googleapis.com/css2?family=Noto+Nastaliq+Urdu:wght@400..700&display=swap);';
+    if(fontFamily&&fontFamily.indexOf('Mitra')!==-1)css+='@font-face{font-family:"BMitra";src:url(https://cdn.jsdelivr.net/gh/intuxicated/css-persian@master/fonts/BMitra.ttf)}';
+    if(fontFamily&&fontFamily.indexOf('Koodak')!==-1)css+='@font-face{font-family:"BKoodak";src:url(https://cdn.jsdelivr.net/gh/intuxicated/css-persian@master/fonts/BKoodakBold.ttf)}';
+    if(fontFamily&&fontFamily.indexOf('Vazirmatn')!==-1)css+='@import url(https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css);';
     return css;
   }
   function lbWordExport(title,bodyHtml,filename,landscape,fontFamily){
@@ -11238,6 +11320,14 @@ function teacherScript() {
 
   /* ---- تقدیرنامه‌ساز ---- */
   var CERT_TPL='gold';
+  var CERT_BG_IMG='';
+  var CERT_BG_ZOOM=100;
+  var CERT_BG_OFFX=0;
+  var CERT_BG_OFFY=0;
+  var CERT_BG_OPACITY=100;
+  var CERT_BG_DRAGGING=false;
+  var CERT_BG_DRAG_START=null;
+  var CERT_SIGN_IMG='';
   var CERT_STUDENTS_LOADED=false;
   async function lbCertLoadStudentsIfNeeded(){
     if(CERT_STUDENTS_LOADED)return;
@@ -11275,12 +11365,85 @@ function teacherScript() {
     document.getElementById('cert-font-size-val').textContent=toFaDigits(this.value);
     lbCertRenderPreview();
   });
+  document.getElementById('cert-bg-file').addEventListener('change',async function(){
+    var f=this.files&&this.files[0];
+    if(!f)return;
+    try{
+      toast('در حال بارگذاری تصویر...');
+      var dataUrl=await compressWorksheetImage(f);
+      CERT_BG_IMG=dataUrl;
+      CERT_BG_ZOOM=100;CERT_BG_OFFX=0;CERT_BG_OFFY=0;CERT_BG_OPACITY=100;
+      document.getElementById('cert-bg-zoom').value=100;
+      document.getElementById('cert-bg-zoom-val').textContent='۱۰۰٪';
+      document.getElementById('cert-bg-opacity').value=100;
+      document.getElementById('cert-bg-opacity-val').textContent='۱۰۰٪';
+      document.getElementById('cert-bg-controls').classList.remove('hidden');
+      lbCertRenderPreview();
+      toast('تصویر پس‌زمینه اضافه شد ✅');
+    }catch(e){toast(e.message||'خطا در بارگذاری تصویر');}
+    this.value='';
+  });
+  document.getElementById('btn-cert-bg-remove').onclick=function(){
+    CERT_BG_IMG='';
+    document.getElementById('cert-bg-controls').classList.add('hidden');
+    lbCertRenderPreview();
+  };
+  document.getElementById('btn-cert-bg-center').onclick=function(){
+    CERT_BG_OFFX=0;CERT_BG_OFFY=0;
+    lbCertRenderPreview();
+  };
+  document.getElementById('cert-bg-zoom').addEventListener('input',function(){
+    CERT_BG_ZOOM=parseInt(this.value,10)||100;
+    document.getElementById('cert-bg-zoom-val').textContent=toFaDigits(this.value)+'٪';
+    var fill=document.querySelector('#cert-preview .lb-cert-bg-fill');
+    if(fill)fill.style.transform='scale('+(CERT_BG_ZOOM/100)+') translate('+CERT_BG_OFFX+'%,'+CERT_BG_OFFY+'%)';
+  });
+  document.getElementById('cert-bg-opacity').addEventListener('input',function(){
+    CERT_BG_OPACITY=parseInt(this.value,10)||100;
+    document.getElementById('cert-bg-opacity-val').textContent=toFaDigits(this.value)+'٪';
+    var fill=document.querySelector('#cert-preview .lb-cert-bg-fill');
+    if(fill)fill.style.opacity=(CERT_BG_OPACITY/100);
+  });
+  document.getElementById('cert-frame-pad').addEventListener('input',function(){
+    document.getElementById('cert-frame-pad-val').textContent=toFaDigits(this.value);
+    document.getElementById('cert-preview').style.setProperty('--cert-frame-pad',this.value+'px');
+  });
+  document.getElementById('cert-sign-file').addEventListener('change',async function(){
+    var f=this.files&&this.files[0];
+    if(!f)return;
+    try{
+      toast('در حال بارگذاری امضا...');
+      var dataUrl=await compressWorksheetImage(f);
+      CERT_SIGN_IMG=dataUrl;
+      lbCertRenderPreview();
+      toast('امضا اضافه شد ✅');
+    }catch(e){toast(e.message||'خطا در بارگذاری امضا');}
+    this.value='';
+  });
+  document.getElementById('btn-cert-sign-remove').onclick=function(){
+    CERT_SIGN_IMG='';
+    lbCertRenderPreview();
+  };
   function lbCertBadge(tpl){
     return {gold:'🏆',blue:'🎖️',green:'🌿',purple:'🎗️',champion:'🥇'}[tpl]||'🏆';
   }
   function lbCertFontFamilyCss(key){
-    var m={titr:'"BTitr","B Titr",tahoma,Arial',nazanin:'"BNazanin","B Nazanin",tahoma,Arial',nastaliq:'"Noto Nastaliq Urdu",tahoma,Arial'};
+    var m={titr:'"BTitr","B Titr",tahoma,Arial',nazanin:'"BNazanin","B Nazanin",tahoma,Arial',nastaliq:'"Noto Nastaliq Urdu",tahoma,Arial',vazirmatn:'"Vazirmatn",tahoma,Arial',koodak:'"BKoodak","B Koodak",tahoma,Arial',mitra:'"BMitra","B Mitra",tahoma,Arial'};
     return m[key]||m.nastaliq;
+  }
+  function lbCertBgLayerHtml(d){
+    if(!d.bgImage||d.bgImage.indexOf('data:image/')!==0)return '';
+    var zoom=parseInt(d.bgZoom,10)||100;
+    var ox=parseFloat(d.bgOffX)||0,oy=parseFloat(d.bgOffY)||0;
+    var op=(parseInt(d.bgOpacity,10)||100)/100;
+    return '<div class="lb-cert-bg-layer"><div class="lb-cert-bg-fill" style="background-image:url('+d.bgImage+');opacity:'+op+';transform:scale('+(zoom/100)+') translate('+ox+'%,'+oy+'%)"></div></div>';
+  }
+  function lbCertSignHtml(d){
+    if(!d.signImage&&!d.issuer)return '';
+    var parts='';
+    if(d.signImage&&d.signImage.indexOf('data:image/')===0)parts+='<img src="'+d.signImage+'" alt="امضا">';
+    if(d.issuer)parts+='<span>'+esc(d.issuer)+'</span>';
+    return parts?'<div class="cert-sign">'+parts+'</div>':'';
   }
   function lbCertData(){
     return {
@@ -11294,7 +11457,14 @@ function teacherScript() {
       issuer:document.getElementById('cert-issuer').value,
       font:document.getElementById('cert-font').value,
       fontSize:document.getElementById('cert-font-size').value,
-      tpl:CERT_TPL
+      tpl:CERT_TPL,
+      bgImage:CERT_BG_IMG,
+      bgZoom:CERT_BG_ZOOM,
+      bgOffX:CERT_BG_OFFX,
+      bgOffY:CERT_BG_OFFY,
+      bgOpacity:CERT_BG_OPACITY,
+      signImage:CERT_SIGN_IMG,
+      framePad:document.getElementById('cert-frame-pad').value
     };
   }
   function lbCertFullName(d){
@@ -11306,6 +11476,7 @@ function teacherScript() {
     var badge=lbCertBadge(d.tpl);
     var fs=parseInt(d.fontSize,10)||13;
     var h='';
+    h+=lbCertBgLayerHtml(d);
     h+='<div class="cert-numbox">شماره: '+esc(d.num||'.......')+'<br>تاریخ: '+esc(d.date||'.......')+'</div>';
     if(d.tpl==='champion')h+='<p class="cert-bismillah">بسم الله الرحمن الرحیم</p>';
     h+='<div class="cert-badge">'+badge+'</div>';
@@ -11313,14 +11484,38 @@ function teacherScript() {
     h+='<p class="cert-intro">'+esc(d.intro||'این سند به پاس تلاش و شایستگی به')+'</p>';
     h+='<div class="cert-name">'+esc(lbCertFullName(d))+'</div>';
     h+='<p class="cert-reason" style="font-size:'+fs+'px">'+esc(d.reason||'')+'</p>';
-    if(d.issuer)h+='<div class="cert-footer" style="justify-content:center"><span>'+esc(d.issuer)+'</span></div>';
+    h+=lbCertSignHtml(d);
     return h;
   }
   function lbCertRenderPreview(){
     var d=lbCertData();
     var el=document.getElementById('cert-preview');
     el.className='lb-cert-sheet lb-cert-'+d.tpl+' lb-cert-font-'+d.font;
+    el.style.setProperty('--cert-frame-pad',(parseInt(d.framePad,10)||10)+'px');
     el.innerHTML=lbCertInnerHtml(d);
+    lbCertBindBgDrag();
+  }
+  function lbCertBindBgDrag(){
+    var fill=document.querySelector('#cert-preview .lb-cert-bg-fill');
+    if(!fill)return;
+    var sheet=document.getElementById('cert-preview');
+    fill.addEventListener('pointerdown',function(e){
+      e.preventDefault();
+      CERT_BG_DRAGGING=true;
+      try{fill.setPointerCapture(e.pointerId);}catch(err){}
+      CERT_BG_DRAG_START={x:e.clientX,y:e.clientY,ox:CERT_BG_OFFX,oy:CERT_BG_OFFY,w:sheet.offsetWidth||1,h:sheet.offsetHeight||1};
+    });
+    fill.addEventListener('pointermove',function(e){
+      if(!CERT_BG_DRAGGING||!CERT_BG_DRAG_START)return;
+      var dx=e.clientX-CERT_BG_DRAG_START.x,dy=e.clientY-CERT_BG_DRAG_START.y;
+      var dxPct=(dx/CERT_BG_DRAG_START.w)*100,dyPct=(dy/CERT_BG_DRAG_START.h)*100;
+      CERT_BG_OFFX=Math.max(-60,Math.min(60,CERT_BG_DRAG_START.ox+dxPct));
+      CERT_BG_OFFY=Math.max(-60,Math.min(60,CERT_BG_DRAG_START.oy+dyPct));
+      fill.style.transform='scale('+(CERT_BG_ZOOM/100)+') translate('+CERT_BG_OFFX+'%,'+CERT_BG_OFFY+'%)';
+    });
+    function endDrag(){CERT_BG_DRAGGING=false;}
+    fill.addEventListener('pointerup',endDrag);
+    fill.addEventListener('pointercancel',endDrag);
   }
   function lbCertExportHtml(){
     var d=lbCertData();
@@ -11332,8 +11527,16 @@ function teacherScript() {
     var titleFont=lbCertFontFamilyCss(d.font);
     var bodyFont=(d.font==='nastaliq')?lbCertFontFamilyCss('nazanin'):titleFont;
     var fs=parseInt(d.fontSize,10)||13;
+    var pad=parseInt(d.framePad,10)||10;
     var h='<div style="position:relative;width:100%;box-sizing:border-box;padding:26px;border:3px solid '+accent+';border-radius:6px;text-align:center;background:'+bg+';font-family:tahoma,Arial;overflow:visible">';
-    h+='<div style="position:relative;padding:16px;border:1.5px solid '+accent+';border-radius:4px;overflow:visible">';
+    h+='<div style="position:relative;padding:'+(16+pad)+'px 16px;border:1.5px solid '+accent+';border-radius:4px;overflow:visible">';
+    if(d.bgImage&&d.bgImage.indexOf('data:image/')===0){
+      var zoom=parseInt(d.bgZoom,10)||100;
+      var ox=parseFloat(d.bgOffX)||0,oy=parseFloat(d.bgOffY)||0;
+      var op=(parseInt(d.bgOpacity,10)||100)/100;
+      h+='<div style="position:absolute;inset:0;overflow:hidden;border-radius:4px;z-index:0"><div style="position:absolute;inset:0;background-image:url('+d.bgImage+');background-size:cover;background-position:center;background-repeat:no-repeat;opacity:'+op+';transform:scale('+(zoom/100)+') translate('+ox+'%,'+oy+'%)"></div></div>';
+    }
+    h+='<div style="position:relative;z-index:1">';
     h+='<div style="position:absolute;top:6px;right:10px;text-align:right;font-size:11px;font-weight:700;color:#334155;line-height:1.8">شماره: '+esc(d.num||'.......')+'<br>تاریخ: '+esc(d.date||'.......')+'</div>';
     if(d.tpl==='champion')h+='<p style="font-size:15px;font-weight:700;color:'+accent+';margin:2px 0 10px">بسم الله الرحمن الرحیم</p>';
     h+='<div style="font-size:40px;margin-top:'+(d.tpl==='champion'?'0':'6px')+'">'+badge+'</div>';
@@ -11341,15 +11544,23 @@ function teacherScript() {
     h+='<p style="font-size:13px;color:#334155;margin:6px auto 0;max-width:88%;overflow-wrap:break-word;word-break:break-word;font-family:'+bodyFont+'">'+esc(d.intro||'این سند به پاس تلاش و شایستگی به')+'</p>';
     h+='<div style="font-size:26px;font-weight:800;color:#1e293b;margin:10px auto;border-bottom:2px solid '+accent+';display:inline-block;padding-bottom:6px;max-width:92%;overflow-wrap:break-word;word-break:break-word;font-family:'+titleFont+'">'+esc(lbCertFullName(d))+'</div>';
     h+='<p style="font-size:'+fs+'px;color:#334155;max-width:88%;line-height:1.9;margin:6px auto;overflow-wrap:break-word;word-break:break-word;white-space:pre-line;font-family:'+bodyFont+'">'+esc(d.reason||'')+'</p>';
-    if(d.issuer)h+='<p style="margin:22px auto 0;font-size:12px;color:#475569;font-weight:700">'+esc(d.issuer)+'</p>';
+    if(d.signImage||d.issuer){
+      h+='<div style="margin:22px auto 0;display:flex;flex-direction:column;align-items:center;gap:4px">';
+      if(d.signImage&&d.signImage.indexOf('data:image/')===0)h+='<img src="'+d.signImage+'" style="max-height:70px;max-width:160px;object-fit:contain">';
+      if(d.issuer)h+='<span style="font-size:12px;color:#475569;font-weight:700">'+esc(d.issuer)+'</span>';
+      h+='</div>';
+    }
+    h+='</div>';
     h+='</div></div>';
     return h;
   }
   document.getElementById('btn-cert-word').onclick=function(){
-    lbWordExport(document.getElementById('cert-kind').value||'تقدیرنامه',lbCertExportHtml(),'تقدیرنامه',false);
+    var d=lbCertData();
+    lbWordExport(d.kind||'تقدیرنامه',lbCertExportHtml(),'تقدیرنامه',false,lbCertFontFamilyCss(d.font));
   };
   document.getElementById('btn-cert-pdf').onclick=function(){
-    lbPrintExport(document.getElementById('cert-kind').value||'تقدیرنامه',lbCertExportHtml(),false);
+    var d=lbCertData();
+    lbPrintExport(d.kind||'تقدیرنامه',lbCertExportHtml(),false,lbCertFontFamilyCss(d.font));
   };
   document.getElementById('btn-cert-save').onclick=function(){
     lbSave('certificate',lbCertData());
@@ -11364,6 +11575,14 @@ function teacherScript() {
     document.getElementById('cert-font-size-val').textContent='۱۳';
     document.getElementById('cert-student-select').value='';
     CERT_TPL='gold';
+    CERT_BG_IMG='';CERT_BG_ZOOM=100;CERT_BG_OFFX=0;CERT_BG_OFFY=0;CERT_BG_OPACITY=100;CERT_SIGN_IMG='';
+    document.getElementById('cert-bg-controls').classList.add('hidden');
+    document.getElementById('cert-bg-zoom').value=100;
+    document.getElementById('cert-bg-zoom-val').textContent='۱۰۰٪';
+    document.getElementById('cert-bg-opacity').value=100;
+    document.getElementById('cert-bg-opacity-val').textContent='۱۰۰٪';
+    document.getElementById('cert-frame-pad').value=10;
+    document.getElementById('cert-frame-pad-val').textContent='۱۰';
     document.querySelectorAll('.lb-cert-tpl-btn').forEach(function(x){x.classList.remove('active');});
     document.querySelector('.lb-cert-tpl-btn[data-tpl="gold"]').classList.add('active');
     lbCertRenderPreview();
@@ -11388,6 +11607,19 @@ function teacherScript() {
       document.getElementById('cert-font-size').value=saved.fontSize||'13';
       document.getElementById('cert-font-size-val').textContent=toFaDigits(saved.fontSize||'13');
       CERT_TPL=saved.tpl||'gold';
+      CERT_BG_IMG=saved.bgImage||'';
+      CERT_BG_ZOOM=saved.bgZoom||100;
+      CERT_BG_OFFX=saved.bgOffX||0;
+      CERT_BG_OFFY=saved.bgOffY||0;
+      CERT_BG_OPACITY=saved.bgOpacity||100;
+      CERT_SIGN_IMG=saved.signImage||'';
+      document.getElementById('cert-bg-zoom').value=CERT_BG_ZOOM;
+      document.getElementById('cert-bg-zoom-val').textContent=toFaDigits(String(CERT_BG_ZOOM))+'٪';
+      document.getElementById('cert-bg-opacity').value=CERT_BG_OPACITY;
+      document.getElementById('cert-bg-opacity-val').textContent=toFaDigits(String(CERT_BG_OPACITY))+'٪';
+      document.getElementById('cert-bg-controls').classList.toggle('hidden',!CERT_BG_IMG);
+      document.getElementById('cert-frame-pad').value=saved.framePad||10;
+      document.getElementById('cert-frame-pad-val').textContent=toFaDigits(String(saved.framePad||10));
       document.querySelectorAll('.lb-cert-tpl-btn').forEach(function(x){x.classList.toggle('active',x.dataset.tpl===CERT_TPL);});
     }
     lbCertRenderPreview();
