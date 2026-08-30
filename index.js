@@ -4678,6 +4678,7 @@ function teacherPage() {
           <button class="color-swatch" data-color="emerald" style="background:linear-gradient(135deg,#059669,#10b981)" title="زمردی (سبز)"></button>
           <button class="color-swatch" data-color="rose" style="background:linear-gradient(135deg,#e11d48,#fb7185)" title="رزی (صورتی)"></button>
           <button class="color-swatch" data-color="skyblue" style="background:linear-gradient(135deg,#0EA5E9,#38BDF8)" title="آبی کم‌رنگ (آسمانی)"></button>
+          <button class="color-swatch" data-color="goldnight" style="background:linear-gradient(135deg,#1a1030,#F5A623)" title="شب طلایی (تیره و پرمیوم)"></button>
         </div>
         <h3>🤖 موتور هوش مصنوعی</h3>
         <p class="muted" style="margin-bottom:20px">تمام قابلیت‌های هوش مصنوعی (ترجمه، استخراج متن از عکس/PDF، چت دستیار و ...) با موتور ✨ Gemini انجام می‌شود.</p>
@@ -4758,6 +4759,8 @@ function teacherScript() {
          dark:{bg:'#2b0a13',card:'#3b0f1c',primary:'#fb7185','primary-2':'#fda4af',accent:'#a78bfa',muted:'#c99aa4',line:'#5c1a2a',text:'#fff1f4',danger:'#f87171',soft:'#5c1a2a','soft-2':'#6e2130'}},
     skyblue:{light:{bg:'#EAF6FF',card:'#DFF2FF',primary:'#0EA5E9','primary-2':'#38BDF8',accent:'#6366F1',muted:'#5b7d8f',line:'#CDEBFC',text:'#0B2A3B',danger:'#DC2626',soft:'#D6EEFF','soft-2':'#BFE4FB'},
             dark:{bg:'#07202E',card:'#0F3049',primary:'#38BDF8','primary-2':'#7DD3FC',accent:'#818CF8',muted:'#93B4C7',line:'#164860',text:'#EAF6FF',danger:'#F87171',soft:'#164860','soft-2':'#1D5975'}},
+    goldnight:{light:{bg:'#FBF6EC',card:'#FFF7E6',primary:'#B45309','primary-2':'#D97706',accent:'#DB2777',muted:'#7A6E5C',line:'#F0DFB8',text:'#241A0F',danger:'#DC2626',soft:'#FCEBC5','soft-2':'#F8DC9A'},
+              dark:{bg:'#0E0D17',card:'#1E1E2C',primary:'#F5A623','primary-2':'#FBBF24',accent:'#F472B6',muted:'#9691A8',line:'#2E2A45',text:'#F5F3FF',danger:'#F87171',soft:'#241F35','soft-2':'#322B4A'}},
   };
   function applyColorTheme(name){
     const mode=document.documentElement.getAttribute('data-theme')||'light';
@@ -4775,7 +4778,10 @@ function teacherScript() {
   applyColorTheme(savedColorTheme);
   setTimeout(()=>{document.querySelectorAll('.theme-btn').forEach(b=>b.classList.toggle('active',b.dataset.theme===savedTheme));},100);
   window.setTheme=function(t){document.documentElement.setAttribute('data-theme',t);localStorage.setItem('panelTheme',t);document.querySelectorAll('.theme-btn').forEach(b=>b.classList.toggle('active',b.dataset.theme===t));applyColorTheme(localStorage.getItem('panelColorTheme')||'academy');};
-  document.querySelectorAll('.color-swatch').forEach(function(b){b.addEventListener('click',function(){applyColorTheme(b.dataset.color);});});
+  document.querySelectorAll('.color-swatch').forEach(function(b){b.addEventListener('click',function(){
+    if(b.dataset.color==='goldnight')window.setTheme('dark');
+    applyColorTheme(b.dataset.color);
+  });});
 
   // ===== موتور هوش مصنوعی: فقط Gemini =====
   window.getAiProvider=function(){return 'gemini';};
