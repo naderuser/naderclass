@@ -1141,17 +1141,19 @@ const SHARED_CSS = `
   .header h1{margin:4px 0;font-size:22px}
   .header h2{margin:4px 0;font-size:15px;font-weight:500;opacity:.95}
   .header h3{margin:4px 0;font-size:13px;font-weight:400;opacity:.9}
-  .teacher-header{position:relative}
-  .th-topbar{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px}
-  .th-left-cluster{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
-  .th-home{background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.35);border-radius:10px;padding:7px 14px;font-size:13px;font-weight:600;text-decoration:none;display:inline-flex;align-items:center;gap:6px;transition:background .2s}
-  .th-home:hover{background:rgba(255,255,255,.3)}
-  .th-clock{background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.35);border-radius:10px;padding:7px 14px;font-size:14px;font-weight:700;letter-spacing:1px;font-variant-numeric:tabular-nums;direction:ltr}
-  .th-en-badge{background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.35);border-radius:10px;padding:7px 14px;font-size:12px;font-weight:600;letter-spacing:.3px;white-space:nowrap}
-  .th-desc{margin:6px auto 10px;font-size:13px;opacity:.92;max-width:640px;line-height:1.9;padding:0 6px}
-  .th-designer{display:inline-flex;align-items:center;gap:8px;background:rgba(255,255,255,.12);border:1px dashed rgba(255,255,255,.45);border-radius:999px;padding:6px 16px;font-size:12px;margin-top:4px}
+  .teacher-header{position:relative;padding:14px 18px}
+  .teacher-header h1{font-size:18px;margin:2px 0}
+  .th-topbar{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px}
+  .th-clock{background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.35);border-radius:8px;padding:5px 12px;font-size:13px;font-weight:700;letter-spacing:1px;font-variant-numeric:tabular-nums;direction:ltr}
+  .th-en-badge{background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.35);border-radius:8px;padding:5px 12px;font-size:11px;font-weight:600;letter-spacing:.3px;white-space:nowrap}
+  .th-designer{display:inline-flex;align-items:center;gap:8px;background:rgba(255,255,255,.12);border:1px dashed rgba(255,255,255,.45);border-radius:999px;padding:4px 14px;font-size:11px;margin-top:2px}
   .th-designer .en{opacity:.85;font-weight:400}
   @media (max-width:600px){.th-topbar{justify-content:center}}
+  .home-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px;margin-top:14px}
+  .home-card{border:1px solid var(--line);border-radius:14px;padding:16px;cursor:pointer;background:var(--card);transition:transform .15s,box-shadow .15s;text-align:right}
+  .home-card:hover{transform:translateY(-3px);box-shadow:0 8px 20px rgba(15,23,42,.1);border-color:var(--primary)}
+  .home-card h4{margin:0 0 6px;font-size:15px}
+  .home-card ul{margin:8px 0 0;padding-inline-start:18px;font-size:12.5px;color:var(--muted);line-height:1.9}
   .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px;margin-top:16px;box-shadow:0 4px 16px rgba(15,23,42,.06)}
   label{display:block;font-size:14px;margin:10px 0 6px;font-weight:600}
   input,textarea,select{width:100%;padding:11px 12px;border:1px solid #cbd5e1;border-radius:10px;font-family:inherit;font-size:15px;background:#fff}
@@ -1854,14 +1856,10 @@ function pageHeader() {
 function teacherHeader() {
   return `<div class="header teacher-header">
     <div class="th-topbar">
-      <div class="th-left-cluster">
-        <a class="th-home" href="/">🏠 صفحه اصلی</a>
-        <div class="th-clock" id="th-clock">--:--:--</div>
-      </div>
+      <div class="th-clock" id="th-clock">--:--:--</div>
       <div class="th-en-badge">Teacher's Educational Assistant</div>
     </div>
     <h1>${esc(APP_TITLE)}</h1>
-    <p class="th-desc">پنل جامع مدیریت کلاس درس، طراحی و برگزاری آزمون آنلاین، دفتر مدیریت کلاسی، ابزارهای تصویر و اسکن، و دستیار هوش مصنوعی — همه در یک پنل یکپارچه برای معلمان</p>
     <div class="th-designer">🎨 ${esc(APP_DESIGNER)} <span class="en">Designer: Nader Akshik</span></div>
   </div>`;
 }
@@ -3105,7 +3103,8 @@ function teacherPage() {
       <div class="tabs-overlay" id="tabs-overlay"></div>
       <div class="dash-flex">
       <div class="tabs" id="tabs-panel">
-        <div class="tab active" data-tab="examonline">🎓 آزمون آنلاین</div>
+        <div class="tab active" data-tab="home">🏠 صفحه اصلی</div>
+        <div class="tab" data-tab="examonline">🎓 آزمون آنلاین</div>
         <div class="tab" data-tab="examsheet">🖨️ ساخت آزمون</div>
         <div class="tab" data-tab="schedule">📅 برنامه هفتگی</div>
         <div class="tab" data-tab="tablesorg">📊 جدول‌ساز</div>
@@ -3118,7 +3117,72 @@ function teacherPage() {
         <div class="tab" id="btn-logout" style="background:#fee2e2;color:#991b1b">🚪 خروج</div>
       </div>
 
-      <div class="card tab-content" id="tab-examonline">
+      <div class="card tab-content" id="tab-home">
+        <h3>🏠 صفحه اصلی</h3>
+        <p class="muted">به دستیار آموزشی معلم خوش آمدید — یک پنل یکپارچه برای مدیریت کلاس، آزمون‌سازی، دفتر مدیریت کلاسی و ابزارهای هوشمند آموزشی. برای شروع، روی هرکدام از بخش‌های زیر بزنید:</p>
+        <div class="home-grid">
+          <div class="home-card" data-goto="examonline">
+            <h4>🎓 آزمون آنلاین</h4>
+            <ul>
+              <li>👨‍🎓 دانش‌آموزان</li>
+              <li>📝 طراحی سوالات</li>
+              <li>✅ تصحیح و پاسخنامه‌ها</li>
+              <li>📓 کاربرگ</li>
+            </ul>
+          </div>
+          <div class="home-card" data-goto="examsheet">
+            <h4>🖨️ ساخت آزمون</h4>
+            <ul><li>طراحی و چاپ برگه آزمون با خروجی Word و PDF</li></ul>
+          </div>
+          <div class="home-card" data-goto="schedule">
+            <h4>📅 برنامه هفتگی</h4>
+            <ul><li>ساخت و چاپ برنامه هفتگی کلاس</li></ul>
+          </div>
+          <div class="home-card" data-goto="tablesorg">
+            <h4>📊 جدول‌ساز</h4>
+            <ul>
+              <li>📊 جدول‌ساز حرفه‌ای</li>
+              <li>🏫 سازمان عملی</li>
+            </ul>
+          </div>
+          <div class="home-card" data-goto="imgtools">
+            <h4>🖼️ ابزار عکس</h4>
+            <ul>
+              <li>📷 اسکنر</li>
+              <li>🗜️ کاهش حجم</li>
+              <li>✂️ برش عکس</li>
+              <li>📄 PDF به عکس</li>
+              <li>📝 PDF به Word</li>
+            </ul>
+          </div>
+          <div class="home-card" data-goto="translateai">
+            <h4>🌐🤖 ترجمه و هوش مصنوعی</h4>
+            <ul>
+              <li>🌐 ترجمه</li>
+              <li>🤖 هوش مصنوعی</li>
+            </ul>
+          </div>
+          <div class="home-card" data-goto="classroom">
+            <h4>🖥️ کلاس آنلاین</h4>
+            <ul><li>برگزاری کلاس آنلاین با تخته، چت و وبکم</li></ul>
+          </div>
+          <div class="home-card" data-goto="logbook">
+            <h4>📔 دفتر مدیریت کلاسی</h4>
+            <ul>
+              <li>📊 بودجه‌بندی آموزشی، 👨‍🎓 لیست اسامی</li>
+              <li>📋 غیبت، 📈 عملکرد، 🎓 کارنامه‌ساز</li>
+              <li>🗣️ صورتجلسه، 🧑‍🏫 اطلاعات همکاران</li>
+              <li>📅 برنامه هفتگی، 🏆 تقدیرنامه‌ساز</li>
+            </ul>
+          </div>
+          <div class="home-card" data-goto="settings">
+            <h4>⚙️ تنظیمات</h4>
+            <ul><li>تنظیمات حساب و پنل</li></ul>
+          </div>
+        </div>
+      </div>
+
+      <div class="card tab-content hidden" id="tab-examonline">
         <h3>🎓 آزمون آنلاین</h3>
         <p class="muted">دانش‌آموزان، طراحی سوالات، و تصحیح و پاسخنامه‌ها — همه در یک‌جا</p>
         <div class="subtabs" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;border-bottom:2px solid #e2e8f0;padding-bottom:12px">
@@ -4612,6 +4676,13 @@ function teacherScript() {
     if(t.dataset.tab==='schedule'){document.getElementById('btn-gen-schedule').click();if(typeof loadScheduleThemeIfNeeded==='function')loadScheduleThemeIfNeeded();if(typeof loadScheduleFontIfNeeded==='function')loadScheduleFontIfNeeded();}
     if(t.dataset.tab==='classroom'){renderClassLinks();setTimeout(function(){if(typeof clsResizeBoard==='function')clsResizeBoard();},50);}
     if(t.dataset.tab==='examsheet'){if(typeof loadExamSheetIfNeeded==='function')loadExamSheetIfNeeded();}
+  });
+
+  document.querySelectorAll('.home-card[data-goto]').forEach(function(card){
+    card.onclick=function(){
+      var target=document.querySelector('.tab[data-tab="'+card.dataset.goto+'"]');
+      if(target)target.click();
+    };
   });
 
   document.querySelectorAll('.subtab[data-subtab]').forEach(t=>t.onclick=()=>{
