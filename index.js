@@ -3103,7 +3103,7 @@ function teacherPage() {
       <div class="tabs-overlay" id="tabs-overlay"></div>
       <div class="dash-flex">
       <div class="tabs" id="tabs-panel">
-        <a class="tab active" data-tab="home" href="/teacher?tab=home" target="_blank" rel="noopener">🏠 صفحه اصلی</a>
+        <a class="tab active" data-tab="home" href="/teacher?tab=home">🏠 صفحه اصلی</a>
         <a class="tab" data-tab="examonline" href="/teacher?tab=examonline" target="_blank" rel="noopener">🎓 آزمون آنلاین</a>
         <a class="tab" data-tab="examsheet" href="/teacher?tab=examsheet" target="_blank" rel="noopener">🖨️ ساخت آزمون</a>
         <a class="tab" data-tab="schedule" href="/teacher?tab=schedule" target="_blank" rel="noopener">📅 برنامه هفتگی</a>
