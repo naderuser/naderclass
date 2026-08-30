@@ -1127,69 +1127,69 @@ const SHARED_CSS = `
   @font-face{font-family:"BMitra";src:url(https://cdn.jsdelivr.net/gh/intuxicated/css-persian@master/fonts/BMitra.ttf);font-weight:bold}
   @font-face{font-family:"BTitr";src:url(https://cdn.jsdelivr.net/gh/intuxicated/css-persian@master/fonts/BTitrBold.ttf);font-weight:bold}
   @font-face{font-family:"BKoodak";src:url(https://cdn.jsdelivr.net/gh/intuxicated/css-persian@master/fonts/BKoodakBold.ttf);font-weight:bold}
-  :root{--bg:#F5F3FF;--card:#F3EEFF;--primary:#6C3EB8;--primary-2:#8B5CF6;--accent:#F59E0B;--muted:#6b7280;--line:#E6E1F5;--danger:#DC2626;--text:#1E1B2E;--soft:#EDE9FE;--soft-2:#DDD6FE;}
+  :root{--bg:#F5F3FF;--card:#F3EEFF;--primary:#6C3EB8;--primary-2:#8B5CF6;--accent:#F59E0B;--muted:#6b7280;--line:#E6E1F5;--danger:#DC2626;--text:#1E1B2E;--soft:#EDE9FE;--soft-2:#DDD6FE;--success:#2F7A52;--warning:#B5762B;--info:#6C56A8;--shadow:0 10px 30px rgba(32,32,46,.14);}
   [data-theme="light"]{--bg:#F5F3FF;--card:#F3EEFF;--primary:#6C3EB8;--primary-2:#8B5CF6;--muted:#6b7280;--line:#E6E1F5;--text:#1E1B2E;--soft:#EDE9FE;--soft-2:#DDD6FE;}
-  [data-theme="dark"]{--bg:#0F0E17;--card:#1A1A2E;--primary:#8B5CF6;--primary-2:#A78BFA;--muted:#94A3B8;--line:#2D2B45;--text:#F1F5F9;--soft:#2D2B45;--soft-2:#3D3A5C;}
-  .theme-btn{padding:10px 20px;border:2px solid var(--line);border-radius:999px;background:var(--card);color:var(--text);font-size:14px;cursor:pointer;transition:all .2s}
-  .theme-btn:hover{border-color:var(--primary);background:var(--primary);color:#fff}
-  .theme-btn.active{border-color:var(--primary);background:var(--primary);color:#fff}
-  .color-swatch{width:42px;height:42px;border-radius:50%;border:3px solid var(--card);box-shadow:0 0 0 2px var(--line);cursor:pointer;transition:transform .15s,box-shadow .15s;padding:0}
-  .color-swatch:hover{transform:scale(1.08)}
-  .color-swatch.active{box-shadow:0 0 0 3px var(--primary)}
+  [data-theme="dark"]{--bg:#0F0E17;--card:#1A1A2E;--primary:#8B5CF6;--primary-2:#A78BFA;--muted:#94A3B8;--line:#2D2B45;--text:#F1F5F9;--soft:#2D2B45;--soft-2:#3D3A5C;--shadow:0 10px 30px rgba(0,0,0,.35);}
+  .theme-btn{padding:10px 20px;border:2px solid var(--text);border-radius:12px;background:var(--card);color:var(--text);font-size:14px;cursor:pointer;transition:all .15s ease}
+  .theme-btn:hover,.theme-btn.active{background:var(--primary);color:#fff;border-color:var(--primary)}
+  .color-swatch{width:42px;height:42px;border-radius:12px;border:2.5px solid var(--text);box-shadow:0 4px 0 rgba(0,0,0,.2);cursor:pointer;transition:transform .15s,box-shadow .15s;padding:0}
+  .color-swatch:hover{transform:translateY(-2px)}
+  .color-swatch.active{box-shadow:0 4px 0 rgba(0,0,0,.2),0 0 0 3px var(--primary)}
   *{box-sizing:border-box}
-  body{margin:0;font-family:'Vazirmatn',Tahoma,system-ui,sans-serif;background:var(--bg);color:var(--text);direction:rtl;transition:background .3s,color .3s;}
+  html{scroll-behavior:smooth}
+  body{margin:0;font-family:'Vazirmatn',Tahoma,system-ui,sans-serif;background:radial-gradient(circle at 1px 1px, var(--line) 1px, transparent 1px) 0 0/26px 26px, var(--bg);color:var(--text);direction:rtl;transition:background .3s,color .3s;-webkit-font-smoothing:antialiased;}
   .wrap{max-width:1180px;margin:0 auto;padding:18px;}
-  .header{background:linear-gradient(135deg,#1E1B2E,#3B2A63);color:#fff;border-radius:22px;padding:22px;text-align:center;box-shadow:0 12px 34px rgba(108,62,184,.35);}
-  [data-theme="dark"] body{background:linear-gradient(180deg,#0a0910,#0F0E17);}
-  [data-theme="light"] body{background:linear-gradient(180deg,#F8F6FF,#F5F3FF);}
-  .header h1{margin:4px 0;font-size:22px}
-  .header h2{margin:4px 0;font-size:15px;font-weight:500;opacity:.95}
-  .header h3{margin:4px 0;font-size:13px;font-weight:400;opacity:.9}
-  .teacher-header{position:relative;padding:14px 18px}
+  .header{position:relative;background:var(--card);color:var(--text);border:2px solid var(--text);border-radius:22px;padding:28px 22px;text-align:center;box-shadow:var(--shadow);}
+  .header::before{content:'';position:absolute;inset:8px;border:1.5px dashed var(--primary);border-radius:16px;pointer-events:none}
+  .header h1{position:relative;margin:4px 0;font-size:22px;font-weight:900}
+  .header h2{position:relative;margin:4px 0;font-size:15px;font-weight:500;color:var(--muted)}
+  .header h3{position:relative;margin:4px 0;font-size:13px;font-weight:400;color:var(--muted)}
+  .teacher-header{position:relative;padding:20px 18px}
   .teacher-header h1{font-size:18px;margin:2px 0}
-  .th-topbar{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px}
-  .th-clock{background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.35);border-radius:8px;padding:5px 12px;font-size:13px;font-weight:700;letter-spacing:1px;font-variant-numeric:tabular-nums;direction:ltr}
-  .th-en-badge{background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.35);border-radius:8px;padding:5px 12px;font-size:11px;font-weight:600;letter-spacing:.3px;white-space:nowrap}
-  .th-designer{display:inline-flex;align-items:center;gap:8px;background:rgba(255,255,255,.12);border:1px dashed rgba(255,255,255,.45);border-radius:999px;padding:4px 14px;font-size:11px;margin-top:2px}
-  .th-designer .en{opacity:.85;font-weight:400}
+  .th-topbar{position:relative;display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px}
+  .th-clock{background:var(--soft);border:1.5px solid var(--text);color:var(--text);border-radius:8px;padding:5px 12px;font-size:13px;font-weight:700;letter-spacing:1px;font-variant-numeric:tabular-nums;direction:ltr}
+  .th-en-badge{background:var(--soft);border:1.5px solid var(--text);color:var(--text);border-radius:8px;padding:5px 12px;font-size:11px;font-weight:600;letter-spacing:.3px;white-space:nowrap}
+  .th-designer{position:relative;display:inline-flex;align-items:center;gap:8px;background:var(--soft);border:1.5px dashed var(--primary);color:var(--text);border-radius:999px;padding:4px 14px;font-size:11px;margin-top:2px}
+  .th-designer .en{opacity:.75;font-weight:400}
   @media (max-width:600px){.th-topbar{justify-content:center}}
   .home-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px;margin-top:14px}
-  .home-card{border:1px solid var(--line);border-radius:20px;padding:16px;cursor:pointer;background:var(--card);transition:transform .15s,box-shadow .15s;text-align:right;text-decoration:none;color:var(--text);display:block}
-  .home-card:hover{transform:translateY(-3px);box-shadow:0 8px 20px rgba(15,23,42,.1);border-color:var(--primary)}
+  .home-card{border:2px solid var(--text);border-radius:18px;padding:16px;cursor:pointer;background:var(--card);transition:transform .15s,box-shadow .15s;text-align:right;text-decoration:none;color:var(--text);display:block;box-shadow:0 5px 0 rgba(0,0,0,.16)}
+  .home-card:hover{transform:translateY(-3px);box-shadow:0 7px 0 rgba(0,0,0,.16);border-color:var(--primary)}
   .home-card h4{margin:0 0 6px;font-size:15px}
   .home-card ul{margin:8px 0 0;padding-inline-start:18px;font-size:12.5px;color:var(--muted);line-height:1.9}
-  .card{background:var(--card);border:1px solid var(--line);border-radius:22px;padding:20px;margin-top:16px;box-shadow:0 8px 26px rgba(108,62,184,.08)}
+  .card{background:var(--card);border:2px solid var(--text);border-radius:20px;padding:20px;margin-top:16px;box-shadow:var(--shadow);transition:transform .15s ease}
   label{display:block;font-size:14px;margin:10px 0 6px;font-weight:600}
-  input,textarea,select{width:100%;padding:11px 12px;border:1px solid var(--line);border-radius:10px;font-family:inherit;font-size:15px;background:var(--card);color:var(--text)}
-  input:focus,textarea:focus,select:focus{outline:none;border-color:var(--primary-2);box-shadow:0 0 0 3px rgba(139,92,246,.22)}
+  input,textarea,select{width:100%;padding:11px 12px;border:2px solid var(--line);border-radius:12px;font-family:inherit;font-size:15px;background:var(--card);color:var(--text);transition:border-color .15s ease}
+  input:focus,textarea:focus,select:focus{outline:none;border-color:var(--primary)}
   textarea{min-height:90px;resize:vertical}
-  .btn{display:inline-flex;align-items:center;gap:8px;background:var(--primary);color:#fff;border:none;padding:11px 22px;border-radius:999px;font-size:15px;font-weight:600;cursor:pointer;font-family:inherit;text-decoration:none;transition:background .2s,transform .15s,box-shadow .2s}
-  .btn:hover{background:var(--primary-2);transform:translateY(-1px);box-shadow:0 8px 18px -8px rgba(108,62,184,.45)}
-  .btn:active{transform:translateY(0)}
-  .btn.sec{background:var(--accent)}.btn.sec:hover{background:#4f9464}
-  .btn.gray{background:#7a7260}.btn.gray:hover{background:#5f5849}
-  .btn.gray.active{background:var(--primary);box-shadow:inset 0 0 0 2px rgba(255,255,255,.5)}
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;background:var(--primary);color:#fff;border:none;padding:11px 22px;border-radius:14px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;text-decoration:none;transition:all .12s ease;box-shadow:0 5px 0 rgba(0,0,0,.3)}
+  .btn:hover{transform:translateY(-2px)}
+  .btn:active{transform:translateY(4px);box-shadow:0 1px 0 rgba(0,0,0,.3)}
+  .btn.sec{background:var(--info)}
+  .btn.gray{background:var(--card);border:2px solid var(--text);box-shadow:none;color:var(--text)}
+  .btn.gray:hover{background:var(--soft);transform:none}
+  .btn.gray.active{background:var(--primary);color:#fff;box-shadow:inset 0 0 0 2px rgba(255,255,255,.5)}
   .btn.danger{background:var(--danger)}
-  .btn.sm{padding:6px 16px;font-size:13px}
+  .btn.sm{padding:8px 14px;font-size:13px;border-radius:10px;box-shadow:0 4px 0 rgba(0,0,0,.3)}
+  .btn.sm:active{box-shadow:0 1px 0 rgba(0,0,0,.3)}
   .row{display:flex;gap:10px;flex-wrap:wrap}
   .row>*{flex:1;min-width:160px}
   .muted{color:var(--muted);font-size:13px}
-  .q-block{border:1px solid var(--line);border-radius:12px;padding:14px;margin-top:12px;background:var(--card)}
-  [data-theme="dark"] .q-block{background:#20302a}
+  .q-block{border:2px solid var(--text);border-radius:16px;padding:14px;margin-top:12px;background:var(--card);transition:transform .15s ease}
+  .q-block:hover{transform:translateY(-2px);box-shadow:var(--shadow)}
   .q-block .qhead{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap}
-  .badge{background:var(--soft);color:var(--primary);border-radius:999px;padding:2px 10px;font-size:12px}
-  [data-theme="dark"] .badge{background:var(--soft-2);color:var(--primary-2)}
+  .badge{background:var(--primary);color:#fff;border-radius:999px;padding:4px 12px;font-size:12px;font-weight:700}
   .opt-row{display:flex;gap:8px;align-items:center;margin-top:6px}
   .opt-row input[type=text]{flex:1}
-  .toolbar{display:flex;flex-wrap:wrap;gap:4px;margin:6px 0}
-  .toolbar button{background:var(--soft);border:1px solid var(--soft-2);border-radius:8px;padding:4px 9px;cursor:pointer;font-size:15px;min-width:32px}
-  [data-theme="dark"] .toolbar button{background:var(--soft);border-color:var(--soft-2);color:var(--text)}
-  .toolbar button:hover{background:var(--soft-2)}
+  .toolbar{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}
+  .toolbar button{background:var(--card);border:2px solid var(--text);border-radius:10px;padding:6px 12px;cursor:pointer;font-size:15px;min-width:34px;transition:all .15s ease}
+  .toolbar button:hover{background:var(--primary);border-color:var(--primary);color:#fff}
   .toolbar .grp-label{font-size:12px;color:var(--muted);align-self:center;margin-left:6px}
-  .imgprev{height:auto;border:1px solid var(--line);border-radius:8px;margin-top:6px;display:block}
-  table{width:100%;border-collapse:collapse;margin-top:10px}
-  th,td{border:1px solid var(--line);padding:8px;text-align:right;font-size:14px;vertical-align:top}
-  th{background:var(--soft)}
+  .imgprev{height:auto;border:2px solid var(--text);border-radius:12px;margin-top:6px;display:block}
+  table{width:100%;border-collapse:collapse;border-radius:14px;overflow:hidden;margin-top:10px;box-shadow:var(--shadow)}
+  th,td{border:1px solid var(--line);padding:10px;text-align:right;font-size:14px;vertical-align:top}
+  th{background:var(--primary);color:#fff;font-weight:700}
+  tr:hover td{background:var(--soft)}
   .ans-table-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
   .ans-grade-table{min-width:640px}
   .ans-grade-table th:nth-child(1),.ans-grade-table td:nth-child(1){min-width:32px}
@@ -1197,19 +1197,18 @@ const SHARED_CSS = `
   .ans-grade-table th:nth-child(3),.ans-grade-table td:nth-child(3){min-width:200px}
   .ans-grade-table th:nth-child(4),.ans-grade-table td:nth-child(4){min-width:100px}
   .ans-grade-table th:nth-child(5),.ans-grade-table td:nth-child(5){min-width:140px}
-  [data-theme="dark"] th{background:var(--soft)}
   .dash-flex{display:flex;gap:16px;align-items:flex-start;margin-top:16px}
   .tabs{display:flex;flex-direction:column;gap:6px;flex:0 0 180px;width:180px}
-  .tab{padding:9px 12px;border-radius:999px;background:var(--soft);cursor:pointer;font-weight:600;font-size:13px;line-height:1.4;text-align:center;text-decoration:none;color:var(--text);display:block}
-  [data-theme="dark"] .tab{background:var(--soft);color:var(--text)}
-  .tab.active{background:var(--primary);color:#fff}
+  .tab{padding:9px 12px;border-radius:12px;background:var(--card);border:2px solid var(--text);cursor:pointer;font-weight:600;font-size:13px;line-height:1.4;text-align:center;text-decoration:none;color:var(--text);display:block;transition:all .15s ease}
+  .tab:hover{background:var(--soft)}
+  .tab.active{background:var(--primary);color:#fff;border-color:var(--primary)}
   .dash-flex>.tab-content{flex:1;min-width:0;margin-top:0}
   .mobile-menu-btn{display:none}
   .tabs-overlay{display:none}
   @media (max-width:760px){
     .dash-flex{flex-direction:column}
-    .mobile-menu-btn{display:inline-flex;align-items:center;gap:6px;background:var(--primary);color:#fff;border:none;padding:10px 16px;border-radius:10px;font-weight:700;font-size:14px;cursor:pointer;margin:16px 0 0}
-    .tabs{position:fixed;top:0;right:0;height:100vh;width:78vw;max-width:280px;background:var(--card);box-shadow:-6px 0 24px rgba(0,0,0,.25);z-index:301;flex-wrap:nowrap;padding:64px 14px 14px;transform:translateX(100%);transition:transform .25s ease;overflow-y:auto}
+    .mobile-menu-btn{display:inline-flex;align-items:center;gap:6px;background:var(--primary);color:#fff;border:none;padding:10px 16px;border-radius:12px;font-weight:700;font-size:14px;cursor:pointer;margin:16px 0 0;box-shadow:0 4px 0 rgba(0,0,0,.3)}
+    .tabs{position:fixed;top:0;right:0;height:100vh;width:78vw;max-width:280px;background:var(--card);border-left:2px solid var(--text);box-shadow:-6px 0 24px rgba(0,0,0,.25);z-index:301;flex-wrap:nowrap;padding:64px 14px 14px;transform:translateX(100%);transition:transform .25s ease;overflow-y:auto}
     .tabs.open{transform:translateX(0)}
     .tabs .tab{text-align:center;font-size:14px;padding:12px 14px}
     .tabs .tab-parent{font-size:14px;padding:12px 14px}
@@ -1217,73 +1216,60 @@ const SHARED_CSS = `
     .tabs-overlay.open{display:block;position:fixed;inset:0;background:rgba(15,23,42,.5);z-index:300}
     .dash-flex>.tab-content{margin-top:16px}
   }
-  .subtab{padding:8px 14px;border-radius:999px;background:var(--soft);cursor:pointer;font-weight:600;font-size:13px}
-  [data-theme="dark"] .subtab{background:var(--soft);color:var(--text)}
-  .subtab.active{background:var(--primary);color:#fff}
+  .subtab{padding:8px 14px;border-radius:12px;background:var(--card);border:2px solid var(--text);cursor:pointer;font-weight:600;font-size:13px;transition:all .15s ease}
+  .subtab:hover{background:var(--soft)}
+  .subtab.active{background:var(--primary);color:#fff;border-color:var(--primary)}
   .tab-group{display:flex;flex-direction:column;gap:4px}
-  .tab-parent{display:flex;align-items:center;justify-content:space-between;gap:6px;padding:9px 12px;border-radius:999px;background:var(--soft);cursor:pointer;font-weight:600;font-size:13px;line-height:1.4;color:var(--text);user-select:none}
-  [data-theme="dark"] .tab-parent{background:var(--soft);color:var(--text)}
+  .tab-parent{display:flex;align-items:center;justify-content:space-between;gap:6px;padding:9px 12px;border-radius:12px;background:var(--card);border:2px solid var(--text);cursor:pointer;font-weight:600;font-size:13px;line-height:1.4;color:var(--text);user-select:none;transition:all .15s ease}
+  .tab-parent:hover{background:var(--soft)}
   .tab-parent.open{background:var(--soft-2)}
-  [data-theme="dark"] .tab-parent.open{background:var(--soft-2)}
   .tab-parent .tab-arrow{font-size:10px;transition:transform .2s ease;flex:0 0 auto}
   .tab-parent.open .tab-arrow{transform:rotate(180deg)}
   .tab-children{display:flex;flex-direction:column;gap:3px;max-height:0;overflow:hidden;transition:max-height .25s ease;padding-right:10px}
   .tab-children.open{max-height:600px;margin-top:4px}
-  .tab-child{display:block;padding:7px 10px;border-radius:8px;background:var(--card);font-size:12px;font-weight:600;text-decoration:none;color:var(--text);border:1px solid var(--line)}
-  [data-theme="dark"] .tab-child{background:var(--card);color:var(--text)}
-  .tab-child:hover{background:var(--soft)}
-  [data-theme="dark"] .tab-child:hover{background:var(--soft)}
-  .nav-ic{vertical-align:-3px;flex:none}
-  .nav-ic:not(.lb-fa){display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;min-width:22px;border-radius:8px;background:rgba(255,255,255,.85);color:var(--primary);font-size:12px;box-shadow:0 2px 6px rgba(0,0,0,.12);vertical-align:middle;margin-inline-end:2px}
-  [data-theme="dark"] .nav-ic:not(.lb-fa){background:rgba(255,255,255,.10);color:var(--primary-2)}
-  .tab.active .nav-ic:not(.lb-fa),.subtab.active .nav-ic:not(.lb-fa){background:rgba(255,255,255,.3);color:#fff}
-  h2 .nav-ic:not(.lb-fa),h3 .nav-ic:not(.lb-fa),h4 .nav-ic:not(.lb-fa){width:26px;height:26px;font-size:13px;border-radius:9px}
-  .lb-ico svg.nav-ic{width:30px;height:30px;stroke-width:1.5;display:block;vertical-align:baseline}
-  .home-card h4 .nav-ic{vertical-align:middle}
+  .tab-child{display:block;padding:7px 10px;border-radius:8px;background:var(--card);font-size:12px;font-weight:600;text-decoration:none;color:var(--text);border:2px solid var(--line);transition:all .15s ease}
+  .tab-child:hover{background:var(--soft);border-color:var(--text)}
+
   .hidden{display:none}
-  .toast{position:fixed;bottom:18px;right:18px;background:#1E1B2E;color:#F5F3FF;padding:12px 18px;border-radius:999px;opacity:0;transition:.3s;z-index:50}
-  .toast.show{opacity:1}
-  .link-box{font-family:monospace;direction:ltr;text-align:left;background:var(--soft);border-radius:8px;padding:8px;font-size:12px;word-break:break-all}
-  [data-theme="dark"] .link-box{background:var(--soft);color:var(--text)}
-  .pill{font-size:12px;padding:2px 8px;border-radius:999px}
-  .pill.ok{background:#dcfce7;color:#166534}.pill.no{background:#fee2e2;color:#991b1b}.pill.gr{background:var(--soft);color:var(--primary)}
+  .toast{position:fixed;bottom:18px;right:18px;background:var(--primary);color:#fff;padding:12px 20px;border-radius:12px;opacity:0;transform:translateY(20px);transition:all .3s ease;z-index:9999;box-shadow:0 8px 30px rgba(0,0,0,.3);font-weight:600}
+  .toast.show{opacity:1;transform:translateY(0)}
+  .link-box{font-family:monospace;direction:ltr;text-align:left;background:var(--card);border:2px solid var(--text);border-radius:10px;padding:10px;font-size:12px;word-break:break-all}
+  .pill{font-size:12px;padding:4px 10px;border-radius:999px;font-weight:700}
+  .pill.ok{background:var(--success);color:#fff}.pill.no{background:var(--danger);color:#fff}.pill.gr{background:var(--primary);color:#fff}
   
   /* ===== استایل‌های نتیجه آزمون ===== */
-  .mark.correct{color:#166534;font-weight:700}
-  .mark.wrong{color:#991b1b;font-weight:700}
-  .mark.partial{color:#92400e;font-weight:700}
-  .mark.excellent{color:#166534;font-weight:700}
-  .mark.good{color:#2563eb;font-weight:700}
-  .mark.acceptable{color:#d97706;font-weight:700}
-  .mark.needs-improve{color:#dc2626;font-weight:700}
-  .mark.numeric{color:#7c3aed;font-weight:700;font-size:16px}
+  .mark.correct{color:var(--success);font-weight:700}
+  .mark.wrong{color:var(--danger);font-weight:700}
+  .mark.partial{color:var(--warning);font-weight:700}
+  .mark.excellent{color:var(--success);font-weight:700}
+  .mark.good{color:var(--primary);font-weight:700}
+  .mark.acceptable{color:var(--warning);font-weight:700}
+  .mark.needs-improve{color:var(--danger);font-weight:700}
+  .mark.numeric{color:var(--info);font-weight:700;font-size:18px}
+
+  .result-card{background:var(--card);border:2px solid var(--text);border-radius:20px;padding:20px;margin-top:16px;box-shadow:var(--shadow)}
+  .result-card .total-score{font-size:24px;font-weight:800;color:var(--primary);text-align:center;padding:16px;background:var(--soft);border:2px solid var(--text);border-radius:12px;margin-bottom:16px}
+  .result-table th{background:var(--primary);color:#fff}
+  .result-table .status-badge{display:inline-block;padding:5px 14px;border-radius:999px;font-size:13px;font-weight:700}
+  .status-badge.correct{background:var(--success);color:#fff}
+  .status-badge.wrong{background:var(--danger);color:#fff}
+  .status-badge.partial{background:var(--warning);color:#fff}
+  .status-badge.excellent{background:var(--success);color:#fff}
+  .status-badge.good{background:var(--primary);color:#fff}
+  .status-badge.acceptable{background:var(--warning);color:#fff}
+  .status-badge.needs-improve{background:var(--danger);color:#fff}
+
+  .weight-input-box{background:var(--soft);border:2px solid var(--success);border-radius:12px;padding:12px 16px;margin-top:10px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+  .weight-input-box label{margin:0;font-size:13px;font-weight:700;color:var(--success)}
+  .weight-input-box input{width:70px;padding:8px 10px;border:2px solid var(--success);border-radius:8px;font-size:14px;background:var(--card)}
+  .weight-input-box .weight-hint{font-size:12px;color:var(--muted)}
+  .weight-total{background:var(--soft);border:2px solid var(--primary);border-radius:12px;padding:12px 20px;margin-top:10px;display:flex;justify-content:space-between;align-items:center;font-size:14px}
+  .weight-total .total-value{font-weight:800;color:var(--primary);font-size:20px}
+  .weight-total .total-value.valid{color:var(--success)}
+  .weight-total .total-value.invalid{color:var(--danger)}
   
-  .result-card{background:linear-gradient(135deg,#f0f9ff,#e0f2fe);border:2px solid #93c5fd;border-radius:16px;padding:20px;margin-top:16px}
-  [data-theme="dark"] .result-card{background:linear-gradient(135deg,#1e293b,#1e3a5f);border-color:#3b82f6}
-  .result-card .total-score{font-size:22px;font-weight:700;color:#1e40af;text-align:center;padding:12px;background:#dbeafe;border-radius:12px;margin-bottom:16px}
-  [data-theme="dark"] .result-card .total-score{background:#1e3a5f;color:#60a5fa}
-  .result-table th{background:#3b82f6;color:#fff}
-  .result-table .status-badge{display:inline-block;padding:4px 12px;border-radius:999px;font-size:13px;font-weight:600}
-  .status-badge.correct{background:#dcfce7;color:#166534}
-  .status-badge.wrong{background:#fee2e2;color:#991b1b}
-  .status-badge.partial{background:#fef3c7;color:#92400e}
-  .status-badge.excellent{background:#dcfce7;color:#166534}
-  .status-badge.good{background:#dbeafe;color:#1e40af}
-  .status-badge.acceptable{background:#fef3c7;color:#d97706}
-  .status-badge.needs-improve{background:#fee2e2;color:#dc2626}
-  
-  .weight-input-box{background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:8px 12px;margin-top:8px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
-  .weight-input-box label{margin:0;font-size:13px;font-weight:600;color:#166534}
-  .weight-input-box input{width:70px;padding:6px 8px;border:1px solid #bbf7d0;border-radius:6px;font-size:14px}
-  .weight-input-box .weight-hint{font-size:12px;color:#64748b}
-  .weight-total{background:#e0f2fe;border-radius:8px;padding:8px 16px;margin-top:8px;display:flex;justify-content:space-between;align-items:center;font-size:14px}
-  .weight-total .total-value{font-weight:700;color:#1d4ed8;font-size:18px}
-  .weight-total .total-value.valid{color:#166534}
-  .weight-total .total-value.invalid{color:#dc2626}
-  
-  .rich{min-height:90px;border:1px solid #cbd5e1;border-radius:10px;padding:11px 12px;background:#fff;font-size:15px;line-height:1.9}
-  [data-theme="dark"] .rich{background:#1e293b;border-color:#475569;color:#e2e8f0}
-  .rich:focus{outline:none;border-color:var(--primary-2);box-shadow:0 0 0 3px rgba(37,99,235,.15)}
+  .rich{min-height:90px;border:2px solid var(--line);border-radius:12px;padding:14px;background:var(--card);color:var(--text);font-size:15px;line-height:1.9;transition:border-color .15s ease}
+  .rich:focus{outline:none;border-color:var(--primary)}
   .frac{display:inline-flex;flex-direction:column;text-align:center;vertical-align:middle;margin:0 3px;line-height:1.05}
   .frac .fn{display:block;border-bottom:2px solid currentColor;padding:0 5px}
   .frac .fd{display:block;padding:0 5px}
@@ -1300,19 +1286,18 @@ const SHARED_CSS = `
   /* ---- فرمول‌ساز ریاضی (شبیه MathType) ---- */
   .mt-modal-overlay{position:fixed;inset:0;background:rgba(15,23,42,.55);z-index:200;display:flex;align-items:center;justify-content:center;padding:16px}
   .mt-modal-overlay.hidden{display:none}
-  .mt-modal{background:#fff;border-radius:16px;padding:18px;max-width:720px;width:100%;max-height:88vh;overflow:auto;box-shadow:0 20px 60px rgba(0,0,0,.3)}
-  [data-theme="dark"] .mt-modal{background:#1e293b;color:#e2e8f0}
+  .mt-modal{background:var(--card);color:var(--text);border:2px solid var(--text);border-radius:18px;padding:18px;max-width:720px;width:100%;max-height:88vh;overflow:auto;box-shadow:0 20px 60px rgba(0,0,0,.3)}
   .mt-modal-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
   .mt-palette{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-bottom:6px}
-  .mt-palette button{padding:6px 10px;border-radius:8px;border:1px solid #cbd5e1;background:#f8fafc;cursor:pointer;font-family:inherit;font-size:13px}
-  [data-theme="dark"] .mt-palette button{background:#0f172a;border-color:#475569;color:#e2e8f0}
+  .mt-palette button{padding:7px 11px;border-radius:10px;border:2px solid var(--text);background:var(--card);color:var(--text);cursor:pointer;font-family:inherit;font-size:13px;transition:all .15s ease}
+  .mt-palette button:hover{background:var(--primary);color:#fff;border-color:var(--primary)}
   .mt-canvas{min-height:80px;font-size:22px;direction:ltr;text-align:center}
   .mt-open-btn{font-weight:700}
 
   /* ---- دفتر مدیریت کلاسی ---- */
   .lb-menu-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px;margin-top:16px}
-  .lb-menu-btn{display:flex;flex-direction:column;align-items:center;gap:6px;padding:22px 14px;border-radius:18px;border:1px solid var(--line);background:var(--soft);cursor:pointer;font-family:inherit;text-align:center;transition:transform .15s,box-shadow .15s}
-  .lb-menu-btn:hover{transform:translateY(-2px);box-shadow:0 8px 20px rgba(0,0,0,.08);border-color:var(--primary)}
+  .lb-menu-btn{display:flex;flex-direction:column;align-items:center;gap:6px;padding:22px 14px;border-radius:18px;border:2px solid var(--text);background:var(--card);cursor:pointer;font-family:inherit;text-align:center;transition:transform .15s,box-shadow .15s;box-shadow:0 5px 0 rgba(0,0,0,.16)}
+  .lb-menu-btn:hover{transform:translateY(-2px);box-shadow:0 7px 0 rgba(0,0,0,.16);border-color:var(--primary)}
   
   .lb-menu-btn .lb-ico{font-size:32px}
   .lb-menu-btn .lb-t{font-weight:700;font-size:14px}
@@ -1487,27 +1472,22 @@ const SHARED_CSS = `
 
   
   /* ---- اسکنر حرفه‌ای ---- */
-  .upload-zone{border:2px dashed #cbd5e1;border-radius:16px;padding:40px 20px;text-align:center;cursor:pointer;transition:all .3s;background:#fafbfc;margin-bottom:16px}
-  [data-theme="dark"] .upload-zone{background:#1e293b;border-color:#475569}
-  .upload-zone:hover{border-color:var(--primary-2);background:#f0f4ff}
-  .upload-zone.dragover{border-color:var(--primary);background:#eef2ff;transform:scale(1.02)}
+  .upload-zone{border:2px dashed var(--primary);border-radius:18px;padding:44px 20px;text-align:center;cursor:pointer;transition:all .2s ease;background:var(--soft);margin-bottom:16px}
+  .upload-zone:hover{border-color:var(--primary-2);transform:scale(1.01)}
+  .upload-zone.dragover{border-color:var(--primary);background:var(--soft-2);transform:scale(1.02)}
   .upload-icon{font-size:48px;margin-bottom:12px}
   .filter-presets{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap}
-  .filter-btn{padding:8px 16px;border:2px solid #e2e8f0;border-radius:10px;background:#fff;cursor:pointer;font-size:13px;font-weight:600;transition:all .2s}
-  [data-theme="dark"] .filter-btn{background:#1e293b;border-color:#475569;color:#e2e8f0}
-  .filter-btn:hover{border-color:var(--primary-2);background:#f0f4ff}
+  .filter-btn{padding:10px 20px;border:2px solid var(--text);border-radius:12px;background:var(--card);color:var(--text);cursor:pointer;font-size:13px;font-weight:700;transition:all .15s ease}
+  .filter-btn:hover{background:var(--soft)}
   .filter-btn.active{background:var(--primary);color:#fff;border-color:var(--primary)}
   .scan-settings{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin-bottom:16px}
-  .setting-group{background:#f8fafc;border-radius:12px;padding:14px;border:1px solid #e2e8f0}
-  [data-theme="dark"] .setting-group{background:#1e293b;border-color:#475569}
-  .setting-group label{display:block;font-weight:600;margin-bottom:8px;font-size:13px;color:#475569}
-  [data-theme="dark"] .setting-group label{color:#94a3b8}
-  .setting-group input[type=range]{width:100%;height:6px;-webkit-appearance:none;background:#e2e8f0;border-radius:3px;outline:none}
-  .setting-group input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;background:var(--primary);border-radius:50%;cursor:pointer;box-shadow:0 2px 6px rgba(37,99,235,.3)}
+  .setting-group{background:var(--card);border-radius:16px;padding:16px;border:2px solid var(--text);box-shadow:var(--shadow)}
+  .setting-group label{display:block;font-weight:700;margin-bottom:10px;font-size:13px;color:var(--text)}
+  .setting-group input[type=range]{width:100%;height:8px;-webkit-appearance:none;background:var(--line);border-radius:4px;outline:none}
+  .setting-group input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;height:22px;background:var(--primary);border-radius:50%;cursor:pointer}
   .setting-value{float:left;font-weight:700;color:var(--primary-2);font-size:14px;margin-top:4px}
-  .scan-preview{background:#f1f5f9;border-radius:16px;padding:16px;text-align:center;overflow:auto;max-height:500px;border:1px solid #e2e8f0;margin-bottom:16px}
-  [data-theme="dark"] .scan-preview{background:#1e293b;border-color:#475569}
-  .scan-preview canvas{max-width:100%;border-radius:8px;box-shadow:0 4px 20px rgba(0,0,0,.1)}
+  .scan-preview{background:var(--card);border-radius:18px;padding:20px;text-align:center;overflow:auto;max-height:550px;border:2px solid var(--text);margin-bottom:16px;box-shadow:var(--shadow)}
+  .scan-preview canvas{max-width:100%;border-radius:12px;box-shadow:var(--shadow)}
   .scan-toolbar{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
   .pdf-toolbar{display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin-top:10px}
   .pdf-toolbar .btn{flex:0 0 auto}
@@ -1534,10 +1514,8 @@ const SHARED_CSS = `
   
   /* ---- کاهش حجم ---- */
   .resize-options{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:16px;margin-bottom:16px}
-  .resize-group{background:#f8fafc;border-radius:12px;padding:16px;border:1px solid #e2e8f0}
-  [data-theme="dark"] .resize-group{background:#1e293b;border-color:#475569}
-  .resize-group label{display:block;font-weight:600;margin-bottom:10px;font-size:14px;color:#334155}
-  [data-theme="dark"] .resize-group label{color:#94a3b8}
+  .resize-group{background:var(--card);border-radius:16px;padding:18px;border:2px solid var(--text);box-shadow:var(--shadow)}
+  .resize-group label{display:block;font-weight:700;margin-bottom:12px;font-size:14px;color:var(--text)}
   .size-inputs{display:flex;gap:12px;margin-bottom:10px}
   .input-with-label{display:flex;align-items:center;gap:6px}
   .input-with-label input{width:100px;padding:8px 10px;border:1px solid #e2e8f0;border-radius:8px}
@@ -1546,19 +1524,18 @@ const SHARED_CSS = `
   .quality-display{display:flex;justify-content:space-between;align-items:center;margin-top:8px}
   #quality-percent{font-weight:700;color:var(--primary-2);font-size:18px}
   .format-options{display:flex;gap:8px}
-  .format-btn{padding:8px 20px;border:2px solid #e2e8f0;border-radius:8px;background:#fff;cursor:pointer;font-weight:600;font-size:13px;transition:all .2s}
-  [data-theme="dark"] .format-btn{background:#1e293b;color:#e2e8f0}
-  .format-btn:hover{border-color:var(--primary-2)}
+  .format-btn{padding:10px 22px;border:2px solid var(--text);border-radius:10px;background:var(--card);color:var(--text);cursor:pointer;font-weight:700;font-size:13px;transition:all .15s ease}
+  .format-btn:hover{background:var(--soft)}
   .format-btn.active{background:var(--primary);color:#fff;border-color:var(--primary)}
   .size-options{display:flex;flex-wrap:wrap;gap:12px}
   .size-option{display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px}
   .size-option input[type=radio]{width:auto;cursor:pointer}
   .resize-preview{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px;margin-bottom:16px}
-  .resize-item{position:relative;background:#f8fafc;border-radius:12px;padding:8px;border:1px solid #e2e8f0;text-align:center}
-  [data-theme="dark"] .resize-item{background:#1e293b}
-  .resize-item img{max-width:100%;max-height:120px;border-radius:8px}
-  .resize-item .size-info{font-size:11px;color:#64748b;margin-top:6px}
-  .resize-item .remove-btn{position:absolute;top:4px;left:4px;background:#fee2e2;color:#991b1b;border:none;border-radius:50%;width:24px;height:24px;cursor:pointer;font-size:14px}
+  .resize-item{position:relative;background:var(--card);border-radius:14px;padding:10px;border:2px solid var(--text);text-align:center;transition:transform .15s ease;box-shadow:var(--shadow)}
+  .resize-item:hover{transform:translateY(-3px)}
+  .resize-item img{max-width:100%;max-height:120px;border-radius:10px}
+  .resize-item .size-info{font-size:11px;color:var(--muted);margin-top:8px}
+  .resize-item .remove-btn{position:absolute;top:6px;left:6px;background:var(--danger);color:#fff;border:none;border-radius:50%;width:26px;height:26px;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center}
   .resize-toolbar{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
   
   /* ===== Crop - با پشتیبانی از لمس برای گوشی ===== */
@@ -1884,7 +1861,7 @@ const SHARED_CSS = `
   .exam-time-status .time-icon{font-size:24px}
 `;
 
-const FONT_LINK = `<link rel="preconnect" href="https://cdn.jsdelivr.net"><link href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css" rel="stylesheet"><link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Noto+Nastaliq+Urdu:wght@400..700&display=swap" rel="stylesheet"><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">`;
+const FONT_LINK = `<link rel="preconnect" href="https://cdn.jsdelivr.net"><link href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css" rel="stylesheet"><link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Noto+Nastaliq+Urdu:wght@400..700&display=swap" rel="stylesheet">`;
 
 function pageHeader() {
   return `<div class="header"><h1>${esc(APP_TITLE)}</h1><h2>${esc(APP_DESIGNER)}</h2></div>`;
@@ -2563,7 +2540,7 @@ async function workSheetPage(env, id) {
   <body><div class="wrap">
     ${pageHeader()}
     <div class="card">
-      <h2><i class="fas fa-file-lines nav-ic"></i> کاربرگ</h2>
+      <h2>🧾 کاربرگ</h2>
       <div id="ws-label" class="muted" style="margin-bottom:14px"></div>
 
       <div id="ws-teacher-file-box">
@@ -3140,126 +3117,126 @@ function teacherPage() {
       <div class="tabs-overlay" id="tabs-overlay"></div>
       <div class="dash-flex">
       <div class="tabs" id="tabs-panel">
-        <a class="tab active" data-tab="home" href="/teacher?tab=home"><i class="fas fa-house nav-ic"></i> صفحه اصلی</a>
+        <a class="tab active" data-tab="home" href="/teacher?tab=home">🏠 صفحه اصلی</a>
 
         <div class="tab-group">
-          <div class="tab-parent" data-tab="examonline"><span><i class="fas fa-graduation-cap nav-ic"></i> آزمون آنلاین</span><span class="tab-arrow">▾</span></div>
+          <div class="tab-parent" data-tab="examonline"><span>🎓 آزمون آنلاین</span><span class="tab-arrow">▾</span></div>
           <div class="tab-children" id="tab-children-examonline">
-            <a class="tab-child" href="/teacher?tab=examonline&subtab=students" target="_blank" rel="noopener"><i class="fas fa-users nav-ic"></i> دانش‌آموزان</a>
-            <a class="tab-child" href="/teacher?tab=examonline&subtab=questions" target="_blank" rel="noopener"><i class="fas fa-pen-to-square nav-ic"></i> طراحی سوالات</a>
-            <a class="tab-child" href="/teacher?tab=examonline&subtab=answers" target="_blank" rel="noopener"><i class="fas fa-square-check nav-ic"></i> تصحیح و پاسخنامه‌ها</a>
-            <a class="tab-child" href="/teacher?tab=examonline&subtab=worksheet" target="_blank" rel="noopener"><i class="fas fa-file-lines nav-ic"></i> کاربرگ</a>
+            <a class="tab-child" href="/teacher?tab=examonline&subtab=students" target="_blank" rel="noopener">👥 دانش‌آموزان</a>
+            <a class="tab-child" href="/teacher?tab=examonline&subtab=questions" target="_blank" rel="noopener">📝 طراحی سوالات</a>
+            <a class="tab-child" href="/teacher?tab=examonline&subtab=answers" target="_blank" rel="noopener">✅ تصحیح و پاسخنامه‌ها</a>
+            <a class="tab-child" href="/teacher?tab=examonline&subtab=worksheet" target="_blank" rel="noopener">🧾 کاربرگ</a>
           </div>
         </div>
 
-        <a class="tab" data-tab="examsheet" href="/teacher?tab=examsheet" target="_blank" rel="noopener"><i class="fas fa-print nav-ic"></i> ساخت آزمون</a>
-        <a class="tab" data-tab="schedule" href="/teacher?tab=schedule" target="_blank" rel="noopener"><i class="fas fa-calendar-days nav-ic"></i> برنامه هفتگی</a>
+        <a class="tab" data-tab="examsheet" href="/teacher?tab=examsheet" target="_blank" rel="noopener">🖨️ ساخت آزمون</a>
+        <a class="tab" data-tab="schedule" href="/teacher?tab=schedule" target="_blank" rel="noopener">📅 برنامه هفتگی</a>
 
         <div class="tab-group">
-          <div class="tab-parent" data-tab="tablesorg"><span><i class="fas fa-table-cells nav-ic"></i> جدول‌ساز</span><span class="tab-arrow">▾</span></div>
+          <div class="tab-parent" data-tab="tablesorg"><span>📊 جدول‌ساز</span><span class="tab-arrow">▾</span></div>
           <div class="tab-children" id="tab-children-tablesorg">
-            <a class="tab-child" href="/teacher?tab=tablesorg&subtab=tables" target="_blank" rel="noopener"><i class="fas fa-table-cells nav-ic"></i> جدول‌ساز حرفه‌ای</a>
-            <a class="tab-child" href="/teacher?tab=tablesorg&subtab=orgform" target="_blank" rel="noopener"><i class="fas fa-school nav-ic"></i> سازمان عملی</a>
+            <a class="tab-child" href="/teacher?tab=tablesorg&subtab=tables" target="_blank" rel="noopener">📊 جدول‌ساز حرفه‌ای</a>
+            <a class="tab-child" href="/teacher?tab=tablesorg&subtab=orgform" target="_blank" rel="noopener">🏫 سازمان عملی</a>
           </div>
         </div>
 
         <div class="tab-group">
-          <div class="tab-parent" data-tab="imgtools"><span><i class="fas fa-images nav-ic"></i> ابزار عکس</span><span class="tab-arrow">▾</span></div>
+          <div class="tab-parent" data-tab="imgtools"><span>🖼️ ابزار عکس</span><span class="tab-arrow">▾</span></div>
           <div class="tab-children" id="tab-children-imgtools">
-            <a class="tab-child" href="/teacher?tab=imgtools&subtab=scan" target="_blank" rel="noopener"><i class="fas fa-camera-retro nav-ic"></i> اسکنر</a>
-            <a class="tab-child" href="/teacher?tab=imgtools&subtab=resize" target="_blank" rel="noopener"><i class="fas fa-compress nav-ic"></i> کاهش حجم</a>
-            <a class="tab-child" href="/teacher?tab=imgtools&subtab=crop" target="_blank" rel="noopener"><i class="fas fa-crop-simple nav-ic"></i> برش عکس</a>
-            <a class="tab-child" href="/teacher?tab=imgtools&subtab=pdf2img" target="_blank" rel="noopener"><i class="fas fa-file-image nav-ic"></i> PDF به عکس</a>
-            <a class="tab-child" href="/teacher?tab=imgtools&subtab=pdf2word" target="_blank" rel="noopener"><i class="fas fa-file-word nav-ic"></i> PDF به Word</a>
+            <a class="tab-child" href="/teacher?tab=imgtools&subtab=scan" target="_blank" rel="noopener">📷 اسکنر</a>
+            <a class="tab-child" href="/teacher?tab=imgtools&subtab=resize" target="_blank" rel="noopener">🗜️ کاهش حجم</a>
+            <a class="tab-child" href="/teacher?tab=imgtools&subtab=crop" target="_blank" rel="noopener">✂️ برش عکس</a>
+            <a class="tab-child" href="/teacher?tab=imgtools&subtab=pdf2img" target="_blank" rel="noopener">📄 PDF به عکس</a>
+            <a class="tab-child" href="/teacher?tab=imgtools&subtab=pdf2word" target="_blank" rel="noopener">📘 PDF به Word</a>
           </div>
         </div>
 
         <div class="tab-group">
-          <div class="tab-parent" data-tab="translateai"><span><i class="fas fa-language nav-ic"></i> ترجمه و هوش مصنوعی</span><span class="tab-arrow">▾</span></div>
+          <div class="tab-parent" data-tab="translateai"><span>🌐 ترجمه و هوش مصنوعی</span><span class="tab-arrow">▾</span></div>
           <div class="tab-children" id="tab-children-translateai">
-            <a class="tab-child" href="/teacher?tab=translateai&subtab=translate" target="_blank" rel="noopener"><i class="fas fa-language nav-ic"></i> ترجمه</a>
-            <a class="tab-child" href="/teacher?tab=translateai&subtab=ai" target="_blank" rel="noopener"><i class="fas fa-robot nav-ic"></i> هوش مصنوعی</a>
+            <a class="tab-child" href="/teacher?tab=translateai&subtab=translate" target="_blank" rel="noopener">🌐 ترجمه</a>
+            <a class="tab-child" href="/teacher?tab=translateai&subtab=ai" target="_blank" rel="noopener">🤖 هوش مصنوعی</a>
           </div>
         </div>
 
-        <a class="tab" data-tab="classroom" href="/teacher?tab=classroom" target="_blank" rel="noopener"><i class="fas fa-chalkboard-user nav-ic"></i> کلاس آنلاین</a>
+        <a class="tab" data-tab="classroom" href="/teacher?tab=classroom" target="_blank" rel="noopener">🖥️ کلاس آنلاین</a>
 
         <div class="tab-group">
-          <div class="tab-parent" data-tab="logbook"><span><i class="fas fa-book-open nav-ic"></i> دفتر مدیریت کلاسی</span><span class="tab-arrow">▾</span></div>
+          <div class="tab-parent" data-tab="logbook"><span>📖 دفتر مدیریت کلاسی</span><span class="tab-arrow">▾</span></div>
           <div class="tab-children" id="tab-children-logbook">
-            <a class="tab-child" href="/teacher?tab=logbook&lb=pacing" target="_blank" rel="noopener"><i class="fas fa-chart-column nav-ic"></i> جدول بودجه‌بندی آموزشی</a>
-            <a class="tab-child" href="/teacher?tab=logbook&lb=roster" target="_blank" rel="noopener"><i class="fas fa-users nav-ic"></i> لیست اسامی دانش‌آموزان</a>
-            <a class="tab-child" href="/teacher?tab=logbook&lb=genderstats" target="_blank" rel="noopener"><i class="fas fa-chart-pie nav-ic"></i> آمار دانش‌آموزان</a>
-            <a class="tab-child" href="/teacher?tab=logbook&lb=passrate" target="_blank" rel="noopener"><i class="fas fa-bullseye nav-ic"></i> درصد قبولی دانش‌آموزان</a>
-            <a class="tab-child" href="/teacher?tab=logbook&lb=absence" target="_blank" rel="noopener"><i class="fas fa-clipboard-list nav-ic"></i> ثبت غیبت دانش‌آموزان</a>
-            <a class="tab-child" href="/teacher?tab=logbook&lb=performance" target="_blank" rel="noopener"><i class="fas fa-chart-line nav-ic"></i> ثبت سطوح عملکرد دانش‌آموز</a>
-            <a class="tab-child" href="/teacher?tab=logbook&lb=reportcard" target="_blank" rel="noopener"><i class="fas fa-graduation-cap nav-ic"></i> کارنامه‌ساز</a>
-            <a class="tab-child" href="/teacher?tab=logbook&lb=council" target="_blank" rel="noopener"><i class="fas fa-comments nav-ic"></i> صورتجلسه شورای آموزشی اولیا</a>
-            <a class="tab-child" href="/teacher?tab=logbook&lb=meetings" target="_blank" rel="noopener"><i class="fas fa-handshake nav-ic"></i> جلسات فردی با اولیا</a>
-            <a class="tab-child" href="/teacher?tab=logbook&lb=weekly" target="_blank" rel="noopener"><i class="fas fa-calendar-days nav-ic"></i> برنامه درسی هفتگی (چندپایه)</a>
-            <a class="tab-child" href="/teacher?tab=logbook&lb=weekly2" target="_blank" rel="noopener"><i class="fas fa-calendar-days nav-ic"></i> برنامه درسی هفتگی (تک‌پایه)</a>
-            <a class="tab-child" href="/teacher?tab=logbook&lb=staff" target="_blank" rel="noopener"><i class="fas fa-id-card-clip nav-ic"></i> اطلاعات پرسنلی همکاران مدرسه</a>
-            <a class="tab-child" href="/teacher?tab=logbook&lb=minutes" target="_blank" rel="noopener"><i class="fas fa-file-lines nav-ic"></i> صورتجلسه</a>
-            <a class="tab-child" href="/teacher?tab=logbook&lb=certificate" target="_blank" rel="noopener"><i class="fas fa-award nav-ic"></i> تقدیرنامه‌ساز</a>
+            <a class="tab-child" href="/teacher?tab=logbook&lb=pacing" target="_blank" rel="noopener">📈 جدول بودجه‌بندی آموزشی</a>
+            <a class="tab-child" href="/teacher?tab=logbook&lb=roster" target="_blank" rel="noopener">👥 لیست اسامی دانش‌آموزان</a>
+            <a class="tab-child" href="/teacher?tab=logbook&lb=genderstats" target="_blank" rel="noopener">🥧 آمار دانش‌آموزان</a>
+            <a class="tab-child" href="/teacher?tab=logbook&lb=passrate" target="_blank" rel="noopener">🎯 درصد قبولی دانش‌آموزان</a>
+            <a class="tab-child" href="/teacher?tab=logbook&lb=absence" target="_blank" rel="noopener">📋 ثبت غیبت دانش‌آموزان</a>
+            <a class="tab-child" href="/teacher?tab=logbook&lb=performance" target="_blank" rel="noopener">📶 ثبت سطوح عملکرد دانش‌آموز</a>
+            <a class="tab-child" href="/teacher?tab=logbook&lb=reportcard" target="_blank" rel="noopener">🎓 کارنامه‌ساز</a>
+            <a class="tab-child" href="/teacher?tab=logbook&lb=council" target="_blank" rel="noopener">💬 صورتجلسه شورای آموزشی اولیا</a>
+            <a class="tab-child" href="/teacher?tab=logbook&lb=meetings" target="_blank" rel="noopener">🤝 جلسات فردی با اولیا</a>
+            <a class="tab-child" href="/teacher?tab=logbook&lb=weekly" target="_blank" rel="noopener">📅 برنامه درسی هفتگی (چندپایه)</a>
+            <a class="tab-child" href="/teacher?tab=logbook&lb=weekly2" target="_blank" rel="noopener">📅 برنامه درسی هفتگی (تک‌پایه)</a>
+            <a class="tab-child" href="/teacher?tab=logbook&lb=staff" target="_blank" rel="noopener">🪪 اطلاعات پرسنلی همکاران مدرسه</a>
+            <a class="tab-child" href="/teacher?tab=logbook&lb=minutes" target="_blank" rel="noopener">🧾 صورتجلسه</a>
+            <a class="tab-child" href="/teacher?tab=logbook&lb=certificate" target="_blank" rel="noopener">🏆 تقدیرنامه‌ساز</a>
           </div>
         </div>
 
-        <a class="tab" data-tab="settings" href="/teacher?tab=settings"><i class="fas fa-gear nav-ic"></i> تنظیمات</a>
+        <a class="tab" data-tab="settings" href="/teacher?tab=settings">⚙️ تنظیمات</a>
         <div style="flex:1"></div>
         <div class="tab" id="btn-logout" style="background:#fee2e2;color:#991b1b">🚪 خروج</div>
       </div>
 
       <div class="card tab-content" id="tab-home">
-        <h3><i class="fas fa-house nav-ic"></i> صفحه اصلی</h3>
+        <h3>🏠 صفحه اصلی</h3>
         <p class="muted">به دستیار آموزشی معلم خوش آمدید — یک پنل یکپارچه برای مدیریت کلاس، آزمون‌سازی، دفتر مدیریت کلاسی و ابزارهای هوشمند آموزشی. با کلیک روی هرکدام از بخش‌های زیر، همان بخش در یک تب جدید مرورگر باز می‌شود:</p>
         <div class="home-grid">
           <a class="home-card" href="/teacher?tab=examonline" target="_blank" rel="noopener">
-            <h4><i class="fas fa-graduation-cap nav-ic"></i> آزمون آنلاین</h4>
+            <h4>🎓 آزمون آنلاین</h4>
             <ul>
-              <li><i class="fas fa-users nav-ic"></i> دانش‌آموزان</li>
-              <li><i class="fas fa-pen-to-square nav-ic"></i> طراحی سوالات</li>
-              <li><i class="fas fa-square-check nav-ic"></i> تصحیح و پاسخنامه‌ها</li>
-              <li><i class="fas fa-file-lines nav-ic"></i> کاربرگ</li>
+              <li>👥 دانش‌آموزان</li>
+              <li>📝 طراحی سوالات</li>
+              <li>✅ تصحیح و پاسخنامه‌ها</li>
+              <li>🧾 کاربرگ</li>
             </ul>
           </a>
           <a class="home-card" href="/teacher?tab=examsheet" target="_blank" rel="noopener">
-            <h4><i class="fas fa-print nav-ic"></i> ساخت آزمون</h4>
+            <h4>🖨️ ساخت آزمون</h4>
             <ul><li>طراحی و چاپ برگه آزمون با خروجی Word و PDF</li></ul>
           </a>
           <a class="home-card" href="/teacher?tab=schedule" target="_blank" rel="noopener">
-            <h4><i class="fas fa-calendar-days nav-ic"></i> برنامه هفتگی</h4>
+            <h4>📅 برنامه هفتگی</h4>
             <ul><li>ساخت و چاپ برنامه هفتگی کلاس</li></ul>
           </a>
           <a class="home-card" href="/teacher?tab=tablesorg" target="_blank" rel="noopener">
-            <h4><i class="fas fa-table-cells nav-ic"></i> جدول‌ساز</h4>
+            <h4>📊 جدول‌ساز</h4>
             <ul>
-              <li><i class="fas fa-table-cells nav-ic"></i> جدول‌ساز حرفه‌ای</li>
-              <li><i class="fas fa-school nav-ic"></i> سازمان عملی</li>
+              <li>📊 جدول‌ساز حرفه‌ای</li>
+              <li>🏫 سازمان عملی</li>
             </ul>
           </a>
           <a class="home-card" href="/teacher?tab=imgtools" target="_blank" rel="noopener">
-            <h4><i class="fas fa-images nav-ic"></i> ابزار عکس</h4>
+            <h4>🖼️ ابزار عکس</h4>
             <ul>
-              <li><i class="fas fa-camera-retro nav-ic"></i> اسکنر</li>
-              <li><i class="fas fa-compress nav-ic"></i> کاهش حجم</li>
-              <li><i class="fas fa-crop-simple nav-ic"></i> برش عکس</li>
-              <li><i class="fas fa-file-image nav-ic"></i> PDF به عکس</li>
-              <li><i class="fas fa-file-word nav-ic"></i> PDF به Word</li>
+              <li>📷 اسکنر</li>
+              <li>🗜️ کاهش حجم</li>
+              <li>✂️ برش عکس</li>
+              <li>📄 PDF به عکس</li>
+              <li>📘 PDF به Word</li>
             </ul>
           </a>
           <a class="home-card" href="/teacher?tab=translateai" target="_blank" rel="noopener">
-            <h4><i class="fas fa-language nav-ic"></i> ترجمه و هوش مصنوعی</h4>
+            <h4>🌐 ترجمه و هوش مصنوعی</h4>
             <ul>
-              <li><i class="fas fa-language nav-ic"></i> ترجمه</li>
-              <li><i class="fas fa-robot nav-ic"></i> هوش مصنوعی</li>
+              <li>🌐 ترجمه</li>
+              <li>🤖 هوش مصنوعی</li>
             </ul>
           </a>
           <a class="home-card" href="/teacher?tab=classroom" target="_blank" rel="noopener">
-            <h4><i class="fas fa-chalkboard-user nav-ic"></i> کلاس آنلاین</h4>
+            <h4>🖥️ کلاس آنلاین</h4>
             <ul><li>برگزاری کلاس آنلاین با تخته، چت و وبکم</li></ul>
           </a>
           <a class="home-card" href="/teacher?tab=logbook" target="_blank" rel="noopener">
-            <h4><i class="fas fa-book-open nav-ic"></i> دفتر مدیریت کلاسی</h4>
+            <h4>📖 دفتر مدیریت کلاسی</h4>
             <ul>
               <li>📊 بودجه‌بندی آموزشی، 👨‍🎓 لیست اسامی</li>
               <li>📋 غیبت، 📈 عملکرد، 🎓 کارنامه‌ساز</li>
@@ -3268,20 +3245,20 @@ function teacherPage() {
             </ul>
           </a>
           <a class="home-card" href="/teacher?tab=settings">
-            <h4><i class="fas fa-gear nav-ic"></i> تنظیمات</h4>
+            <h4>⚙️ تنظیمات</h4>
             <ul><li>تنظیمات حساب و پنل</li></ul>
           </a>
         </div>
       </div>
 
       <div class="card tab-content hidden" id="tab-examonline">
-        <h3><i class="fas fa-graduation-cap nav-ic"></i> آزمون آنلاین</h3>
+        <h3>🎓 آزمون آنلاین</h3>
         <p class="muted">دانش‌آموزان، طراحی سوالات، و تصحیح و پاسخنامه‌ها — همه در یک‌جا</p>
         <div class="subtabs" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;border-bottom:2px solid #e2e8f0;padding-bottom:12px">
-          <div class="subtab active" data-subtab="students"><i class="fas fa-users nav-ic"></i> دانش‌آموزان</div>
-          <div class="subtab" data-subtab="questions"><i class="fas fa-pen-to-square nav-ic"></i> طراحی سوالات</div>
-          <div class="subtab" data-subtab="answers"><i class="fas fa-square-check nav-ic"></i> تصحیح و پاسخنامه‌ها</div>
-          <div class="subtab" data-subtab="worksheet"><i class="fas fa-file-lines nav-ic"></i> کاربرگ</div>
+          <div class="subtab active" data-subtab="students">👥 دانش‌آموزان</div>
+          <div class="subtab" data-subtab="questions">📝 طراحی سوالات</div>
+          <div class="subtab" data-subtab="answers">✅ تصحیح و پاسخنامه‌ها</div>
+          <div class="subtab" data-subtab="worksheet">🧾 کاربرگ</div>
         </div>
 
       <div class="subtab-content" id="tab-students">
@@ -3360,7 +3337,7 @@ function teacherPage() {
       </div>
 
       <div class="subtab-content hidden" id="tab-answers">
-        <h3><i class="fas fa-square-check nav-ic"></i> تصحیح و پاسخنامه‌ها</h3>
+        <h3>✅ تصحیح و پاسخنامه‌ها</h3>
         <div class="grading-type-selector" style="margin-bottom:16px;padding:12px;background:#f0f9ff;border-radius:8px;">
           <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
             <input type="radio" name="grading-type" value="descriptive" checked style="width:auto">
@@ -3382,7 +3359,7 @@ function teacherPage() {
       </div>
 
       <div class="subtab-content hidden" id="tab-worksheet">
-        <h3><i class="fas fa-file-lines nav-ic"></i> کاربرگ</h3>
+        <h3>🧾 کاربرگ</h3>
         <p class="muted">برای هر دانش‌آموز یک کاربرگ (عکس یا PDF) بارگذاری کنید. دانش‌آموز پس از انجام کاربرگ، عکس آن را برای شما ارسال می‌کند و شما می‌توانید زیر آن بازخورد بنویسید.</p>
         <div class="row" style="align-items:center;flex-wrap:wrap;gap:10px">
           <div style="flex:1;min-width:220px">
@@ -3513,7 +3490,7 @@ function teacherPage() {
       </div>
 
       <div class="card tab-content hidden" id="tab-schedule">
-        <h3><i class="fas fa-calendar-days nav-ic"></i> برنامه هفتگی</h3>
+        <h3>📅 برنامه هفتگی</h3>
         <div class="row" style="margin-bottom:16px;align-items:center;gap:10px;flex-wrap:wrap">
           <span style="font-weight:700">🎨 تم رنگی:</span>
           <button class="btn sm sch-theme-btn active" data-theme="default">🌈 پیش‌فرض</button>
@@ -3554,14 +3531,14 @@ function teacherPage() {
       </div>
 
       <div class="card tab-content hidden" id="tab-tablesorg">
-        <h3><i class="fas fa-table-cells nav-ic"></i> جدول‌ساز</h3>
+        <h3>📊 جدول‌ساز</h3>
         <div class="subtabs" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;border-bottom:2px solid #e2e8f0;padding-bottom:12px">
-          <div class="subtab active" data-subtab="tables"><i class="fas fa-table-cells nav-ic"></i> جدول‌ساز حرفه‌ای</div>
-          <div class="subtab" data-subtab="orgform"><i class="fas fa-school nav-ic"></i> سازمان عملی</div>
+          <div class="subtab active" data-subtab="tables">📊 جدول‌ساز حرفه‌ای</div>
+          <div class="subtab" data-subtab="orgform">🏫 سازمان عملی</div>
         </div>
 
       <div class="subtab-content" id="tab-tables">
-        <h3><i class="fas fa-table-cells nav-ic"></i> جدول‌ساز حرفه‌ای</h3>
+        <h3>📊 جدول‌ساز حرفه‌ای</h3>
         <div class="row" style="margin-bottom:16px">
           <div><label style="display:block;margin-bottom:4px">تعداد سطر:</label><input type="number" id="tbl-rows" value="5" min="1" max="50" style="width:100px;padding:8px;border:1px solid #ddd;border-radius:6px"></div>
           <div><label style="display:block;margin-bottom:4px">تعداد ستون:</label><input type="number" id="tbl-cols" value="4" min="1" max="20" style="width:100px;padding:8px;border:1px solid #ddd;border-radius:6px"></div>
@@ -3676,14 +3653,14 @@ function teacherPage() {
       </div>
 
       <div class="card tab-content hidden" id="tab-imgtools">
-        <h3><i class="fas fa-images nav-ic"></i> ابزار عکس</h3>
+        <h3>🖼️ ابزار عکس</h3>
         <p class="muted">اسکنر، کاهش حجم، برش و تبدیل PDF به عکس — همه در یک‌جا</p>
         <div class="subtabs" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;border-bottom:2px solid #e2e8f0;padding-bottom:12px">
-          <div class="subtab active" data-subtab="scan"><i class="fas fa-camera-retro nav-ic"></i> اسکنر</div>
-          <div class="subtab" data-subtab="resize"><i class="fas fa-compress nav-ic"></i> کاهش حجم</div>
-          <div class="subtab" data-subtab="crop"><i class="fas fa-crop-simple nav-ic"></i> برش عکس</div>
-          <div class="subtab" data-subtab="pdf2img"><i class="fas fa-file-image nav-ic"></i> PDF به عکس</div>
-          <div class="subtab" data-subtab="pdf2word"><i class="fas fa-file-word nav-ic"></i> PDF به Word</div>
+          <div class="subtab active" data-subtab="scan">📷 اسکنر</div>
+          <div class="subtab" data-subtab="resize">🗜️ کاهش حجم</div>
+          <div class="subtab" data-subtab="crop">✂️ برش عکس</div>
+          <div class="subtab" data-subtab="pdf2img">📄 PDF به عکس</div>
+          <div class="subtab" data-subtab="pdf2word">📘 PDF به Word</div>
         </div>
 
       <div class="subtab-content" id="tab-scan">
@@ -3773,7 +3750,7 @@ function teacherPage() {
       </div>
 
       <div class="subtab-content hidden" id="tab-crop">
-        <h3><i class="fas fa-crop-simple nav-ic"></i> برش عکس</h3>
+        <h3>✂️ برش عکس</h3>
         <p class="muted">عکس‌های خود را برش بزنید و دانلود کنید (قابل استفاده در گوشی و کامپیوتر)</p>
         <div class="upload-zone" id="crop-drop-zone">
           <input type="file" accept="image/*" id="crop-file" class="hidden">
@@ -3849,10 +3826,10 @@ function teacherPage() {
       </div>
 
       <div class="card tab-content hidden" id="tab-translateai">
-        <h3><i class="fas fa-language nav-ic"></i> ترجمه و هوش مصنوعی</h3>
+        <h3>🌐 ترجمه و هوش مصنوعی</h3>
         <div class="subtabs" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;border-bottom:2px solid #e2e8f0;padding-bottom:12px">
-          <div class="subtab active" data-subtab="translate"><i class="fas fa-language nav-ic"></i> ترجمه</div>
-          <div class="subtab" data-subtab="ai"><i class="fas fa-robot nav-ic"></i> هوش مصنوعی</div>
+          <div class="subtab active" data-subtab="translate">🌐 ترجمه</div>
+          <div class="subtab" data-subtab="ai">🤖 هوش مصنوعی</div>
         </div>
 
       <div class="subtab-content" id="tab-translate">
@@ -3980,7 +3957,7 @@ function teacherPage() {
       </div>
 
       <div class="card tab-content hidden" id="tab-classroom">
-        <h3><i class="fas fa-chalkboard-user nav-ic"></i> کلاس آنلاین</h3>
+        <h3>🖥️ کلاس آنلاین</h3>
         <div class="cls-status" style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
           <span class="dot" id="tdot" style="width:10px;height:10px;border-radius:50%;background:#dc2626;display:inline-block;flex:0 0 auto"></span>
           <span id="t-cls-status" class="muted" style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">کلاس آنلاین شروع نشده</span>
@@ -4047,30 +4024,30 @@ function teacherPage() {
 
       <div class="card tab-content hidden" id="tab-logbook">
         <div id="lb-menu">
-          <h3><i class="fas fa-book-open nav-ic"></i> دفتر مدیریت کلاسی</h3>
+          <h3>📖 دفتر مدیریت کلاسی</h3>
           <p class="muted">مجموعه‌ی فرم‌های اداری و آموزشی معلم؛ هرکدام را انتخاب کنید تا وارد شوید. همه قابل دانلود Word، Excel و چاپ/PDF هستند.</p>
           <div class="lb-menu-grid">
-            <button class="lb-menu-btn" data-lb="pacing"><span class="lb-ico"><i class="fas fa-chart-column nav-ic lb-fa"></i></span><span class="lb-t">جدول بودجه‌بندی آموزشی</span><small>پایه‌های اول تا ششم</small></button>
-            <button class="lb-menu-btn" data-lb="roster"><span class="lb-ico"><i class="fas fa-users nav-ic lb-fa"></i></span><span class="lb-t">لیست اسامی دانش‌آموزان</span></button>
-            <button class="lb-menu-btn" data-lb="genderstats"><span class="lb-ico"><i class="fas fa-chart-pie nav-ic lb-fa"></i></span><span class="lb-t">آمار دانش‌آموزان</span><small>به تفکیک جنسیت</small></button>
-            <button class="lb-menu-btn" data-lb="passrate"><span class="lb-ico"><i class="fas fa-bullseye nav-ic lb-fa"></i></span><span class="lb-t">درصد قبولی دانش‌آموزان</span><small>نمودار به تفکیک پایه</small></button>
-            <button class="lb-menu-btn" data-lb="absence"><span class="lb-ico"><i class="fas fa-clipboard-list nav-ic lb-fa"></i></span><span class="lb-t">ثبت غیبت دانش‌آموزان</span></button>
-            <button class="lb-menu-btn" data-lb="performance"><span class="lb-ico"><i class="fas fa-chart-line nav-ic lb-fa"></i></span><span class="lb-t">ثبت سطوح عملکرد دانش‌آموز</span></button>
-            <button class="lb-menu-btn" data-lb="reportcard"><span class="lb-ico"><i class="fas fa-graduation-cap nav-ic lb-fa"></i></span><span class="lb-t">کارنامه‌ساز</span><small>ارزشیابی توصیفی هر دانش‌آموز</small></button>
-            <button class="lb-menu-btn" data-lb="council"><span class="lb-ico"><i class="fas fa-comments nav-ic lb-fa"></i></span><span class="lb-t">صورتجلسه شورای آموزشی اولیا</span></button>
-            <button class="lb-menu-btn" data-lb="meetings"><span class="lb-ico"><i class="fas fa-handshake nav-ic lb-fa"></i></span><span class="lb-t">جلسات فردی با اولیا</span></button>
-            <button class="lb-menu-btn" data-lb="weekly"><span class="lb-ico"><i class="fas fa-calendar-days nav-ic lb-fa"></i></span><span class="lb-t">برنامه درسی هفتگی (چندپایه)</span></button>
-            <button class="lb-menu-btn" data-lb="weekly2"><span class="lb-ico"><i class="fas fa-calendar-days nav-ic lb-fa"></i></span><span class="lb-t">برنامه درسی هفتگی (تک‌پایه)</span></button>
-            <button class="lb-menu-btn" data-lb="staff"><span class="lb-ico"><i class="fas fa-id-card-clip nav-ic lb-fa"></i></span><span class="lb-t">اطلاعات پرسنلی همکاران مدرسه</span></button>
-            <button class="lb-menu-btn" data-lb="minutes"><span class="lb-ico"><i class="fas fa-file-lines nav-ic lb-fa"></i></span><span class="lb-t">صورتجلسه</span><small>فرم عمومی صورتجلسه مدرسه</small></button>
-            <button class="lb-menu-btn" data-lb="certificate"><span class="lb-ico"><i class="fas fa-award nav-ic lb-fa"></i></span><span class="lb-t">تقدیرنامه‌ساز</span><small>قالب آماده برای چاپ با اسم و دلیل تشویق</small></button>
+            <button class="lb-menu-btn" data-lb="pacing"><span class="lb-ico">📈</span><span class="lb-t">جدول بودجه‌بندی آموزشی</span><small>پایه‌های اول تا ششم</small></button>
+            <button class="lb-menu-btn" data-lb="roster"><span class="lb-ico">👥</span><span class="lb-t">لیست اسامی دانش‌آموزان</span></button>
+            <button class="lb-menu-btn" data-lb="genderstats"><span class="lb-ico">🥧</span><span class="lb-t">آمار دانش‌آموزان</span><small>به تفکیک جنسیت</small></button>
+            <button class="lb-menu-btn" data-lb="passrate"><span class="lb-ico">🎯</span><span class="lb-t">درصد قبولی دانش‌آموزان</span><small>نمودار به تفکیک پایه</small></button>
+            <button class="lb-menu-btn" data-lb="absence"><span class="lb-ico">📋</span><span class="lb-t">ثبت غیبت دانش‌آموزان</span></button>
+            <button class="lb-menu-btn" data-lb="performance"><span class="lb-ico">📶</span><span class="lb-t">ثبت سطوح عملکرد دانش‌آموز</span></button>
+            <button class="lb-menu-btn" data-lb="reportcard"><span class="lb-ico">🎓</span><span class="lb-t">کارنامه‌ساز</span><small>ارزشیابی توصیفی هر دانش‌آموز</small></button>
+            <button class="lb-menu-btn" data-lb="council"><span class="lb-ico">💬</span><span class="lb-t">صورتجلسه شورای آموزشی اولیا</span></button>
+            <button class="lb-menu-btn" data-lb="meetings"><span class="lb-ico">🤝</span><span class="lb-t">جلسات فردی با اولیا</span></button>
+            <button class="lb-menu-btn" data-lb="weekly"><span class="lb-ico">📅</span><span class="lb-t">برنامه درسی هفتگی (چندپایه)</span></button>
+            <button class="lb-menu-btn" data-lb="weekly2"><span class="lb-ico">📅</span><span class="lb-t">برنامه درسی هفتگی (تک‌پایه)</span></button>
+            <button class="lb-menu-btn" data-lb="staff"><span class="lb-ico">🪪</span><span class="lb-t">اطلاعات پرسنلی همکاران مدرسه</span></button>
+            <button class="lb-menu-btn" data-lb="minutes"><span class="lb-ico">🧾</span><span class="lb-t">صورتجلسه</span><small>فرم عمومی صورتجلسه مدرسه</small></button>
+            <button class="lb-menu-btn" data-lb="certificate"><span class="lb-ico">🏆</span><span class="lb-t">تقدیرنامه‌ساز</span><small>قالب آماده برای چاپ با اسم و دلیل تشویق</small></button>
           </div>
         </div>
 
         <!-- ===== ۱. جدول بودجه‌بندی آموزشی ===== -->
         <div class="lb-panel hidden" id="lb-panel-pacing">
           <button class="btn sm gray lb-back-btn">← بازگشت به دفتر</button>
-          <h3><i class="fas fa-chart-column nav-ic"></i> جدول بودجه‌بندی آموزشی</h3>
+          <h3>📈 جدول بودجه‌بندی آموزشی</h3>
           <div class="lb-meta-form">
             <div><label>نام مدرسه</label><input id="lbp-school" placeholder="......................."></div>
             <div><label>نام آموزگار</label><input id="lbp-teacher" placeholder="......................."></div>
@@ -4471,7 +4448,7 @@ function teacherPage() {
         <!-- ===== ۹. اطلاعات پرسنلی همکاران مدرسه ===== -->
         <div class="lb-panel hidden" id="lb-panel-staff">
           <button class="btn sm gray lb-back-btn">← بازگشت به دفتر</button>
-          <h3><i class="fas fa-id-card-clip nav-ic"></i> اطلاعات پرسنلی همکاران مدرسه</h3>
+          <h3>🪪 اطلاعات پرسنلی همکاران مدرسه</h3>
           <div class="lb-meta-form">
             <div><label>سال تحصیلی</label><input id="lbs-year" placeholder="......................."></div>
           </div>
@@ -4509,7 +4486,7 @@ function teacherPage() {
         <div class="lb-panel hidden" id="lb-panel-minutes">
           <button class="btn sm gray lb-back-btn">← بازگشت به دفتر</button>
           <div class="row" style="align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:6px">
-            <h3 style="margin:0"><i class="fas fa-file-lines nav-ic"></i> صورتجلسه</h3>
+            <h3 style="margin:0">🧾 صورتجلسه</h3>
             <input id="lbmin-title" placeholder="عنوان صورتجلسه (اختیاری، مثلاً: صورتجلسه شورای معلمان)" style="flex:1;min-width:220px">
           </div>
           <div class="row" style="align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px">
@@ -4564,7 +4541,7 @@ function teacherPage() {
         <!-- ===== تقدیرنامه‌ساز ===== -->
         <div class="lb-panel hidden" id="lb-panel-certificate">
           <button class="btn sm gray lb-back-btn">← بازگشت به دفتر</button>
-          <h3><i class="fas fa-award nav-ic"></i> تقدیرنامه‌ساز</h3>
+          <h3>🏆 تقدیرنامه‌ساز</h3>
           <div class="lb-cert-wrap">
             <div class="lb-cert-form">
               <label>عنوان سند</label>
@@ -4665,12 +4642,12 @@ function teacherPage() {
 
 
       <div class="card tab-content hidden" id="tab-settings">
-        <h3><i class="fas fa-moon nav-ic"></i> تم</h3>
+        <h3>🌙 تم</h3>
         <div style="display:flex;gap:12px;margin-bottom:20px">
           <button class="theme-btn" data-theme="light" onclick="setTheme('light')">☀️ روشن</button>
           <button class="theme-btn" data-theme="dark" onclick="setTheme('dark')">🌙 تاریک</button>
         </div>
-        <h3><i class="fas fa-palette nav-ic"></i> رنگ تم</h3>
+        <h3>🎨 رنگ تم</h3>
         <div style="display:flex;gap:14px;margin-bottom:20px;flex-wrap:wrap;align-items:center" id="color-theme-row">
           <button class="color-swatch active" data-color="academy" style="background:linear-gradient(135deg,#6C3EB8,#F59E0B)" title="آکادمی (بنفش و کهربایی)"></button>
           <button class="color-swatch" data-color="tea" style="background:linear-gradient(135deg,#AE4E28,#C08A2E)" title="چایخانه (آجری و زعفرانی)"></button>
