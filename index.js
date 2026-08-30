@@ -1150,7 +1150,7 @@ const SHARED_CSS = `
   .th-designer .en{opacity:.85;font-weight:400}
   @media (max-width:600px){.th-topbar{justify-content:center}}
   .home-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px;margin-top:14px}
-  .home-card{border:1px solid var(--line);border-radius:14px;padding:16px;cursor:pointer;background:var(--card);transition:transform .15s,box-shadow .15s;text-align:right}
+  .home-card{border:1px solid var(--line);border-radius:14px;padding:16px;cursor:pointer;background:var(--card);transition:transform .15s,box-shadow .15s;text-align:right;text-decoration:none;color:var(--text);display:block}
   .home-card:hover{transform:translateY(-3px);box-shadow:0 8px 20px rgba(15,23,42,.1);border-color:var(--primary)}
   .home-card h4{margin:0 0 6px;font-size:15px}
   .home-card ul{margin:8px 0 0;padding-inline-start:18px;font-size:12.5px;color:var(--muted);line-height:1.9}
@@ -3119,9 +3119,9 @@ function teacherPage() {
 
       <div class="card tab-content" id="tab-home">
         <h3>🏠 صفحه اصلی</h3>
-        <p class="muted">به دستیار آموزشی معلم خوش آمدید — یک پنل یکپارچه برای مدیریت کلاس، آزمون‌سازی، دفتر مدیریت کلاسی و ابزارهای هوشمند آموزشی. برای شروع، روی هرکدام از بخش‌های زیر بزنید:</p>
+        <p class="muted">به دستیار آموزشی معلم خوش آمدید — یک پنل یکپارچه برای مدیریت کلاس، آزمون‌سازی، دفتر مدیریت کلاسی و ابزارهای هوشمند آموزشی. با کلیک روی هرکدام از بخش‌های زیر، همان بخش در یک تب جدید مرورگر باز می‌شود:</p>
         <div class="home-grid">
-          <div class="home-card" data-goto="examonline">
+          <a class="home-card" href="/teacher?tab=examonline" target="_blank" rel="noopener">
             <h4>🎓 آزمون آنلاین</h4>
             <ul>
               <li>👨‍🎓 دانش‌آموزان</li>
@@ -3129,23 +3129,23 @@ function teacherPage() {
               <li>✅ تصحیح و پاسخنامه‌ها</li>
               <li>📓 کاربرگ</li>
             </ul>
-          </div>
-          <div class="home-card" data-goto="examsheet">
+          </a>
+          <a class="home-card" href="/teacher?tab=examsheet" target="_blank" rel="noopener">
             <h4>🖨️ ساخت آزمون</h4>
             <ul><li>طراحی و چاپ برگه آزمون با خروجی Word و PDF</li></ul>
-          </div>
-          <div class="home-card" data-goto="schedule">
+          </a>
+          <a class="home-card" href="/teacher?tab=schedule" target="_blank" rel="noopener">
             <h4>📅 برنامه هفتگی</h4>
             <ul><li>ساخت و چاپ برنامه هفتگی کلاس</li></ul>
-          </div>
-          <div class="home-card" data-goto="tablesorg">
+          </a>
+          <a class="home-card" href="/teacher?tab=tablesorg" target="_blank" rel="noopener">
             <h4>📊 جدول‌ساز</h4>
             <ul>
               <li>📊 جدول‌ساز حرفه‌ای</li>
               <li>🏫 سازمان عملی</li>
             </ul>
-          </div>
-          <div class="home-card" data-goto="imgtools">
+          </a>
+          <a class="home-card" href="/teacher?tab=imgtools" target="_blank" rel="noopener">
             <h4>🖼️ ابزار عکس</h4>
             <ul>
               <li>📷 اسکنر</li>
@@ -3154,19 +3154,19 @@ function teacherPage() {
               <li>📄 PDF به عکس</li>
               <li>📝 PDF به Word</li>
             </ul>
-          </div>
-          <div class="home-card" data-goto="translateai">
+          </a>
+          <a class="home-card" href="/teacher?tab=translateai" target="_blank" rel="noopener">
             <h4>🌐🤖 ترجمه و هوش مصنوعی</h4>
             <ul>
               <li>🌐 ترجمه</li>
               <li>🤖 هوش مصنوعی</li>
             </ul>
-          </div>
-          <div class="home-card" data-goto="classroom">
+          </a>
+          <a class="home-card" href="/teacher?tab=classroom" target="_blank" rel="noopener">
             <h4>🖥️ کلاس آنلاین</h4>
             <ul><li>برگزاری کلاس آنلاین با تخته، چت و وبکم</li></ul>
-          </div>
-          <div class="home-card" data-goto="logbook">
+          </a>
+          <a class="home-card" href="/teacher?tab=logbook" target="_blank" rel="noopener">
             <h4>📔 دفتر مدیریت کلاسی</h4>
             <ul>
               <li>📊 بودجه‌بندی آموزشی، 👨‍🎓 لیست اسامی</li>
@@ -3174,11 +3174,11 @@ function teacherPage() {
               <li>🗣️ صورتجلسه، 🧑‍🏫 اطلاعات همکاران</li>
               <li>📅 برنامه هفتگی، 🏆 تقدیرنامه‌ساز</li>
             </ul>
-          </div>
-          <div class="home-card" data-goto="settings">
+          </a>
+          <a class="home-card" href="/teacher?tab=settings" target="_blank" rel="noopener">
             <h4>⚙️ تنظیمات</h4>
             <ul><li>تنظیمات حساب و پنل</li></ul>
-          </div>
+          </a>
         </div>
       </div>
 
@@ -4642,6 +4642,13 @@ function teacherScript() {
     document.getElementById('login').classList.add('hidden');
     document.getElementById('dash').classList.remove('hidden');
     loadStudents();loadQuestions();loadSchedule();
+    try{
+      var wantTab=new URLSearchParams(location.search).get('tab');
+      if(wantTab){
+        var target=document.querySelector('.tab[data-tab="'+wantTab+'"]');
+        if(target)target.click();
+      }
+    }catch(e){}
   }
 
   (function(){
@@ -4676,13 +4683,6 @@ function teacherScript() {
     if(t.dataset.tab==='schedule'){document.getElementById('btn-gen-schedule').click();if(typeof loadScheduleThemeIfNeeded==='function')loadScheduleThemeIfNeeded();if(typeof loadScheduleFontIfNeeded==='function')loadScheduleFontIfNeeded();}
     if(t.dataset.tab==='classroom'){renderClassLinks();setTimeout(function(){if(typeof clsResizeBoard==='function')clsResizeBoard();},50);}
     if(t.dataset.tab==='examsheet'){if(typeof loadExamSheetIfNeeded==='function')loadExamSheetIfNeeded();}
-  });
-
-  document.querySelectorAll('.home-card[data-goto]').forEach(function(card){
-    card.onclick=function(){
-      var target=document.querySelector('.tab[data-tab="'+card.dataset.goto+'"]');
-      if(target)target.click();
-    };
   });
 
   document.querySelectorAll('.subtab[data-subtab]').forEach(t=>t.onclick=()=>{
