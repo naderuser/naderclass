@@ -1213,6 +1213,19 @@ const SHARED_CSS = `
   .subtab{padding:8px 14px;border-radius:8px;background:#e2e8f0;cursor:pointer;font-weight:600;font-size:13px}
   [data-theme="dark"] .subtab{background:#334155;color:#e2e8f0}
   .subtab.active{background:var(--primary);color:#fff}
+  .tab-group{display:flex;flex-direction:column;gap:4px}
+  .tab-parent{display:flex;align-items:center;justify-content:space-between;gap:6px;padding:9px 12px;border-radius:10px;background:#e2e8f0;cursor:pointer;font-weight:600;font-size:13px;line-height:1.4;color:var(--text);user-select:none}
+  [data-theme="dark"] .tab-parent{background:#334155;color:#e2e8f0}
+  .tab-parent.open{background:#cbd5e1}
+  [data-theme="dark"] .tab-parent.open{background:#475569}
+  .tab-parent .tab-arrow{font-size:10px;transition:transform .2s ease;flex:0 0 auto}
+  .tab-parent.open .tab-arrow{transform:rotate(180deg)}
+  .tab-children{display:flex;flex-direction:column;gap:3px;max-height:0;overflow:hidden;transition:max-height .25s ease;padding-right:10px}
+  .tab-children.open{max-height:600px;margin-top:4px}
+  .tab-child{display:block;padding:7px 10px;border-radius:8px;background:#f1f5f9;font-size:12px;font-weight:600;text-decoration:none;color:var(--text)}
+  [data-theme="dark"] .tab-child{background:#1e293b;color:#e2e8f0}
+  .tab-child:hover{background:#e2e8f0}
+  [data-theme="dark"] .tab-child:hover{background:#334155}
   .hidden{display:none}
   .toast{position:fixed;bottom:18px;right:18px;background:#0f172a;color:#fff;padding:12px 18px;border-radius:10px;opacity:0;transition:.3s;z-index:50}
   .toast.show{opacity:1}
@@ -3104,14 +3117,69 @@ function teacherPage() {
       <div class="dash-flex">
       <div class="tabs" id="tabs-panel">
         <a class="tab active" data-tab="home" href="/teacher?tab=home">🏠 صفحه اصلی</a>
-        <a class="tab" data-tab="examonline" href="/teacher?tab=examonline" target="_blank" rel="noopener">🎓 آزمون آنلاین</a>
+
+        <div class="tab-group">
+          <div class="tab-parent" data-tab="examonline"><span>🎓 آزمون آنلاین</span><span class="tab-arrow">▾</span></div>
+          <div class="tab-children" id="tab-children-examonline">
+            <a class="tab-child" href="/teacher?tab=examonline&subtab=students" target="_blank" rel="noopener">👨‍🎓 دانش‌آموزان</a>
+            <a class="tab-child" href="/teacher?tab=examonline&subtab=questions" target="_blank" rel="noopener">📝 طراحی سوالات</a>
+            <a class="tab-child" href="/teacher?tab=examonline&subtab=answers" target="_blank" rel="noopener">✅ تصحیح و پاسخنامه‌ها</a>
+            <a class="tab-child" href="/teacher?tab=examonline&subtab=worksheet" target="_blank" rel="noopener">📓 کاربرگ</a>
+          </div>
+        </div>
+
         <a class="tab" data-tab="examsheet" href="/teacher?tab=examsheet" target="_blank" rel="noopener">🖨️ ساخت آزمون</a>
         <a class="tab" data-tab="schedule" href="/teacher?tab=schedule" target="_blank" rel="noopener">📅 برنامه هفتگی</a>
-        <a class="tab" data-tab="tablesorg" href="/teacher?tab=tablesorg" target="_blank" rel="noopener">📊 جدول‌ساز</a>
-        <a class="tab" data-tab="imgtools" href="/teacher?tab=imgtools" target="_blank" rel="noopener">🖼️ ابزار عکس</a>
-        <a class="tab" data-tab="translateai" href="/teacher?tab=translateai" target="_blank" rel="noopener">🌐🤖 ترجمه و هوش مصنوعی</a>
+
+        <div class="tab-group">
+          <div class="tab-parent" data-tab="tablesorg"><span>📊 جدول‌ساز</span><span class="tab-arrow">▾</span></div>
+          <div class="tab-children" id="tab-children-tablesorg">
+            <a class="tab-child" href="/teacher?tab=tablesorg&subtab=tables" target="_blank" rel="noopener">📊 جدول‌ساز حرفه‌ای</a>
+            <a class="tab-child" href="/teacher?tab=tablesorg&subtab=orgform" target="_blank" rel="noopener">🏫 سازمان عملی</a>
+          </div>
+        </div>
+
+        <div class="tab-group">
+          <div class="tab-parent" data-tab="imgtools"><span>🖼️ ابزار عکس</span><span class="tab-arrow">▾</span></div>
+          <div class="tab-children" id="tab-children-imgtools">
+            <a class="tab-child" href="/teacher?tab=imgtools&subtab=scan" target="_blank" rel="noopener">📷 اسکنر</a>
+            <a class="tab-child" href="/teacher?tab=imgtools&subtab=resize" target="_blank" rel="noopener">🗜️ کاهش حجم</a>
+            <a class="tab-child" href="/teacher?tab=imgtools&subtab=crop" target="_blank" rel="noopener">✂️ برش عکس</a>
+            <a class="tab-child" href="/teacher?tab=imgtools&subtab=pdf2img" target="_blank" rel="noopener">📄 PDF به عکس</a>
+            <a class="tab-child" href="/teacher?tab=imgtools&subtab=pdf2word" target="_blank" rel="noopener">📝 PDF به Word</a>
+          </div>
+        </div>
+
+        <div class="tab-group">
+          <div class="tab-parent" data-tab="translateai"><span>🌐🤖 ترجمه و هوش مصنوعی</span><span class="tab-arrow">▾</span></div>
+          <div class="tab-children" id="tab-children-translateai">
+            <a class="tab-child" href="/teacher?tab=translateai&subtab=translate" target="_blank" rel="noopener">🌐 ترجمه</a>
+            <a class="tab-child" href="/teacher?tab=translateai&subtab=ai" target="_blank" rel="noopener">🤖 هوش مصنوعی</a>
+          </div>
+        </div>
+
         <a class="tab" data-tab="classroom" href="/teacher?tab=classroom" target="_blank" rel="noopener">🖥️ کلاس آنلاین</a>
-        <a class="tab" data-tab="logbook" href="/teacher?tab=logbook" target="_blank" rel="noopener">📔 دفتر مدیریت کلاسی</a>
+
+        <div class="tab-group">
+          <div class="tab-parent" data-tab="logbook"><span>📔 دفتر مدیریت کلاسی</span><span class="tab-arrow">▾</span></div>
+          <div class="tab-children" id="tab-children-logbook">
+            <a class="tab-child" href="/teacher?tab=logbook&lb=pacing" target="_blank" rel="noopener">📊 جدول بودجه‌بندی آموزشی</a>
+            <a class="tab-child" href="/teacher?tab=logbook&lb=roster" target="_blank" rel="noopener">👨‍🎓 لیست اسامی دانش‌آموزان</a>
+            <a class="tab-child" href="/teacher?tab=logbook&lb=genderstats" target="_blank" rel="noopener">📊 آمار دانش‌آموزان</a>
+            <a class="tab-child" href="/teacher?tab=logbook&lb=passrate" target="_blank" rel="noopener">🎯 درصد قبولی دانش‌آموزان</a>
+            <a class="tab-child" href="/teacher?tab=logbook&lb=absence" target="_blank" rel="noopener">📋 ثبت غیبت دانش‌آموزان</a>
+            <a class="tab-child" href="/teacher?tab=logbook&lb=performance" target="_blank" rel="noopener">📈 ثبت سطوح عملکرد دانش‌آموز</a>
+            <a class="tab-child" href="/teacher?tab=logbook&lb=reportcard" target="_blank" rel="noopener">🎓 کارنامه‌ساز</a>
+            <a class="tab-child" href="/teacher?tab=logbook&lb=council" target="_blank" rel="noopener">🗣️ صورتجلسه شورای آموزشی اولیا</a>
+            <a class="tab-child" href="/teacher?tab=logbook&lb=meetings" target="_blank" rel="noopener">🤝 جلسات فردی با اولیا</a>
+            <a class="tab-child" href="/teacher?tab=logbook&lb=weekly" target="_blank" rel="noopener">📅 برنامه درسی هفتگی (چندپایه)</a>
+            <a class="tab-child" href="/teacher?tab=logbook&lb=weekly2" target="_blank" rel="noopener">🗓️ برنامه درسی هفتگی (تک‌پایه)</a>
+            <a class="tab-child" href="/teacher?tab=logbook&lb=staff" target="_blank" rel="noopener">🧑‍🏫 اطلاعات پرسنلی همکاران مدرسه</a>
+            <a class="tab-child" href="/teacher?tab=logbook&lb=minutes" target="_blank" rel="noopener">📝 صورتجلسه</a>
+            <a class="tab-child" href="/teacher?tab=logbook&lb=certificate" target="_blank" rel="noopener">🏆 تقدیرنامه‌ساز</a>
+          </div>
+        </div>
+
         <a class="tab" data-tab="settings" href="/teacher?tab=settings" target="_blank" rel="noopener">⚙️ تنظیمات</a>
         <div style="flex:1"></div>
         <div class="tab" id="btn-logout" style="background:#fee2e2;color:#991b1b">🚪 خروج</div>
@@ -4643,8 +4711,19 @@ function teacherScript() {
     document.getElementById('dash').classList.remove('hidden');
     loadStudents();loadQuestions();loadSchedule();
     try{
-      var wantTab=new URLSearchParams(location.search).get('tab');
+      var qs=new URLSearchParams(location.search);
+      var wantTab=qs.get('tab');
       if(wantTab)activateSection(wantTab);
+      var wantSubtab=qs.get('subtab');
+      if(wantSubtab){
+        var stEl=document.querySelector('.subtab[data-subtab="'+wantSubtab+'"]');
+        if(stEl)stEl.click();
+      }
+      var wantLb=qs.get('lb');
+      if(wantLb){
+        var lbEl=document.querySelector('.lb-menu-btn[data-lb="'+wantLb+'"]');
+        if(lbEl)lbEl.click();
+      }
     }catch(e){}
   }
 
@@ -4672,6 +4751,23 @@ function teacherScript() {
 
   document.querySelectorAll('.tab[data-tab]').forEach(function(t){
     t.addEventListener('click', function(){ closeMobileMenu(); });
+  });
+
+  document.querySelectorAll('.tab-child').forEach(function(t){
+    t.addEventListener('click', function(){ closeMobileMenu(); });
+  });
+
+  document.querySelectorAll('.tab-parent[data-tab]').forEach(function(p){
+    p.addEventListener('click', function(){
+      var kids=document.getElementById('tab-children-'+p.dataset.tab);
+      var wasOpen=p.classList.contains('open');
+      document.querySelectorAll('.tab-parent').forEach(function(x){x.classList.remove('open');});
+      document.querySelectorAll('.tab-children').forEach(function(x){x.classList.remove('open');});
+      if(!wasOpen){
+        p.classList.add('open');
+        if(kids)kids.classList.add('open');
+      }
+    });
   });
 
   function activateSection(tabName){
