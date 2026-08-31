@@ -299,33 +299,123 @@ export default {
   },
 };
 
-/* ------------------------- کلاس آنلاین (نسخه‌ی Deno Deploy، درون‌حافظه‌ای) -------------------------
- * نسخه‌ی قبلی این بخش روی Cloudflare Durable Object پیاده‌سازی شده بود. چون Deno Deploy
- * چنین چیزی ندارد، اینجا با یک شیء ساده‌ی درون‌حافظه‌ای (in-memory) جایگزین شده — برای یک
- * کلاس زنده کاملاً کافی است. تنها تفاوت: اگر سرویس ری‌استارت شود (مثلاً بعد از دیپلوی
- * جدید)، اتصال‌های زنده و تاریخچه‌ی تخته/چت آن لحظه از بین می‌رود؛ چون این داده‌ها موقتی
- * و فقط برای هماهنگی لحظه‌ای هستند، این افت اهمیتی ندارد.
+/* ------------------------- کلاس آنلاین (Durable Object) -------------------------
+ * برای فعال شدن این بخش باید در wrangler.toml موارد زیر اضافه شود:
+ *
+ * [[durable_objects.bindings]]
+ * name = "CLASSROOM"
+ * class_name = "ClassRoom"
+ *
+ * [[migrations]]
+ * tag = "v1"
+ * new_sqlite_classes = ["ClassRoom"]
+ *
+ * توجه: از مدتی پیش Durable Objects (نوع SQLite) روی پلن رایگان Workers هم در دسترس
+ * است و نیازی به پلن Paid نیست؛ فقط باید حتماً از "new_sqlite_classes" (نه
+ * "new_classes") در migrations استفاده شود تا با پلن رایگان سازگار باشد.
  * -------------------------------------------------------------------------------- */
 
-const classRoom = {
-  sessions: new Map(), // ws -> { role, id, name }
-  strokes: [], // تاریخچه تخته هوشمند برای سینک اعضای جدید
-  chat: [], // آخرین پیام‌های چت
-  boardBg: null, // صفحه‌ی PDF فعلی روی تخته (data URL) یا null
-  boardBgW: 900,
-  boardBgH: 560,
+async function handleClassroomSocket(req, env, url) {
+  const role = url.searchParams.get("role") === "teacher" ? "teacher" : "student";
+
+  // مسیر تشخیصی: بدون WebSocket، فقط بررسی می‌کند که آیا اتصال باید موفق باشد یا نه
+  // و در صورت خطا، دلیل دقیق را برمی‌گرداند (برای نمایش پیام مشخص به‌جای «قطع شد»).
+  if (url.searchParams.get("check") === "1") {
+    if (role === "teacher") {
+      if (!(await isTeacher(req, env))) return json({ ok: false, error: "برای کلاس آنلاین باید ابتدا در پنل معلم وارد شوید." }, 401);
+    } else {
+      const id = url.searchParams.get("id") || "";
+      const rec = id ? await env.EXAM_KV.get("student:" + id) : null;
+      if (!rec) return json({ ok: false, error: "این لینک کلاس آنلاین معتبر نیست. لینک را از پنل معلم دوباره کپی کنید." }, 404);
+    }
+    if (!env.CLASSROOM) {
+      return json({ ok: false, error: "کلاس آنلاین روی این ورکر فعال نشده است. باید در wrangler.toml بخش durable_objects و migrations برای ClassRoom اضافه و دوباره deploy شود." }, 500);
+    }
+    return json({ ok: true });
+  }
+
+  if (req.headers.get("upgrade") !== "websocket") {
+    return json({ ok: false, error: "این مسیر فقط برای اتصال WebSocket است" }, 400);
+  }
+
+  if (role === "teacher") {
+    if (!(await isTeacher(req, env))) return json({ ok: false, error: "دسترسی غیرمجاز" }, 401);
+  } else {
+    const id = url.searchParams.get("id") || "";
+    const rec = await env.EXAM_KV.get("student:" + id);
+    if (!rec) return json({ ok: false, error: "لینک نامعتبر است" }, 404);
+  }
+
+  if (!env.CLASSROOM) {
+    return json({ ok: false, error: "کلاس آنلاین روی این ورکر فعال نشده (Durable Object تنظیم نشده)" }, 500);
+  }
+
+  const roomId = env.CLASSROOM.idFromName("main");
+  const stub = env.CLASSROOM.get(roomId);
+  return stub.fetch(req);
+}
+
+export class ClassRoom {
+  constructor(state, env) {
+    this.state = state;
+    this.env = env;
+    this.sessions = new Map(); // ws -> { role, id, name }
+    this.strokes = []; // تاریخچه تخته هوشمند برای سینک اعضای جدید
+    this.chat = []; // آخرین پیام‌های چت
+    this.boardBg = null; // صفحه‌ی PDF فعلی روی تخته (data URL) یا null
+    this.boardBgW = 900;
+    this.boardBgH = 560;
+  }
+
+  async fetch(req) {
+    const url = new URL(req.url);
+    if (req.headers.get("upgrade") !== "websocket") {
+      return new Response("Expected WebSocket", { status: 400 });
+    }
+    const role = url.searchParams.get("role") === "teacher" ? "teacher" : "student";
+    const id = url.searchParams.get("id") || "";
+    const name = (url.searchParams.get("name") || (role === "teacher" ? "معلم" : "دانش‌آموز")).slice(0, 60);
+
+    const pair = new WebSocketPair();
+    const [client, server] = Object.values(pair);
+    server.accept();
+
+    const session = { role, id, name };
+    this.sessions.set(server, session);
+
+    server.send(JSON.stringify({
+      type: "init",
+      role,
+      strokes: this.strokes,
+      boardBg: this.boardBg,
+      boardBgW: this.boardBgW,
+      boardBgH: this.boardBgH,
+      chat: this.chat.slice(-50),
+      participants: this.participantList(),
+    }));
+
+    this.broadcast({ type: "presence", event: "join", role, name, participants: this.participantList() }, server);
+
+    server.addEventListener("message", (evt) => {
+      let msg;
+      try { msg = JSON.parse(evt.data); } catch { return; }
+      this.handleMessage(server, session, msg);
+    });
+
+    const onClose = () => {
+      if (!this.sessions.has(server)) return;
+      this.sessions.delete(server);
+      this.broadcast({ type: "presence", event: "leave", role: session.role, name: session.name, participants: this.participantList() });
+    };
+    server.addEventListener("close", onClose);
+    server.addEventListener("error", onClose);
+
+    return new Response(null, { status: 101, webSocket: client });
+  }
 
   participantList() {
     return Array.from(this.sessions.values()).map((s) => ({ role: s.role, name: s.name, id: s.id }));
-  },
-
-  broadcast(payload, exclude) {
-    const data = JSON.stringify(payload);
-    for (const ws of this.sessions.keys()) {
-      if (ws === exclude) continue;
-      try { ws.send(data); } catch { /* اتصال قطع شده - نادیده گرفته می‌شود */ }
-    }
-  },
+  }
 
   handleMessage(sender, session, msg) {
     if (!msg || typeof msg !== "object") return;
@@ -402,73 +492,15 @@ const classRoom = {
       this.broadcast({ type: "raise-hand", name: session.name });
       return;
     }
-  },
-};
+  }
 
-async function handleClassroomSocket(req, env, url) {
-  const role = url.searchParams.get("role") === "teacher" ? "teacher" : "student";
-
-  // مسیر تشخیصی: بدون WebSocket، فقط بررسی می‌کند که آیا اتصال باید موفق باشد یا نه
-  // و در صورت خطا، دلیل دقیق را برمی‌گرداند (برای نمایش پیام مشخص به‌جای «قطع شد»).
-  if (url.searchParams.get("check") === "1") {
-    if (role === "teacher") {
-      if (!(await isTeacher(req, env))) return json({ ok: false, error: "برای کلاس آنلاین باید ابتدا در پنل معلم وارد شوید." }, 401);
-    } else {
-      const id = url.searchParams.get("id") || "";
-      const rec = id ? await env.EXAM_KV.get("student:" + id) : null;
-      if (!rec) return json({ ok: false, error: "این لینک کلاس آنلاین معتبر نیست. لینک را از پنل معلم دوباره کپی کنید." }, 404);
+  broadcast(payload, exclude) {
+    const data = JSON.stringify(payload);
+    for (const ws of this.sessions.keys()) {
+      if (ws === exclude) continue;
+      try { ws.send(data); } catch { /* اتصال قطع شده - نادیده گرفته می‌شود */ }
     }
-    return json({ ok: true });
   }
-
-  if (req.headers.get("upgrade") !== "websocket") {
-    return json({ ok: false, error: "این مسیر فقط برای اتصال WebSocket است" }, 400);
-  }
-
-  if (role === "teacher") {
-    if (!(await isTeacher(req, env))) return json({ ok: false, error: "دسترسی غیرمجاز" }, 401);
-  } else {
-    const id = url.searchParams.get("id") || "";
-    const rec = await env.EXAM_KV.get("student:" + id);
-    if (!rec) return json({ ok: false, error: "لینک نامعتبر است" }, 404);
-  }
-
-  const id = url.searchParams.get("id") || "";
-  const name = (url.searchParams.get("name") || (role === "teacher" ? "معلم" : "دانش‌آموز")).slice(0, 60);
-  const session = { role, id, name };
-
-  const { socket, response } = Deno.upgradeWebSocket(req);
-
-  socket.addEventListener("open", () => {
-    classRoom.sessions.set(socket, session);
-    socket.send(JSON.stringify({
-      type: "init",
-      role,
-      strokes: classRoom.strokes,
-      boardBg: classRoom.boardBg,
-      boardBgW: classRoom.boardBgW,
-      boardBgH: classRoom.boardBgH,
-      chat: classRoom.chat.slice(-50),
-      participants: classRoom.participantList(),
-    }));
-    classRoom.broadcast({ type: "presence", event: "join", role, name, participants: classRoom.participantList() }, socket);
-  });
-
-  socket.addEventListener("message", (evt) => {
-    let msg;
-    try { msg = JSON.parse(evt.data); } catch { return; }
-    classRoom.handleMessage(socket, session, msg);
-  });
-
-  const onClose = () => {
-    if (!classRoom.sessions.has(socket)) return;
-    classRoom.sessions.delete(socket);
-    classRoom.broadcast({ type: "presence", event: "leave", role: session.role, name: session.name, participants: classRoom.participantList() });
-  };
-  socket.addEventListener("close", onClose);
-  socket.addEventListener("error", onClose);
-
-  return response;
 }
 
 /* ------------------------- API ------------------------- */
