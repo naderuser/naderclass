@@ -105,11 +105,67 @@ async function getTeacherHash(env) {
   return await env.EXAM_KV.get("teacher_pass");
 }
 
+// --- نشست ورود (session token) ---
+// به‌جای قرار دادن هش رمز عبور در کوکی (که هیچ‌وقت تغییر نمی‌کند و اگر لو برود
+// دسترسی دائمی می‌دهد)، یک توکن تصادفی و یک‌بارمصرف برای هر ورود ساخته می‌شود
+// و در KV با انقضای ۲۴ ساعته نگه‌داری می‌شود.
+const SESSION_TTL_SECONDS = 86400; // 24 ساعت
+
+function randomToken() {
+  return Array.from(crypto.getRandomValues(new Uint8Array(32)))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+}
+
+async function createSession(env) {
+  const token = randomToken();
+  await env.EXAM_KV.put("session:" + token, "1", { expirationTtl: SESSION_TTL_SECONDS });
+  return token;
+}
+
+async function destroySession(env, token) {
+  if (token) await env.EXAM_KV.delete("session:" + token);
+}
+
+function authCookie(token) {
+  return `t_auth=${token}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=${SESSION_TTL_SECONDS}`;
+}
+
+const CLEAR_AUTH_COOKIE = "t_auth=; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=0";
+
 async function isTeacher(req, env) {
   const stored = await getTeacherHash(env);
   if (!stored) return false;
   const cookies = parseCookies(req);
-  return Boolean(cookies.t_auth && cookies.t_auth === stored);
+  if (!cookies.t_auth) return false;
+  const session = await env.EXAM_KV.get("session:" + cookies.t_auth);
+  return Boolean(session);
+}
+
+// --- محدودسازی تلاش‌های ورود (rate limiting) ---
+// جلوگیری از حدس زدن رمز با تلاش‌های پیاپی: بعد از ۵ تلاش ناموفق از یک IP،
+// آن IP به مدت ۱۵ دقیقه از ورود مسدود می‌شود.
+const LOGIN_MAX_ATTEMPTS = 5;
+const LOGIN_LOCKOUT_SECONDS = 900; // ۱۵ دقیقه
+
+function clientIp(req) {
+  return req.headers.get("cf-connecting-ip") || req.headers.get("x-forwarded-for") || "unknown";
+}
+
+async function checkLoginRateLimit(env, ip) {
+  const raw = await env.EXAM_KV.get("loginfail:" + ip);
+  const count = raw ? parseInt(raw, 10) || 0 : 0;
+  return count < LOGIN_MAX_ATTEMPTS;
+}
+
+async function registerLoginFailure(env, ip) {
+  const raw = await env.EXAM_KV.get("loginfail:" + ip);
+  const count = (raw ? parseInt(raw, 10) || 0 : 0) + 1;
+  await env.EXAM_KV.put("loginfail:" + ip, String(count), { expirationTtl: LOGIN_LOCKOUT_SECONDS });
+}
+
+async function clearLoginFailures(env, ip) {
+  await env.EXAM_KV.delete("loginfail:" + ip);
 }
 
 async function getMeta(env) {
@@ -243,123 +299,33 @@ export default {
   },
 };
 
-/* ------------------------- کلاس آنلاین (Durable Object) -------------------------
- * برای فعال شدن این بخش باید در wrangler.toml موارد زیر اضافه شود:
- *
- * [[durable_objects.bindings]]
- * name = "CLASSROOM"
- * class_name = "ClassRoom"
- *
- * [[migrations]]
- * tag = "v1"
- * new_sqlite_classes = ["ClassRoom"]
- *
- * توجه: از مدتی پیش Durable Objects (نوع SQLite) روی پلن رایگان Workers هم در دسترس
- * است و نیازی به پلن Paid نیست؛ فقط باید حتماً از "new_sqlite_classes" (نه
- * "new_classes") در migrations استفاده شود تا با پلن رایگان سازگار باشد.
+/* ------------------------- کلاس آنلاین (نسخه‌ی Deno Deploy، درون‌حافظه‌ای) -------------------------
+ * نسخه‌ی قبلی این بخش روی Cloudflare Durable Object پیاده‌سازی شده بود. چون Deno Deploy
+ * چنین چیزی ندارد، اینجا با یک شیء ساده‌ی درون‌حافظه‌ای (in-memory) جایگزین شده — برای یک
+ * کلاس زنده کاملاً کافی است. تنها تفاوت: اگر سرویس ری‌استارت شود (مثلاً بعد از دیپلوی
+ * جدید)، اتصال‌های زنده و تاریخچه‌ی تخته/چت آن لحظه از بین می‌رود؛ چون این داده‌ها موقتی
+ * و فقط برای هماهنگی لحظه‌ای هستند، این افت اهمیتی ندارد.
  * -------------------------------------------------------------------------------- */
 
-async function handleClassroomSocket(req, env, url) {
-  const role = url.searchParams.get("role") === "teacher" ? "teacher" : "student";
-
-  // مسیر تشخیصی: بدون WebSocket، فقط بررسی می‌کند که آیا اتصال باید موفق باشد یا نه
-  // و در صورت خطا، دلیل دقیق را برمی‌گرداند (برای نمایش پیام مشخص به‌جای «قطع شد»).
-  if (url.searchParams.get("check") === "1") {
-    if (role === "teacher") {
-      if (!(await isTeacher(req, env))) return json({ ok: false, error: "برای کلاس آنلاین باید ابتدا در پنل معلم وارد شوید." }, 401);
-    } else {
-      const id = url.searchParams.get("id") || "";
-      const rec = id ? await env.EXAM_KV.get("student:" + id) : null;
-      if (!rec) return json({ ok: false, error: "این لینک کلاس آنلاین معتبر نیست. لینک را از پنل معلم دوباره کپی کنید." }, 404);
-    }
-    if (!env.CLASSROOM) {
-      return json({ ok: false, error: "کلاس آنلاین روی این ورکر فعال نشده است. باید در wrangler.toml بخش durable_objects و migrations برای ClassRoom اضافه و دوباره deploy شود." }, 500);
-    }
-    return json({ ok: true });
-  }
-
-  if (req.headers.get("upgrade") !== "websocket") {
-    return json({ ok: false, error: "این مسیر فقط برای اتصال WebSocket است" }, 400);
-  }
-
-  if (role === "teacher") {
-    if (!(await isTeacher(req, env))) return json({ ok: false, error: "دسترسی غیرمجاز" }, 401);
-  } else {
-    const id = url.searchParams.get("id") || "";
-    const rec = await env.EXAM_KV.get("student:" + id);
-    if (!rec) return json({ ok: false, error: "لینک نامعتبر است" }, 404);
-  }
-
-  if (!env.CLASSROOM) {
-    return json({ ok: false, error: "کلاس آنلاین روی این ورکر فعال نشده (Durable Object تنظیم نشده)" }, 500);
-  }
-
-  const roomId = env.CLASSROOM.idFromName("main");
-  const stub = env.CLASSROOM.get(roomId);
-  return stub.fetch(req);
-}
-
-export class ClassRoom {
-  constructor(state, env) {
-    this.state = state;
-    this.env = env;
-    this.sessions = new Map(); // ws -> { role, id, name }
-    this.strokes = []; // تاریخچه تخته هوشمند برای سینک اعضای جدید
-    this.chat = []; // آخرین پیام‌های چت
-    this.boardBg = null; // صفحه‌ی PDF فعلی روی تخته (data URL) یا null
-    this.boardBgW = 900;
-    this.boardBgH = 560;
-  }
-
-  async fetch(req) {
-    const url = new URL(req.url);
-    if (req.headers.get("upgrade") !== "websocket") {
-      return new Response("Expected WebSocket", { status: 400 });
-    }
-    const role = url.searchParams.get("role") === "teacher" ? "teacher" : "student";
-    const id = url.searchParams.get("id") || "";
-    const name = (url.searchParams.get("name") || (role === "teacher" ? "معلم" : "دانش‌آموز")).slice(0, 60);
-
-    const pair = new WebSocketPair();
-    const [client, server] = Object.values(pair);
-    server.accept();
-
-    const session = { role, id, name };
-    this.sessions.set(server, session);
-
-    server.send(JSON.stringify({
-      type: "init",
-      role,
-      strokes: this.strokes,
-      boardBg: this.boardBg,
-      boardBgW: this.boardBgW,
-      boardBgH: this.boardBgH,
-      chat: this.chat.slice(-50),
-      participants: this.participantList(),
-    }));
-
-    this.broadcast({ type: "presence", event: "join", role, name, participants: this.participantList() }, server);
-
-    server.addEventListener("message", (evt) => {
-      let msg;
-      try { msg = JSON.parse(evt.data); } catch { return; }
-      this.handleMessage(server, session, msg);
-    });
-
-    const onClose = () => {
-      if (!this.sessions.has(server)) return;
-      this.sessions.delete(server);
-      this.broadcast({ type: "presence", event: "leave", role: session.role, name: session.name, participants: this.participantList() });
-    };
-    server.addEventListener("close", onClose);
-    server.addEventListener("error", onClose);
-
-    return new Response(null, { status: 101, webSocket: client });
-  }
+const classRoom = {
+  sessions: new Map(), // ws -> { role, id, name }
+  strokes: [], // تاریخچه تخته هوشمند برای سینک اعضای جدید
+  chat: [], // آخرین پیام‌های چت
+  boardBg: null, // صفحه‌ی PDF فعلی روی تخته (data URL) یا null
+  boardBgW: 900,
+  boardBgH: 560,
 
   participantList() {
     return Array.from(this.sessions.values()).map((s) => ({ role: s.role, name: s.name, id: s.id }));
-  }
+  },
+
+  broadcast(payload, exclude) {
+    const data = JSON.stringify(payload);
+    for (const ws of this.sessions.keys()) {
+      if (ws === exclude) continue;
+      try { ws.send(data); } catch { /* اتصال قطع شده - نادیده گرفته می‌شود */ }
+    }
+  },
 
   handleMessage(sender, session, msg) {
     if (!msg || typeof msg !== "object") return;
@@ -436,15 +402,73 @@ export class ClassRoom {
       this.broadcast({ type: "raise-hand", name: session.name });
       return;
     }
+  },
+};
+
+async function handleClassroomSocket(req, env, url) {
+  const role = url.searchParams.get("role") === "teacher" ? "teacher" : "student";
+
+  // مسیر تشخیصی: بدون WebSocket، فقط بررسی می‌کند که آیا اتصال باید موفق باشد یا نه
+  // و در صورت خطا، دلیل دقیق را برمی‌گرداند (برای نمایش پیام مشخص به‌جای «قطع شد»).
+  if (url.searchParams.get("check") === "1") {
+    if (role === "teacher") {
+      if (!(await isTeacher(req, env))) return json({ ok: false, error: "برای کلاس آنلاین باید ابتدا در پنل معلم وارد شوید." }, 401);
+    } else {
+      const id = url.searchParams.get("id") || "";
+      const rec = id ? await env.EXAM_KV.get("student:" + id) : null;
+      if (!rec) return json({ ok: false, error: "این لینک کلاس آنلاین معتبر نیست. لینک را از پنل معلم دوباره کپی کنید." }, 404);
+    }
+    return json({ ok: true });
   }
 
-  broadcast(payload, exclude) {
-    const data = JSON.stringify(payload);
-    for (const ws of this.sessions.keys()) {
-      if (ws === exclude) continue;
-      try { ws.send(data); } catch { /* اتصال قطع شده - نادیده گرفته می‌شود */ }
-    }
+  if (req.headers.get("upgrade") !== "websocket") {
+    return json({ ok: false, error: "این مسیر فقط برای اتصال WebSocket است" }, 400);
   }
+
+  if (role === "teacher") {
+    if (!(await isTeacher(req, env))) return json({ ok: false, error: "دسترسی غیرمجاز" }, 401);
+  } else {
+    const id = url.searchParams.get("id") || "";
+    const rec = await env.EXAM_KV.get("student:" + id);
+    if (!rec) return json({ ok: false, error: "لینک نامعتبر است" }, 404);
+  }
+
+  const id = url.searchParams.get("id") || "";
+  const name = (url.searchParams.get("name") || (role === "teacher" ? "معلم" : "دانش‌آموز")).slice(0, 60);
+  const session = { role, id, name };
+
+  const { socket, response } = Deno.upgradeWebSocket(req);
+
+  socket.addEventListener("open", () => {
+    classRoom.sessions.set(socket, session);
+    socket.send(JSON.stringify({
+      type: "init",
+      role,
+      strokes: classRoom.strokes,
+      boardBg: classRoom.boardBg,
+      boardBgW: classRoom.boardBgW,
+      boardBgH: classRoom.boardBgH,
+      chat: classRoom.chat.slice(-50),
+      participants: classRoom.participantList(),
+    }));
+    classRoom.broadcast({ type: "presence", event: "join", role, name, participants: classRoom.participantList() }, socket);
+  });
+
+  socket.addEventListener("message", (evt) => {
+    let msg;
+    try { msg = JSON.parse(evt.data); } catch { return; }
+    classRoom.handleMessage(socket, session, msg);
+  });
+
+  const onClose = () => {
+    if (!classRoom.sessions.has(socket)) return;
+    classRoom.sessions.delete(socket);
+    classRoom.broadcast({ type: "presence", event: "leave", role: session.role, name: session.name, participants: classRoom.participantList() });
+  };
+  socket.addEventListener("close", onClose);
+  socket.addEventListener("error", onClose);
+
+  return response;
 }
 
 /* ------------------------- API ------------------------- */
@@ -454,6 +478,7 @@ async function handleApi(req, env, url, path) {
 
   /* --- تشخیصی موقت: بررسی وجود کلید Gemini (بدون افشای مقدار) --- */
   if (path === "/api/debug/env-check" && method === "GET") {
+    if (!(await isTeacher(req, env))) return json({ ok: false, error: "دسترسی غیرمجاز" }, 401);
     return json({
       hasGeminiKey: typeof env.GEMINI_API_KEY === "string" && env.GEMINI_API_KEY.length > 0,
       geminiKeyLength: env.GEMINI_API_KEY ? env.GEMINI_API_KEY.length : 0,
@@ -462,23 +487,34 @@ async function handleApi(req, env, url, path) {
 
   /* --- معلم: ورود/خروج --- */
   if (path === "/api/teacher/login" && method === "POST") {
+    const ip = clientIp(req);
+    if (!(await checkLoginRateLimit(env, ip))) {
+      return json({ ok: false, error: "تعداد تلاش‌های ناموفق زیاد بوده است. لطفاً ۱۵ دقیقه دیگر دوباره تلاش کنید." }, 429);
+    }
     const body = await req.json().catch(() => ({}));
     const pass = String(body.password || "");
     const stored = await getTeacherHash(env);
-    const cookieFor = (h) => `t_auth=${h}; Path=/; HttpOnly; SameSite=Lax; Max-Age=86400`;
     if (!stored) {
-      if (pass.length < 4) return json({ ok: false, error: "رمز باید حداقل ۴ کاراکتر باشد" }, 400);
+      if (pass.length < 8) return json({ ok: false, error: "رمز باید حداقل ۸ کاراکتر باشد" }, 400);
       const hash = await sha256(pass);
       await env.EXAM_KV.put("teacher_pass", hash);
-      return json({ ok: true, created: true }, 200, { "set-cookie": cookieFor(hash) });
+      const token = await createSession(env);
+      return json({ ok: true, created: true }, 200, { "set-cookie": authCookie(token) });
     }
     const hash = await sha256(pass);
-    if (hash === stored) return json({ ok: true }, 200, { "set-cookie": cookieFor(hash) });
+    if (hash === stored) {
+      await clearLoginFailures(env, ip);
+      const token = await createSession(env);
+      return json({ ok: true }, 200, { "set-cookie": authCookie(token) });
+    }
+    await registerLoginFailure(env, ip);
     return json({ ok: false, error: "رمز عبور اشتباه است" }, 401);
   }
 
   if (path === "/api/teacher/logout" && method === "POST") {
-    return json({ ok: true }, 200, { "set-cookie": "t_auth=; Path=/; Max-Age=0" });
+    const cookies = parseCookies(req);
+    await destroySession(env, cookies.t_auth);
+    return json({ ok: true }, 200, { "set-cookie": CLEAR_AUTH_COOKIE });
   }
 
   if (path === "/api/teacher/state" && method === "GET") {
@@ -633,10 +669,11 @@ async function handleApi(req, env, url, path) {
     if (path === "/api/teacher/password" && method === "POST") {
       const body = await req.json().catch(() => ({}));
       const np = String(body.newPassword || "");
-      if (np.length < 4) return json({ ok: false, error: "رمز جدید باید حداقل ۴ کاراکتر باشد" }, 400);
+      if (np.length < 8) return json({ ok: false, error: "رمز جدید باید حداقل ۸ کاراکتر باشد" }, 400);
       const hash = await sha256(np);
       await env.EXAM_KV.put("teacher_pass", hash);
-      return json({ ok: true }, 200, { "set-cookie": `t_auth=${hash}; Path=/; HttpOnly; SameSite=Lax; Max-Age=86400` });
+      const token = await createSession(env);
+      return json({ ok: true }, 200, { "set-cookie": authCookie(token) });
     }
 
     if (path === "/api/teacher/schedule" && method === "GET") {
@@ -917,6 +954,95 @@ async function handleApi(req, env, url, path) {
         return json({ error: "Error: " + e.message }, 500);
       }
     }
+
+    /* --- هوش مصنوعی: پیشنهاد سوال آزمون --- */
+    if (path === "/api/teacher/ai/suggest-questions" && method === "POST") {
+      const body = await req.json().catch(() => ({}));
+      const topic = String(body.topic || "").slice(0, 300);
+      const count = Math.min(Math.max(parseInt(body.count, 10) || 5, 1), 10);
+      const allowedTypes = ["descriptive", "multiple", "truefalse", "short"];
+      const types = Array.isArray(body.types) && body.types.length
+        ? body.types.filter((t) => allowedTypes.includes(t))
+        : ["multiple"];
+      const difficulty = ["easy", "medium", "hard"].includes(body.difficulty) ? body.difficulty : "medium";
+      const gradeLabel = String(body.gradeLabel || "").slice(0, 100);
+
+      if (!topic) return json({ ok: false, error: "موضوع/درس را وارد کنید" }, 400);
+
+      const geminiKey = env.GEMINI_API_KEY;
+      if (!geminiKey) return json({ ok: false, error: "کلید GEMINI_API_KEY تنظیم نشده" }, 500);
+      const geminiModel = "gemini-3.6-flash";
+
+      const typeLabelsFa = { descriptive: "تشریحی", multiple: "چهارگزینه‌ای", truefalse: "صحیح/غلط", short: "کوتاه‌پاسخ" };
+      const typesFa = types.map((t) => typeLabelsFa[t]).join("، ");
+      const difficultyFa = difficulty === "easy" ? "آسان" : difficulty === "hard" ? "سخت" : "متوسط";
+
+      const prompt =
+        `تو یک معلم باتجربه‌ی ایرانی هستی. برای موضوع/درس زیر، ${count} سوال آزمون طراحی کن.\n` +
+        `موضوع: ${topic}\n` +
+        (gradeLabel ? `پایه/مقطع: ${gradeLabel}\n` : "") +
+        `سطح سختی: ${difficultyFa}\n` +
+        `نوع سوالات مجاز: ${typesFa}\n\n` +
+        `فقط یک آرایه‌ی JSON خروجی بده (بدون هیچ توضیح اضافه، بدون Markdown، بدون بک‌تیک) که هر عضو آن یکی از این ساختارهاست:\n` +
+        `- چهارگزینه‌ای: {"type":"multiple","text":"متن سوال","options":["گزینه۱","گزینه۲","گزینه۳","گزینه۴"],"correct":"0"} (correct اندیس صفرمبنای گزینه‌ی درست است)\n` +
+        `- صحیح/غلط: {"type":"truefalse","text":"متن سوال","correct":"true"} (correct فقط "true" یا "false")\n` +
+        `- کوتاه‌پاسخ: {"type":"short","text":"متن سوال","correct":"پاسخ نمونه کوتاه"}\n` +
+        `- تشریحی: {"type":"descriptive","text":"متن سوال"}\n` +
+        `همه‌ی متن‌ها باید فارسی و متناسب با پایه‌ی تحصیلی ذکرشده باشند.`;
+
+      try {
+        const aiRes = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/${geminiModel}:generateContent?key=${geminiKey}`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              contents: [{ role: "user", parts: [{ text: prompt }] }],
+              generationConfig: { maxOutputTokens: 2048, responseMimeType: "application/json" },
+            }),
+          }
+        );
+        if (!aiRes.ok) {
+          const errText = await aiRes.text();
+          return json({ ok: false, error: "Gemini: " + errText }, aiRes.status);
+        }
+        const aiData = await aiRes.json();
+        let outText = aiData.candidates?.[0]?.content?.parts?.map((p) => p.text || "").join("") || "";
+        outText = outText.trim().replace(/^```json\s*/i, "").replace(/^```\s*/, "").replace(/```\s*$/, "");
+
+        let parsed;
+        try {
+          parsed = JSON.parse(outText);
+        } catch {
+          return json({ ok: false, error: "پاسخ هوش مصنوعی قابل تجزیه نبود؛ دوباره تلاش کنید." }, 502);
+        }
+        if (!Array.isArray(parsed)) {
+          return json({ ok: false, error: "قالب پاسخ هوش مصنوعی نامعتبر بود." }, 502);
+        }
+
+        const cleaned = parsed
+          .slice(0, count)
+          .map((q) => {
+            const type = allowedTypes.includes(q.type) ? q.type : "descriptive";
+            const out = { type, text: String(q.text || "").slice(0, 2000) };
+            if (type === "multiple") {
+              out.options = Array.isArray(q.options) ? q.options.slice(0, 4).map((o) => String(o || "").slice(0, 300)) : ["", "", "", ""];
+              while (out.options.length < 4) out.options.push("");
+              out.correct = ["0", "1", "2", "3"].includes(String(q.correct)) ? String(q.correct) : "0";
+            } else if (type === "truefalse") {
+              out.correct = String(q.correct) === "false" ? "false" : "true";
+            } else if (type === "short") {
+              out.correct = String(q.correct || "").slice(0, 300);
+            }
+            return out;
+          })
+          .filter((q) => q.text);
+
+        return json({ ok: true, questions: cleaned });
+      } catch (e) {
+        return json({ ok: false, error: "خطا: " + e.message }, 500);
+      }
+    }
   }
 
   return json({ ok: false, error: "مسیر یافت نشد" }, 404);
@@ -1127,14 +1253,14 @@ const SHARED_CSS = `
   @font-face{font-family:"BMitra";src:url(https://cdn.jsdelivr.net/gh/intuxicated/css-persian@master/fonts/BMitra.ttf);font-weight:bold}
   @font-face{font-family:"BTitr";src:url(https://cdn.jsdelivr.net/gh/intuxicated/css-persian@master/fonts/BTitrBold.ttf);font-weight:bold}
   @font-face{font-family:"BKoodak";src:url(https://cdn.jsdelivr.net/gh/intuxicated/css-persian@master/fonts/BKoodakBold.ttf);font-weight:bold}
-  :root{--bg:#F3F6F9;--card:#FFFFFF;--primary:#123A5C;--primary-2:#1F6E8C;--accent:#B8922E;--muted:#5B6B7C;--line:#DEE5EC;--danger:#B3261E;--text:#16212E;--soft:#EBF0F5;--soft-2:#DCE4EC;--success:#1B7A4B;--warning:#A0611A;--info:#1B5E82;--shadow:0 10px 28px rgba(18,32,48,.10);}
-  [data-theme="light"]{--bg:#F3F6F9;--card:#FFFFFF;--primary:#123A5C;--primary-2:#1F6E8C;--muted:#5B6B7C;--line:#DEE5EC;--text:#16212E;--soft:#EBF0F5;--soft-2:#DCE4EC;}
-  [data-theme="dark"]{--bg:#0B141E;--card:#101C29;--primary:#2E7A9E;--primary-2:#3C8CB0;--muted:#93A6B8;--line:#1E2E3F;--text:#E8EEF3;--soft:#152232;--soft-2:#1C2C3F;--shadow:0 14px 34px rgba(0,0,0,.45);}
+  :root{--bg:#F2F5F9;--card:#FFFFFF;--primary:#0E2A44;--primary-2:#2C7A96;--accent:#C0973A;--accent-2:#DFBD73;--muted:#5B6B7C;--line:#DEE5EC;--danger:#B3261E;--text:#16212E;--soft:#EBF0F5;--soft-2:#DCE4EC;--success:#1B7A4B;--warning:#A0611A;--info:#1B5E82;--shadow-sm:0 2px 8px rgba(14,34,53,.07);--shadow:0 14px 34px rgba(14,34,53,.11),0 2px 8px rgba(14,34,53,.05);--shadow-lg:0 24px 54px rgba(14,34,53,.16),0 4px 14px rgba(14,34,53,.08);}
+  [data-theme="light"]{--bg:#F2F5F9;--card:#FFFFFF;--primary:#0E2A44;--primary-2:#2C7A96;--muted:#5B6B7C;--line:#DEE5EC;--text:#16212E;--soft:#EBF0F5;--soft-2:#DCE4EC;}
+  [data-theme="dark"]{--bg:#0A121C;--card:#0F1A26;--primary:#3A8DB4;--primary-2:#4AA0C4;--accent:#D9B563;--accent-2:#E9CD8E;--muted:#93A6B8;--line:#1C2B3B;--text:#E9EFF4;--soft:#13202E;--soft-2:#1A2A3B;--shadow-sm:0 2px 8px rgba(0,0,0,.3);--shadow:0 16px 38px rgba(0,0,0,.42),0 2px 10px rgba(0,0,0,.24);--shadow-lg:0 26px 58px rgba(0,0,0,.52),0 4px 16px rgba(0,0,0,.3);}
   .theme-btn{padding:10px 20px;border:1px solid var(--line);border-radius:10px;background:var(--card);color:var(--text);font-size:14px;cursor:pointer;transition:all .15s ease}
   .theme-btn:hover,.theme-btn.active{background:var(--primary);color:#fff;border-color:var(--primary)}
-  .color-swatch{width:42px;height:42px;border-radius:10px;border:1.5px solid var(--line);box-shadow:0 2px 8px rgba(18,32,48,.14);cursor:pointer;transition:transform .15s,box-shadow .15s;padding:0}
+  .color-swatch{width:42px;height:42px;border-radius:10px;border:1.5px solid var(--line);box-shadow:0 2px 8px rgba(14,34,53,.14);cursor:pointer;transition:transform .15s,box-shadow .15s;padding:0}
   .color-swatch:hover{transform:translateY(-2px)}
-  .color-swatch.active{box-shadow:0 2px 8px rgba(18,32,48,.14),0 0 0 3px var(--primary)}
+  .color-swatch.active{box-shadow:0 2px 8px rgba(14,34,53,.14),0 0 0 3px var(--primary)}
   *{box-sizing:border-box}
   html{scroll-behavior:smooth}
   body{margin:0;min-height:100vh;font-family:'Vazirmatn',Tahoma,system-ui,sans-serif;color:var(--text);direction:rtl;transition:background .3s,color .3s;-webkit-font-smoothing:antialiased;
@@ -1146,8 +1272,8 @@ const SHARED_CSS = `
     background-attachment:fixed;
   }
   .wrap{max-width:1180px;margin:0 auto;padding:18px;position:relative}
-  .header{position:relative;background:linear-gradient(rgba(0,0,0,.22),rgba(0,0,0,.22)),linear-gradient(120deg,var(--primary),var(--primary-2));color:#fff;border:1px solid rgba(255,255,255,.14);border-radius:16px;padding:28px 22px;text-align:center;box-shadow:var(--shadow);}
-  .header::before{content:'';position:absolute;right:0;left:0;bottom:0;height:3px;background:linear-gradient(90deg,transparent,var(--accent),transparent);border-radius:0 0 16px 16px;pointer-events:none}
+  .header{position:relative;background:linear-gradient(rgba(0,0,0,.24),rgba(0,0,0,.24)),linear-gradient(125deg,var(--primary) 0%,var(--primary-2) 100%);color:#fff;border:1px solid rgba(255,255,255,.14);border-radius:16px;padding:28px 22px;text-align:center;box-shadow:var(--shadow-lg);}
+  .header::before{content:'';position:absolute;right:0;left:0;bottom:0;height:2px;background:linear-gradient(90deg,transparent,var(--accent-2) 45%,var(--accent) 55%,transparent);border-radius:0 0 16px 16px;pointer-events:none}
   .header::after{content:'';position:absolute;right:8%;left:8%;top:-26px;height:60px;background:radial-gradient(60% 100% at 50% 100%, color-mix(in srgb, var(--primary-2) 55%, transparent) 0%, transparent 75%);filter:blur(6px);pointer-events:none;z-index:-1}
   .header h1{position:relative;margin:4px 0;font-size:22px;font-weight:800;color:#fff;letter-spacing:.2px;text-shadow:0 1px 3px rgba(0,0,0,.4)}
   .header h2{position:relative;margin:4px 0;font-size:15px;font-weight:500;color:rgba(255,255,255,.92);text-shadow:0 1px 3px rgba(0,0,0,.4)}
@@ -1161,8 +1287,8 @@ const SHARED_CSS = `
   .th-designer .en{opacity:.85;font-weight:400}
   @media (max-width:600px){.th-topbar{justify-content:center}}
   .home-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px;margin-top:14px}
-  .home-card{border:1px solid var(--line);border-radius:18px;padding:16px;cursor:pointer;background:var(--card);transition:transform .15s,box-shadow .15s;text-align:right;text-decoration:none;color:var(--text);display:block;box-shadow:0 4px 14px rgba(18,32,48,.10)}
-  .home-card:hover{transform:translateY(-3px);box-shadow:0 6px 18px rgba(18,32,48,.10);border-color:var(--primary)}
+  .home-card{border:1px solid var(--line);border-radius:18px;padding:16px;cursor:pointer;background:var(--card);transition:transform .15s,box-shadow .15s;text-align:right;text-decoration:none;color:var(--text);display:block;box-shadow:var(--shadow-sm)}
+  .home-card:hover{transform:translateY(-3px);box-shadow:var(--shadow-lg);border-color:var(--primary)}
   .home-card h4{margin:0 0 6px;font-size:15px}
   .home-card ul{margin:8px 0 0;padding-inline-start:18px;font-size:12.5px;color:var(--muted);line-height:1.9}
   .card{background:linear-gradient(165deg, var(--card) 0%, var(--soft) 100%);border:1px solid var(--line);border-radius:20px;padding:20px;margin-top:16px;box-shadow:var(--shadow);transition:transform .15s ease}
@@ -1170,16 +1296,16 @@ const SHARED_CSS = `
   input,textarea,select{width:100%;padding:11px 12px;border:2px solid var(--line);border-radius:12px;font-family:inherit;font-size:15px;background:var(--card);color:var(--text);transition:border-color .15s ease}
   input:focus,textarea:focus,select:focus{outline:none;border-color:var(--primary)}
   textarea{min-height:90px;resize:vertical}
-  .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;background:var(--primary);color:#fff;border:none;padding:11px 22px;border-radius:14px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;text-decoration:none;transition:all .12s ease;box-shadow:0 4px 14px rgba(18,32,48,.16)}
-  .btn:hover{transform:translateY(-2px)}
-  .btn:active{transform:translateY(4px);box-shadow:0 1px 4px rgba(18,32,48,.14)}
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;background:linear-gradient(165deg,color-mix(in srgb, var(--primary) 100%, white 6%) 0%,var(--primary) 100%);color:#fff;border:none;padding:11px 22px;border-radius:14px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;text-decoration:none;transition:all .12s ease;box-shadow:0 4px 14px rgba(14,34,53,.18),inset 0 1px 0 rgba(255,255,255,.16)}
+  .btn:hover{transform:translateY(-2px);box-shadow:0 8px 20px rgba(14,34,53,.22),inset 0 1px 0 rgba(255,255,255,.16)}
+  .btn:active{transform:translateY(1px);box-shadow:0 1px 4px rgba(14,34,53,.14)}
   .btn.sec{background:var(--info)}
   .btn.gray{background:var(--card);border:1px solid var(--line);box-shadow:none;color:var(--text)}
   .btn.gray:hover{background:var(--soft);transform:none}
   .btn.gray.active{background:var(--primary);color:#fff;box-shadow:inset 0 0 0 2px rgba(255,255,255,.5)}
   .btn.danger{background:var(--danger)}
-  .btn.sm{padding:8px 14px;font-size:13px;border-radius:10px;box-shadow:0 3px 10px rgba(18,32,48,.16)}
-  .btn.sm:active{box-shadow:0 1px 4px rgba(18,32,48,.14)}
+  .btn.sm{padding:8px 14px;font-size:13px;border-radius:10px;box-shadow:0 3px 10px rgba(14,34,53,.16)}
+  .btn.sm:active{box-shadow:0 1px 4px rgba(14,34,53,.14)}
   .row{display:flex;gap:10px;flex-wrap:wrap}
   .row>*{flex:1;min-width:160px}
   .muted{color:var(--muted);font-size:13px}
@@ -1217,7 +1343,7 @@ const SHARED_CSS = `
   .tabs-overlay{display:none}
   @media (max-width:760px){
     .dash-flex{flex-direction:column}
-    .mobile-menu-btn{display:inline-flex;align-items:center;gap:6px;background:var(--primary);color:#fff;border:none;padding:10px 16px;border-radius:12px;font-weight:700;font-size:14px;cursor:pointer;margin:16px 0 0;box-shadow:0 3px 10px rgba(18,32,48,.16)}
+    .mobile-menu-btn{display:inline-flex;align-items:center;gap:6px;background:var(--primary);color:#fff;border:none;padding:10px 16px;border-radius:12px;font-weight:700;font-size:14px;cursor:pointer;margin:16px 0 0;box-shadow:0 3px 10px rgba(14,34,53,.16)}
     .tabs{position:fixed;top:0;right:0;height:100vh;width:78vw;max-width:280px;background:var(--card);border-left:2px solid var(--text);box-shadow:-6px 0 24px rgba(0,0,0,.25);z-index:301;flex-wrap:nowrap;padding:64px 14px 14px;transform:translateX(100%);transition:transform .25s ease;overflow-y:auto}
     .tabs.open{transform:translateX(0)}
     .tabs .tab{font-size:14px;padding:12px 14px}
@@ -1308,8 +1434,8 @@ const SHARED_CSS = `
 
   /* ---- دفتر مدیریت کلاسی ---- */
   .lb-menu-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px;margin-top:16px}
-  .lb-menu-btn{display:flex;flex-direction:column;align-items:center;gap:6px;padding:22px 14px;border-radius:18px;border:1px solid var(--line);background:var(--card);cursor:pointer;font-family:inherit;text-align:center;transition:transform .15s,box-shadow .15s;box-shadow:0 4px 14px rgba(18,32,48,.10)}
-  .lb-menu-btn:hover{transform:translateY(-2px);box-shadow:0 6px 18px rgba(18,32,48,.10);border-color:var(--primary)}
+  .lb-menu-btn{display:flex;flex-direction:column;align-items:center;gap:6px;padding:22px 14px;border-radius:18px;border:1px solid var(--line);background:var(--card);cursor:pointer;font-family:inherit;text-align:center;transition:transform .15s,box-shadow .15s;box-shadow:0 4px 14px rgba(14,34,53,.10)}
+  .lb-menu-btn:hover{transform:translateY(-2px);box-shadow:0 6px 18px rgba(14,34,53,.10);border-color:var(--primary)}
   
   .lb-menu-btn .lb-ico{font-size:32px}
   .lb-menu-btn .lb-t{font-weight:700;font-size:14px}
@@ -3271,6 +3397,7 @@ function teacherPage() {
           <div class="subtab" data-subtab="questions">📝 طراحی سوالات</div>
           <div class="subtab" data-subtab="answers">✅ تصحیح و پاسخنامه‌ها</div>
           <div class="subtab" data-subtab="worksheet">🧾 کاربرگ</div>
+          <div class="subtab" data-subtab="qbank">📚 بانک سوال</div>
         </div>
 
       <div class="subtab-content" id="tab-students">
@@ -3333,6 +3460,41 @@ function teacherPage() {
           <span>مدت زمان: <span id="duration-display">30</span> دقیقه</span>
         </div>
         <hr style="border:none;border-top:1px solid var(--line);margin:14px 0">
+
+        <div class="card" id="ai-suggest-box" style="margin-top:0">
+          <h4 style="margin-top:0">🤖 پیشنهاد سوال با هوش مصنوعی</h4>
+          <p class="muted" style="margin-top:0">موضوع درس را بنویسید تا چند سوال پیشنهادی دریافت کنید؛ هرکدام را که خواستید با یک کلیک به آزمون اضافه کنید.</p>
+          <div class="row">
+            <div style="flex:2">
+              <label>موضوع / درس</label>
+              <input id="ai-sq-topic" placeholder="مثال: فصل ۳ علوم - آب و هوا">
+            </div>
+            <div>
+              <label>تعداد سوال</label>
+              <input id="ai-sq-count" type="number" min="1" max="10" value="5">
+            </div>
+            <div>
+              <label>سطح سختی</label>
+              <select id="ai-sq-difficulty">
+                <option value="easy">آسان</option>
+                <option value="medium" selected>متوسط</option>
+                <option value="hard">سخت</option>
+              </select>
+            </div>
+          </div>
+          <label>نوع سوالات</label>
+          <div class="row" style="gap:14px">
+            <label style="display:flex;align-items:center;gap:6px;font-weight:600;flex:0 0 auto"><input type="checkbox" class="ai-sq-type" value="multiple" checked style="width:auto"> چهارگزینه‌ای</label>
+            <label style="display:flex;align-items:center;gap:6px;font-weight:600;flex:0 0 auto"><input type="checkbox" class="ai-sq-type" value="truefalse" style="width:auto"> صحیح/غلط</label>
+            <label style="display:flex;align-items:center;gap:6px;font-weight:600;flex:0 0 auto"><input type="checkbox" class="ai-sq-type" value="short" style="width:auto"> کوتاه‌پاسخ</label>
+            <label style="display:flex;align-items:center;gap:6px;font-weight:600;flex:0 0 auto"><input type="checkbox" class="ai-sq-type" value="descriptive" style="width:auto"> تشریحی</label>
+          </div>
+          <button class="btn" id="btn-ai-sq-generate" style="margin-top:12px">🤖 دریافت پیشنهاد سوال</button>
+          <div id="ai-sq-loading" class="hidden muted" style="margin-top:10px">⏳ در حال دریافت پیشنهاد از هوش مصنوعی...</div>
+          <div id="ai-sq-results" style="margin-top:10px"></div>
+        </div>
+
+        <hr style="border:none;border-top:1px solid var(--line);margin:14px 0">
         <h3>📋 سوالات</h3>
         <div id="q-list"></div>
         <div class="row" style="margin-top:12px">
@@ -3381,6 +3543,94 @@ function teacherPage() {
           <button class="btn gray sm" id="btn-refresh-ws" style="flex:0 0 auto;margin-top:20px">🔄 به‌روزرسانی</button>
         </div>
         <div id="worksheet-list" style="margin-top:14px"></div>
+      </div>
+
+      <div class="subtab-content hidden" id="tab-qbank">
+        <h3>📚 بانک سوال شخصی</h3>
+        <p class="muted">سوال‌های پرکاربردتان را اینجا ذخیره کنید تا هر بار لازم نباشد از نو تایپشان کنید؛ با یک کلیک به آزمون فعلی اضافه می‌شوند.</p>
+
+        <div class="card" style="margin-top:10px">
+          <h4 style="margin-top:0">➕ افزودن سوال جدید به بانک</h4>
+          <div class="row">
+            <div>
+              <label>نوع سوال</label>
+              <select id="qb-new-type" onchange="qbToggleFields()">
+                <option value="descriptive">تشریحی</option>
+                <option value="multiple">چهارگزینه‌ای</option>
+                <option value="truefalse">صحیح/غلط</option>
+                <option value="short">کوتاه‌پاسخ</option>
+              </select>
+            </div>
+            <div>
+              <label>درس</label>
+              <input id="qb-new-subject" placeholder="مثال: علوم">
+            </div>
+            <div>
+              <label>پایه</label>
+              <select id="qb-new-grade">
+                <option value="">— بدون پایه —</option>
+                <option value="0">پایه اول دبستان</option>
+                <option value="1">پایه دوم دبستان</option>
+                <option value="2">پایه سوم دبستان</option>
+                <option value="3">پایه چهارم دبستان</option>
+                <option value="4">پایه پنجم دبستان</option>
+                <option value="5">پایه ششم دبستان</option>
+              </select>
+            </div>
+            <div>
+              <label>سطح سختی</label>
+              <select id="qb-new-difficulty">
+                <option value="easy">آسان</option>
+                <option value="medium" selected>متوسط</option>
+                <option value="hard">سخت</option>
+              </select>
+            </div>
+          </div>
+          <label>متن سوال</label>
+          <textarea id="qb-new-text" placeholder="متن سوال را بنویسید..."></textarea>
+          <div id="qb-new-options-box" class="hidden">
+            <label>گزینه صحیح</label>
+            <select id="qb-new-correct-mc">
+              <option value="0">الف</option><option value="1">ب</option><option value="2">ج</option><option value="3">د</option>
+            </select>
+            <label>گزینه‌ها</label>
+            <div class="opt-row"><span>الف)</span><input type="text" id="qb-new-opt-0"></div>
+            <div class="opt-row"><span>ب)</span><input type="text" id="qb-new-opt-1"></div>
+            <div class="opt-row"><span>ج)</span><input type="text" id="qb-new-opt-2"></div>
+            <div class="opt-row"><span>د)</span><input type="text" id="qb-new-opt-3"></div>
+          </div>
+          <div id="qb-new-tf-box" class="hidden">
+            <label>پاسخ صحیح</label>
+            <select id="qb-new-correct-tf">
+              <option value="true">صحیح</option><option value="false">غلط</option>
+            </select>
+          </div>
+          <div id="qb-new-short-box" class="hidden">
+            <label>پاسخ نمونه (اختیاری)</label>
+            <input type="text" id="qb-new-correct-short">
+          </div>
+          <button class="btn" id="btn-qb-add" style="margin-top:12px">💾 ذخیره در بانک</button>
+        </div>
+
+        <div class="row" style="margin-top:18px;align-items:center;gap:10px">
+          <input id="qb-search" placeholder="🔍 جستجو در متن یا درس..." style="flex:2">
+          <select id="qb-filter-grade" style="flex:1">
+            <option value="">همه‌ی پایه‌ها</option>
+            <option value="0">پایه اول دبستان</option>
+            <option value="1">پایه دوم دبستان</option>
+            <option value="2">پایه سوم دبستان</option>
+            <option value="3">پایه چهارم دبستان</option>
+            <option value="4">پایه پنجم دبستان</option>
+            <option value="5">پایه ششم دبستان</option>
+          </select>
+          <select id="qb-filter-difficulty" style="flex:1">
+            <option value="">همه‌ی سطوح</option>
+            <option value="easy">آسان</option>
+            <option value="medium">متوسط</option>
+            <option value="hard">سخت</option>
+          </select>
+        </div>
+        <div id="qbank-list" style="margin-top:14px"></div>
       </div>
 
       </div>
@@ -4737,6 +4987,221 @@ function teacherScript() {
     }catch(e){return null;}
   }
 
+  // ===== بانک سوال شخصی =====
+  let QBANK=[];
+  async function loadQBank(){
+    const v=await lbLoad('qbank');
+    QBANK=Array.isArray(v)?v:[];
+    renderQBankList();
+  }
+  window.qbToggleFields=()=>{
+    const t=document.getElementById('qb-new-type').value;
+    document.getElementById('qb-new-options-box').classList.toggle('hidden',t!=='multiple');
+    document.getElementById('qb-new-tf-box').classList.toggle('hidden',t!=='truefalse');
+    document.getElementById('qb-new-short-box').classList.toggle('hidden',t!=='short');
+  };
+  function qbGradeLabel(g){
+    return {'0':'پایه اول','1':'پایه دوم','2':'پایه سوم','3':'پایه چهارم','4':'پایه پنجم','5':'پایه ششم'}[String(g)]||'';
+  }
+  function qbDifficultyLabel(d){
+    return {easy:'آسان',medium:'متوسط',hard:'سخت'}[d]||'';
+  }
+  function renderQBankList(){
+    const box=document.getElementById('qbank-list');
+    if(!box)return;
+    const search=(document.getElementById('qb-search').value||'').trim();
+    const fg=document.getElementById('qb-filter-grade').value;
+    const fd=document.getElementById('qb-filter-difficulty').value;
+    const filtered=QBANK.filter(q=>{
+      if(fg && String(q.grade)!==String(fg))return false;
+      if(fd && q.difficulty!==fd)return false;
+      if(search){
+        const hay=(q.text||'')+' '+(q.subject||'');
+        if(hay.indexOf(search)===-1)return false;
+      }
+      return true;
+    });
+    if(!filtered.length){
+      box.innerHTML='<p class="muted">سوالی در بانک پیدا نشد.</p>';
+      return;
+    }
+    box.innerHTML=filtered.map(q=>{
+      const tags=[q.subject?('📘 '+esc(q.subject)):'',qbGradeLabel(q.grade)?('🎓 '+qbGradeLabel(q.grade)):'',qbDifficultyLabel(q.difficulty)?('⭐ '+qbDifficultyLabel(q.difficulty)):''].filter(Boolean).join(' &nbsp; ');
+      return '<div class="q-block"><div class="qhead"><span class="badge">'+(TYPES[q.type]||q.type)+'</span>'+
+        '<span><button class="btn sm" onclick="qbankInsert(\''+q.id+'\')">➕ افزودن به آزمون</button> '+
+        '<button class="btn sm danger" onclick="qbankDelete(\''+q.id+'\')">🗑️ حذف</button></span></div>'+
+        '<div style="margin:6px 0">'+esc(q.text||'(بدون متن)')+'</div>'+
+        (tags?'<div class="muted" style="font-size:12px">'+tags+'</div>':'')+
+        '</div>';
+    }).join('');
+  }
+  window.qbankAdd=async()=>{
+    const type=document.getElementById('qb-new-type').value;
+    const text=document.getElementById('qb-new-text').value.trim();
+    if(!text){toast('❌ متن سوال را وارد کنید');return;}
+    const q={
+      id:uid(),
+      type,
+      text,
+      subject:document.getElementById('qb-new-subject').value.trim(),
+      grade:document.getElementById('qb-new-grade').value,
+      difficulty:document.getElementById('qb-new-difficulty').value,
+      options:[],
+      correct:''
+    };
+    if(type==='multiple'){
+      q.options=[0,1,2,3].map(i=>document.getElementById('qb-new-opt-'+i).value.trim());
+      q.correct=document.getElementById('qb-new-correct-mc').value;
+    }else if(type==='truefalse'){
+      q.correct=document.getElementById('qb-new-correct-tf').value;
+    }else if(type==='short'){
+      q.correct=document.getElementById('qb-new-correct-short').value.trim();
+    }
+    QBANK.push(q);
+    const ok=await lbSave('qbank',QBANK,true);
+    if(ok){
+      toast('✅ سوال به بانک اضافه شد');
+      document.getElementById('qb-new-text').value='';
+      document.getElementById('qb-new-subject').value='';
+      for(let i=0;i<4;i++){const el=document.getElementById('qb-new-opt-'+i);if(el)el.value='';}
+    }else{
+      QBANK.pop();
+      toast('❌ خطا در ذخیره');
+    }
+    renderQBankList();
+  };
+  window.qbankDelete=async(id)=>{
+    if(!confirm('این سوال از بانک حذف شود؟'))return;
+    const backup=QBANK;
+    QBANK=QBANK.filter(q=>q.id!==id);
+    const ok=await lbSave('qbank',QBANK,true);
+    if(!ok){QBANK=backup;toast('❌ خطا در حذف');}
+    renderQBankList();
+  };
+  window.qbankInsert=(id)=>{
+    const src=QBANK.find(q=>q.id===id);
+    if(!src)return;
+    QUESTIONS.push({
+      id:uid(),
+      type:src.type,
+      rich:src.type==='descriptive',
+      text:src.text,
+      options:src.type==='multiple'?[...(src.options||['','','',''])]:[],
+      correct:src.correct||(src.type==='multiple'?'0':(src.type==='truefalse'?'true':'')),
+      image:'',
+      weight:1
+    });
+    renderQ();
+    const st=document.querySelector('.subtab[data-subtab="questions"]');
+    if(st)st.click();
+    toast('✅ سوال به آزمون اضافه شد');
+  };
+  window.qbankSaveFromExam=(i)=>{
+    const q=QUESTIONS[i];
+    if(!q)return;
+    const st=document.querySelector('.subtab[data-subtab="qbank"]');
+    if(st)st.click();
+    document.getElementById('qb-new-type').value=q.type;
+    qbToggleFields();
+    document.getElementById('qb-new-text').value=q.text||'';
+    if(q.type==='multiple'){
+      document.getElementById('qb-new-correct-mc').value=q.correct||'0';
+      for(let oi=0;oi<4;oi++){const el=document.getElementById('qb-new-opt-'+oi);if(el)el.value=(q.options&&q.options[oi])||'';}
+    }else if(q.type==='truefalse'){
+      document.getElementById('qb-new-correct-tf').value=q.correct||'true';
+    }else if(q.type==='short'){
+      document.getElementById('qb-new-correct-short').value=q.correct||'';
+    }
+    document.getElementById('qb-new-text').scrollIntoView({behavior:'smooth',block:'center'});
+    toast('متن سوال به فرم افزودن بانک منتقل شد؛ درس/پایه/سختی را انتخاب و ذخیره کنید');
+  };
+
+  // ===== پیشنهاد سوال با هوش مصنوعی =====
+  let AI_SUGGESTED=[];
+  window.aiSqGenerate=async()=>{
+    const topic=document.getElementById('ai-sq-topic').value.trim();
+    if(!topic){toast('❌ موضوع درس را وارد کنید');return;}
+    const count=parseInt(document.getElementById('ai-sq-count').value,10)||5;
+    const difficulty=document.getElementById('ai-sq-difficulty').value;
+    const types=Array.from(document.querySelectorAll('.ai-sq-type:checked')).map(el=>el.value);
+    if(!types.length){toast('❌ حداقل یک نوع سوال را انتخاب کنید');return;}
+    const gradeLevelEl=document.getElementById('m-grade-level');
+    const gradeLabel=gradeLevelEl&&gradeLevelEl.selectedIndex>-1?gradeLevelEl.options[gradeLevelEl.selectedIndex].textContent:'';
+
+    document.getElementById('ai-sq-loading').classList.remove('hidden');
+    document.getElementById('ai-sq-results').innerHTML='';
+    document.getElementById('btn-ai-sq-generate').disabled=true;
+    try{
+      const d=await api('/api/teacher/ai/suggest-questions',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({topic,count,difficulty,types,gradeLabel})});
+      if(d.ok && Array.isArray(d.questions) && d.questions.length){
+        AI_SUGGESTED=d.questions;
+        renderAiSqResults();
+      }else{
+        toast(d.error||'پیشنهادی دریافت نشد، دوباره تلاش کنید');
+      }
+    }catch(e){
+      toast('❌ خطا در ارتباط با هوش مصنوعی');
+    }finally{
+      document.getElementById('ai-sq-loading').classList.add('hidden');
+      document.getElementById('btn-ai-sq-generate').disabled=false;
+    }
+  };
+  function renderAiSqResults(){
+    const box=document.getElementById('ai-sq-results');
+    if(!AI_SUGGESTED.length){box.innerHTML='';return;}
+    box.innerHTML='<p class="muted" style="margin-bottom:6px">'+AI_SUGGESTED.length+' سوال پیشنهاد شد؛ هرکدام را که می‌خواهید اضافه کنید:</p>'+
+      AI_SUGGESTED.map((q,i)=>{
+        let extra='';
+        if(q.type==='multiple'){
+          extra='<div class="muted" style="font-size:13px;margin-top:4px">'+(q.options||[]).map((o,oi)=>(String(q.correct)===String(oi)?'✅ ':'▫️ ')+esc(o)).join('<br>')+'</div>';
+        }else if(q.type==='truefalse'){
+          extra='<div class="muted" style="font-size:13px;margin-top:4px">پاسخ: '+(q.correct==='true'?'صحیح':'غلط')+'</div>';
+        }else if(q.type==='short' && q.correct){
+          extra='<div class="muted" style="font-size:13px;margin-top:4px">پاسخ نمونه: '+esc(q.correct)+'</div>';
+        }
+        return '<div class="q-block"><div class="qhead"><span class="badge">'+(TYPES[q.type]||q.type)+'</span>'+
+          '<span><button class="btn sm" onclick="aiSqInsert('+i+')">➕ افزودن به آزمون</button> '+
+          '<button class="btn sm gray" onclick="aiSqSaveToBank('+i+')">📚 افزودن به بانک</button></span></div>'+
+          '<div style="margin:6px 0">'+esc(q.text)+'</div>'+extra+
+          '</div>';
+      }).join('');
+  }
+  window.aiSqInsert=(i)=>{
+    const src=AI_SUGGESTED[i];
+    if(!src)return;
+    QUESTIONS.push({
+      id:uid(),
+      type:src.type,
+      rich:src.type==='descriptive',
+      text:src.text,
+      options:src.type==='multiple'?[...(src.options||['','','',''])]:[],
+      correct:src.correct||(src.type==='multiple'?'0':(src.type==='truefalse'?'true':'')),
+      image:'',
+      weight:1
+    });
+    renderQ();
+    toast('✅ سوال به آزمون اضافه شد');
+  };
+  window.aiSqSaveToBank=async(i)=>{
+    const src=AI_SUGGESTED[i];
+    if(!src)return;
+    const current=await lbLoad('qbank');
+    QBANK=Array.isArray(current)?current:[];
+    QBANK.push({
+      id:uid(),
+      type:src.type,
+      text:src.text,
+      subject:document.getElementById('ai-sq-topic').value.trim(),
+      grade:'',
+      difficulty:document.getElementById('ai-sq-difficulty').value,
+      options:src.type==='multiple'?[...(src.options||['','','',''])]:[],
+      correct:src.correct||''
+    });
+    const ok=await lbSave('qbank',QBANK,true);
+    if(ok)toast('✅ سوال به بانک اضافه شد');
+    else{QBANK.pop();toast('❌ خطا در ذخیره');}
+  };
+
   const COLOR_THEMES={
     academy:{light:{bg:'#F3F6F9',card:'#FFFFFF',primary:'#123A5C','primary-2':'#1F6E8C',accent:'#B8922E',muted:'#5B6B7C',line:'#DEE5EC',text:'#16212E',danger:'#B3261E',soft:'#EBF0F5','soft-2':'#DCE4EC'},
              dark:{bg:'#0B141E',card:'#101C29',primary:'#2E7A9E','primary-2':'#3C8CB0',accent:'#D4AF37',muted:'#93A6B8',line:'#1E2E3F',text:'#E8EEF3',danger:'#F2867E',soft:'#152232','soft-2':'#1C2C3F'}},
@@ -4787,7 +5252,7 @@ function teacherScript() {
     if(d.auth){showDash();return;}
     if(!d.configured){
       document.getElementById('login-head').textContent='تعریف رمز عبور (اولین ورود)';
-      document.getElementById('login-hint').textContent='این اولین ورود است؛ یک رمز دلخواه (حداقل ۴ کاراکتر) وارد کنید تا به‌عنوان رمز معلم ثبت شود.';
+      document.getElementById('login-hint').textContent='این اولین ورود است؛ یک رمز دلخواه (حداقل ۸ کاراکتر) وارد کنید تا به‌عنوان رمز معلم ثبت شود.';
       document.getElementById('btn-login').textContent='ثبت رمز و ورود';
     }
   }
@@ -4884,6 +5349,7 @@ function teacherScript() {
     if(t.dataset.subtab==='answers')loadAnswers();
     if(t.dataset.subtab==='worksheet')loadWorksheetList();
     if(t.dataset.subtab==='questions'){updateDurationDisplay();}
+    if(t.dataset.subtab==='qbank')loadQBank();
   });
 
   // ===== دانش‌آموزان =====
@@ -5212,6 +5678,7 @@ function teacherScript() {
       '<button class="btn sm gray" onclick="moveQ('+i+',-1)">▲</button> '+
       '<button class="btn sm gray" onclick="moveQ('+i+',1)">▼</button> '+
       '<button class="btn sm gray" onclick="dupQ('+i+')">📋 کپی</button> '+
+      '<button class="btn sm gray" onclick="qbankSaveFromExam('+i+')">📚 بانک</button> '+
       '<button class="btn sm danger" onclick="delQ('+i+')">حذف</button></span></div>'+body+'</div>';
   }
   
@@ -5391,6 +5858,12 @@ function teacherScript() {
     });
     renderQ();
   });
+
+  document.getElementById('btn-qb-add').onclick=qbankAdd;
+  document.getElementById('qb-search').oninput=renderQBankList;
+  document.getElementById('qb-filter-grade').onchange=renderQBankList;
+  document.getElementById('qb-filter-difficulty').onchange=renderQBankList;
+  document.getElementById('btn-ai-sq-generate').onclick=aiSqGenerate;
   
   document.getElementById('btn-save-q').onclick=async()=>{
     const duration = parseInt(document.getElementById('m-exam-duration').value);
