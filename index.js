@@ -3553,12 +3553,62 @@ function teacherPage() {
 
         <div class="row" style="margin-top:16px;align-items:center">
           <button class="btn" id="btn-es-addrow">➕ افزودن سؤال</button>
+          <button class="btn sec" id="btn-esai-suggest">🤖 پیشنهاد سوال با هوش مصنوعی</button>
           <button class="btn success" id="btn-es-save">💾 ذخیره</button>
           <button class="btn sec" id="btn-es-word">📄 دانلود Word</button>
           <button class="btn gray" id="btn-es-pdf">📕 دانلود PDF</button>
           <label style="display:flex;align-items:center;gap:6px;font-size:13px;font-weight:600">🔤 اندازه فونت:
             <input type="number" id="es-font-size" min="8" max="36" step="1" value="12" style="width:60px;padding:6px;border:1px solid #ddd;border-radius:6px">
           </label>
+        </div>
+      </div>
+
+      <div id="esai-modal-overlay" class="mt-modal-overlay hidden">
+        <div class="mt-modal" style="max-width:680px">
+          <div class="mt-modal-head">
+            <b>🤖 پیشنهاد سوال با هوش مصنوعی</b>
+            <button type="button" class="btn sm gray" onclick="closeEsAiSuggest()">✖ بستن</button>
+          </div>
+
+          <div id="esai-form-box">
+            <label>📚 موضوع / محتوای سوالات</label>
+            <textarea id="esai-topic" rows="3" placeholder="مثلاً: فصل سوم علوم پایه پنجم، گردش خون"></textarea>
+            <div class="row" style="margin-top:10px;flex-wrap:wrap;gap:10px">
+              <div style="flex:1 1 160px">
+                <label>🔢 تعداد سوال (۱ تا ۱۰)</label>
+                <input type="number" id="esai-count" min="1" max="10" value="5">
+              </div>
+              <div style="flex:1 1 200px">
+                <label>❓ سبک سوال</label>
+                <select id="esai-style">
+                  <option value="auto">خودکار (متنوع)</option>
+                  <option value="descriptive">تشریحی</option>
+                  <option value="multiple">چهارگزینه‌ای (متنی)</option>
+                  <option value="truefalse">صحیح / غلط</option>
+                  <option value="short">کوتاه‌پاسخ</option>
+                  <option value="fillblank">جای‌خالی</option>
+                </select>
+              </div>
+              <div style="flex:1 1 140px">
+                <label>⚖️ بارم پیشنهادی هر سؤال</label>
+                <input type="number" id="esai-mark" min="0" step="0.25" value="1">
+              </div>
+            </div>
+            <div class="row" style="margin-top:14px">
+              <button class="btn primary" id="btn-esai-generate">✨ دریافت پیشنهاد سوال</button>
+            </div>
+            <p class="muted" id="esai-status" style="margin-top:8px"></p>
+          </div>
+
+          <div id="esai-preview-wrap" class="hidden" style="margin-top:14px">
+            <h4 style="margin-bottom:8px">📋 پیش‌نمایش سوالات پیشنهادی — پیش از افزودن، تأیید یا ویرایش کنید</h4>
+            <div id="esai-preview-list"></div>
+            <div class="row" style="margin-top:12px;flex-wrap:wrap;gap:8px">
+              <button class="btn primary" id="btn-esai-add-selected">➕ افزودن سوالات انتخاب‌شده به آزمون</button>
+              <button class="btn gray sm" id="btn-esai-regenerate">🔁 تولید دوباره</button>
+              <button class="btn gray sm" onclick="closeEsAiSuggest()">✖ انصراف</button>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -7107,6 +7157,133 @@ function teacherScript() {
 
   esRenderRows();
   document.getElementById('btn-es-addrow').onclick=function(){esRows.push({q:'',mark:''});esRenderRows();};
+
+  /* ===== پیشنهاد سوال با هوش مصنوعی (برگه چاپی) ===== */
+  let ESAI_SUGGESTIONS=[];
+  window.openEsAiSuggest=function(){document.getElementById('esai-modal-overlay').classList.remove('hidden');};
+  window.closeEsAiSuggest=function(){document.getElementById('esai-modal-overlay').classList.add('hidden');};
+  document.getElementById('btn-esai-suggest').onclick=openEsAiSuggest;
+
+  function esaiExtractJsonArray(text){
+    const start=text.indexOf('[');
+    if(start===-1)return null;
+    let depth=0,inStr=false,escFlag=false;
+    for(let i=start;i<text.length;i++){
+      const ch=text[i];
+      if(inStr){
+        if(escFlag)escFlag=false;
+        else if(ch==='\\\\')escFlag=true;
+        else if(ch==='"')inStr=false;
+        continue;
+      }
+      if(ch==='"'){inStr=true;continue;}
+      if(ch==='[')depth++;
+      else if(ch===']'){
+        depth--;
+        if(depth===0)return text.slice(start,i+1);
+      }
+    }
+    return null;
+  }
+
+  async function esaiGenerate(){
+    const topic=document.getElementById('esai-topic').value.trim();
+    if(!topic){toast('لطفاً موضوع یا محتوای سوالات را بنویسید');return;}
+    let count=parseInt(document.getElementById('esai-count').value,10);
+    if(isNaN(count)||count<1)count=1;
+    if(count>10)count=10;
+    document.getElementById('esai-count').value=count;
+    const styleSel=document.getElementById('esai-style').value;
+    const defMark=document.getElementById('esai-mark').value||'1';
+
+    const btn=document.getElementById('btn-esai-generate');
+    const regenBtn=document.getElementById('btn-esai-regenerate');
+    const statusEl=document.getElementById('esai-status');
+    [btn,regenBtn].forEach(b=>{if(b){b.disabled=true;}});
+    statusEl.textContent='⏳ در حال دریافت پیشنهاد از هوش مصنوعی...';
+
+    const styleLabel={auto:'ترکیبی متنوع از انواع سوال',descriptive:'تشریحی',multiple:'چهارگزینه‌ای (گزینه‌ها به‌صورت متن داخل خود سؤال نوشته شوند، چون این برگه چاپی است)',truefalse:'صحیح/غلط',short:'کوتاه‌پاسخ',fillblank:'جای‌خالی'}[styleSel]||'تشریحی';
+
+    const sys='تو دستیار طراحی سوالات برگه‌ی چاپی آزمون برای معلم‌های ایرانی هستی. بر اساس موضوع داده‌شده، دقیقاً '+count+' سوال از سبک «'+styleLabel+'» طراحی کن. '+
+      'این سوالات قرار است مستقیم در یک برگه‌ی آزمون چاپی چاپ شوند، پس اگر سوال چهارگزینه‌ای یا جای‌خالی بود، گزینه‌ها یا خط جای‌خالی را داخل متن خود سؤال به‌صورت کامل بنویس (نه در فیلد جدا). '+
+      'خروجی را فقط و فقط به‌صورت یک آرایه‌ی JSON معتبر برگردان، بدون هیچ توضیح اضافه و بدون علامت‌های کد (بک‌تیک). '+
+      'هر عضو آرایه باید دقیقاً این شکل را داشته باشد: {"text":"متن کامل سؤال به فارسی","mark":"بارم پیشنهادی به‌صورت عدد یا رشته"}. اگر نمی‌دانی بارم چقدر باشد از عدد '+defMark+' استفاده کن.';
+
+    try{
+      const res=await fetch('/api/teacher/ai/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
+        messages:[{role:'system',content:sys},{role:'user',content:'موضوع/محتوای سوالات: '+topic}],
+        max_tokens: Math.min(8192, 1000 + count*450),
+        provider:getAiProvider()
+      })});
+      const data=await res.json();
+      if(!res.ok||data.error)throw new Error(data.error||'خطا در ارتباط با هوش مصنوعی');
+      let raw=String(data.content||'').trim();
+      const ESAI_BT=String.fromCharCode(96,96,96);
+      if(raw.slice(0,3+4).toLowerCase()===ESAI_BT+'json')raw=raw.slice(7);else if(raw.slice(0,3)===ESAI_BT)raw=raw.slice(3);
+      if(raw.slice(-3)===ESAI_BT)raw=raw.slice(0,-3);
+      raw=raw.trim();
+      const arrText=esaiExtractJsonArray(raw);
+      if(!arrText){
+        console.error('پاسخ خام هوش مصنوعی (بدون آرایه‌ی معتبر):',raw);
+        throw new Error('پاسخ هوش مصنوعی قابل پردازش نبود، دوباره تلاش کنید');
+      }
+      let parsed;
+      try{parsed=JSON.parse(arrText);}catch(e){
+        console.error('پاسخ خام هوش مصنوعی (JSON نامعتبر):',raw);
+        throw new Error('پاسخ هوش مصنوعی قابل پردازش نبود، دوباره تلاش کنید');
+      }
+      if(!Array.isArray(parsed)||!parsed.length)throw new Error('هوش مصنوعی سوالی برنگرداند، دوباره تلاش کنید');
+      ESAI_SUGGESTIONS=parsed.slice(0,count).map(it=>({
+        selected:true,
+        text:String(it.text||'').trim(),
+        mark:String(it.mark||defMark).trim()
+      }));
+      esaiRenderPreview();
+      document.getElementById('esai-preview-wrap').classList.remove('hidden');
+      statusEl.textContent='✅ '+ESAI_SUGGESTIONS.length+' سوال پیشنهاد شد. پیش از افزودن بررسی کنید.';
+    }catch(e){
+      statusEl.textContent='❌ '+e.message;
+      toast('خطا: '+e.message);
+    }
+    [btn,regenBtn].forEach(b=>{if(b){b.disabled=false;}});
+  }
+  document.getElementById('btn-esai-generate').onclick=esaiGenerate;
+  document.getElementById('btn-esai-regenerate').onclick=esaiGenerate;
+
+  function esaiRenderPreview(){
+    const box=document.getElementById('esai-preview-list');
+    box.innerHTML=ESAI_SUGGESTIONS.map(function(item,j){
+      return '<div class="q-block">'+
+        '<div class="qhead">'+
+          '<label style="display:flex;align-items:center;gap:6px;font-weight:700;cursor:pointer">'+
+            '<input type="checkbox" '+(item.selected?'checked':'')+' onchange="esaiToggleSel('+j+',this.checked)"> سوال '+(j+1)+
+          '</label>'+
+        '</div>'+
+        '<label>متن سؤال</label><textarea rows="2" oninput="esaiUpdField('+j+',\\'text\\',this.value)">'+esc(item.text)+'</textarea>'+
+        '<label>بارم</label><input type="text" style="max-width:100px" value="'+esc(item.mark)+'" oninput="esaiUpdField('+j+',\\'mark\\',this.value)">'+
+      '</div>';
+    }).join('');
+  }
+
+  window.esaiToggleSel=function(j,checked){ if(ESAI_SUGGESTIONS[j])ESAI_SUGGESTIONS[j].selected=checked; };
+  window.esaiUpdField=function(j,k,v){ if(ESAI_SUGGESTIONS[j])ESAI_SUGGESTIONS[j][k]=v; };
+
+  document.getElementById('btn-esai-add-selected').onclick=function(){
+    const chosen=ESAI_SUGGESTIONS.filter(function(it){return it.selected&&it.text.trim();});
+    if(!chosen.length){toast('هیچ سوالی برای افزودن انتخاب نشده است');return;}
+    if(esRows.length===1&&!esRows[0].q&&!esRows[0].mark)esRows=[];
+    chosen.forEach(function(it){
+      const htmlText=esc(it.text).replace(/\\n/g,'<br>');
+      esRows.push({q:htmlText,mark:it.mark||''});
+    });
+    esRenderRows();
+    toast(chosen.length+' سوال به آزمون افزوده شد ✅');
+    ESAI_SUGGESTIONS=[];
+    document.getElementById('esai-preview-wrap').classList.add('hidden');
+    document.getElementById('esai-preview-list').innerHTML='';
+    document.getElementById('esai-status').textContent='';
+    closeEsAiSuggest();
+  };
 
   function esApplyFontSize(v){
     esFontSize=parseInt(v,10)||12;
