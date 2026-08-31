@@ -4191,6 +4191,7 @@ function teacherPage() {
           <div id="lb-pacing-preview" class="lb-preview"></div>
           <div class="row" style="margin-top:12px">
             <button class="btn primary" id="btn-lbp-save">💾 ذخیره</button>
+            <button class="btn sec" id="btn-lbp-ai-fill">✨ پر کردن پیشنهادی با هوش مصنوعی (این پایه)</button>
             <button class="btn primary" id="btn-lb-pacing-word">📄 دانلود Word (این پایه)</button>
             <button class="btn sec" id="btn-lb-pacing-excel">📊 دانلود Excel (این پایه)</button>
             <button class="btn gray" id="btn-lb-pacing-pdf">🖨️ چاپ / دانلود PDF (این پایه)</button>
@@ -10124,6 +10125,40 @@ function teacherScript() {
       meta:{school:document.getElementById('lbp-school').value,teacher:document.getElementById('lbp-teacher').value,year:document.getElementById('lbp-year').value},
       data:LB_PACING_DATA[idx]||[]
     });
+  };
+  document.getElementById('btn-lbp-ai-fill').onclick=async function(){
+    var idx=lbSelectedGradeIdx();
+    var grade=LB_GRADES[idx];
+    var subjects=grade.subjects;
+    var btn=this;
+    var oldText=btn.textContent;
+    btn.disabled=true;btn.textContent='⏳ در حال تولید پیشنهاد...';
+    var sys='شما دستیار برنامه‌ریزی درسی معلمان دوره‌ی ابتدایی ایران هستید. برای پایه‌ی «'+grade.title+'» بر اساس دروس زیر به همین ترتیب، یک بودجه‌بندی آموزشی پیشنهادی برای سال تحصیلی تولید کن. '+
+      'دروس به ترتیب: '+subjects.join('، ')+'. '+
+      'برای هر درس دقیقاً ۱۶ بازه‌ی زمانی به این ترتیب وجود دارد: نیمه۱ و نیمه۲ از هر یک از ماه‌های مهر، آبان، آذر، دی (۸ بازه‌ی نوبت اول)، سپس نیمه۱ و نیمه۲ از هر یک از ماه‌های بهمن، اسفند، فروردین، اردیبهشت (۸ بازه‌ی نوبت دوم). '+
+      'برای هر بازه یک متن بسیار کوتاه (حداکثر ۸ تا ۱۰ کلمه) بنویس شامل شماره/نام درس یا فصل کتاب رسمی و در صورت لزوم صفحات تقریبی، طبق روال معمول و متعارف کتاب‌های درسی رسمی ایران برای این پایه. '+
+      'خروجی را فقط و فقط به‌صورت یک آرایه‌ی JSON معتبر برگردان که شامل یک زیرآرایه به ازای هر درس (دقیقاً به همان ترتیب دروس بالا) است و هر زیرآرایه دقیقاً ۱۶ رشته دارد، بدون هیچ توضیح اضافه، بدون Markdown و بدون علامت‌های کد (بک‌تیک).';
+    try{
+      var res=await fetch('/api/teacher/ai/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({messages:[{role:'system',content:sys},{role:'user',content:'بودجه‌بندی را طبق فرمت JSON خواسته‌شده تولید کن.'}],max_tokens:4096,provider:getAiProvider()})});
+      var data=await res.json();
+      if(data.error)throw new Error(data.error);
+      var raw=(data.content||'').trim().replace(/^\x60\x60\x60json/i,'').replace(/^\x60\x60\x60/,'').replace(/\x60\x60\x60$/,'').trim();
+      var parsed=JSON.parse(raw);
+      if(!Array.isArray(parsed))throw new Error('پاسخ نامعتبر بود');
+      var result=[];
+      for(var i=0;i<subjects.length;i++){
+        var row=Array.isArray(parsed[i])?parsed[i]:[];
+        var fixedRow=[];
+        for(var c=0;c<16;c++)fixedRow.push(typeof row[c]==='string'?row[c]:'');
+        result.push(fixedRow);
+      }
+      LB_PACING_DATA[idx]=result;
+      lbRenderPacing();
+      toast('پیشنهاد بودجه‌بندی «'+grade.title+'» با هوش مصنوعی پر شد؛ لطفاً بررسی و در صورت نیاز ویرایش کنید ✅');
+    }catch(e){
+      toast('خطا در تولید پیشنهاد: '+e.message);
+    }
+    btn.disabled=false;btn.textContent=oldText;
   };
   function lbPacingFullHtml(){
     var idx=lbSelectedGradeIdx();
