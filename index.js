@@ -3341,6 +3341,7 @@ function teacherPage() {
           <button class="btn gray sm" data-add="truefalse" style="flex:0 0 auto">➕ صحیح/غلط</button>
           <button class="btn gray sm" data-add="short" style="flex:0 0 auto">➕ کوتاه‌پاسخ</button>
           <button class="btn sec sm" onclick="distributeWeights()" style="flex:0 0 auto">⚖️ تقسیم مساوی وزن‌ها</button>
+          <button class="btn sec sm" id="btn-ai-suggest-q" style="flex:0 0 auto">🤖 پیشنهاد سوال با هوش مصنوعی</button>
         </div>
         <div style="margin-top:16px;display:flex;gap:10px;flex-wrap:wrap">
           <button class="btn" id="btn-save-q">💾 ذخیره سربرگ و سوالات</button>
@@ -3427,6 +3428,50 @@ function teacherPage() {
           <div class="row" style="margin-top:12px">
             <button class="btn primary" onclick="mtInsertIntoQuestion()">➕ درج در سوال</button>
             <button class="btn gray" onclick="document.getElementById('mt-canvas').innerHTML=''">🗑️ پاک کردن فرمول</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="aiq-modal-overlay" class="mt-modal-overlay hidden">
+        <div class="mt-modal" style="max-width:680px">
+          <div class="mt-modal-head">
+            <b>🤖 پیشنهاد سوال با هوش مصنوعی</b>
+            <button type="button" class="btn sm gray" onclick="closeAiQSuggest()">✖ بستن</button>
+          </div>
+
+          <div id="aiq-form-box">
+            <label>📚 موضوع / محتوای سوالات</label>
+            <textarea id="aiq-topic" rows="3" placeholder="مثلاً: جمع و تفریق اعداد دو رقمی برای پایه دوم دبستان"></textarea>
+            <div class="row" style="margin-top:10px;flex-wrap:wrap;gap:10px">
+              <div style="flex:1 1 160px">
+                <label>🔢 تعداد سوال (۱ تا ۱۰)</label>
+                <input type="number" id="aiq-count" min="1" max="10" value="3">
+              </div>
+              <div style="flex:1 1 200px">
+                <label>❓ نوع سوال</label>
+                <select id="aiq-type">
+                  <option value="auto">خودکار (متنوع)</option>
+                  <option value="descriptive">تشریحی</option>
+                  <option value="multiple">چهارگزینه‌ای</option>
+                  <option value="truefalse">صحیح / غلط</option>
+                  <option value="short">کوتاه‌پاسخ</option>
+                </select>
+              </div>
+            </div>
+            <div class="row" style="margin-top:14px">
+              <button class="btn primary" id="btn-aiq-generate">✨ دریافت پیشنهاد سوال</button>
+            </div>
+            <p class="muted" id="aiq-status" style="margin-top:8px"></p>
+          </div>
+
+          <div id="aiq-preview-wrap" class="hidden" style="margin-top:14px">
+            <h4 style="margin-bottom:8px">📋 پیش‌نمایش سوالات پیشنهادی — پیش از افزودن، تأیید یا ویرایش کنید</h4>
+            <div id="aiq-preview-list"></div>
+            <div class="row" style="margin-top:12px;flex-wrap:wrap;gap:8px">
+              <button class="btn primary" id="btn-aiq-add-selected">➕ افزودن سوالات انتخاب‌شده به آزمون</button>
+              <button class="btn gray sm" id="btn-aiq-regenerate">🔁 تولید دوباره</button>
+              <button class="btn gray sm" onclick="closeAiQSuggest()">✖ انصراف</button>
+            </div>
           </div>
         </div>
       </div>
@@ -5391,7 +5436,165 @@ function teacherScript() {
     });
     renderQ();
   });
-  
+
+  /* ===== پیشنهاد سوال با هوش مصنوعی ===== */
+  let AIQ_SUGGESTIONS=[];
+  const AIQ_TYPE_LABEL={descriptive:'تشریحی',multiple:'چهارگزینه‌ای',truefalse:'صحیح/غلط',short:'کوتاه‌پاسخ'};
+
+  window.openAiQSuggest=function(){
+    document.getElementById('aiq-modal-overlay').classList.remove('hidden');
+  };
+  window.closeAiQSuggest=function(){
+    document.getElementById('aiq-modal-overlay').classList.add('hidden');
+  };
+  document.getElementById('btn-ai-suggest-q').onclick=openAiQSuggest;
+
+  function aiqNormalize(item,forcedType){
+    const type=forcedType || (['descriptive','multiple','truefalse','short'].includes(item.type)?item.type:'descriptive');
+    const out={type:type,text:String(item.text||'').trim(),options:[],correct:''};
+    if(type==='multiple'){
+      const opts=Array.isArray(item.options)?item.options.slice(0,4):[];
+      while(opts.length<4)opts.push('');
+      out.options=opts.map(o=>String(o||''));
+      let ci=parseInt(item.correct,10);
+      if(isNaN(ci)||ci<0||ci>3)ci=0;
+      out.correct=String(ci);
+    }else if(type==='truefalse'){
+      out.correct=(String(item.correct).toLowerCase()==='false')?'false':'true';
+    }else if(type==='short'){
+      out.correct=String(item.correct||'');
+    }
+    return out;
+  }
+
+  async function aiqGenerate(){
+    const topic=document.getElementById('aiq-topic').value.trim();
+    if(!topic){toast('لطفاً موضوع یا محتوای سوالات را بنویسید');return;}
+    let count=parseInt(document.getElementById('aiq-count').value,10);
+    if(isNaN(count)||count<1)count=1;
+    if(count>10)count=10;
+    document.getElementById('aiq-count').value=count;
+    const typeSel=document.getElementById('aiq-type').value;
+
+    const btn=document.getElementById('btn-aiq-generate');
+    const regenBtn=document.getElementById('btn-aiq-regenerate');
+    const statusEl=document.getElementById('aiq-status');
+    [btn,regenBtn].forEach(b=>{if(b){b.disabled=true;}});
+    statusEl.textContent='⏳ در حال دریافت پیشنهاد از هوش مصنوعی...';
+
+    const typeInstruction = typeSel==='auto'
+      ? 'نوع هر سوال را خودت به‌صورت متنوع از میان این چهار نوع انتخاب کن: descriptive (تشریحی)، multiple (چهارگزینه‌ای)، truefalse (صحیح/غلط)، short (کوتاه‌پاسخ).'
+      : 'همه‌ی سوالات باید دقیقاً از نوع "'+typeSel+'" باشند.';
+
+    const sys='تو یک دستیار طراحی سوال آزمون برای معلم‌های ایرانی هستی. بر اساس موضوع داده‌شده توسط معلم، دقیقاً '+count+' سوال آزمون طراحی کن. '+typeInstruction+
+      ' خروجی را فقط و فقط به‌صورت یک آرایه‌ی JSON معتبر برگردان، بدون هیچ توضیح اضافه، بدون Markdown و بدون علامت ```. '+
+      'هر عضو آرایه باید این شکل را داشته باشد: {"type":"descriptive|multiple|truefalse|short","text":"متن سوال به فارسی","options":["گزینه۱","گزینه۲","گزینه۳","گزینه۴"],"correct":"..."}. '+
+      'فیلد options فقط برای نوع multiple لازم است (دقیقاً ۴ گزینه) و برای بقیه‌ی انواع می‌تواند آرایه‌ی خالی باشد. '+
+      'فیلد correct برای multiple باید عدد اندیس گزینه‌ی صحیح باشد (۰ تا ۳ به‌صورت رشته)، برای truefalse مقدار "true" یا "false"، برای short یک پاسخ نمونه‌ی کوتاه، و برای descriptive می‌تواند رشته‌ی خالی باشد.';
+
+    try{
+      const res=await fetch('/api/teacher/ai/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
+        messages:[{role:'system',content:sys},{role:'user',content:'موضوع/محتوای سوالات: '+topic}],
+        max_tokens:4096,
+        provider:getAiProvider()
+      })});
+      const data=await res.json();
+      if(!res.ok||data.error)throw new Error(data.error||'خطا در ارتباط با هوش مصنوعی');
+      let raw=String(data.content||'').trim();
+      raw=raw.replace(/^```json/i,'').replace(/^```/,'').replace(/```$/,'').trim();
+      const m=raw.match(/\[[\s\S]*\]/);
+      if(m)raw=m[0];
+      let parsed;
+      try{parsed=JSON.parse(raw);}catch(e){throw new Error('پاسخ هوش مصنوعی قابل پردازش نبود، دوباره تلاش کنید');}
+      if(!Array.isArray(parsed)||!parsed.length)throw new Error('هوش مصنوعی سوالی برنگرداند، دوباره تلاش کنید');
+      const forced=typeSel==='auto'?null:typeSel;
+      AIQ_SUGGESTIONS=parsed.slice(0,count).map(it=>Object.assign({selected:true},aiqNormalize(it,forced)));
+      aiqRenderPreview();
+      document.getElementById('aiq-preview-wrap').classList.remove('hidden');
+      statusEl.textContent='✅ '+AIQ_SUGGESTIONS.length+' سوال پیشنهاد شد. پیش از افزودن بررسی کنید.';
+    }catch(e){
+      statusEl.textContent='❌ '+e.message;
+      toast('خطا: '+e.message);
+    }
+    [btn,regenBtn].forEach(b=>{if(b){b.disabled=false;}});
+  }
+  document.getElementById('btn-aiq-generate').onclick=aiqGenerate;
+  document.getElementById('btn-aiq-regenerate').onclick=aiqGenerate;
+
+  function aiqQOptHtml(j,item){
+    let h='';
+    if(item.type==='multiple'){
+      h+='<label>گزینه صحیح</label><select onchange="aiqUpdField('+j+',\\'correct\\',this.value)">'+
+        [0,1,2,3].map(n=>'<option value="'+n+'" '+(String(item.correct)===String(n)?'selected':'')+'>'+['الف','ب','ج','د'][n]+'</option>').join('')+'</select>';
+      h+='<label>گزینه‌ها</label>';
+      for(let oi=0;oi<4;oi++){
+        h+='<div class="opt-row"><span>'+['الف','ب','ج','د'][oi]+')</span><input type="text" value="'+esc((item.options&&item.options[oi])||'')+'" oninput="aiqUpdOpt('+j+','+oi+',this.value)"></div>';
+      }
+    }else if(item.type==='truefalse'){
+      h+='<label>پاسخ صحیح</label><select onchange="aiqUpdField('+j+',\\'correct\\',this.value)">'+
+        '<option value="true" '+(String(item.correct)==='true'?'selected':'')+'>صحیح</option>'+
+        '<option value="false" '+(String(item.correct)==='false'?'selected':'')+'>غلط</option></select>';
+    }else if(item.type==='short'){
+      h+='<label>پاسخ نمونه (اختیاری)</label><input type="text" value="'+esc(item.correct||'')+'" oninput="aiqUpdField('+j+',\\'correct\\',this.value)">';
+    }
+    return h;
+  }
+
+  function aiqRenderPreview(){
+    const box=document.getElementById('aiq-preview-list');
+    box.innerHTML=AIQ_SUGGESTIONS.map((item,j)=>{
+      return '<div class="q-block">'+
+        '<div class="qhead">'+
+          '<label style="display:flex;align-items:center;gap:6px;font-weight:700;cursor:pointer">'+
+            '<input type="checkbox" '+(item.selected?'checked':'')+' onchange="aiqToggleSel('+j+',this.checked)"> سوال '+(j+1)+
+          '</label>'+
+          '<span><select onchange="aiqChangeType('+j+',this.value)">'+
+            Object.keys(AIQ_TYPE_LABEL).map(t=>'<option value="'+t+'" '+(item.type===t?'selected':'')+'>'+AIQ_TYPE_LABEL[t]+'</option>').join('')+
+          '</select></span>'+
+        '</div>'+
+        '<label>متن سوال</label><textarea oninput="aiqUpdField('+j+',\\'text\\',this.value)">'+esc(item.text)+'</textarea>'+
+        aiqQOptHtml(j,item)+
+      '</div>';
+    }).join('');
+  }
+
+  window.aiqToggleSel=function(j,checked){ if(AIQ_SUGGESTIONS[j])AIQ_SUGGESTIONS[j].selected=checked; };
+  window.aiqUpdField=function(j,k,v){ if(AIQ_SUGGESTIONS[j])AIQ_SUGGESTIONS[j][k]=v; };
+  window.aiqUpdOpt=function(j,oi,v){
+    if(!AIQ_SUGGESTIONS[j])return;
+    AIQ_SUGGESTIONS[j].options=AIQ_SUGGESTIONS[j].options||['','','',''];
+    AIQ_SUGGESTIONS[j].options[oi]=v;
+  };
+  window.aiqChangeType=function(j,newType){
+    if(!AIQ_SUGGESTIONS[j])return;
+    AIQ_SUGGESTIONS[j]=Object.assign({selected:AIQ_SUGGESTIONS[j].selected},aiqNormalize(AIQ_SUGGESTIONS[j],newType));
+    aiqRenderPreview();
+  };
+
+  document.getElementById('btn-aiq-add-selected').onclick=function(){
+    const chosen=AIQ_SUGGESTIONS.filter(it=>it.selected&&it.text.trim());
+    if(!chosen.length){toast('هیچ سوالی برای افزودن انتخاب نشده است');return;}
+    chosen.forEach(it=>{
+      QUESTIONS.push({
+        id: uid(),
+        type: it.type,
+        rich: it.type==='descriptive',
+        text: it.text,
+        options: it.type==='multiple' ? it.options.slice(0,4) : [],
+        correct: it.correct||'',
+        image: '',
+        weight: 1
+      });
+    });
+    renderQ();
+    toast(chosen.length+' سوال به آزمون افزوده شد ✅');
+    AIQ_SUGGESTIONS=[];
+    document.getElementById('aiq-preview-wrap').classList.add('hidden');
+    document.getElementById('aiq-preview-list').innerHTML='';
+    document.getElementById('aiq-status').textContent='';
+    closeAiQSuggest();
+  };
+
   document.getElementById('btn-save-q').onclick=async()=>{
     const duration = parseInt(document.getElementById('m-exam-duration').value);
     if(isNaN(duration) || duration < 1){
