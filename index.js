@@ -3150,62 +3150,62 @@ function teacherPage() {
         <div class="tab-group">
           <div class="tab-parent" data-tab="examonline"><span class="tab-ico">🎓</span><span class="tab-label">آزمون آنلاین</span><span class="tab-arrow">▾</span></div>
           <div class="tab-children" id="tab-children-examonline">
-            <a class="tab-child" href="/teacher?tab=examonline&subtab=students" target="_blank" rel="noopener">👥 دانش‌آموزان</a>
-            <a class="tab-child" href="/teacher?tab=examonline&subtab=questions" target="_blank" rel="noopener">📝 طراحی سوالات</a>
-            <a class="tab-child" href="/teacher?tab=examonline&subtab=answers" target="_blank" rel="noopener">✅ تصحیح و پاسخنامه‌ها</a>
-            <a class="tab-child" href="/teacher?tab=examonline&subtab=worksheet" target="_blank" rel="noopener">🧾 کاربرگ</a>
+            <a class="tab-child" href="/teacher?tab=examonline&subtab=students">👥 دانش‌آموزان</a>
+            <a class="tab-child" href="/teacher?tab=examonline&subtab=questions">📝 طراحی سوالات</a>
+            <a class="tab-child" href="/teacher?tab=examonline&subtab=answers">✅ تصحیح و پاسخنامه‌ها</a>
+            <a class="tab-child" href="/teacher?tab=examonline&subtab=worksheet">🧾 کاربرگ</a>
           </div>
         </div>
 
-        <a class="tab" data-tab="examsheet" href="/teacher?tab=examsheet" target="_blank" rel="noopener"><span class="tab-ico">🖨️</span><span class="tab-label">ساخت آزمون</span></a>
-        <a class="tab" data-tab="schedule" href="/teacher?tab=schedule" target="_blank" rel="noopener"><span class="tab-ico">📅</span><span class="tab-label">برنامه هفتگی</span></a>
+        <a class="tab" data-tab="examsheet" href="/teacher?tab=examsheet"><span class="tab-ico">🖨️</span><span class="tab-label">ساخت آزمون</span></a>
+        <a class="tab" data-tab="schedule" href="/teacher?tab=schedule"><span class="tab-ico">📅</span><span class="tab-label">برنامه هفتگی</span></a>
 
         <div class="tab-group">
           <div class="tab-parent" data-tab="tablesorg"><span class="tab-ico">📊</span><span class="tab-label">جدول‌ساز</span><span class="tab-arrow">▾</span></div>
           <div class="tab-children" id="tab-children-tablesorg">
-            <a class="tab-child" href="/teacher?tab=tablesorg&subtab=tables" target="_blank" rel="noopener">📊 جدول‌ساز حرفه‌ای</a>
-            <a class="tab-child" href="/teacher?tab=tablesorg&subtab=orgform" target="_blank" rel="noopener">🏫 سازمان عملی</a>
+            <a class="tab-child" href="/teacher?tab=tablesorg&subtab=tables">📊 جدول‌ساز حرفه‌ای</a>
+            <a class="tab-child" href="/teacher?tab=tablesorg&subtab=orgform">🏫 سازمان عملی</a>
           </div>
         </div>
 
         <div class="tab-group">
           <div class="tab-parent" data-tab="imgtools"><span class="tab-ico">🖼️</span><span class="tab-label">ابزار عکس</span><span class="tab-arrow">▾</span></div>
           <div class="tab-children" id="tab-children-imgtools">
-            <a class="tab-child" href="/teacher?tab=imgtools&subtab=scan" target="_blank" rel="noopener">📷 اسکنر</a>
-            <a class="tab-child" href="/teacher?tab=imgtools&subtab=resize" target="_blank" rel="noopener">🗜️ کاهش حجم</a>
-            <a class="tab-child" href="/teacher?tab=imgtools&subtab=crop" target="_blank" rel="noopener">✂️ برش عکس</a>
-            <a class="tab-child" href="/teacher?tab=imgtools&subtab=pdf2img" target="_blank" rel="noopener">📄 PDF به عکس</a>
-            <a class="tab-child" href="/teacher?tab=imgtools&subtab=pdf2word" target="_blank" rel="noopener">📘 PDF به Word</a>
+            <a class="tab-child" href="/teacher?tab=imgtools&subtab=scan">📷 اسکنر</a>
+            <a class="tab-child" href="/teacher?tab=imgtools&subtab=resize">🗜️ کاهش حجم</a>
+            <a class="tab-child" href="/teacher?tab=imgtools&subtab=crop">✂️ برش عکس</a>
+            <a class="tab-child" href="/teacher?tab=imgtools&subtab=pdf2img">📄 PDF به عکس</a>
+            <a class="tab-child" href="/teacher?tab=imgtools&subtab=pdf2word">📘 PDF به Word</a>
           </div>
         </div>
 
         <div class="tab-group">
           <div class="tab-parent" data-tab="translateai"><span class="tab-ico">🌐</span><span class="tab-label">ترجمه و هوش مصنوعی</span><span class="tab-arrow">▾</span></div>
           <div class="tab-children" id="tab-children-translateai">
-            <a class="tab-child" href="/teacher?tab=translateai&subtab=translate" target="_blank" rel="noopener">🌐 ترجمه</a>
-            <a class="tab-child" href="/teacher?tab=translateai&subtab=ai" target="_blank" rel="noopener">🤖 هوش مصنوعی</a>
+            <a class="tab-child" href="/teacher?tab=translateai&subtab=translate">🌐 ترجمه</a>
+            <a class="tab-child" href="/teacher?tab=translateai&subtab=ai">🤖 هوش مصنوعی</a>
           </div>
         </div>
 
-        <a class="tab" data-tab="classroom" href="/teacher?tab=classroom" target="_blank" rel="noopener"><span class="tab-ico">🖥️</span><span class="tab-label">کلاس آنلاین</span></a>
+        <a class="tab" data-tab="classroom" href="/teacher?tab=classroom"><span class="tab-ico">🖥️</span><span class="tab-label">کلاس آنلاین</span></a>
 
         <div class="tab-group">
           <div class="tab-parent" data-tab="logbook"><span class="tab-ico">📖</span><span class="tab-label">دفتر مدیریت کلاسی</span><span class="tab-arrow">▾</span></div>
           <div class="tab-children" id="tab-children-logbook">
-            <a class="tab-child" href="/teacher?tab=logbook&lb=pacing" target="_blank" rel="noopener">📈 جدول بودجه‌بندی آموزشی</a>
-            <a class="tab-child" href="/teacher?tab=logbook&lb=roster" target="_blank" rel="noopener">👥 لیست اسامی دانش‌آموزان</a>
-            <a class="tab-child" href="/teacher?tab=logbook&lb=genderstats" target="_blank" rel="noopener">🥧 آمار دانش‌آموزان</a>
-            <a class="tab-child" href="/teacher?tab=logbook&lb=passrate" target="_blank" rel="noopener">🎯 درصد قبولی دانش‌آموزان</a>
-            <a class="tab-child" href="/teacher?tab=logbook&lb=absence" target="_blank" rel="noopener">📋 ثبت غیبت دانش‌آموزان</a>
-            <a class="tab-child" href="/teacher?tab=logbook&lb=performance" target="_blank" rel="noopener">📶 ثبت سطوح عملکرد دانش‌آموز</a>
-            <a class="tab-child" href="/teacher?tab=logbook&lb=reportcard" target="_blank" rel="noopener">🎓 کارنامه‌ساز</a>
-            <a class="tab-child" href="/teacher?tab=logbook&lb=council" target="_blank" rel="noopener">💬 صورتجلسه شورای آموزشی اولیا</a>
-            <a class="tab-child" href="/teacher?tab=logbook&lb=meetings" target="_blank" rel="noopener">🤝 جلسات فردی با اولیا</a>
-            <a class="tab-child" href="/teacher?tab=logbook&lb=weekly" target="_blank" rel="noopener">📅 برنامه درسی هفتگی (چندپایه)</a>
-            <a class="tab-child" href="/teacher?tab=logbook&lb=weekly2" target="_blank" rel="noopener">📅 برنامه درسی هفتگی (تک‌پایه)</a>
-            <a class="tab-child" href="/teacher?tab=logbook&lb=staff" target="_blank" rel="noopener">🪪 اطلاعات پرسنلی همکاران مدرسه</a>
-            <a class="tab-child" href="/teacher?tab=logbook&lb=minutes" target="_blank" rel="noopener">🧾 صورتجلسه</a>
-            <a class="tab-child" href="/teacher?tab=logbook&lb=certificate" target="_blank" rel="noopener">🏆 تقدیرنامه‌ساز</a>
+            <a class="tab-child" href="/teacher?tab=logbook&lb=pacing">📈 جدول بودجه‌بندی آموزشی</a>
+            <a class="tab-child" href="/teacher?tab=logbook&lb=roster">👥 لیست اسامی دانش‌آموزان</a>
+            <a class="tab-child" href="/teacher?tab=logbook&lb=genderstats">🥧 آمار دانش‌آموزان</a>
+            <a class="tab-child" href="/teacher?tab=logbook&lb=passrate">🎯 درصد قبولی دانش‌آموزان</a>
+            <a class="tab-child" href="/teacher?tab=logbook&lb=absence">📋 ثبت غیبت دانش‌آموزان</a>
+            <a class="tab-child" href="/teacher?tab=logbook&lb=performance">📶 ثبت سطوح عملکرد دانش‌آموز</a>
+            <a class="tab-child" href="/teacher?tab=logbook&lb=reportcard">🎓 کارنامه‌ساز</a>
+            <a class="tab-child" href="/teacher?tab=logbook&lb=council">💬 صورتجلسه شورای آموزشی اولیا</a>
+            <a class="tab-child" href="/teacher?tab=logbook&lb=meetings">🤝 جلسات فردی با اولیا</a>
+            <a class="tab-child" href="/teacher?tab=logbook&lb=weekly">📅 برنامه درسی هفتگی (چندپایه)</a>
+            <a class="tab-child" href="/teacher?tab=logbook&lb=weekly2">📅 برنامه درسی هفتگی (تک‌پایه)</a>
+            <a class="tab-child" href="/teacher?tab=logbook&lb=staff">🪪 اطلاعات پرسنلی همکاران مدرسه</a>
+            <a class="tab-child" href="/teacher?tab=logbook&lb=minutes">🧾 صورتجلسه</a>
+            <a class="tab-child" href="/teacher?tab=logbook&lb=certificate">🏆 تقدیرنامه‌ساز</a>
           </div>
         </div>
 
@@ -3218,7 +3218,7 @@ function teacherPage() {
         <h3>🏠 صفحه اصلی</h3>
         <p class="muted">به دستیار آموزشی معلم خوش آمدید — یک پنل یکپارچه برای مدیریت کلاس، آزمون‌سازی، دفتر مدیریت کلاسی و ابزارهای هوشمند آموزشی. با کلیک روی هرکدام از بخش‌های زیر، همان بخش در یک تب جدید مرورگر باز می‌شود:</p>
         <div class="home-grid">
-          <a class="home-card" href="/teacher?tab=examonline" target="_blank" rel="noopener">
+          <a class="home-card" href="/teacher?tab=examonline">
             <h4>🎓 آزمون آنلاین</h4>
             <ul>
               <li>👥 دانش‌آموزان</li>
@@ -3227,22 +3227,22 @@ function teacherPage() {
               <li>🧾 کاربرگ</li>
             </ul>
           </a>
-          <a class="home-card" href="/teacher?tab=examsheet" target="_blank" rel="noopener">
+          <a class="home-card" href="/teacher?tab=examsheet">
             <h4>🖨️ ساخت آزمون</h4>
             <ul><li>طراحی و چاپ برگه آزمون با خروجی Word و PDF</li></ul>
           </a>
-          <a class="home-card" href="/teacher?tab=schedule" target="_blank" rel="noopener">
+          <a class="home-card" href="/teacher?tab=schedule">
             <h4>📅 برنامه هفتگی</h4>
             <ul><li>ساخت و چاپ برنامه هفتگی کلاس</li></ul>
           </a>
-          <a class="home-card" href="/teacher?tab=tablesorg" target="_blank" rel="noopener">
+          <a class="home-card" href="/teacher?tab=tablesorg">
             <h4>📊 جدول‌ساز</h4>
             <ul>
               <li>📊 جدول‌ساز حرفه‌ای</li>
               <li>🏫 سازمان عملی</li>
             </ul>
           </a>
-          <a class="home-card" href="/teacher?tab=imgtools" target="_blank" rel="noopener">
+          <a class="home-card" href="/teacher?tab=imgtools">
             <h4>🖼️ ابزار عکس</h4>
             <ul>
               <li>📷 اسکنر</li>
@@ -3252,18 +3252,18 @@ function teacherPage() {
               <li>📘 PDF به Word</li>
             </ul>
           </a>
-          <a class="home-card" href="/teacher?tab=translateai" target="_blank" rel="noopener">
+          <a class="home-card" href="/teacher?tab=translateai">
             <h4>🌐 ترجمه و هوش مصنوعی</h4>
             <ul>
               <li>🌐 ترجمه</li>
               <li>🤖 هوش مصنوعی</li>
             </ul>
           </a>
-          <a class="home-card" href="/teacher?tab=classroom" target="_blank" rel="noopener">
+          <a class="home-card" href="/teacher?tab=classroom">
             <h4>🖥️ کلاس آنلاین</h4>
             <ul><li>برگزاری کلاس آنلاین با تخته، چت و وبکم</li></ul>
           </a>
-          <a class="home-card" href="/teacher?tab=logbook" target="_blank" rel="noopener">
+          <a class="home-card" href="/teacher?tab=logbook">
             <h4>📖 دفتر مدیریت کلاسی</h4>
             <ul>
               <li>📊 بودجه‌بندی آموزشی، 👨‍🎓 لیست اسامی</li>
