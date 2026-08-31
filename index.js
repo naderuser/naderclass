@@ -5487,7 +5487,7 @@ function teacherScript() {
       : 'همه‌ی سوالات باید دقیقاً از نوع "'+typeSel+'" باشند.';
 
     const sys='تو یک دستیار طراحی سوال آزمون برای معلم‌های ایرانی هستی. بر اساس موضوع داده‌شده توسط معلم، دقیقاً '+count+' سوال آزمون طراحی کن. '+typeInstruction+
-      ' خروجی را فقط و فقط به‌صورت یک آرایه‌ی JSON معتبر برگردان، بدون هیچ توضیح اضافه، بدون Markdown و بدون علامت ```. '+
+      ' خروجی را فقط و فقط به‌صورت یک آرایه‌ی JSON معتبر برگردان، بدون هیچ توضیح اضافه، بدون Markdown و بدون علامت‌های کد (بک‌تیک). '+
       'هر عضو آرایه باید این شکل را داشته باشد: {"type":"descriptive|multiple|truefalse|short","text":"متن سوال به فارسی","options":["گزینه۱","گزینه۲","گزینه۳","گزینه۴"],"correct":"..."}. '+
       'فیلد options فقط برای نوع multiple لازم است (دقیقاً ۴ گزینه) و برای بقیه‌ی انواع می‌تواند آرایه‌ی خالی باشد. '+
       'فیلد correct برای multiple باید عدد اندیس گزینه‌ی صحیح باشد (۰ تا ۳ به‌صورت رشته)، برای truefalse مقدار "true" یا "false"، برای short یک پاسخ نمونه‌ی کوتاه، و برای descriptive می‌تواند رشته‌ی خالی باشد.';
@@ -5501,7 +5501,10 @@ function teacherScript() {
       const data=await res.json();
       if(!res.ok||data.error)throw new Error(data.error||'خطا در ارتباط با هوش مصنوعی');
       let raw=String(data.content||'').trim();
-      raw=raw.replace(/^```json/i,'').replace(/^```/,'').replace(/```$/,'').trim();
+      const AIQ_BT=String.fromCharCode(96,96,96);
+      if(raw.slice(0,3+4)===AIQ_BT+'json')raw=raw.slice(7);else if(raw.slice(0,3)===AIQ_BT)raw=raw.slice(3);
+      if(raw.slice(-3)===AIQ_BT)raw=raw.slice(0,-3);
+      raw=raw.trim();
       const m=raw.match(/\[[\s\S]*\]/);
       if(m)raw=m[0];
       let parsed;
