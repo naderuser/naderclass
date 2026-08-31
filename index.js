@@ -866,7 +866,7 @@ async function handleApi(req, env, url, path) {
     if (path === "/api/teacher/ai/chat" && method === "POST") {
       const body = await req.json().catch(() => ({}));
       const messages = body.messages || [];
-      const maxTokens = Math.min(Math.max(parseInt(body.max_tokens, 10) || 1024, 256), 4096);
+      const maxTokens = Math.min(Math.max(parseInt(body.max_tokens, 10) || 1024, 256), 8192);
 
       const geminiKey = env.GEMINI_API_KEY;
       if (!geminiKey) return json({ error: "کلید GEMINI_API_KEY تنظیم نشده" }, 500);
@@ -893,29 +893,45 @@ async function handleApi(req, env, url, path) {
         }
         if (parts.length) contents.push({ role, parts });
       }
-      try {
-        const aiRes = await fetch(
-          `https://generativelanguage.googleapis.com/v1beta/models/${geminiModel}:generateContent?key=${geminiKey}`,
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              contents,
-              systemInstruction: systemInstruction ? { parts: [{ text: systemInstruction }] } : undefined,
-              generationConfig: { maxOutputTokens: maxTokens }
-            })
+      // تلاش مجدد خودکار برای خطاهای موقت گوگل (503 = مدل شلوغ، 429 = محدودیت نرخ)
+      const RETRYABLE_STATUSES = [503, 429];
+      const MAX_ATTEMPTS = 3;
+      let lastErr = null, lastStatus = 500;
+      for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+        try {
+          const aiRes = await fetch(
+            `https://generativelanguage.googleapis.com/v1beta/models/${geminiModel}:generateContent?key=${geminiKey}`,
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                contents,
+                systemInstruction: systemInstruction ? { parts: [{ text: systemInstruction }] } : undefined,
+                generationConfig: { maxOutputTokens: maxTokens }
+              })
+            }
+          );
+          if (!aiRes.ok) {
+            const errText = await aiRes.text();
+            lastErr = "Gemini: " + errText;
+            lastStatus = aiRes.status;
+            if (RETRYABLE_STATUSES.includes(aiRes.status) && attempt < MAX_ATTEMPTS) {
+              await new Promise(r => setTimeout(r, attempt * 1200));
+              continue;
+            }
+            return json({ error: lastErr }, lastStatus);
           }
-        );
-        if (!aiRes.ok) {
-          const errText = await aiRes.text();
-          return json({ error: "Gemini: " + errText }, aiRes.status);
+          const aiData = await aiRes.json();
+          const text = aiData.candidates?.[0]?.content?.parts?.map(p => p.text || "").join("") || "";
+          return json({ ok: true, content: text });
+        } catch (e) {
+          lastErr = "Error: " + e.message;
+          lastStatus = 500;
+          if (attempt < MAX_ATTEMPTS) { await new Promise(r => setTimeout(r, attempt * 1200)); continue; }
+          return json({ error: lastErr }, lastStatus);
         }
-        const aiData = await aiRes.json();
-        const text = aiData.candidates?.[0]?.content?.parts?.map(p => p.text || "").join("") || "";
-        return json({ ok: true, content: text });
-      } catch (e) {
-        return json({ error: "Error: " + e.message }, 500);
       }
+      return json({ error: lastErr || "خطای نامشخص در ارتباط با هوش مصنوعی" }, lastStatus);
     }
   }
 
@@ -5495,20 +5511,26 @@ function teacherScript() {
     try{
       const res=await fetch('/api/teacher/ai/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
         messages:[{role:'system',content:sys},{role:'user',content:'موضوع/محتوای سوالات: '+topic}],
-        max_tokens:4096,
+        max_tokens: Math.min(8192, 1200 + count*650),
         provider:getAiProvider()
       })});
       const data=await res.json();
       if(!res.ok||data.error)throw new Error(data.error||'خطا در ارتباط با هوش مصنوعی');
       let raw=String(data.content||'').trim();
       const AIQ_BT=String.fromCharCode(96,96,96);
-      if(raw.slice(0,3+4)===AIQ_BT+'json')raw=raw.slice(7);else if(raw.slice(0,3)===AIQ_BT)raw=raw.slice(3);
+      if(raw.slice(0,3+4).toLowerCase()===AIQ_BT+'json')raw=raw.slice(7);else if(raw.slice(0,3)===AIQ_BT)raw=raw.slice(3);
       if(raw.slice(-3)===AIQ_BT)raw=raw.slice(0,-3);
       raw=raw.trim();
-      const m=raw.match(/\[[\s\S]*\]/);
-      if(m)raw=m[0];
+      const arrText=aiqExtractJsonArray(raw);
+      if(!arrText){
+        console.error('پاسخ خام هوش مصنوعی (بدون آرایه‌ی معتبر):',raw);
+        throw new Error('پاسخ هوش مصنوعی قابل پردازش نبود، دوباره تلاش کنید');
+      }
       let parsed;
-      try{parsed=JSON.parse(raw);}catch(e){throw new Error('پاسخ هوش مصنوعی قابل پردازش نبود، دوباره تلاش کنید');}
+      try{parsed=JSON.parse(arrText);}catch(e){
+        console.error('پاسخ خام هوش مصنوعی (JSON نامعتبر):',raw);
+        throw new Error('پاسخ هوش مصنوعی قابل پردازش نبود، دوباره تلاش کنید');
+      }
       if(!Array.isArray(parsed)||!parsed.length)throw new Error('هوش مصنوعی سوالی برنگرداند، دوباره تلاش کنید');
       const forced=typeSel==='auto'?null:typeSel;
       AIQ_SUGGESTIONS=parsed.slice(0,count).map(it=>Object.assign({selected:true},aiqNormalize(it,forced)));
@@ -5523,6 +5545,30 @@ function teacherScript() {
   }
   document.getElementById('btn-aiq-generate').onclick=aiqGenerate;
   document.getElementById('btn-aiq-regenerate').onclick=aiqGenerate;
+
+  // اولین آرایه‌ی JSON متعادل (براکت‌های باز/بسته هم‌تراز) را در متن پیدا می‌کند؛
+  // اگر پاسخ به‌صورت {"questions":[...]} یا مشابه بسته‌بندی شده باشد هم آن را پیدا می‌کند
+  function aiqExtractJsonArray(text){
+    const start=text.indexOf('[');
+    if(start===-1)return null;
+    let depth=0,inStr=false,esc=false;
+    for(let i=start;i<text.length;i++){
+      const ch=text[i];
+      if(inStr){
+        if(esc)esc=false;
+        else if(ch==='\\\\')esc=true;
+        else if(ch==='"')inStr=false;
+        continue;
+      }
+      if(ch==='"'){inStr=true;continue;}
+      if(ch==='[')depth++;
+      else if(ch===']'){
+        depth--;
+        if(depth===0)return text.slice(start,i+1);
+      }
+    }
+    return null;
+  }
 
   function aiqQOptHtml(j,item){
     let h='';
