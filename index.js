@@ -5028,8 +5028,8 @@ function teacherScript() {
     box.innerHTML=filtered.map(q=>{
       const tags=[q.subject?('📘 '+esc(q.subject)):'',qbGradeLabel(q.grade)?('🎓 '+qbGradeLabel(q.grade)):'',qbDifficultyLabel(q.difficulty)?('⭐ '+qbDifficultyLabel(q.difficulty)):''].filter(Boolean).join(' &nbsp; ');
       return '<div class="q-block"><div class="qhead"><span class="badge">'+(TYPES[q.type]||q.type)+'</span>'+
-        '<span><button class="btn sm" onclick="qbankInsert(\''+q.id+'\')">➕ افزودن به آزمون</button> '+
-        '<button class="btn sm danger" onclick="qbankDelete(\''+q.id+'\')">🗑️ حذف</button></span></div>'+
+        '<span><button class="btn sm" onclick="qbankInsert(\\''+q.id+'\\')">➕ افزودن به آزمون</button> '+
+        '<button class="btn sm danger" onclick="qbankDelete(\\''+q.id+'\\')">🗑️ حذف</button></span></div>'+
         '<div style="margin:6px 0">'+esc(q.text||'(بدون متن)')+'</div>'+
         (tags?'<div class="muted" style="font-size:12px">'+tags+'</div>':'')+
         '</div>';
