@@ -10142,8 +10142,10 @@ function teacherScript() {
       var res=await fetch('/api/teacher/ai/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({messages:[{role:'system',content:sys},{role:'user',content:'بودجه‌بندی را طبق فرمت JSON خواسته‌شده تولید کن.'}],max_tokens:4096,provider:getAiProvider()})});
       var data=await res.json();
       if(data.error)throw new Error(data.error);
-      var raw=(data.content||'').trim().replace(/^\x60\x60\x60json/i,'').replace(/^\x60\x60\x60/,'').replace(/\x60\x60\x60$/,'').trim();
-      var parsed=JSON.parse(raw);
+      var raw=(data.content||'').trim();
+      var i1=raw.indexOf('['),i2=raw.lastIndexOf(']');
+      if(i1===-1||i2===-1||i2<i1)throw new Error('خروجی هوش مصنوعی قابل تفسیر نبود، دوباره تلاش کنید');
+      var parsed=JSON.parse(raw.slice(i1,i2+1));
       if(!Array.isArray(parsed))throw new Error('پاسخ نامعتبر بود');
       var result=[];
       for(var i=0;i<subjects.length;i++){
