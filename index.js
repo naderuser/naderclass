@@ -10139,12 +10139,15 @@ function teacherScript() {
       'برای هر بازه یک متن بسیار کوتاه (حداکثر ۸ تا ۱۰ کلمه) بنویس شامل شماره/نام درس یا فصل کتاب رسمی و در صورت لزوم صفحات تقریبی، طبق روال معمول و متعارف کتاب‌های درسی رسمی ایران برای این پایه. '+
       'خروجی را فقط و فقط به‌صورت یک آرایه‌ی JSON معتبر برگردان که شامل یک زیرآرایه به ازای هر درس (دقیقاً به همان ترتیب دروس بالا) است و هر زیرآرایه دقیقاً ۱۶ رشته دارد، بدون هیچ توضیح اضافه، بدون Markdown و بدون علامت‌های کد (بک‌تیک).';
     try{
-      var res=await fetch('/api/teacher/ai/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({messages:[{role:'system',content:sys},{role:'user',content:'بودجه‌بندی را طبق فرمت JSON خواسته‌شده تولید کن.'}],max_tokens:4096,provider:getAiProvider()})});
+      var res=await fetch('/api/teacher/ai/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({messages:[{role:'system',content:sys},{role:'user',content:'بودجه‌بندی را طبق فرمت JSON خواسته‌شده تولید کن.'}],max_tokens:8192,provider:getAiProvider()})});
       var data=await res.json();
       if(data.error)throw new Error(data.error);
       var raw=(data.content||'').trim();
       var i1=raw.indexOf('['),i2=raw.lastIndexOf(']');
-      if(i1===-1||i2===-1||i2<i1)throw new Error('خروجی هوش مصنوعی قابل تفسیر نبود، دوباره تلاش کنید');
+      if(i1===-1||i2===-1||i2<i1){
+        console.error('پاسخ خام هوش مصنوعی برای بودجه‌بندی (غیرقابل تفسیر):',raw);
+        throw new Error('پاسخ هوش مصنوعی ناقص یا خالی بود (احتمالاً به‌خاطر تعداد زیاد دروس این پایه بریده شده)؛ دوباره تلاش کنید');
+      }
       var parsed=JSON.parse(raw.slice(i1,i2+1));
       if(!Array.isArray(parsed))throw new Error('پاسخ نامعتبر بود');
       var result=[];
