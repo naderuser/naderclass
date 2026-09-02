@@ -1239,7 +1239,7 @@ const SHARED_CSS = `
     .tabs .tab{font-size:14px;padding:12px 14px}
     .tabs .tab-parent{font-size:14px;padding:12px 14px}
     .tabs .tab-child{font-size:13px;padding:11px 14px}
-    .tabs-overlay.open{display:block;position:fixed;inset:0;background:rgba(15,23,42,.5);z-index:300}
+    .tabs-overlay.open{display:block;position:fixed;top:0;right:0;bottom:0;left:0;width:100vw;height:100vh;background:rgba(15,23,42,.55);z-index:300}
     .dash-flex>.tab-content{margin-top:16px}
   }
   .subtab{padding:8px 14px;border-radius:12px;background:var(--soft);border:1px solid var(--line);cursor:pointer;font-weight:600;font-size:13px;transition:all .15s ease}
@@ -1251,6 +1251,8 @@ const SHARED_CSS = `
   .tab-parent .tab-label{flex:1;text-align:right}
   .tab-parent:hover{background:var(--soft-2)}
   .tab-parent.open{background:var(--soft-2)}
+  .tab-parent.active{background:var(--primary);color:#fff;border-color:var(--primary)}
+  .tab-parent.active .tab-arrow{color:#fff}
   .tab-parent .tab-arrow{font-size:10px;transition:transform .2s ease;flex:0 0 auto;align-self:center}
   .tab-parent.open .tab-arrow{transform:rotate(180deg)}
   .tab-children{display:flex;flex-direction:column;gap:3px;max-height:0;overflow:hidden;transition:max-height .25s ease;padding-right:10px}
@@ -1638,16 +1640,18 @@ const SHARED_CSS = `
   .schedule-table td.sch-daylabel-doshshanbe .sch-day-accent{background:#10b981}
   .schedule-table td.sch-daylabel-seshshanbe .sch-day-accent{background:#8b5cf6}
   .schedule-table td.sch-daylabel-chaharshanbe .sch-day-accent{background:#06b6d4}
-  .schedule-table td.cell-shanbe{background:#fef2f2}
-  .schedule-table td.cell-yekshanbe{background:#fffbeb}
-  .schedule-table td.cell-doshshanbe{background:#f0fdf4}
-  .schedule-table td.cell-seshshanbe{background:#f5f3ff}
-  .schedule-table td.cell-chaharshanbe{background:#ecfeff}
-  [data-theme="dark"] .schedule-table td.sch-daylabel-shanbe,[data-theme="dark"] .schedule-table td.cell-shanbe{background:#2a1e1e}
-  [data-theme="dark"] .schedule-table td.sch-daylabel-yekshanbe,[data-theme="dark"] .schedule-table td.cell-yekshanbe{background:#2a2618}
-  [data-theme="dark"] .schedule-table td.sch-daylabel-doshshanbe,[data-theme="dark"] .schedule-table td.cell-doshshanbe{background:#18291f}
-  [data-theme="dark"] .schedule-table td.sch-daylabel-seshshanbe,[data-theme="dark"] .schedule-table td.cell-seshshanbe{background:#241f33}
-  [data-theme="dark"] .schedule-table td.sch-daylabel-chaharshanbe,[data-theme="dark"] .schedule-table td.cell-chaharshanbe{background:#17282a}
+  /* رنگ پیش‌فرض ردیف‌های روز حذف شد — کاربر خودش با نقطه‌های رنگی رنگ هر ردیف را انتخاب می‌کند */
+  .row-color-picker{display:inline-flex;gap:3px;vertical-align:middle;margin-inline-start:6px}
+  .row-color-dot{width:13px;height:13px;border-radius:50%;border:1px solid rgba(0,0,0,.25);cursor:pointer;display:inline-block;padding:0;box-sizing:border-box}
+  .row-color-dot:hover{transform:scale(1.25)}
+  .row-color-dot.active{border:2px solid #1e293b;box-shadow:0 0 0 1px #fff inset}
+  .row-color-dot[data-color="pink"]{background:#fbcfe8}
+  .row-color-dot[data-color="blue"]{background:#bfdbfe}
+  .row-color-dot[data-color="red"]{background:#fecaca}
+  .row-color-dot[data-color="yellow"]{background:#fef08a}
+  .row-color-dot[data-color="orange"]{background:#fed7aa}
+  .row-color-dot[data-color="none"]{background:#fff;position:relative}
+  .row-color-dot[data-color="none"]::after{content:'';position:absolute;inset:2px;border-top:1.5px solid #ef4444;transform:rotate(45deg)}
 
   /* ---- سوییچ تم برنامهٔ هفتگی ---- */
   .sch-theme-btn{opacity:.6;transition:opacity .15s,transform .15s}
@@ -4236,13 +4240,13 @@ function teacherPage() {
             <div class="lb-preview">
               <table class="lb-table lbg-table" id="lbg-table">
                 <thead><tr><th>پایه</th><th>پسر</th><th>دختر</th><th>مجموع</th></tr></thead>
-                <tbody>
-                  <tr><td>اول</td><td><input type="text" inputmode="numeric" maxlength="3" class="lbg-boy" data-grade="1"></td><td><input type="text" inputmode="numeric" maxlength="3" class="lbg-girl" data-grade="1"></td><td class="lbg-sum" data-grade="1">۰</td></tr>
-                  <tr><td>دوم</td><td><input type="text" inputmode="numeric" maxlength="3" class="lbg-boy" data-grade="2"></td><td><input type="text" inputmode="numeric" maxlength="3" class="lbg-girl" data-grade="2"></td><td class="lbg-sum" data-grade="2">۰</td></tr>
-                  <tr><td>سوم</td><td><input type="text" inputmode="numeric" maxlength="3" class="lbg-boy" data-grade="3"></td><td><input type="text" inputmode="numeric" maxlength="3" class="lbg-girl" data-grade="3"></td><td class="lbg-sum" data-grade="3">۰</td></tr>
-                  <tr><td>چهارم</td><td><input type="text" inputmode="numeric" maxlength="3" class="lbg-boy" data-grade="4"></td><td><input type="text" inputmode="numeric" maxlength="3" class="lbg-girl" data-grade="4"></td><td class="lbg-sum" data-grade="4">۰</td></tr>
-                  <tr><td>پنجم</td><td><input type="text" inputmode="numeric" maxlength="3" class="lbg-boy" data-grade="5"></td><td><input type="text" inputmode="numeric" maxlength="3" class="lbg-girl" data-grade="5"></td><td class="lbg-sum" data-grade="5">۰</td></tr>
-                  <tr><td>ششم</td><td><input type="text" inputmode="numeric" maxlength="3" class="lbg-boy" data-grade="6"></td><td><input type="text" inputmode="numeric" maxlength="3" class="lbg-girl" data-grade="6"></td><td class="lbg-sum" data-grade="6">۰</td></tr>
+                <tbody id="lbg-tbody">
+                  <tr data-grade="1"><td>اول<span class="row-color-picker" data-grade="1"><button type="button" class="row-color-dot" data-color="none" data-grade="1" title="بدون رنگ"></button><button type="button" class="row-color-dot" data-color="pink" data-grade="1" title="صورتی"></button><button type="button" class="row-color-dot" data-color="blue" data-grade="1" title="آبی"></button><button type="button" class="row-color-dot" data-color="red" data-grade="1" title="قرمز"></button><button type="button" class="row-color-dot" data-color="yellow" data-grade="1" title="زرد"></button><button type="button" class="row-color-dot" data-color="orange" data-grade="1" title="نارنجی"></button></span></td><td><input type="text" inputmode="numeric" maxlength="3" class="lbg-boy" data-grade="1"></td><td><input type="text" inputmode="numeric" maxlength="3" class="lbg-girl" data-grade="1"></td><td class="lbg-sum" data-grade="1">۰</td></tr>
+                  <tr data-grade="2"><td>دوم<span class="row-color-picker" data-grade="2"><button type="button" class="row-color-dot" data-color="none" data-grade="2" title="بدون رنگ"></button><button type="button" class="row-color-dot" data-color="pink" data-grade="2" title="صورتی"></button><button type="button" class="row-color-dot" data-color="blue" data-grade="2" title="آبی"></button><button type="button" class="row-color-dot" data-color="red" data-grade="2" title="قرمز"></button><button type="button" class="row-color-dot" data-color="yellow" data-grade="2" title="زرد"></button><button type="button" class="row-color-dot" data-color="orange" data-grade="2" title="نارنجی"></button></span></td><td><input type="text" inputmode="numeric" maxlength="3" class="lbg-boy" data-grade="2"></td><td><input type="text" inputmode="numeric" maxlength="3" class="lbg-girl" data-grade="2"></td><td class="lbg-sum" data-grade="2">۰</td></tr>
+                  <tr data-grade="3"><td>سوم<span class="row-color-picker" data-grade="3"><button type="button" class="row-color-dot" data-color="none" data-grade="3" title="بدون رنگ"></button><button type="button" class="row-color-dot" data-color="pink" data-grade="3" title="صورتی"></button><button type="button" class="row-color-dot" data-color="blue" data-grade="3" title="آبی"></button><button type="button" class="row-color-dot" data-color="red" data-grade="3" title="قرمز"></button><button type="button" class="row-color-dot" data-color="yellow" data-grade="3" title="زرد"></button><button type="button" class="row-color-dot" data-color="orange" data-grade="3" title="نارنجی"></button></span></td><td><input type="text" inputmode="numeric" maxlength="3" class="lbg-boy" data-grade="3"></td><td><input type="text" inputmode="numeric" maxlength="3" class="lbg-girl" data-grade="3"></td><td class="lbg-sum" data-grade="3">۰</td></tr>
+                  <tr data-grade="4"><td>چهارم<span class="row-color-picker" data-grade="4"><button type="button" class="row-color-dot" data-color="none" data-grade="4" title="بدون رنگ"></button><button type="button" class="row-color-dot" data-color="pink" data-grade="4" title="صورتی"></button><button type="button" class="row-color-dot" data-color="blue" data-grade="4" title="آبی"></button><button type="button" class="row-color-dot" data-color="red" data-grade="4" title="قرمز"></button><button type="button" class="row-color-dot" data-color="yellow" data-grade="4" title="زرد"></button><button type="button" class="row-color-dot" data-color="orange" data-grade="4" title="نارنجی"></button></span></td><td><input type="text" inputmode="numeric" maxlength="3" class="lbg-boy" data-grade="4"></td><td><input type="text" inputmode="numeric" maxlength="3" class="lbg-girl" data-grade="4"></td><td class="lbg-sum" data-grade="4">۰</td></tr>
+                  <tr data-grade="5"><td>پنجم<span class="row-color-picker" data-grade="5"><button type="button" class="row-color-dot" data-color="none" data-grade="5" title="بدون رنگ"></button><button type="button" class="row-color-dot" data-color="pink" data-grade="5" title="صورتی"></button><button type="button" class="row-color-dot" data-color="blue" data-grade="5" title="آبی"></button><button type="button" class="row-color-dot" data-color="red" data-grade="5" title="قرمز"></button><button type="button" class="row-color-dot" data-color="yellow" data-grade="5" title="زرد"></button><button type="button" class="row-color-dot" data-color="orange" data-grade="5" title="نارنجی"></button></span></td><td><input type="text" inputmode="numeric" maxlength="3" class="lbg-boy" data-grade="5"></td><td><input type="text" inputmode="numeric" maxlength="3" class="lbg-girl" data-grade="5"></td><td class="lbg-sum" data-grade="5">۰</td></tr>
+                  <tr data-grade="6"><td>ششم<span class="row-color-picker" data-grade="6"><button type="button" class="row-color-dot" data-color="none" data-grade="6" title="بدون رنگ"></button><button type="button" class="row-color-dot" data-color="pink" data-grade="6" title="صورتی"></button><button type="button" class="row-color-dot" data-color="blue" data-grade="6" title="آبی"></button><button type="button" class="row-color-dot" data-color="red" data-grade="6" title="قرمز"></button><button type="button" class="row-color-dot" data-color="yellow" data-grade="6" title="زرد"></button><button type="button" class="row-color-dot" data-color="orange" data-grade="6" title="نارنجی"></button></span></td><td><input type="text" inputmode="numeric" maxlength="3" class="lbg-boy" data-grade="6"></td><td><input type="text" inputmode="numeric" maxlength="3" class="lbg-girl" data-grade="6"></td><td class="lbg-sum" data-grade="6">۰</td></tr>
                 </tbody>
                 <tfoot><tr class="lbg-total-row"><td>مجموع کل</td><td id="lbg-foot-boy">۰</td><td id="lbg-foot-girl">۰</td><td id="lbg-foot-all">۰</td></tr></tfoot>
               </table>
@@ -4950,8 +4954,8 @@ function teacherScript() {
   var tabsPanel=document.getElementById('tabs-panel');
   var tabsOverlay=document.getElementById('tabs-overlay');
   var mobileMenuBtn=document.getElementById('mobile-menu-btn');
-  function closeMobileMenu(){tabsPanel.classList.remove('open');tabsOverlay.classList.remove('open');}
-  mobileMenuBtn.onclick=function(){tabsPanel.classList.add('open');tabsOverlay.classList.add('open');};
+  function closeMobileMenu(){tabsPanel.classList.remove('open');tabsOverlay.classList.remove('open');document.documentElement.style.overflow='';document.body.style.overflow='';}
+  mobileMenuBtn.onclick=function(){tabsPanel.classList.add('open');tabsOverlay.classList.add('open');document.documentElement.style.overflow='hidden';document.body.style.overflow='hidden';};
   tabsOverlay.onclick=closeMobileMenu;
 
   document.querySelectorAll('.tab[data-tab]').forEach(function(t){
@@ -4979,11 +4983,20 @@ function teacherScript() {
     document.querySelectorAll('.tab[data-tab]').forEach(x=>x.classList.remove('active'));
     var tEl=document.querySelector('.tab[data-tab="'+tabName+'"]');
     if(tEl)tEl.classList.add('active');
+    document.querySelectorAll('.tab-parent').forEach(x=>x.classList.remove('active'));
+    document.querySelectorAll('.tab-children').forEach(x=>x.classList.remove('open'));
+    var pEl=document.querySelector('.tab-parent[data-tab="'+tabName+'"]');
+    if(pEl){
+      pEl.classList.add('active');
+      pEl.classList.add('open');
+      var kidsEl=document.getElementById('tab-children-'+tabName);
+      if(kidsEl)kidsEl.classList.add('open');
+    }
     document.querySelectorAll('.tab-content').forEach(c=>c.classList.add('hidden'));
     var cEl=document.getElementById('tab-'+tabName);
     if(cEl)cEl.classList.remove('hidden');
     if(tabName==='tablesorg'){if(typeof loadTableIfNeeded==='function')loadTableIfNeeded();if(typeof loadOrgFormIfNeeded==='function')loadOrgFormIfNeeded();}
-    if(tabName==='schedule'){document.getElementById('btn-gen-schedule').click();if(typeof loadScheduleThemeIfNeeded==='function')loadScheduleThemeIfNeeded();if(typeof loadScheduleFontIfNeeded==='function')loadScheduleFontIfNeeded();}
+    if(tabName==='schedule'){document.getElementById('btn-gen-schedule').click();if(typeof loadScheduleThemeIfNeeded==='function')loadScheduleThemeIfNeeded();if(typeof loadScheduleFontIfNeeded==='function')loadScheduleFontIfNeeded();if(typeof loadScheduleRowColorsIfNeeded==='function')loadScheduleRowColorsIfNeeded();}
     if(tabName==='classroom'){renderClassLinks();setTimeout(function(){if(typeof clsResizeBoard==='function')clsResizeBoard();},50);}
     if(tabName==='examsheet'){if(typeof loadExamSheetIfNeeded==='function')loadExamSheetIfNeeded();}
   }
@@ -6023,9 +6036,14 @@ function teacherScript() {
     // نگاشت روز هفته‌ی جاری (جاوااسکریپت) به ایندکس ردیف برنامه (شنبه=0 ... چهارشنبه=4)
     const jsDayToRow={6:0,0:1,1:2,2:3,3:4};
     const todayRow=jsDayToRow.hasOwnProperty(new Date().getDay())?jsDayToRow[new Date().getDay()]:-1;
+    const colorKeys=['none','pink','blue','red','yellow','orange'];
     for(let d=0;d<5;d++){
       const isToday=d===todayRow;
-      html+='<tr'+(isToday?' class="sch-today"':'')+'><td class="sch-daylabel-'+dayKeys[d]+'"><span class="sch-day-accent"></span>'+(isToday?'<span class="sch-today-badge">امروز</span>':'')+days[d]+'</td>';
+      let dots='<span class="row-color-picker" data-daykey="'+dayKeys[d]+'">';
+      var colorLabels={none:'بدون رنگ',pink:'صورتی',blue:'آبی',red:'قرمز',yellow:'زرد',orange:'نارنجی'};
+      colorKeys.forEach(function(ck){dots+='<button type="button" class="row-color-dot" data-color="'+ck+'" data-daykey="'+dayKeys[d]+'" title="'+colorLabels[ck]+'"></button>';});
+      dots+='</span>';
+      html+='<tr'+(isToday?' class="sch-today"':'')+'><td class="sch-daylabel-'+dayKeys[d]+'"><span class="sch-day-accent"></span>'+(isToday?'<span class="sch-today-badge">امروز</span>':'')+days[d]+dots+'</td>';
       for(let i=1;i<=5;i++){
         const val=(scheduleData.cells&&scheduleData.cells['c'+d+i])||'';
         html+='<td class="cell-'+dayKeys[d]+'"><textarea id="c'+d+i+'" placeholder="زنگ '+(i)+'">'+esc(val)+'</textarea></td>';
@@ -6034,7 +6052,43 @@ function teacherScript() {
     }
     body.innerHTML=html;
     schApplyTableFont();
+    schRefreshRowColorDots();
   };
+
+  // ===== رنگ دلخواه هر ردیف (روز) برنامهٔ هفتگی =====
+  var SCH_ROW_COLOR_HEX={pink:'#fbcfe8',blue:'#bfdbfe',red:'#fecaca',yellow:'#fef08a',orange:'#fed7aa'};
+  var schRowColors={};
+  function schApplyRowColor(dayKey,colorKey){
+    var hex=SCH_ROW_COLOR_HEX[colorKey]||'';
+    document.querySelectorAll('.sch-daylabel-'+dayKey+',.cell-'+dayKey).forEach(function(td){td.style.background=hex;});
+  }
+  function schRefreshRowColorDots(){
+    document.querySelectorAll('.row-color-picker').forEach(function(picker){
+      var dayKey=picker.dataset.daykey;
+      var current=schRowColors[dayKey]||'none';
+      picker.querySelectorAll('.row-color-dot').forEach(function(dot){
+        dot.classList.toggle('active',dot.dataset.color===current);
+      });
+      schApplyRowColor(dayKey,current==='none'?'':current);
+    });
+  }
+  document.getElementById('schedule-table').addEventListener('click',function(e){
+    var dot=e.target.closest('.row-color-dot');
+    if(!dot)return;
+    var dayKey=dot.dataset.daykey;
+    var colorKey=dot.dataset.color;
+    schRowColors[dayKey]=colorKey;
+    schRefreshRowColorDots();
+    lbSave('sch-row-colors',schRowColors,true);
+  });
+  var SCH_ROW_COLORS_LOADED=false;
+  async function loadScheduleRowColorsIfNeeded(){
+    if(SCH_ROW_COLORS_LOADED)return;
+    SCH_ROW_COLORS_LOADED=true;
+    const saved=await lbLoad('sch-row-colors');
+    if(saved&&typeof saved==='object')schRowColors=saved;
+    schRefreshRowColorDots();
+  }
 
   function getScheduleHtmlForExport(){
     const school=document.getElementById('sch-school').value||'مدرسه';
@@ -6046,7 +6100,7 @@ function teacherScript() {
     const activeThemeBtn=document.querySelector('.sch-theme-btn.active');
     const themeName=activeThemeBtn?activeThemeBtn.dataset.theme:'default';
     const THEMES={
-      default:{corner:['#ffffff','#ffffff'],cornerText:'#1e293b',periodBg:'#f8fafc',periodColor:'#334155',accent:['#ef4444','#f59e0b','#10b981','#8b5cf6','#06b6d4'],cell:['#fef2f2','#fffbeb','#f0fdf4','#f5f3ff','#ecfeff'],text:'#1e293b',dayText:'#1e293b'},
+      default:{corner:['#ffffff','#ffffff'],cornerText:'#1e293b',periodBg:'#f8fafc',periodColor:'#334155',accent:['#ef4444','#f59e0b','#10b981','#8b5cf6','#06b6d4'],cell:['#ffffff','#ffffff','#ffffff','#ffffff','#ffffff'],text:'#1e293b',dayText:'#1e293b'},
       boy:{corner:['#1e3a8a','#2563eb'],cornerText:'#fff',periodBg:'#eff6ff',periodColor:'#1e3a8a',accent:['#2563eb','#2563eb','#2563eb','#2563eb','#2563eb'],cell:['#dbeafe','#e0f2fe','#cffafe','#e0e7ff','#dbeafe'],text:'#1e293b',dayText:'#1e293b'},
       girl:{corner:['#9d174d','#db2777'],cornerText:'#fff',periodBg:'#fdf2f8',periodColor:'#9d174d',accent:['#db2777','#db2777','#db2777','#db2777','#db2777'],cell:['#fce7f3','#fdf2f8','#fae8ff','#f3e8ff','#ffe4e6'],text:'#1e293b',dayText:'#1e293b'}
     };
@@ -6070,10 +6124,14 @@ function teacherScript() {
     let table='<table><tr><th style="background:linear-gradient(135deg,'+T.corner[0]+','+T.corner[1]+');color:'+(T.cornerText||'#fff')+';border-bottom:none">روز / زنگ</th>';
     for(let z=0;z<5;z++){table+='<th style="background:'+T.periodBg+';color:'+T.periodColor+'">🔔 '+zang[z]+'</th>';}
     table+='</tr>';
+    const dayKeysExp=['shanbe','yekshanbe','doshshanbe','seshshanbe','chaharshanbe'];
     for(let d=0;d<5;d++){
-      const dayBg=T.dayBg||cellColors[d];
+      const customColorKey=(typeof schRowColors!=='undefined'&&schRowColors[dayKeysExp[d]])||'';
+      const customHex=(typeof SCH_ROW_COLOR_HEX!=='undefined'&&SCH_ROW_COLOR_HEX[customColorKey])||'';
+      const dayBg=customHex||T.dayBg||cellColors[d];
+      const rowCellBg=customHex||cellColors[d];
       table+='<tr><td class="daylabel" style="background:'+dayBg+';border-right-color:'+accentColors[d]+';color:'+T.dayText+'">'+days[d]+'</td>';
-      for(let i=1;i<=5;i++){const el=document.getElementById('c'+d+i);const val=(el?el.value:'')||'&nbsp;';table+='<td style="background:'+cellColors[d]+';color:'+T.text+'"><div style="min-height:40px">'+val+'</div></td>';}
+      for(let i=1;i<=5;i++){const el=document.getElementById('c'+d+i);const val=(el?el.value:'')||'&nbsp;';table+='<td style="background:'+rowCellBg+';color:'+T.text+'"><div style="min-height:40px">'+val+'</div></td>';}
       table+='</tr>';
     }
     table+='</table>';
@@ -10282,11 +10340,42 @@ function teacherScript() {
     if(sheet)sheet.style.fontFamily=LBG_FONTS[key]||'';
   });
 
+  // ===== رنگ دلخواه هر ردیف (پایه) جدول آمار دانش‌آموزان =====
+  var LBG_ROW_COLOR_HEX={pink:'#fbcfe8',blue:'#bfdbfe',red:'#fecaca',yellow:'#fef08a',orange:'#fed7aa'};
+  var lbgRowColors={};
+  function lbgApplyRowColor(g,colorKey){
+    var tr=document.querySelector('#lbg-tbody tr[data-grade="'+g+'"]');
+    if(!tr)return;
+    var hex=LBG_ROW_COLOR_HEX[colorKey]||'';
+    tr.querySelectorAll('td').forEach(function(td){td.style.background=hex;});
+  }
+  function lbgRefreshRowColorDots(){
+    document.querySelectorAll('#lbg-tbody .row-color-picker').forEach(function(picker){
+      var g=picker.dataset.grade;
+      var current=lbgRowColors[g]||'none';
+      picker.querySelectorAll('.row-color-dot').forEach(function(dot){
+        dot.classList.toggle('active',dot.dataset.color===current);
+      });
+      lbgApplyRowColor(g,current==='none'?'':current);
+    });
+  }
+  document.getElementById('lbg-table').addEventListener('click',function(e){
+    var dot=e.target.closest('.row-color-dot');
+    if(!dot)return;
+    var g=dot.dataset.grade;
+    lbgRowColors[g]=dot.dataset.color;
+    lbgRefreshRowColorDots();
+    lbSave('lbg-row-colors',lbgRowColors,true);
+  });
+
   var LB_GENDERSTATS_LOADED=false;
   async function lbLoadGenderStatsIfNeeded(){
     if(LB_GENDERSTATS_LOADED)return;
     LB_GENDERSTATS_LOADED=true;
     var saved=await lbLoad('genderstats');
+    var savedColors=await lbLoad('lbg-row-colors');
+    if(savedColors&&typeof savedColors==='object')lbgRowColors=savedColors;
+    lbgRefreshRowColorDots();
     if(!saved)return;
     document.getElementById('lbg-school').value=saved.school||'';
     document.getElementById('lbg-year').value=saved.year||'';
@@ -10326,7 +10415,10 @@ function teacherScript() {
       var b=parseInt(toEnDigits(document.querySelector('.lbg-boy[data-grade="'+g+'"]').value),10)||0;
       var gi=parseInt(toEnDigits(document.querySelector('.lbg-girl[data-grade="'+g+'"]').value),10)||0;
       totalBoy+=b;totalGirl+=gi;
-      h+='<tr><td>'+name+'</td><td>'+b+'</td><td>'+gi+'</td><td>'+(b+gi)+'</td></tr>';
+      var colorKey=(typeof lbgRowColors!=='undefined'&&lbgRowColors[g])||'';
+      var hex=(typeof LBG_ROW_COLOR_HEX!=='undefined'&&LBG_ROW_COLOR_HEX[colorKey])||'';
+      var rowStyle=hex?' style="background:'+hex+'"':'';
+      h+='<tr'+rowStyle+'><td>'+name+'</td><td>'+b+'</td><td>'+gi+'</td><td>'+(b+gi)+'</td></tr>';
     });
     h+='<tr style="font-weight:bold;background:#dbeafe"><td>مجموع کل</td><td>'+totalBoy+'</td><td>'+totalGirl+'</td><td>'+(totalBoy+totalGirl)+'</td></tr>';
     h+='</table>';
