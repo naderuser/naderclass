@@ -4854,25 +4854,52 @@ function teacherScript() {
     }catch(e){return null;}
   }
 
+  // ===== ابزار مشترک رنگ‌آمیزی دلخواه ردیف‌ها (برای همه‌ی جدول‌ها) =====
+  var ROW_COLOR_HEX={pink:'#fbcfe8',blue:'#bfdbfe',red:'#fecaca',yellow:'#fef08a',orange:'#fed7aa',green:'#bbf7d0'};
+  var ROW_COLOR_LABELS={none:'بدون رنگ',pink:'صورتی',blue:'آبی',red:'قرمز',yellow:'زرد',orange:'نارنجی',green:'سبز'};
+  var ROW_COLOR_ORDER=['none','pink','blue','red','yellow','orange','green'];
+  function rowColorDotsHtml(key){
+    var h='<span class="row-color-picker" data-key="'+key+'">';
+    ROW_COLOR_ORDER.forEach(function(ck){h+='<button type="button" class="row-color-dot" data-color="'+ck+'" data-key="'+key+'" title="'+ROW_COLOR_LABELS[ck]+'"></button>';});
+    h+='</span>';
+    return h;
+  }
+  function applyRowColorToTr(tr,colorKey){
+    if(!tr)return;
+    var hex=ROW_COLOR_HEX[colorKey]||'';
+    tr.querySelectorAll('td,th').forEach(function(cell){cell.style.background=hex;});
+  }
+  function refreshRowColorPickers(root,store){
+    if(!root)return;
+    root.querySelectorAll('.row-color-picker').forEach(function(picker){
+      var key=picker.dataset.key;
+      var current=(store&&store[key])||'none';
+      picker.querySelectorAll('.row-color-dot').forEach(function(dot){
+        dot.classList.toggle('active',dot.dataset.color===current);
+      });
+      applyRowColorToTr(picker.closest('tr'),current==='none'?'':current);
+    });
+  }
+
   const COLOR_THEMES={
     academy:{light:{bg:'#F3F6F9',card:'#FFFFFF',primary:'#123A5C','primary-2':'#1F6E8C',accent:'#B8922E',muted:'#5B6B7C',line:'#DEE5EC',text:'#16212E',danger:'#B3261E',soft:'#EBF0F5','soft-2':'#DCE4EC'},
-             dark:{bg:'#0B141E',card:'#101C29',primary:'#2E7A9E','primary-2':'#3C8CB0',accent:'#D4AF37',muted:'#93A6B8',line:'#1E2E3F',text:'#E8EEF3',danger:'#F2867E',soft:'#152232','soft-2':'#1C2C3F'}},
+             dark:{bg:'#0B141E',card:'#101C29',primary:'#1E5A78',   'primary-2':'#2A7495',accent:'#D4AF37',muted:'#93A6B8',line:'#1E2E3F',text:'#E8EEF3',danger:'#DC2626',soft:'#152232','soft-2':'#1C2C3F'}},
     tea:{light:{bg:'#F4EDDD',card:'#FAF3E4',primary:'#AE4E28','primary-2':'#C08A2E',accent:'#3E7C4F',muted:'#6b6455',line:'#E4D8B8',text:'#1C3327',danger:'#C0392B',soft:'#F3E4C8','soft-2':'#E4D8B8'},
-         dark:{bg:'#15271E',card:'#1C3327',primary:'#D9793F','primary-2':'#E8A44C',accent:'#4F9464',muted:'#A9B7A9',line:'#33473A',text:'#F4EDDD',danger:'#F16A5C',soft:'#26392c','soft-2':'#33473A'}},
+         dark:{bg:'#15271E',card:'#1C3327',primary:'#AE4E28',   'primary-2':'#C08A2E',accent:'#4F9464',muted:'#A9B7A9',line:'#33473A',text:'#F4EDDD',danger:'#DC2626',soft:'#26392c','soft-2':'#33473A'}},
     ocean:{light:{bg:'#f1f5f9',card:'#e9f0fb',primary:'#1d4ed8','primary-2':'#2563eb',accent:'#0d9488',muted:'#64748b',line:'#e2e8f0',text:'#0f172a',danger:'#dc2626',soft:'#e0e7ff','soft-2':'#c7d2fe'},
-          dark:{bg:'#0f172a',card:'#1e293b',primary:'#3b82f6','primary-2':'#60a5fa',accent:'#14b8a6',muted:'#94a3b8',line:'#334155',text:'#f1f5f9',danger:'#f87171',soft:'#334155','soft-2':'#475569'}},
+          dark:{bg:'#0f172a',card:'#1e293b',primary:'#1d4ed8',   'primary-2':'#2563eb',accent:'#14b8a6',muted:'#94a3b8',line:'#334155',text:'#f1f5f9',danger:'#dc2626',soft:'#334155','soft-2':'#475569'}},
     emerald:{light:{bg:'#f0fdf6',card:'#e6fbef',primary:'#059669','primary-2':'#10b981',accent:'#0891b2',muted:'#64748b',line:'#d1fae5',text:'#0f2e22',danger:'#dc2626',soft:'#d1fae5','soft-2':'#a7f3d0'},
-            dark:{bg:'#052e22',card:'#0e3d2e',primary:'#34d399','primary-2':'#6ee7b7',accent:'#22d3ee',muted:'#9fc9b8',line:'#155e46',text:'#ecfdf5',danger:'#f87171',soft:'#155e46','soft-2':'#1c6e53'}},
+            dark:{bg:'#052e22',card:'#0e3d2e',primary:'#059669',   'primary-2':'#10b981',accent:'#22d3ee',muted:'#9fc9b8',line:'#155e46',text:'#ecfdf5',danger:'#dc2626',soft:'#155e46','soft-2':'#1c6e53'}},
     rose:{light:{bg:'#fff1f4',card:'#ffedf1',primary:'#e11d48','primary-2':'#fb7185',accent:'#7c3aed',muted:'#64748b',line:'#fecdd3',text:'#3f0d17',danger:'#b91c1c',soft:'#fecdd3','soft-2':'#fda4af'},
-         dark:{bg:'#2b0a13',card:'#3b0f1c',primary:'#fb7185','primary-2':'#fda4af',accent:'#a78bfa',muted:'#c99aa4',line:'#5c1a2a',text:'#fff1f4',danger:'#f87171',soft:'#5c1a2a','soft-2':'#6e2130'}},
+         dark:{bg:'#2b0a13',card:'#3b0f1c',primary:'#c81e45',   'primary-2':'#e11d48',accent:'#a78bfa',muted:'#c99aa4',line:'#5c1a2a',text:'#fff1f4',danger:'#dc2626',soft:'#5c1a2a','soft-2':'#6e2130'}},
     skyblue:{light:{bg:'#EAF6FF',card:'#DFF2FF',primary:'#0EA5E9','primary-2':'#38BDF8',accent:'#6366F1',muted:'#5b7d8f',line:'#CDEBFC',text:'#0B2A3B',danger:'#DC2626',soft:'#D6EEFF','soft-2':'#BFE4FB'},
-            dark:{bg:'#07202E',card:'#0F3049',primary:'#38BDF8','primary-2':'#7DD3FC',accent:'#818CF8',muted:'#93B4C7',line:'#164860',text:'#EAF6FF',danger:'#F87171',soft:'#164860','soft-2':'#1D5975'}},
+            dark:{bg:'#07202E',card:'#0F3049',primary:'#0284C7',   'primary-2':'#0EA5E9',accent:'#818CF8',muted:'#93B4C7',line:'#164860',text:'#EAF6FF',danger:'#DC2626',soft:'#164860','soft-2':'#1D5975'}},
     goldnight:{light:{bg:'#FBF6EC',card:'#FFF7E6',primary:'#B45309','primary-2':'#D97706',accent:'#DB2777',muted:'#7A6E5C',line:'#F0DFB8',text:'#241A0F',danger:'#DC2626',soft:'#FCEBC5','soft-2':'#F8DC9A'},
-              dark:{bg:'#0E0D17',card:'#1E1E2C',primary:'#F5A623','primary-2':'#FBBF24',accent:'#F472B6',muted:'#9691A8',line:'#2E2A45',text:'#F5F3FF',danger:'#F87171',soft:'#241F35','soft-2':'#322B4A'}},
+              dark:{bg:'#0E0D17',card:'#1E1E2C',primary:'#B45309',   'primary-2':'#D97706',accent:'#F472B6',muted:'#9691A8',line:'#2E2A45',text:'#F5F3FF',danger:'#DC2626',soft:'#241F35','soft-2':'#322B4A'}},
     turquoise:{light:{bg:'#EAFBF9',card:'#E0F7F4',primary:'#0F9B8E','primary-2':'#14B8A6',accent:'#F59E0B',muted:'#5b8f89',line:'#CFEEEA',text:'#0B2C29',danger:'#DC2626',soft:'#D3F5EF','soft-2':'#BEEBE3'},
-               dark:{bg:'#052220',card:'#0C332E',primary:'#14B8A6','primary-2':'#2DD4BF',accent:'#FBBF24',muted:'#8FC2BA',line:'#164F45',text:'#EAFBF9',danger:'#F87171',soft:'#164F45','soft-2':'#1D6156'}},
+               dark:{bg:'#052220',card:'#0C332E',primary:'#0F9B8E',   'primary-2':'#14B8A6',accent:'#FBBF24',muted:'#8FC2BA',line:'#164F45',text:'#EAFBF9',danger:'#DC2626',soft:'#164F45','soft-2':'#1D6156'}},
     crystal:{light:{bg:'#F4F8FB',card:'#FFFFFF',primary:'#4A7FA8','primary-2':'#8FC4E8',accent:'#38BDF8',muted:'#64748b',line:'#DCE8F0',text:'#1E293B',danger:'#DC2626',soft:'#EAF3FA','soft-2':'#D7E8F3'},
-             dark:{bg:'#0B1420',card:'#141F2E',primary:'#5FA8D3','primary-2':'#A5E6FF',accent:'#93C5FD',muted:'#94A3B8',line:'#22344A',text:'#EAF3FA',danger:'#F87171',soft:'#182740','soft-2':'#20344C'}},
+             dark:{bg:'#0B1420',card:'#141F2E',primary:'#2F5F85',   'primary-2':'#4A7FA8',accent:'#93C5FD',muted:'#94A3B8',line:'#22344A',text:'#EAF3FA',soft:'#182740','soft-2':'#20344C',danger:'#DC2626'}},
   };
   function applyColorTheme(name){
     const mode=document.documentElement.getAttribute('data-theme')||'light';
@@ -6198,13 +6225,14 @@ function teacherScript() {
 
     let b='';
     for(let r=1;r<=rows;r++){
-      b+='<tr><td class="xls-rowhead">'+r+'</td>';
+      b+='<tr><td class="xls-rowhead">'+r+rowColorDotsHtml('r'+r)+'</td>';
       for(let c=1;c<=cols;c++){b+='<td><input type="text" id="'+xlsCellId(r,c)+'" data-r="'+r+'" data-c="'+c+'"></td>';}
       b+='<td class="org-row-del-cell"><button type="button" class="btn sm danger xls-row-del">✖</button></td>';
       b+='</tr>';
     }
     tbody.innerHTML=b;
     tfoot.innerHTML='';
+    refreshRowColorPickers(tbody,xlsRowColors);
   }
 
   // افزودن یک سطر تازه به انتهای جدول موجود، بدون پاک‌کردن مقادیر سطرهای قبلی
@@ -6214,15 +6242,17 @@ function teacherScript() {
     if(!tbody.children.length){toast('ابتدا با دکمه‌ی «ساخت جدول» یک جدول بسازید');return;}
     const r=tbody.children.length+1;
     const tr=document.createElement('tr');
-    let rowHtml='<td class="xls-rowhead">'+r+'</td>';
+    let rowHtml='<td class="xls-rowhead">'+r+rowColorDotsHtml('r'+r)+'</td>';
     for(let c=1;c<=cols;c++){rowHtml+='<td><input type="text" id="'+xlsCellId(r,c)+'" data-r="'+r+'" data-c="'+c+'"></td>';}
     rowHtml+='<td class="org-row-del-cell"><button type="button" class="btn sm danger xls-row-del">✖</button></td>';
     tr.innerHTML=rowHtml;
     tbody.appendChild(tr);
     document.getElementById('tbl-rows').value=r;
     if(document.getElementById('tbl-avg-check').checked)calcAndShowAvg();
+    refreshRowColorPickers(tbody,xlsRowColors);
   }
   document.getElementById('btn-tbl-add-row').onclick=xlsAddRow;
+  var xlsRowColors={};
 
   // حذف یک ستون (بدون از دست رفتن مقادیر بقیه‌ی ستون‌ها و سطرها)
   function xlsDeleteColumn(colIdx){
@@ -6286,6 +6316,13 @@ function teacherScript() {
     if(document.getElementById('tbl-avg-check').checked)calcAndShowAvg();
   }
   document.getElementById('custom-table-body').addEventListener('click',function(e){
+    const dot=e.target.closest('.row-color-dot');
+    if(dot){
+      xlsRowColors[dot.dataset.key]=dot.dataset.color;
+      refreshRowColorPickers(document.getElementById('custom-table-body'),xlsRowColors);
+      lbSave('customtable-row-colors',xlsRowColors,true);
+      return;
+    }
     const btn=e.target.closest('.xls-row-del');
     if(!btn)return;
     xlsDeleteRow(btn.closest('tr'));
@@ -6327,7 +6364,9 @@ function teacherScript() {
     if(TABLE_LOADED)return;
     TABLE_LOADED=true;
     const saved=await lbLoad('customtable');
-    if(!saved)return;
+    const savedColors=await lbLoad('customtable-row-colors');
+    if(savedColors&&typeof savedColors==='object')xlsRowColors=savedColors;
+    if(!saved){refreshRowColorPickers(document.getElementById('custom-table-body'),xlsRowColors);return;}
     document.getElementById('tbl-rows').value=saved.rows||5;
     document.getElementById('tbl-cols').value=saved.cols||4;
     document.getElementById('tbl-title').value=saved.title||'';
@@ -6338,6 +6377,7 @@ function teacherScript() {
       rowVals.forEach((v,ci)=>{const el=document.getElementById(xlsCellId(ri+1,ci+1));if(el)el.value=v;});
     });
     if(document.getElementById('tbl-avg-check').checked)calcAndShowAvg();
+    refreshRowColorPickers(document.getElementById('custom-table-body'),xlsRowColors);
   }
 
   // ===== وارد کردن جدول از فایل PDF (با تشخیص خطوط واقعی جدول، مثل بخش PDF به Word) =====
@@ -6407,13 +6447,14 @@ function teacherScript() {
     const tbody=document.getElementById('custom-table-body');
     for(let r=currentRows+1;r<=newRowCount;r++){
       const tr=document.createElement('tr');
-      let html='<td class="xls-rowhead">'+r+'</td>';
+      let html='<td class="xls-rowhead">'+r+rowColorDotsHtml('r'+r)+'</td>';
       for(let c=1;c<=cols;c++){html+='<td><input type="text" id="'+xlsCellId(r,c)+'" data-r="'+r+'" data-c="'+c+'"></td>';}
       html+='<td class="org-row-del-cell"><button type="button" class="btn sm danger xls-row-del">✖</button></td>';
       tr.innerHTML=html;
       tbody.appendChild(tr);
     }
     rowsInput.value=newRowCount;
+    refreshRowColorPickers(tbody,xlsRowColors);
   }
 
   // چسباندن هوشمند (مثل اکسل): وقتی چند اسم/کد را که از یک ستون کپی کرده‌اید در یک خانه پیست می‌کنید،
@@ -11273,13 +11314,15 @@ function teacherScript() {
     h+='<table class="lb-table lb-table-tight" style="width:100%"><thead><tr><th>روز</th><th>پایه</th><th>زنگ اول</th><th>زنگ دوم</th><th>زنگ سوم</th><th>زنگ چهارم</th><th>زنگ پنجم</th></tr></thead><tbody>';
     LB_WEEKLY_DAYS.forEach(function(day,dIdx){
       grades.forEach(function(gIdx,i){
-        h+='<tr>';
+        var rowKey='row-'+dIdx+'-'+gIdx;
+        var rowHex=forExport?(ROW_COLOR_HEX[lbWeeklyRowColors[rowKey]]||''):'';
+        h+='<tr'+(rowHex?' style="background:'+rowHex+'"':'')+'>';
         if(i===0)h+='<td rowspan="'+grades.length+'" style="font-weight:700;background:#f1f5f9">'+esc(day)+'</td>';
-        h+='<td style="font-weight:700">'+LB_WEEKLY_GRADE_NAMES[gIdx]+'</td>';
+        h+='<td style="font-weight:700'+(rowHex?';background:'+rowHex:'')+'">'+LB_WEEKLY_GRADE_NAMES[gIdx]+(forExport?'':rowColorDotsHtml(rowKey))+'</td>';
         for(var s=0;s<5;s++){
           var key=dIdx+'-'+gIdx+'-'+s;
           var v=LB_WEEKLY_DATA[key]||'';
-          h+=forExport?'<td>'+esc(v)+'</td>':'<td><input type="text" class="lb-weekly-cell" data-key="'+key+'" value="'+esc(v)+'"></td>';
+          h+=forExport?'<td style="background:'+(rowHex||'#fff')+'">'+esc(v)+'</td>':'<td><input type="text" class="lb-weekly-cell" data-key="'+key+'" value="'+esc(v)+'"></td>';
         }
         h+='</tr>';
       });
@@ -11292,17 +11335,28 @@ function teacherScript() {
       inp.addEventListener('input',function(){LB_WEEKLY_DATA[inp.dataset.key]=inp.value;});
     });
   }
+  var lbWeeklyRowColors={};
   function lbRenderWeekly(){
     var el=document.getElementById('lb-weekly-preview');
     el.innerHTML=lbBuildWeeklyHtml(false);
     lbBindWeeklyInputs(el);
+    refreshRowColorPickers(el,lbWeeklyRowColors);
   }
+  document.getElementById('lb-weekly-preview').addEventListener('click',function(e){
+    var dot=e.target.closest('.row-color-dot');
+    if(!dot)return;
+    lbWeeklyRowColors[dot.dataset.key]=dot.dataset.color;
+    refreshRowColorPickers(document.getElementById('lb-weekly-preview'),lbWeeklyRowColors);
+    lbSave('weekly-row-colors',lbWeeklyRowColors,true);
+  });
   document.getElementById('btn-lbw-build').onclick=lbRenderWeekly;
   var LB_WEEKLY_LOADED=false;
   async function lbLoadWeeklyIfNeeded(){
     if(LB_WEEKLY_LOADED){lbRenderWeekly();return;}
     LB_WEEKLY_LOADED=true;
     var saved=await lbLoad('weekly');
+    var savedColors=await lbLoad('weekly-row-colors');
+    if(savedColors&&typeof savedColors==='object')lbWeeklyRowColors=savedColors;
     if(saved){
       document.getElementById('lbw-school').value=saved.school||'';
       document.getElementById('lbw-teacher').value=saved.teacher||'';
@@ -11374,11 +11428,13 @@ function teacherScript() {
     LB_WEEKLY2_SESSIONS.forEach(function(s){h+='<th>'+esc(s)+'</th>';});
     h+='</tr></thead><tbody>';
     LB_WEEKLY2_DAYS.forEach(function(day,dIdx){
-      h+='<tr><td style="font-weight:700;background:#f1f5f9">'+esc(day)+'</td>';
+      var rowKey='day-'+dIdx;
+      var rowHex=forExport?(ROW_COLOR_HEX[lbWeekly2RowColors[rowKey]]||''):'';
+      h+='<tr><td style="font-weight:700;background:'+(rowHex||'#f1f5f9')+'">'+esc(day)+(forExport?'':rowColorDotsHtml(rowKey))+'</td>';
       LB_WEEKLY2_SESSIONS.forEach(function(s,sIdx){
         var key=dIdx+'-'+sIdx;
         var v=LB_WEEKLY2_DATA[key]||'';
-        h+=forExport?'<td>'+esc(v)+'</td>':'<td><input type="text" class="lb-weekly2-cell" data-key="'+key+'" value="'+esc(v)+'"></td>';
+        h+=forExport?'<td style="background:'+(rowHex||'#fff')+'">'+esc(v)+'</td>':'<td><input type="text" class="lb-weekly2-cell" data-key="'+key+'" value="'+esc(v)+'"></td>';
       });
       h+='</tr>';
     });
@@ -11390,16 +11446,27 @@ function teacherScript() {
       inp.addEventListener('input',function(){LB_WEEKLY2_DATA[inp.dataset.key]=inp.value;});
     });
   }
+  var lbWeekly2RowColors={};
   function lbRenderWeekly2(){
     var el=document.getElementById('lb-weekly2-preview');
     el.innerHTML=lbBuildWeekly2Html(false);
     lbBindWeekly2Inputs(el);
+    refreshRowColorPickers(el,lbWeekly2RowColors);
   }
+  document.getElementById('lb-weekly2-preview').addEventListener('click',function(e){
+    var dot=e.target.closest('.row-color-dot');
+    if(!dot)return;
+    lbWeekly2RowColors[dot.dataset.key]=dot.dataset.color;
+    refreshRowColorPickers(document.getElementById('lb-weekly2-preview'),lbWeekly2RowColors);
+    lbSave('weekly2-row-colors',lbWeekly2RowColors,true);
+  });
   var LB_WEEKLY2_LOADED=false;
   async function lbLoadWeekly2IfNeeded(){
     if(LB_WEEKLY2_LOADED){lbRenderWeekly2();return;}
     LB_WEEKLY2_LOADED=true;
     var saved=await lbLoad('weekly2');
+    var savedColors=await lbLoad('weekly2-row-colors');
+    if(savedColors&&typeof savedColors==='object')lbWeekly2RowColors=savedColors;
     if(saved){
       document.getElementById('lbw2-school').value=saved.school||'';
       document.getElementById('lbw2-teacher').value=saved.teacher||'';
@@ -11437,7 +11504,7 @@ function teacherScript() {
     var h='<colgroup>'+LB_STAFF_COL_WIDTHS.map(function(w){return '<col style="width:'+w+'">';}).join('')+'</colgroup>';
     h+='<thead><tr>'+LB_STAFF_HEADERS.map(function(hd){return '<th>'+esc(hd)+'</th>';}).join('')+'</tr></thead><tbody>';
     for(var r=1;r<=rowCount;r++){
-      h+='<tr><td>'+toFaDigits(r)+'</td>';
+      h+='<tr><td>'+toFaDigits(r)+rowColorDotsHtml('r'+r)+'</td>';
       for(var c=1;c<LB_STAFF_HEADERS.length;c++)h+='<td><textarea class="lbs-cell-ta" rows="1"></textarea></td>';
       h+='</tr>';
     }
@@ -11479,17 +11546,27 @@ function teacherScript() {
     var n=parseInt(document.getElementById('lbs-rows').value,10)||15;
     lbRebuildStaffPreserving(n);
     lbApplyStaffStyle();
+    refreshRowColorPickers(document.getElementById('lbs-table'),lbStaffRowColors);
   };
   document.getElementById('btn-lbs-addrow').onclick=function(){
     var tbody=document.querySelector('#lbs-table tbody');
     var rowNum=tbody.children.length+1;
     var tr=document.createElement('tr');
-    var html='<td>'+toFaDigits(rowNum)+'</td>';
+    var html='<td>'+toFaDigits(rowNum)+rowColorDotsHtml('r'+rowNum)+'</td>';
     for(var c=1;c<LB_STAFF_HEADERS.length;c++)html+='<td><textarea class="lbs-cell-ta" rows="1"></textarea></td>';
     tr.innerHTML=html;
     tbody.appendChild(tr);
     lbApplyStaffStyle();
+    refreshRowColorPickers(document.getElementById('lbs-table'),lbStaffRowColors);
   };
+  var lbStaffRowColors={};
+  document.getElementById('lbs-table').addEventListener('click',function(e){
+    var dot=e.target.closest('.row-color-dot');
+    if(!dot)return;
+    lbStaffRowColors[dot.dataset.key]=dot.dataset.color;
+    refreshRowColorPickers(document.getElementById('lbs-table'),lbStaffRowColors);
+    lbSave('staff-row-colors',lbStaffRowColors,true);
+  });
 
   // --- فونت و اندازه جدول (زنده روی صفحه) ---
   var LB_STAFF_FONTS={bnazanin:"'BNazanin','B Nazanin',Tahoma,Arial",bmitra:"'BMitra','B Mitra',Tahoma,Arial"};
@@ -11561,13 +11638,16 @@ function teacherScript() {
     if(LB_STAFF_LOADED)return;
     LB_STAFF_LOADED=true;
     var saved=await lbLoad('staff');
-    if(!saved)return;
+    var savedColors=await lbLoad('staff-row-colors');
+    if(savedColors&&typeof savedColors==='object')lbStaffRowColors=savedColors;
+    if(!saved){refreshRowColorPickers(document.getElementById('lbs-table'),lbStaffRowColors);return;}
     document.getElementById('lbs-year').value=saved.year||'';
     if(saved.rowCount){document.getElementById('lbs-rows').value=saved.rowCount;document.getElementById('btn-lbs-build').click();}
     if(saved.rows)lbFillTableRows('lbs-table',saved.rows);
     if(saved.font)document.getElementById('lbs-font').value=saved.font;
     if(saved.fontSize)document.getElementById('lbs-font-size').value=saved.fontSize;
     lbApplyStaffStyle();
+    refreshRowColorPickers(document.getElementById('lbs-table'),lbStaffRowColors);
   }
   document.getElementById('btn-lbs-save').onclick=function(){
     lbSave('staff',{
