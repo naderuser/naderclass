@@ -1231,7 +1231,7 @@ const SHARED_CSS = `
   .dash-flex>.tab-content{flex:1;min-width:0;margin-top:0}
   .mobile-menu-btn{display:none}
   .tabs-overlay{display:none}
-  @media (max-width:760px){
+  @media (max-width:760px), (pointer:coarse) and (max-width:1024px){
     .dash-flex{flex-direction:column}
     .mobile-menu-btn{display:inline-flex;align-items:center;gap:6px;background:var(--primary);color:#fff;border:none;padding:10px 16px;border-radius:12px;font-weight:700;font-size:14px;cursor:pointer;margin:16px 0 0;box-shadow:0 3px 10px rgba(18,32,48,.16)}
     .tabs{position:fixed;top:0;right:0;height:100vh;width:78vw;max-width:280px;background:var(--card);border-left:2px solid var(--text);box-shadow:-6px 0 24px rgba(0,0,0,.25);z-index:301;flex-wrap:nowrap;padding:64px 14px 14px;transform:translateX(100%);transition:transform .25s ease;overflow-y:auto}
