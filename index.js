@@ -4982,8 +4982,32 @@ function teacherScript() {
   var tabsPanel=document.getElementById('tabs-panel');
   var tabsOverlay=document.getElementById('tabs-overlay');
   var mobileMenuBtn=document.getElementById('mobile-menu-btn');
-  function closeMobileMenu(){tabsPanel.classList.remove('open');tabsOverlay.classList.remove('open');document.documentElement.style.overflow='';document.body.style.overflow='';}
-  mobileMenuBtn.onclick=function(){tabsPanel.classList.add('open');tabsOverlay.classList.add('open');document.documentElement.style.overflow='hidden';document.body.style.overflow='hidden';};
+
+  /* Force correct mobile-drawer layout at runtime via an injected !important
+     stylesheet, independent of the @media(max-width) CSS rule above. This
+     guarantees the right-side drawer renders correctly even when the browser
+     reports a wide viewport (e.g. Chrome "Request Desktop Site" on a phone),
+     since detection here is based on actual touch capability, not viewport width. */
+  function isTouchDevice(){
+    return (window.matchMedia && window.matchMedia('(pointer:coarse)').matches) ||
+           (navigator.maxTouchPoints && navigator.maxTouchPoints>0) ||
+           ('ontouchstart' in window);
+  }
+  var mobileNavStyleTag=document.createElement('style');
+  document.head.appendChild(mobileNavStyleTag);
+  function syncMobileNavStyles(open){
+    if(!isTouchDevice()){ mobileNavStyleTag.textContent=''; return; }
+    mobileNavStyleTag.textContent =
+      '#mobile-menu-btn{display:inline-flex!important;align-items:center!important;gap:6px!important;background:var(--primary)!important;color:#fff!important;border:none!important;padding:10px 16px!important;border-radius:12px!important;font-weight:700!important;font-size:14px!important;cursor:pointer!important;margin:16px 0 0!important;box-shadow:0 3px 10px rgba(18,32,48,.16)!important}'+
+      '.dash-flex{flex-direction:column!important}'+
+      '#tabs-panel{position:fixed!important;top:0!important;right:0!important;left:auto!important;bottom:auto!important;height:100vh!important;max-height:100dvh!important;width:78vw!important;max-width:280px!important;flex:none!important;margin:0!important;background:var(--card)!important;border-left:2px solid var(--text)!important;box-shadow:-6px 0 24px rgba(0,0,0,.25)!important;z-index:301!important;padding:64px 14px 14px!important;overflow-y:auto!important;transition:transform .25s ease!important;transform:translateX('+(open?'0':'100%')+')!important}'+
+      '#tabs-overlay{display:'+(open?'block':'none')+'!important;position:fixed!important;top:0!important;right:0!important;bottom:0!important;left:0!important;width:100vw!important;height:100vh!important;background:rgba(15,23,42,.55)!important;z-index:300!important}';
+  }
+  syncMobileNavStyles(false);
+  window.addEventListener('resize', function(){ syncMobileNavStyles(tabsPanel.classList.contains('open')); });
+
+  function closeMobileMenu(){tabsPanel.classList.remove('open');tabsOverlay.classList.remove('open');document.documentElement.style.overflow='';document.body.style.overflow='';syncMobileNavStyles(false);}
+  mobileMenuBtn.onclick=function(){tabsPanel.classList.add('open');tabsOverlay.classList.add('open');document.documentElement.style.overflow='hidden';document.body.style.overflow='hidden';syncMobileNavStyles(true);};
   tabsOverlay.onclick=closeMobileMenu;
 
   document.querySelectorAll('.tab[data-tab]').forEach(function(t){
