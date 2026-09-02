@@ -1385,7 +1385,7 @@ const SHARED_CSS = `
   .lb-table{width:100%;border-collapse:collapse;font-size:12px}
   .lb-table th,.lb-table td{border:1px solid #94a3b8;padding:6px 8px;text-align:center;min-width:64px}
   .lb-table th:first-child,.lb-table td:first-child{min-width:40px}
-  .lb-table th{background:#dbeafe;font-weight:700}
+  .lb-table th{background:#dbeafe;color:var(--text);font-weight:700}
   [data-theme="dark"] .lb-table th{background:#1e3a5f}
   .lb-table input,.lb-table textarea{width:100%;border:none;background:transparent;text-align:center;font-family:inherit;font-size:12px;padding:2px}
   .lbs-cell-ta{resize:none;overflow:hidden;box-sizing:border-box;line-height:1.5;display:block;min-height:1.6em}
@@ -1406,7 +1406,7 @@ const SHARED_CSS = `
   .lb-font-toolbar select,.lb-font-toolbar input[type=number]{padding:6px 8px;border:1px solid #cbd5e1;border-radius:6px;font-family:inherit}
   .lb-pacing-table{width:max-content;min-width:100%;border-collapse:collapse;font-size:11px;margin-bottom:22px}
   .lb-pacing-table th,.lb-pacing-table td{border:1px solid #94a3b8;padding:4px 6px;text-align:center}
-  .lb-pacing-table th{background:#dbeafe}
+  .lb-pacing-table th{background:#dbeafe;color:var(--text)}
   [data-theme="dark"] .lb-pacing-table th{background:#1e3a5f}
 
   /* ---- آمار دانش‌آموزان به تفکیک جنسیت ---- */
@@ -1417,7 +1417,7 @@ const SHARED_CSS = `
   .lbg-inline-input:focus{outline:none;background:rgba(102,126,234,.06)}
   .lbg-table{font-size:14px}
   .lbg-table th,.lbg-table td{padding:10px 12px;font-size:14px}
-  .lbg-table th{background:#eef2ff}
+  .lbg-table th{background:#eef2ff;color:var(--text)}
   [data-theme="dark"] .lbg-table th{background:#1e2a4a}
   .lbg-table input{font-size:14px;font-weight:600;text-align:center}
   .lbg-sum{font-weight:700;background:#f8fafc}
@@ -1806,6 +1806,8 @@ const SHARED_CSS = `
   .es-header-table input{border:none;background:transparent;width:100%;font-family:inherit;font-weight:bold;font-size:14px;padding:2px 0;color:inherit}
   .es-header-table input:focus{outline:none;background:#fffbe6}
   [data-theme="dark"] .es-header-table input:focus{background:#334155}
+  .es-header-table input::placeholder,.es-main-table input::placeholder,.es-main-table textarea::placeholder{color:#64748b;opacity:1;font-weight:normal}
+  [data-theme="dark"] .es-header-table input::placeholder,[data-theme="dark"] .es-main-table input::placeholder,[data-theme="dark"] .es-main-table textarea::placeholder{color:#94a3b8}
   .es-header-table td span{font-size:13.5px;font-weight:bold;display:inline-block;margin-left:4px}
   .es-header-table select,.es-main-table select{border:none;background:transparent;font-family:inherit;font-size:13.5px;font-weight:bold;color:inherit;cursor:pointer}
   .es-header-table select:focus,.es-main-table select:focus{outline:none}
@@ -1814,7 +1816,7 @@ const SHARED_CSS = `
   #es-print-area{--es-font-size:12pt}
   .es-main-table{width:100%;min-width:640px;border-collapse:collapse;margin-top:6px}
   .es-main-table th,.es-main-table td{border:1px solid #000;padding:8px;vertical-align:top;font-size:var(--es-font-size,12pt)}
-  .es-main-table thead th{background:#f1f5f9;font-weight:bold;text-align:center}
+  .es-main-table thead th{background:#f1f5f9;color:var(--text);font-weight:bold;text-align:center}
   [data-theme="dark"] .es-main-table thead th{background:#334155}
   .es-col-num{width:56px;text-align:center;font-weight:bold}
   .es-col-mark{width:80px;text-align:center}
