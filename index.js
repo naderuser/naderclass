@@ -1452,6 +1452,10 @@ const SHARED_CSS = `
   .lbgrp-card-3 .lbgrp-pill{background:#fed7aa;color:#9a3412}
   .lbgrp-card-4{border-color:#93c5fd}
   .lbgrp-card-4 .lbgrp-pill{background:#bfdbfe;color:#1e3a8a}
+  .lbgrp-card-5{border-color:#d8b4fe}
+  .lbgrp-card-5 .lbgrp-pill{background:#f3e8ff;color:#6b21a8}
+  .lbgrp-card-6{border-color:#fde68a}
+  .lbgrp-card-6 .lbgrp-pill{background:#fef9c3;color:#854d0e}
   .lbgrp-table th{font-size:11px}
   .lbgrp-addrow{margin-top:8px}
   .lb-table-tight th,.lb-table-tight td{padding:3px 4px;font-size:11px;min-width:38px}
@@ -3304,7 +3308,6 @@ function teacherPage() {
             <a class="tab-child" href="/teacher?tab=logbook&lb=roster">👥 لیست اسامی دانش‌آموزان</a>
             <a class="tab-child" href="/teacher?tab=logbook&lb=genderstats">🥧 آمار دانش‌آموزان</a>
             <a class="tab-child" href="/teacher?tab=logbook&lb=passrate">🎯 درصد قبولی دانش‌آموزان</a>
-            <a class="tab-child" href="/teacher?tab=logbook&lb=absence">📋 ثبت غیبت دانش‌آموزان</a>
             <a class="tab-child" href="/teacher?tab=logbook&lb=attendance2">🗓️ جدول حضور و غیاب هفتگی</a>
             <a class="tab-child" href="/teacher?tab=logbook&lb=grouping">🧩 گروه‌بندی دانش‌آموزان</a>
             <a class="tab-child" href="/teacher?tab=logbook&lb=performance">📶 ثبت سطوح عملکرد دانش‌آموز</a>
@@ -4270,9 +4273,8 @@ function teacherPage() {
             <button class="lb-menu-btn" data-lb="roster"><span class="lb-ico">👥</span><span class="lb-t">لیست اسامی دانش‌آموزان</span></button>
             <button class="lb-menu-btn" data-lb="genderstats"><span class="lb-ico">🥧</span><span class="lb-t">آمار دانش‌آموزان</span><small>به تفکیک جنسیت</small></button>
             <button class="lb-menu-btn" data-lb="passrate"><span class="lb-ico">🎯</span><span class="lb-t">درصد قبولی دانش‌آموزان</span><small>نمودار به تفکیک پایه</small></button>
-            <button class="lb-menu-btn" data-lb="absence"><span class="lb-ico">📋</span><span class="lb-t">ثبت غیبت دانش‌آموزان</span></button>
-            <button class="lb-menu-btn" data-lb="attendance2"><span class="lb-ico">🗓️</span><span class="lb-t">جدول حضور و غیاب هفتگی</span><small>به تفکیک هفته و روز</small></button>
-            <button class="lb-menu-btn" data-lb="grouping"><span class="lb-ico">🧩</span><span class="lb-t">گروه‌بندی دانش‌آموزان</span><small>تا ۴ گروه رنگی</small></button>
+            <button class="lb-menu-btn" data-lb="attendance2"><span class="lb-ico">🗓️</span><span class="lb-t">جدول حضور و غیاب هفتگی</span><small>به تفکیک هفته و روز، به تفکیک ماه</small></button>
+            <button class="lb-menu-btn" data-lb="grouping"><span class="lb-ico">🧩</span><span class="lb-t">گروه‌بندی دانش‌آموزان</span><small>تا ۶ گروه رنگی</small></button>
             <button class="lb-menu-btn" data-lb="performance"><span class="lb-ico">📶</span><span class="lb-t">ثبت سطوح عملکرد دانش‌آموز</span></button>
             <button class="lb-menu-btn" data-lb="reportcard"><span class="lb-ico">🎓</span><span class="lb-t">کارنامه‌ساز</span><small>ارزشیابی توصیفی هر دانش‌آموز</small></button>
             <button class="lb-menu-btn" data-lb="council"><span class="lb-ico">💬</span><span class="lb-t">صورتجلسه شورای آموزشی اولیا</span></button>
@@ -4496,64 +4498,6 @@ function teacherPage() {
           </div>
         </div>
 
-        <!-- ===== ۳. ثبت غیبت دانش‌آموزان ===== -->
-        <div class="lb-panel hidden" id="lb-panel-absence">
-          <button class="btn sm gray lb-back-btn">← بازگشت به دفتر</button>
-          <h3>📋 جدول ثبت غیبت دانش‌آموزان</h3>
-          <div class="lb-meta-form">
-            <div><label>نام مدرسه</label><input id="lba-school" placeholder="......................."></div>
-            <div><label>نام آموزگار</label><input id="lba-teacher" placeholder="......................."></div>
-            <div><label>پایه تحصیلی</label><input id="lba-grade" placeholder="......................."></div>
-            <div><label>سال تحصیلی</label><input id="lba-year" placeholder="......................."></div>
-          </div>
-          <p class="muted">راهنما: موجه «م» | غیرموجه «غ» | تأخیر «ت»</p>
-          <div class="row">
-            <label>ماه: </label>
-            <select id="lba-month">
-              <option>مهر</option><option>آبان</option><option>آذر</option><option>دی</option><option>بهمن</option><option>اسفند</option><option>فروردین</option><option>اردیبهشت</option><option>خرداد</option>
-            </select>
-            <label>تعداد روز: </label><input type="number" id="lba-days" value="30" min="28" max="31" style="width:80px">
-            <label>تعداد دانش‌آموز: </label><input type="number" id="lba-rows" value="30" min="1" max="60" style="width:80px">
-            <button class="btn sm sec" id="btn-lba-build">🔄 ساخت جدول</button>
-            <button class="btn sm gray" id="btn-lba-addrow">➕ افزودن ردیف (ادامه جدول)</button>
-          </div>
-          <div class="lb-preview"><table class="lb-table lb-table-tight" id="lba-table"></table></div>
-          <div class="row" style="align-items:center;flex-wrap:wrap;gap:8px;margin-top:8px">
-            <span style="font-weight:700">🔤 فونت:</span>
-            <select id="lba-font" style="padding:8px;border:1px solid #ddd;border-radius:6px;width:auto">
-              <option value="default">پیش‌فرض</option>
-              <option value="titr">B Titr</option>
-              <option value="nazanin">B Nazanin</option>
-              <option value="mitra">B Mitra</option>
-            </select>
-            <span style="font-weight:700;margin-right:10px">🔠 اندازه فونت جدول:</span>
-            <button type="button" class="btn sm gray" id="btn-lba-fontsize-dec" style="flex:0 0 auto">➖</button>
-            <input type="number" id="lba-fontsize" value="11" min="6" max="30" style="width:60px;text-align:center">
-            <button type="button" class="btn sm gray" id="btn-lba-fontsize-inc" style="flex:0 0 auto">➕</button>
-          </div>
-          <div class="row" style="margin-top:12px">
-            <button class="btn primary" id="btn-lba-save">💾 ذخیره</button>
-            <button class="btn primary" id="btn-lb-absence-word">📄 دانلود Word</button>
-            <button class="btn sec" id="btn-lb-absence-excel">📊 دانلود Excel</button>
-            <button class="btn gray" id="btn-lb-absence-pdf">🖨️ چاپ / دانلود PDF</button>
-            <button type="button" class="btn sm sec" id="btn-lba-print-opts-toggle" title="تنظیمات چاپ" style="flex:0 0 auto">🔧</button>
-            <button class="btn danger" type="button" onclick="lbClearContainer('lba-table')">🗑️ پاک کردن جدول</button>
-          </div>
-          <div id="lba-print-opts-drawer" class="cls-options-drawer hidden">
-            <div class="row" style="align-items:center;flex-wrap:wrap;gap:8px">
-              <label style="flex:0 0 auto">جهت صفحه:</label>
-              <select id="lba-print-orientation" style="flex:0 0 auto;min-width:130px">
-                <option value="landscape" selected>افقی (Landscape)</option>
-                <option value="portrait">عمودی (Portrait)</option>
-              </select>
-              <label style="flex:0 0 auto">اندازه فونت:</label>
-              <input type="number" id="lba-print-fontsize" value="10" min="6" max="24" style="width:70px">
-              <button class="btn sm primary" id="btn-lba-print-custom" style="flex:0 0 auto">🖨️ چاپ با این تنظیمات</button>
-              <button class="btn sm sec" id="btn-lba-word-custom" style="flex:0 0 auto">📄 دانلود Word با این تنظیمات</button>
-            </div>
-          </div>
-        </div>
-
         <!-- ===== ۳-۲. جدول حضور و غیاب هفتگی (به تفکیک هفته و روز) ===== -->
         <div class="lb-panel hidden" id="lb-panel-attendance2">
           <button class="btn sm gray lb-back-btn">← بازگشت به دفتر</button>
@@ -4566,7 +4510,11 @@ function teacherPage() {
           <div class="lb-meta-form">
             <div><label>کلاس</label><input id="lbat-class" placeholder="......................."></div>
             <div><label>معلم</label><input id="lbat-teacher" placeholder="......................."></div>
-            <div><label>ماه</label><input id="lbat-month" placeholder="......................."></div>
+            <div><label>ماه</label>
+              <select id="lbat-month">
+                <option>مهر</option><option>آبان</option><option>آذر</option><option>دی</option><option>بهمن</option><option>اسفند</option><option>فروردین</option><option>اردیبهشت</option><option>خرداد</option>
+              </select>
+            </div>
             <div><label>سال تحصیلی</label><input id="lbat-year" placeholder="......................."></div>
             <div><label>دوره</label><input id="lbat-course" placeholder="......................."></div>
           </div>
@@ -4650,6 +4598,16 @@ function teacherPage() {
               <div class="lbgrp-card-head"><span class="lbgrp-animal">🐦</span><span class="lbgrp-pill">گروه ۴</span></div>
               <table class="lb-table lb-table-tight lbgrp-table" id="lbgrp-table-4"></table>
               <button class="btn sm gray lbgrp-addrow" data-grp="4">➕ افزودن نفر</button>
+            </div>
+            <div class="lbgrp-card lbgrp-card-5">
+              <div class="lbgrp-card-head"><span class="lbgrp-animal">🦊</span><span class="lbgrp-pill">گروه ۵</span></div>
+              <table class="lb-table lb-table-tight lbgrp-table" id="lbgrp-table-5"></table>
+              <button class="btn sm gray lbgrp-addrow" data-grp="5">➕ افزودن نفر</button>
+            </div>
+            <div class="lbgrp-card lbgrp-card-6">
+              <div class="lbgrp-card-head"><span class="lbgrp-animal">🐬</span><span class="lbgrp-pill">گروه ۶</span></div>
+              <table class="lb-table lb-table-tight lbgrp-table" id="lbgrp-table-6"></table>
+              <button class="btn sm gray lbgrp-addrow" data-grp="6">➕ افزودن نفر</button>
             </div>
           </div>
           <div class="row" style="margin-top:12px">
@@ -10396,7 +10354,6 @@ function teacherScript() {
       if(b.dataset.lb==='roster')lbLoadRosterIfNeeded();
       if(b.dataset.lb==='genderstats')lbLoadGenderStatsIfNeeded();
       if(b.dataset.lb==='passrate')lbLoadPassrateIfNeeded();
-      if(b.dataset.lb==='absence')lbLoadAbsenceIfNeeded();
       if(b.dataset.lb==='attendance2')lbLoadAttendance2IfNeeded();
       if(b.dataset.lb==='grouping')lbLoadGroupingIfNeeded();
       if(b.dataset.lb==='performance'){
@@ -11314,69 +11271,6 @@ function teacherScript() {
     });
   };
 
-  // ===================== ۳. ثبت غیبت =====================
-  document.getElementById('btn-lba-build').onclick=function(){
-    var days=parseInt(document.getElementById('lba-days').value,10)||30;
-    var n=parseInt(document.getElementById('lba-rows').value,10)||30;
-    var headers=['ردیف','نام و نام خانوادگی'];
-    for(var d=1;d<=days;d++)headers.push(String(d));
-    lbRebuildPreserving('lba-table',headers,n);
-  };
-  document.getElementById('btn-lba-addrow').onclick=function(){
-    var days=parseInt(document.getElementById('lba-days').value,10)||30;
-    lbAddSimpleRow('lba-table',days+2);
-  };
-  document.getElementById('btn-lba-build').click();
-  lbEnablePaste('lba-table');
-  function lbAbsenceExportHtml(){
-    var month=document.getElementById('lba-month').value;
-    var meta=lbMetaBlock([['نام مدرسه','lba-school'],['نام آموزگار','lba-teacher'],['پایه تحصیلی','lba-grade'],['سال تحصیلی','lba-year']]);
-    meta+='<p><b>ماه:</b> '+esc(month)+' &nbsp;&nbsp; موجه: «م» | غیرموجه: «غ» | تأخیر: «ت»</p>';
-    var rows=lbTableToRows(document.getElementById('lba-table'));
-    return meta+lbRowsToHtmlTable(rows)+'<p style="margin-top:14px"><b>ادامه جدول غیبت دانش‌آموزان</b></p>';
-  }
-  var LBA_FONTS={default:'',titr:"'B Titr','BTitr',Tahoma,Arial",nazanin:"'B Nazanin','BNazanin',Tahoma,Arial",mitra:"'B Mitra','BMitra',Tahoma,Arial"};
-  function lbaFontFamily(){
-    var el=document.getElementById('lba-font');
-    return LBA_FONTS[el?el.value:'default']||undefined;
-  }
-  var lbaFontSizeCtl=lbLiveFontSize('#lba-table','lba-fontsize','btn-lba-fontsize-inc','btn-lba-fontsize-dec',11);
-  document.getElementById('btn-lb-absence-word').onclick=function(){lbWordExport('جدول ثبت غیبت دانش‌آموزان',lbAbsenceExportHtml(),'ثبت-غیبت-دانش-آموزان',true,lbaFontFamily(),lbaFontSizeCtl.current());};
-  document.getElementById('btn-lb-absence-pdf').onclick=function(){lbPrintExport('جدول ثبت غیبت دانش‌آموزان',lbAbsenceExportHtml(),true,lbaFontFamily(),lbaFontSizeCtl.current());};
-  lbSetupPrintWrench({toggleId:'btn-lba-print-opts-toggle',drawerId:'lba-print-opts-drawer',orientationId:'lba-print-orientation',fontSizeId:'lba-print-fontsize',printBtnId:'btn-lba-print-custom',wordBtnId:'btn-lba-word-custom',exportFn:lbAbsenceExportHtml,title:'جدول ثبت غیبت دانش‌آموزان',filename:'ثبت-غیبت-دانش-آموزان',fontFamilyFn:lbaFontFamily,currentSizeFn:lbaFontSizeCtl.current});
-  document.getElementById('btn-lb-absence-excel').onclick=function(){
-    lbExcelExport('ثبت-غیبت-دانش-آموزان',function(wb){
-      lbAddExcelSheet(wb,'ثبت غیبت',lbTableToRows(document.getElementById('lba-table')));
-    });
-  };
-  var LB_ABSENCE_LOADED=false;
-  async function lbLoadAbsenceIfNeeded(){
-    if(LB_ABSENCE_LOADED)return;
-    LB_ABSENCE_LOADED=true;
-    var saved=await lbLoad('absence');
-    if(!saved)return;
-    if(saved.meta){
-      document.getElementById('lba-school').value=saved.meta.school||'';
-      document.getElementById('lba-teacher').value=saved.meta.teacher||'';
-      document.getElementById('lba-grade').value=saved.meta.grade||'';
-      document.getElementById('lba-year').value=saved.meta.year||'';
-    }
-    if(saved.month)document.getElementById('lba-month').value=saved.month;
-    if(saved.days){document.getElementById('lba-days').value=saved.days;}
-    if(saved.rowCount){document.getElementById('lba-rows').value=saved.rowCount;}
-    if(saved.days||saved.rowCount)document.getElementById('btn-lba-build').click();
-    if(saved.rows)lbFillTableRows('lba-table',saved.rows);
-  }
-  document.getElementById('btn-lba-save').onclick=function(){
-    lbSave('absence',{
-      meta:{school:document.getElementById('lba-school').value,teacher:document.getElementById('lba-teacher').value,grade:document.getElementById('lba-grade').value,year:document.getElementById('lba-year').value},
-      month:document.getElementById('lba-month').value,
-      days:parseInt(document.getElementById('lba-days').value,10)||30,
-      rowCount:parseInt(document.getElementById('lba-rows').value,10)||30,
-      rows:lbTableToRows(document.getElementById('lba-table')).slice(1)
-    });
-  };
-
   // ===================== ۳-۲. جدول حضور و غیاب هفتگی (طرح رنگی با هفته/روز) =====================
   var LB_ATT_WEEKS=['هفته اول','هفته دوم','هفته سوم','هفته چهارم'];
   var LB_ATT_DAYS=['شنبه','یکشنبه','دوشنبه','سه‌شنبه','چهارشنبه'];
@@ -11510,18 +11404,20 @@ function teacherScript() {
   var LB_GROUP_HEADERS=['ردیف','نام و نام خانوادگی'];
   document.getElementById('btn-lbgrp-build').onclick=function(){
     var n=parseInt(document.getElementById('lbgrp-rows').value,10)||10;
-    for(var g=1;g<=4;g++)lbRebuildPreserving('lbgrp-table-'+g,LB_GROUP_HEADERS,n);
+    for(var g=1;g<=6;g++)lbRebuildPreserving('lbgrp-table-'+g,LB_GROUP_HEADERS,n);
   };
   document.getElementById('btn-lbgrp-build').click();
   document.querySelectorAll('.lbgrp-addrow').forEach(function(btn){
     btn.onclick=function(){lbAddSimpleRow('lbgrp-table-'+btn.dataset.grp,LB_GROUP_HEADERS.length);};
   });
-  for(var lbgrpI=1;lbgrpI<=4;lbgrpI++)lbEnablePaste('lbgrp-table-'+lbgrpI);
+  for(var lbgrpI=1;lbgrpI<=6;lbgrpI++)lbEnablePaste('lbgrp-table-'+lbgrpI);
   var LB_GROUP_META=[
     {title:'گروه ۱',icon:'🐢',headBg:'#dcfce7',headColor:'#166534',border:'#86efac'},
     {title:'گروه ۲',icon:'🐰',headBg:'#fce7f3',headColor:'#9d174d',border:'#f9a8d4'},
     {title:'گروه ۳',icon:'🐝',headBg:'#fed7aa',headColor:'#9a3412',border:'#fdba74'},
-    {title:'گروه ۴',icon:'🐦',headBg:'#bfdbfe',headColor:'#1e3a8a',border:'#93c5fd'}
+    {title:'گروه ۴',icon:'🐦',headBg:'#bfdbfe',headColor:'#1e3a8a',border:'#93c5fd'},
+    {title:'گروه ۵',icon:'🦊',headBg:'#f3e8ff',headColor:'#6b21a8',border:'#d8b4fe'},
+    {title:'گروه ۶',icon:'🐬',headBg:'#fef9c3',headColor:'#854d0e',border:'#fde68a'}
   ];
   function lbGroupingGroupHtml(idx){
     var m=LB_GROUP_META[idx-1];
@@ -11533,24 +11429,26 @@ function teacherScript() {
   }
   function lbGroupingExportHtml(){
     var meta=lbMetaBlock([['نام مدرسه','lbgrp-school'],['نام آموزگار','lbgrp-teacher'],['پایه تحصیلی','lbgrp-grade'],['سال تحصیلی','lbgrp-year']]);
-    var g1=lbGroupingGroupHtml(1),g2=lbGroupingGroupHtml(2),g3=lbGroupingGroupHtml(3),g4=lbGroupingGroupHtml(4);
+    var g1=lbGroupingGroupHtml(1),g2=lbGroupingGroupHtml(2),g3=lbGroupingGroupHtml(3),g4=lbGroupingGroupHtml(4),g5=lbGroupingGroupHtml(5),g6=lbGroupingGroupHtml(6);
     var grid='<table style="width:100%;border:none;border-collapse:collapse"><tr>'
       +'<td style="border:none;width:50%;vertical-align:top;padding:6px">'+g1+'</td>'
       +'<td style="border:none;width:50%;vertical-align:top;padding:6px">'+g2+'</td></tr><tr>'
       +'<td style="border:none;vertical-align:top;padding:6px">'+g3+'</td>'
-      +'<td style="border:none;vertical-align:top;padding:6px">'+g4+'</td></tr></table>';
+      +'<td style="border:none;vertical-align:top;padding:6px">'+g4+'</td></tr><tr>'
+      +'<td style="border:none;vertical-align:top;padding:6px">'+g5+'</td>'
+      +'<td style="border:none;vertical-align:top;padding:6px">'+g6+'</td></tr></table>';
     return meta+'<p style="text-align:center;font-weight:800;font-size:18px;margin:6px 0">🧩 گروه‌بندی دانش‌آموزان</p>'+grid;
   }
   document.getElementById('btn-lbgrp-word').onclick=function(){lbWordExport('گروه‌بندی دانش‌آموزان',lbGroupingExportHtml(),'گروه-بندی-دانش-آموزان',false);};
   document.getElementById('btn-lbgrp-pdf').onclick=function(){lbPrintExport('گروه‌بندی دانش‌آموزان',lbGroupingExportHtml(),false);};
   document.getElementById('btn-lbgrp-excel').onclick=function(){
     lbExcelExport('گروه-بندی-دانش-آموزان',function(wb){
-      for(var g=1;g<=4;g++)lbAddExcelSheet(wb,LB_GROUP_META[g-1].title,lbTableToRows(document.getElementById('lbgrp-table-'+g)));
+      for(var g=1;g<=6;g++)lbAddExcelSheet(wb,LB_GROUP_META[g-1].title,lbTableToRows(document.getElementById('lbgrp-table-'+g)));
     });
   };
   document.getElementById('btn-lbgrp-clear').onclick=function(){
     if(!confirm('آیا از پاک‌کردن تمام گروه‌ها مطمئن هستید؟ این کار قابل بازگشت نیست.'))return;
-    for(var g=1;g<=4;g++){
+    for(var g=1;g<=6;g++){
       document.querySelectorAll('#lbgrp-table-'+g+' input,#lbgrp-table-'+g+' textarea').forEach(function(inp){inp.value='';});
     }
     toast('همه گروه‌ها پاک شدند ✅');
@@ -11569,14 +11467,14 @@ function teacherScript() {
     }
     if(saved.rowCount){document.getElementById('lbgrp-rows').value=saved.rowCount;document.getElementById('btn-lbgrp-build').click();}
     if(saved.rows){
-      for(var g=1;g<=4;g++){
+      for(var g=1;g<=6;g++){
         if(saved.rows['g'+g])lbFillTableRows('lbgrp-table-'+g,saved.rows['g'+g]);
       }
     }
   }
   document.getElementById('btn-lbgrp-save').onclick=function(){
     var rowsObj={};
-    for(var g=1;g<=4;g++)rowsObj['g'+g]=lbTableToRows(document.getElementById('lbgrp-table-'+g)).slice(1);
+    for(var g=1;g<=6;g++)rowsObj['g'+g]=lbTableToRows(document.getElementById('lbgrp-table-'+g)).slice(1);
     lbSave('grouping',{
       meta:{school:document.getElementById('lbgrp-school').value,teacher:document.getElementById('lbgrp-teacher').value,grade:document.getElementById('lbgrp-grade').value,year:document.getElementById('lbgrp-year').value},
       rowCount:parseInt(document.getElementById('lbgrp-rows').value,10)||10,
