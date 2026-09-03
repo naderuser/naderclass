@@ -11451,7 +11451,7 @@ function teacherScript() {
         for(var s=0;s<5;s++){
           var key=dIdx+'-'+gIdx+'-'+s;
           var v=LB_WEEKLY_DATA[key]||'';
-          h+=forExport?'<td style="background:'+(rowHex||'#fff')+'">'+esc(v).replace(/\n/g,'<br>')+'</td>':'<td><textarea class="lb-weekly-cell" rows="1" data-key="'+key+'">'+esc(v)+'</textarea></td>';
+          h+=forExport?'<td style="background:'+(rowHex||'#fff')+'">'+esc(v).replace(/\\n/g,'<br>')+'</td>':'<td><textarea class="lb-weekly-cell" rows="1" data-key="'+key+'">'+esc(v)+'</textarea></td>';
         }
         h+='</tr>';
       });
@@ -11610,7 +11610,7 @@ function teacherScript() {
       LB_WEEKLY2_SESSIONS.forEach(function(s,sIdx){
         var key=dIdx+'-'+sIdx;
         var v=LB_WEEKLY2_DATA[key]||'';
-        h+=forExport?'<td style="background:'+(rowHex||'#fff')+'">'+esc(v).replace(/\n/g,'<br>')+'</td>':'<td><textarea class="lb-weekly2-cell" rows="1" data-key="'+key+'">'+esc(v)+'</textarea></td>';
+        h+=forExport?'<td style="background:'+(rowHex||'#fff')+'">'+esc(v).replace(/\\n/g,'<br>')+'</td>':'<td><textarea class="lb-weekly2-cell" rows="1" data-key="'+key+'">'+esc(v)+'</textarea></td>';
       });
       h+='</tr>';
     });
