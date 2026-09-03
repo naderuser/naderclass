@@ -10670,19 +10670,24 @@ function teacherScript() {
     h+='<p style="margin-top:16px">تعداد دانش‌آموزان پسر: <b>'+totalBoy+'</b>&nbsp;&nbsp;&nbsp;&nbsp;تعداد دانش‌آموزان دختر: <b>'+totalGirl+'</b>&nbsp;&nbsp;&nbsp;&nbsp;تعداد کل دانش‌آموزان مدرسه: <b>'+(totalBoy+totalGirl)+'</b></p>';
     return h;
   }
-  document.getElementById('btn-lbg-word').onclick=function(){lbWordExport('آمار دانش‌آموزان به تفکیک جنسیت',lbgExportHtml(),'آمار-دانش-آموزان',false,lbgFontFamily());};
-  document.getElementById('btn-lbg-pdf').onclick=function(){lbPrintExport('آمار دانش‌آموزان به تفکیک جنسیت',lbgExportHtml(),false,lbgFontFamily());};
+  function lbgCurrentFontSize(){
+    return parseInt(document.getElementById('lbg-fontsize').value,10)||14;
+  }
+  document.getElementById('btn-lbg-word').onclick=function(){lbWordExport('آمار دانش‌آموزان به تفکیک جنسیت',lbgExportHtml(),'آمار-دانش-آموزان',false,lbgFontFamily(),lbgCurrentFontSize());};
+  document.getElementById('btn-lbg-pdf').onclick=function(){lbPrintExport('آمار دانش‌آموزان به تفکیک جنسیت',lbgExportHtml(),false,lbgFontFamily(),lbgCurrentFontSize());};
   document.getElementById('btn-lbg-print-opts-toggle').onclick=function(){
-    document.getElementById('lbg-print-opts-drawer').classList.toggle('hidden');
+    var drawer=document.getElementById('lbg-print-opts-drawer');
+    if(drawer.classList.contains('hidden'))document.getElementById('lbg-print-fontsize').value=lbgCurrentFontSize();
+    drawer.classList.toggle('hidden');
   };
   document.getElementById('btn-lbg-print-custom').onclick=function(){
     var landscape=document.getElementById('lbg-print-orientation').value==='landscape';
-    var fontSize=parseInt(document.getElementById('lbg-print-fontsize').value,10)||10;
+    var fontSize=parseInt(document.getElementById('lbg-print-fontsize').value,10)||lbgCurrentFontSize();
     lbPrintExport('آمار دانش‌آموزان به تفکیک جنسیت',lbgExportHtml(),landscape,lbgFontFamily(),fontSize);
   };
   document.getElementById('btn-lbg-word-custom').onclick=function(){
     var landscape=document.getElementById('lbg-print-orientation').value==='landscape';
-    var fontSize=parseInt(document.getElementById('lbg-print-fontsize').value,10)||10;
+    var fontSize=parseInt(document.getElementById('lbg-print-fontsize').value,10)||lbgCurrentFontSize();
     lbWordExport('آمار دانش‌آموزان به تفکیک جنسیت',lbgExportHtml(),'آمار-دانش-آموزان',landscape,lbgFontFamily(),fontSize);
   };
   document.getElementById('btn-lbg-excel').onclick=function(){
