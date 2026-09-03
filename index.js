@@ -11423,7 +11423,7 @@ function teacherScript() {
     var tbody=document.querySelector('#lbat-table tbody');
     if(!tbody)return;
     var tr=document.createElement('tr');
-    tr.innerHTML=lbAttRowHtml(tbody.children.length+1).replace(/^<tr>|<\/tr>$/g,'');
+    tr.innerHTML=lbAttRowHtml(tbody.children.length+1).replace(/^<tr>|<\\/tr>$/g,'');
     tbody.appendChild(tr);
   };
   document.getElementById('btn-lbat-build').click();
