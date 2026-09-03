@@ -4245,7 +4245,28 @@ function teacherPage() {
             <button class="btn primary" id="btn-lb-roster-word">📄 دانلود Word</button>
             <button class="btn sec" id="btn-lb-roster-excel">📊 دانلود Excel</button>
             <button class="btn gray" id="btn-lb-roster-pdf">🖨️ چاپ / دانلود PDF</button>
+            <button type="button" class="btn sm sec" id="btn-lbr-print-opts-toggle" title="تنظیمات چاپ" style="flex:0 0 auto">🔧</button>
             <button class="btn danger" type="button" onclick="lbClearContainer('lbr-table')">🗑️ پاک کردن جدول</button>
+          </div>
+          <div id="lbr-print-opts-drawer" class="cls-options-drawer hidden">
+            <div class="row" style="align-items:center;flex-wrap:wrap;gap:8px">
+              <label style="flex:0 0 auto">جهت صفحه:</label>
+              <select id="lbr-print-orientation" style="flex:0 0 auto;min-width:130px">
+                <option value="landscape" selected>افقی (Landscape)</option>
+                <option value="portrait">عمودی (Portrait)</option>
+              </select>
+              <label style="flex:0 0 auto">فونت:</label>
+              <select id="lbr-print-font" style="flex:0 0 auto;min-width:130px">
+                <option value="default" selected>پیش‌فرض</option>
+                <option value="nazanin">B Nazanin</option>
+                <option value="mitra">B Mitra</option>
+                <option value="titr">B Titr</option>
+              </select>
+              <label style="flex:0 0 auto">اندازه فونت:</label>
+              <input type="number" id="lbr-print-fontsize" value="10" min="6" max="24" style="width:70px">
+              <button class="btn sm primary" id="btn-lbr-print-custom" style="flex:0 0 auto">🖨️ چاپ با این تنظیمات</button>
+              <button class="btn sm sec" id="btn-lbr-word-custom" style="flex:0 0 auto">📄 دانلود Word با این تنظیمات</button>
+            </div>
           </div>
         </div>
 
@@ -10042,18 +10063,20 @@ function teacherScript() {
     if(fontFamily&&fontFamily.indexOf('Vazirmatn')!==-1)css+='@import url(https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css);';
     return css;
   }
-  function lbWordExport(title,bodyHtml,filename,landscape,fontFamily){
+  function lbWordExport(title,bodyHtml,filename,landscape,fontFamily,fontSize){
     var pageCss=landscape
       ? '@page Section1 {size:29.7cm 21cm;mso-page-orientation:landscape;margin:1.2cm} div.Section1{page:Section1}'
       : '@page Section1 {size:21cm 29.7cm;margin:1.5cm} div.Section1{page:Section1}';
     var ff=fontFamily||'tahoma,Arial';
-    var style='<style>'+lbFontFaceCss(fontFamily)+pageCss+' body{direction:rtl;font-family:'+ff+';padding:6px}h1,h2,h3{text-align:center}table{width:100%;border-collapse:collapse;margin:10px 0}th,td{border:1px solid #333;padding:'+(landscape?'4px':'6px')+';text-align:center;font-size:'+(landscape?'10px':'12px')+';font-family:'+ff+'}th{background:#dbeafe}.lb-meta{margin-bottom:14px;font-size:14px}.lb-nowruz{background:#16a34a;color:#fff;font-weight:bold}.lb-table-zebra tbody tr:nth-child(odd){background:#f4f6f8}</style>';
+    var fs=fontSize||(landscape?10:12);
+    var style='<style>'+lbFontFaceCss(fontFamily)+pageCss+' body{direction:rtl;font-family:'+ff+';padding:6px}h1,h2,h3{text-align:center}table{width:100%;border-collapse:collapse;margin:10px 0}th,td{border:1px solid #333;padding:'+(landscape?'4px':'6px')+';text-align:center;font-size:'+fs+'px;font-family:'+ff+'}th{background:#dbeafe}.lb-meta{margin-bottom:14px;font-size:14px}.lb-nowruz{background:#16a34a;color:#fff;font-weight:bold}.lb-table-zebra tbody tr:nth-child(odd){background:#f4f6f8}</style>';
     var blob=new Blob(['<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word"><head><meta charset="utf-8">'+style+'<title>'+esc(title)+'</title></head><body><div class="Section1"><h2>'+esc(title)+'</h2>'+bodyHtml+'</div></body></html>'],{type:'application/msword'});
     var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=filename+'.doc';document.body.appendChild(a);a.click();a.remove();
   }
-  function lbPrintExport(title,bodyHtml,landscape,fontFamily){
+  function lbPrintExport(title,bodyHtml,landscape,fontFamily,fontSize){
     var ff=fontFamily||'tahoma,Arial';
-    var style='<style>'+lbFontFaceCss(fontFamily)+'@page{size:A4 '+(landscape===false?'portrait':'landscape')+';margin:8mm}body{direction:rtl;font-family:'+ff+';padding:6px}h1,h2,h3{text-align:center}table{width:100%;border-collapse:collapse;margin:8px 0}th,td{border:1px solid #333;padding:4px;text-align:center;font-size:10px;font-family:'+ff+'}th{background:#dbeafe}.lb-meta{margin-bottom:10px;font-size:12px}.lb-nowruz{background:#16a34a;color:#fff;font-weight:bold}.lb-table-zebra tbody tr:nth-child(odd){background:#f4f6f8}</style>';
+    var fs=fontSize||10;
+    var style='<style>'+lbFontFaceCss(fontFamily)+'@page{size:A4 '+(landscape===false?'portrait':'landscape')+';margin:8mm}body{direction:rtl;font-family:'+ff+';padding:6px}h1,h2,h3{text-align:center}table{width:100%;border-collapse:collapse;margin:8px 0}th,td{border:1px solid #333;padding:4px;text-align:center;font-size:'+fs+'px;font-family:'+ff+'}th{background:#dbeafe}.lb-meta{margin-bottom:10px;font-size:12px}.lb-nowruz{background:#16a34a;color:#fff;font-weight:bold}.lb-table-zebra tbody tr:nth-child(odd){background:#f4f6f8}</style>';
     var w=window.open('','_blank');
     if(!w){toast('اجازه‌ی باز کردن پنجره‌ی چاپ داده نشد (popup blocked)');return;}
     w.document.write('<html><head><meta charset="utf-8">'+style+'<title>'+esc(title)+'</title></head><body><h2>'+esc(title)+'</h2>'+bodyHtml+'</body></html>');
@@ -10438,6 +10461,22 @@ function teacherScript() {
   }
   document.getElementById('btn-lb-roster-word').onclick=function(){lbWordExport('جدول لیست اسامی دانش‌آموزان',lbRosterExportHtml(),'لیست-اسامی-دانش-آموزان',true);};
   document.getElementById('btn-lb-roster-pdf').onclick=function(){lbPrintExport('جدول لیست اسامی دانش‌آموزان',lbRosterExportHtml(),true);};
+  document.getElementById('btn-lbr-print-opts-toggle').onclick=function(){
+    document.getElementById('lbr-print-opts-drawer').classList.toggle('hidden');
+  };
+  var LBR_PRINT_FONTS={default:'',nazanin:"'B Nazanin','BNazanin',tahoma,Arial",mitra:"'B Mitra','BMitra',tahoma,Arial",titr:"'B Titr','BTitr',tahoma,Arial"};
+  document.getElementById('btn-lbr-print-custom').onclick=function(){
+    var landscape=document.getElementById('lbr-print-orientation').value==='landscape';
+    var fontKey=document.getElementById('lbr-print-font').value;
+    var fontSize=parseInt(document.getElementById('lbr-print-fontsize').value,10)||10;
+    lbPrintExport('جدول لیست اسامی دانش‌آموزان',lbRosterExportHtml(),landscape,LBR_PRINT_FONTS[fontKey]||'',fontSize);
+  };
+  document.getElementById('btn-lbr-word-custom').onclick=function(){
+    var landscape=document.getElementById('lbr-print-orientation').value==='landscape';
+    var fontKey=document.getElementById('lbr-print-font').value;
+    var fontSize=parseInt(document.getElementById('lbr-print-fontsize').value,10)||10;
+    lbWordExport('جدول لیست اسامی دانش‌آموزان',lbRosterExportHtml(),'لیست-اسامی-دانش-آموزان',landscape,LBR_PRINT_FONTS[fontKey]||'',fontSize);
+  };
   document.getElementById('btn-lb-roster-excel').onclick=function(){
     lbExcelExport('لیست-اسامی-دانش-آموزان',function(wb){
       lbAddExcelSheet(wb,'لیست اسامی',lbTableToRows(document.getElementById('lbr-table')));
