@@ -1708,6 +1708,33 @@ const SHARED_CSS = `
   #schedule-table-wrap.theme-girl td.cell-chaharshanbe{background:#ffe4e6}
   [data-theme="dark"] #schedule-table-wrap.theme-girl td.cell-shanbe,[data-theme="dark"] #schedule-table-wrap.theme-girl td.cell-yekshanbe,[data-theme="dark"] #schedule-table-wrap.theme-girl td.cell-doshshanbe,[data-theme="dark"] #schedule-table-wrap.theme-girl td.cell-seshshanbe,[data-theme="dark"] #schedule-table-wrap.theme-girl td.cell-chaharshanbe{background:#3d1730}
 
+  /* ===== تم پاستلی کودکانه (الهام‌گرفته از برنامه هفتگی رنگی با ساعت/کتاب/شکلک‌ها) ===== */
+  #schedule-table-wrap.theme-colorful{border-radius:22px}
+  #schedule-table-wrap.theme-colorful .schedule-table th.sch-corner{background:#fecdd3;color:#9f1239}
+  [data-theme="dark"] #schedule-table-wrap.theme-colorful .schedule-table th.sch-corner{background:#4c0519;color:#fecdd3}
+  #schedule-table-wrap.theme-colorful .schedule-table th.sch-period:nth-child(2){background:#fbcfe8;color:#9d174d}
+  #schedule-table-wrap.theme-colorful .schedule-table th.sch-period:nth-child(3){background:#fed7aa;color:#9a3412}
+  #schedule-table-wrap.theme-colorful .schedule-table th.sch-period:nth-child(4){background:#bfdbfe;color:#1e3a8a}
+  #schedule-table-wrap.theme-colorful .schedule-table th.sch-period:nth-child(5){background:#bbf7d0;color:#14532d}
+  #schedule-table-wrap.theme-colorful .schedule-table th.sch-period:nth-child(6){background:#ddd6fe;color:#5b21b6}
+  [data-theme="dark"] #schedule-table-wrap.theme-colorful .schedule-table th.sch-period{color:#f1f5f9}
+  [data-theme="dark"] #schedule-table-wrap.theme-colorful .schedule-table th.sch-period:nth-child(2){background:#4a1d34}
+  [data-theme="dark"] #schedule-table-wrap.theme-colorful .schedule-table th.sch-period:nth-child(3){background:#4a2c12}
+  [data-theme="dark"] #schedule-table-wrap.theme-colorful .schedule-table th.sch-period:nth-child(4){background:#12294a}
+  [data-theme="dark"] #schedule-table-wrap.theme-colorful .schedule-table th.sch-period:nth-child(5){background:#0f3a24}
+  [data-theme="dark"] #schedule-table-wrap.theme-colorful .schedule-table th.sch-period:nth-child(6){background:#2e1a4a}
+  #schedule-table-wrap.theme-colorful td.cell-shanbe{background:#fef7fa}
+  #schedule-table-wrap.theme-colorful td.cell-yekshanbe{background:#fffaf3}
+  #schedule-table-wrap.theme-colorful td.cell-doshshanbe{background:#f5faff}
+  #schedule-table-wrap.theme-colorful td.cell-seshshanbe{background:#f5fdf8}
+  #schedule-table-wrap.theme-colorful td.cell-chaharshanbe{background:#f9f7ff}
+  [data-theme="dark"] #schedule-table-wrap.theme-colorful td.cell-shanbe,[data-theme="dark"] #schedule-table-wrap.theme-colorful td.cell-yekshanbe,[data-theme="dark"] #schedule-table-wrap.theme-colorful td.cell-doshshanbe,[data-theme="dark"] #schedule-table-wrap.theme-colorful td.cell-seshshanbe,[data-theme="dark"] #schedule-table-wrap.theme-colorful td.cell-chaharshanbe{background:#1e293b}
+  .sch-decor-corner{position:relative;text-align:center;font-size:26px;padding:6px 10px;margin-top:-6px;line-height:1}
+  .sch-decor-corner.hidden{display:none}
+  .sch-decor-left{float:right}
+  .sch-decor-right{float:left}
+  #schedule-table-wrap::after{content:"";display:block;clear:both}
+
   .schedule-table tr.sch-today td{box-shadow:inset 0 0 0 2px var(--primary)}
   .schedule-table tr.sch-today td:first-child .sch-today-badge{position:absolute;top:2px;left:6px;font-size:9px;background:var(--primary);color:#fff;padding:1px 7px;border-radius:8px;font-weight:700}
   .schedule-table textarea{background:transparent;border:none;width:100%;min-height:50px;text-align:center;font-family:inherit;font-size:13px;color:inherit;resize:vertical;line-height:1.5}
@@ -3646,12 +3673,13 @@ function teacherPage() {
       </div>
 
       <div class="card tab-content hidden" id="tab-schedule">
-        <h3>📅 برنامه هفتگی</h3>
+        <h3 id="schedule-title">📅 برنامه هفتگی</h3>
         <div class="row" style="margin-bottom:16px;align-items:center;gap:10px;flex-wrap:wrap">
           <span style="font-weight:700">🎨 تم رنگی:</span>
           <button class="btn sm sch-theme-btn active" data-theme="default">🌈 پیش‌فرض</button>
           <button class="btn sm sch-theme-btn" data-theme="boy">💙 پسرانه</button>
           <button class="btn sm sch-theme-btn" data-theme="girl">💗 دخترانه</button>
+          <button class="btn sm sch-theme-btn" data-theme="colorful">🖍️ پاستلی کودکانه</button>
         </div>
         <div class="row" style="margin-bottom:16px;align-items:center;gap:10px;flex-wrap:wrap">
           <span style="font-weight:700">🔤 فونت جدول:</span>
@@ -3681,6 +3709,8 @@ function teacherPage() {
             <thead><tr><th class="sch-corner">روز / زنگ</th><th class="sch-period">🔔 زنگ اول</th><th class="sch-period">🔔 زنگ دوم</th><th class="sch-period">🔔 زنگ سوم</th><th class="sch-period">🔔 زنگ چهارم</th><th class="sch-period">🔔 زنگ پنجم</th></tr></thead>
             <tbody id="schedule-body"></tbody>
           </table>
+          <div class="sch-decor-corner sch-decor-left hidden">🪴📚</div>
+          <div class="sch-decor-corner sch-decor-right hidden">✏️🖍️</div>
         </div>
         <button class="btn primary" id="btn-gen-schedule">🔄 ساخت جدول</button>
         <button class="btn" id="btn-print-schedule">🖨️ چاپ</button>
@@ -6282,9 +6312,14 @@ function teacherScript() {
       document.querySelectorAll('.sch-theme-btn').forEach(b=>b.classList.remove('active'));
       btn.classList.add('active');
       const wrap=document.getElementById('schedule-table-wrap');
-      wrap.classList.remove('theme-boy','theme-girl');
+      wrap.classList.remove('theme-boy','theme-girl','theme-colorful');
       if(btn.dataset.theme==='boy')wrap.classList.add('theme-boy');
       if(btn.dataset.theme==='girl')wrap.classList.add('theme-girl');
+      if(btn.dataset.theme==='colorful')wrap.classList.add('theme-colorful');
+      const isColorful=btn.dataset.theme==='colorful';
+      document.querySelectorAll('.sch-decor-corner').forEach(function(d){d.classList.toggle('hidden',!isColorful);});
+      const titleEl=document.getElementById('schedule-title');
+      if(titleEl)titleEl.textContent=isColorful?'⏰ برنامه هفتگی کلاس 📓':'📅 برنامه هفتگی';
       lbSave('sch-theme',btn.dataset.theme,true);
     };
   });
@@ -6423,7 +6458,8 @@ function teacherScript() {
     const THEMES={
       default:{corner:['#ffffff','#ffffff'],cornerText:'#1e293b',periodBg:'#f8fafc',periodColor:'#334155',accent:['#ef4444','#f59e0b','#10b981','#8b5cf6','#06b6d4'],cell:['#ffffff','#ffffff','#ffffff','#ffffff','#ffffff'],text:'#1e293b',dayText:'#1e293b'},
       boy:{corner:['#1e3a8a','#2563eb'],cornerText:'#fff',periodBg:'#eff6ff',periodColor:'#1e3a8a',accent:['#2563eb','#2563eb','#2563eb','#2563eb','#2563eb'],cell:['#dbeafe','#e0f2fe','#cffafe','#e0e7ff','#dbeafe'],text:'#1e293b',dayText:'#1e293b'},
-      girl:{corner:['#9d174d','#db2777'],cornerText:'#fff',periodBg:'#fdf2f8',periodColor:'#9d174d',accent:['#db2777','#db2777','#db2777','#db2777','#db2777'],cell:['#fce7f3','#fdf2f8','#fae8ff','#f3e8ff','#ffe4e6'],text:'#1e293b',dayText:'#1e293b'}
+      girl:{corner:['#9d174d','#db2777'],cornerText:'#fff',periodBg:'#fdf2f8',periodColor:'#9d174d',accent:['#db2777','#db2777','#db2777','#db2777','#db2777'],cell:['#fce7f3','#fdf2f8','#fae8ff','#f3e8ff','#ffe4e6'],text:'#1e293b',dayText:'#1e293b'},
+      colorful:{corner:['#fecdd3','#fecdd3'],cornerText:'#9f1239',periodBg:'#fbcfe8',periodColor:'#9d174d',periodBgs:['#fbcfe8','#fed7aa','#bfdbfe','#bbf7d0','#ddd6fe'],periodColors:['#9d174d','#9a3412','#1e3a8a','#14532d','#5b21b6'],accent:['#f472b6','#fb923c','#60a5fa','#4ade80','#a78bfa'],cell:['#fef7fa','#fffaf3','#f5faff','#f5fdf8','#f9f7ff'],text:'#1e293b',dayText:'#1e293b',kids:true}
     };
     const T=THEMES[themeName]||THEMES.default;
     const accentColors=T.accent;
@@ -6441,9 +6477,13 @@ function teacherScript() {
     style+='td{padding:14px 10px;text-align:center;font-size:13px;min-height:50px;font-weight:600;color:'+T.text+';border:1px solid #1e293b}';
     style+='.daylabel{border-right:5px solid;font-weight:800}';
     style+='.footer{text-align:center;margin-top:30px;padding:20px;border-top:2px dashed #ddd}</style>';
-    let header='<div class="header"><h1>⭐ برنامه هفتگی کلاس ⭐</h1><p>🏫 '+esc(school)+' | سال تحصیلی: '+esc(year)+'</p><p>کلاس: '+esc(cls)+' | آموزگار: '+esc(teacher)+'</p></div>';
+    let header='<div class="header"><h1>'+(T.kids?'⏰ برنامه هفتگی کلاس 📓':'⭐ برنامه هفتگی کلاس ⭐')+'</h1><p>🏫 '+esc(school)+' | سال تحصیلی: '+esc(year)+'</p><p>کلاس: '+esc(cls)+' | آموزگار: '+esc(teacher)+'</p></div>';
     let table='<table><tr><th style="background:linear-gradient(135deg,'+T.corner[0]+','+T.corner[1]+');color:'+(T.cornerText||'#fff')+';border-bottom:none">روز / زنگ</th>';
-    for(let z=0;z<5;z++){table+='<th style="background:'+T.periodBg+';color:'+T.periodColor+'">🔔 '+zang[z]+'</th>';}
+    for(let z=0;z<5;z++){
+      const pBg=(T.periodBgs&&T.periodBgs[z])||T.periodBg;
+      const pColor=(T.periodColors&&T.periodColors[z])||T.periodColor;
+      table+='<th style="background:'+pBg+';color:'+pColor+'">🔔 '+zang[z]+'</th>';
+    }
     table+='</tr>';
     const dayKeysExp=['shanbe','yekshanbe','doshshanbe','seshshanbe','chaharshanbe'];
     for(let d=0;d<5;d++){
@@ -6456,7 +6496,7 @@ function teacherScript() {
       table+='</tr>';
     }
     table+='</table>';
-    const footer='';
+    const footer=T.kids?'<div style="display:flex;justify-content:space-between;align-items:flex-end;margin-top:14px;font-size:30px"><span>🪴📚</span><span>✏️🖍️</span></div>':'';
     return '<html><head><meta charset="utf-8">'+style+'</head><body>'+header+table+footer+'</body></html>';
   }
 
