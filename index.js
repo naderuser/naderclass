@@ -11361,27 +11361,51 @@ function teacherScript() {
     });
   };
   var LB_ATTENDANCE2_LOADED=false;
+  var LB_ATT_CUR_MONTH=document.getElementById('lbat-month').value;
+  function lbAttKeyFor(month){return 'attendance2-'+month;}
+  async function lbAttSaveCurrentMonth(silent){
+    lbSave(lbAttKeyFor(LB_ATT_CUR_MONTH),{
+      meta:{cls:document.getElementById('lbat-class').value,teacher:document.getElementById('lbat-teacher').value,month:LB_ATT_CUR_MONTH,year:document.getElementById('lbat-year').value,course:document.getElementById('lbat-course').value},
+      rowCount:parseInt(document.getElementById('lbat-rows').value,10)||20,
+      rows:lbAttGetRows()
+    },silent);
+  }
+  async function lbAttLoadMonth(month){
+    var saved=await lbLoad(lbAttKeyFor(month));
+    if(saved){
+      if(saved.meta){
+        document.getElementById('lbat-class').value=saved.meta.cls||'';
+        document.getElementById('lbat-teacher').value=saved.meta.teacher||'';
+        document.getElementById('lbat-year').value=saved.meta.year||'';
+        document.getElementById('lbat-course').value=saved.meta.course||'';
+      }
+      document.getElementById('lbat-rows').value=saved.rowCount||20;
+      lbAttRebuildPreserving(saved.rowCount||20);
+      if(saved.rows)lbAttFillRows(saved.rows);
+    }else{
+      document.getElementById('lbat-class').value='';
+      document.getElementById('lbat-teacher').value='';
+      document.getElementById('lbat-year').value='';
+      document.getElementById('lbat-course').value='';
+      document.getElementById('lbat-rows').value=20;
+      lbAttRebuildPreserving(20);
+    }
+    document.getElementById('lbat-month').value=month;
+  }
+  document.getElementById('lbat-month').onchange=async function(){
+    var newMonth=this.value;
+    await lbAttSaveCurrentMonth(true); // ذخیره خودکار و بی‌صدای ماه قبلی پیش از تعویض
+    LB_ATT_CUR_MONTH=newMonth;
+    await lbAttLoadMonth(newMonth);
+    toast('نمایش جدول ماه '+newMonth);
+  };
   async function lbLoadAttendance2IfNeeded(){
     if(LB_ATTENDANCE2_LOADED)return;
     LB_ATTENDANCE2_LOADED=true;
-    var saved=await lbLoad('attendance2');
-    if(!saved)return;
-    if(saved.meta){
-      document.getElementById('lbat-class').value=saved.meta.cls||'';
-      document.getElementById('lbat-teacher').value=saved.meta.teacher||'';
-      document.getElementById('lbat-month').value=saved.meta.month||'';
-      document.getElementById('lbat-year').value=saved.meta.year||'';
-      document.getElementById('lbat-course').value=saved.meta.course||'';
-    }
-    if(saved.rowCount){document.getElementById('lbat-rows').value=saved.rowCount;document.getElementById('btn-lbat-build').click();}
-    if(saved.rows)lbAttFillRows(saved.rows);
+    await lbAttLoadMonth(LB_ATT_CUR_MONTH);
   }
   document.getElementById('btn-lbat-save').onclick=function(){
-    lbSave('attendance2',{
-      meta:{cls:document.getElementById('lbat-class').value,teacher:document.getElementById('lbat-teacher').value,month:document.getElementById('lbat-month').value,year:document.getElementById('lbat-year').value,course:document.getElementById('lbat-course').value},
-      rowCount:parseInt(document.getElementById('lbat-rows').value,10)||20,
-      rows:lbAttGetRows()
-    });
+    lbAttSaveCurrentMonth(false);
   };
 
   // ===================== ۳-۳. گروه‌بندی دانش‌آموزان (گروه‌های پویا با امکان افزودن/حذف، به تفکیک پایه تحصیلی) =====================
