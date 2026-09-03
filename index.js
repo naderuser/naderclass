@@ -1458,6 +1458,10 @@ const SHARED_CSS = `
   .lbgrp-card-6 .lbgrp-pill{background:#fef9c3;color:#854d0e}
   .lbgrp-table th{font-size:11px}
   .lbgrp-addrow{margin-top:8px}
+  .lbgrp-card-head{flex-wrap:wrap}
+  .lbgrp-name-input{outline:none;font-family:inherit}
+  .lbgrp-delgroup{margin-inline-start:auto;padding:4px 10px !important;font-size:13px !important;border-radius:10px !important;box-shadow:none !important}
+  .lbgrp-grade-select{padding:9px 14px;border-radius:12px;border:1px solid var(--line);background:var(--card);color:var(--text);font-family:inherit;font-size:14px}
   .lb-table-tight th,.lb-table-tight td{padding:3px 4px;font-size:11px;min-width:38px}
   .lb-table-tight th:first-child,.lb-table-tight td:first-child{min-width:36px}
   .lb-table-tight input{min-width:22px}
@@ -4571,45 +4575,25 @@ function teacherPage() {
           <div class="lb-meta-form">
             <div><label>نام مدرسه</label><input id="lbgrp-school" placeholder="......................."></div>
             <div><label>نام آموزگار</label><input id="lbgrp-teacher" placeholder="......................."></div>
-            <div><label>پایه تحصیلی</label><input id="lbgrp-grade" placeholder="......................."></div>
+            <div>
+              <label>پایه تحصیلی</label>
+              <select id="lbgrp-grade-select" class="lbgrp-grade-select">
+                <option value="1">پایه اول</option>
+                <option value="2">پایه دوم</option>
+                <option value="3">پایه سوم</option>
+                <option value="4">پایه چهارم</option>
+                <option value="5">پایه پنجم</option>
+                <option value="6">پایه ششم</option>
+              </select>
+            </div>
             <div><label>سال تحصیلی</label><input id="lbgrp-year" placeholder="......................."></div>
           </div>
           <div class="row">
             <label>تعداد نفر هر گروه: </label><input type="number" id="lbgrp-rows" value="10" min="1" max="20" style="width:80px">
             <button class="btn sm sec" id="btn-lbgrp-build">🔄 ساخت جدول‌ها</button>
+            <button class="btn sm primary" id="btn-lbgrp-addgroup">➕ افزودن گروه</button>
           </div>
-          <div class="lbgrp-grid">
-            <div class="lbgrp-card lbgrp-card-1">
-              <div class="lbgrp-card-head"><span class="lbgrp-animal">🐢</span><span class="lbgrp-pill">گروه ۱</span></div>
-              <table class="lb-table lb-table-tight lbgrp-table" id="lbgrp-table-1"></table>
-              <button class="btn sm gray lbgrp-addrow" data-grp="1">➕ افزودن نفر</button>
-            </div>
-            <div class="lbgrp-card lbgrp-card-2">
-              <div class="lbgrp-card-head"><span class="lbgrp-animal">🐰</span><span class="lbgrp-pill">گروه ۲</span></div>
-              <table class="lb-table lb-table-tight lbgrp-table" id="lbgrp-table-2"></table>
-              <button class="btn sm gray lbgrp-addrow" data-grp="2">➕ افزودن نفر</button>
-            </div>
-            <div class="lbgrp-card lbgrp-card-3">
-              <div class="lbgrp-card-head"><span class="lbgrp-animal">🐝</span><span class="lbgrp-pill">گروه ۳</span></div>
-              <table class="lb-table lb-table-tight lbgrp-table" id="lbgrp-table-3"></table>
-              <button class="btn sm gray lbgrp-addrow" data-grp="3">➕ افزودن نفر</button>
-            </div>
-            <div class="lbgrp-card lbgrp-card-4">
-              <div class="lbgrp-card-head"><span class="lbgrp-animal">🐦</span><span class="lbgrp-pill">گروه ۴</span></div>
-              <table class="lb-table lb-table-tight lbgrp-table" id="lbgrp-table-4"></table>
-              <button class="btn sm gray lbgrp-addrow" data-grp="4">➕ افزودن نفر</button>
-            </div>
-            <div class="lbgrp-card lbgrp-card-5">
-              <div class="lbgrp-card-head"><span class="lbgrp-animal">🦊</span><span class="lbgrp-pill">گروه ۵</span></div>
-              <table class="lb-table lb-table-tight lbgrp-table" id="lbgrp-table-5"></table>
-              <button class="btn sm gray lbgrp-addrow" data-grp="5">➕ افزودن نفر</button>
-            </div>
-            <div class="lbgrp-card lbgrp-card-6">
-              <div class="lbgrp-card-head"><span class="lbgrp-animal">🐬</span><span class="lbgrp-pill">گروه ۶</span></div>
-              <table class="lb-table lb-table-tight lbgrp-table" id="lbgrp-table-6"></table>
-              <button class="btn sm gray lbgrp-addrow" data-grp="6">➕ افزودن نفر</button>
-            </div>
-          </div>
+          <div class="lbgrp-grid" id="lbgrp-groups-container"></div>
           <div class="row" style="margin-top:12px">
             <button class="btn primary" id="btn-lbgrp-save">💾 ذخیره</button>
             <button class="btn primary" id="btn-lbgrp-word">📄 دانلود Word</button>
@@ -11400,86 +11384,185 @@ function teacherScript() {
     });
   };
 
-  // ===================== ۳-۳. گروه‌بندی دانش‌آموزان (تا ۴ گروه رنگی، هر گروه تا چند نفر) =====================
+  // ===================== ۳-۳. گروه‌بندی دانش‌آموزان (گروه‌های پویا با امکان افزودن/حذف، به تفکیک پایه تحصیلی) =====================
   var LB_GROUP_HEADERS=['ردیف','نام و نام خانوادگی'];
+  var LB_GROUP_ANIMALS=['🐢','🐰','🐝','🐦','🦊','🐬','🐸','🦋','🐧','🐨','🦁','🐯','🐼','🦄','🐳','🐙'];
+  var LB_GROUP_COLORS=[
+    {headBg:'#dcfce7',headColor:'#166534',border:'#86efac'},
+    {headBg:'#fce7f3',headColor:'#9d174d',border:'#f9a8d4'},
+    {headBg:'#fed7aa',headColor:'#9a3412',border:'#fdba74'},
+    {headBg:'#bfdbfe',headColor:'#1e3a8a',border:'#93c5fd'},
+    {headBg:'#f3e8ff',headColor:'#6b21a8',border:'#d8b4fe'},
+    {headBg:'#fef9c3',headColor:'#854d0e',border:'#fde68a'}
+  ];
+  var LB_GROUP_GRADE_TITLES={1:'پایه اول',2:'پایه دوم',3:'پایه سوم',4:'پایه چهارم',5:'پایه پنجم',6:'پایه ششم'};
+  var LB_GROUP_STATE=[];       // [{id, title}] گروه‌های پایه‌ی جاری
+  var LB_GROUP_NEXT_ID=1;
+  var LB_GROUP_CUR_GRADE='1';
+
+  function lbGroupDefaultState(){
+    LB_GROUP_NEXT_ID=7;
+    return [1,2,3,4,5,6].map(function(i){return {id:i,title:'گروه '+toFaDigits(String(i))};});
+  }
+
+  function lbGroupCardHtml(g,idx){
+    var c=LB_GROUP_COLORS[idx%LB_GROUP_COLORS.length];
+    var icon=LB_GROUP_ANIMALS[idx%LB_GROUP_ANIMALS.length];
+    return '<div class="lbgrp-card" data-gid="'+g.id+'" style="border-color:'+c.border+'">'
+      +'<div class="lbgrp-card-head">'
+        +'<span class="lbgrp-animal">'+icon+'</span>'
+        +'<input type="text" class="lbgrp-pill lbgrp-name-input" data-gid="'+g.id+'" value="'+esc(g.title)+'" style="background:'+c.headBg+';color:'+c.headColor+'">'
+        +'<button type="button" class="btn sm danger lbgrp-delgroup" data-gid="'+g.id+'" title="حذف این گروه">🗑️ حذف گروه</button>'
+      +'</div>'
+      +'<table class="lb-table lb-table-tight lbgrp-table" id="lbgrp-table-'+g.id+'"></table>'
+      +'<button class="btn sm gray lbgrp-addrow" data-gid="'+g.id+'">➕ افزودن نفر</button>'
+      +'</div>';
+  }
+
+  function lbGroupBindCardEvents(){
+    document.querySelectorAll('.lbgrp-addrow').forEach(function(btn){
+      btn.onclick=function(){lbAddSimpleRow('lbgrp-table-'+btn.dataset.gid,LB_GROUP_HEADERS.length);};
+    });
+    document.querySelectorAll('.lbgrp-delgroup').forEach(function(btn){
+      btn.onclick=function(){
+        if(LB_GROUP_STATE.length<=1){toast('حداقل باید یک گروه باقی بماند');return;}
+        if(!confirm('آیا از حذف این گروه مطمئن هستید؟ این کار قابل بازگشت نیست.'))return;
+        var gid=btn.dataset.gid;
+        LB_GROUP_STATE=LB_GROUP_STATE.filter(function(g){return String(g.id)!==String(gid);});
+        lbGroupRenderAll();
+        toast('گروه حذف شد ✅');
+      };
+    });
+    document.querySelectorAll('.lbgrp-name-input').forEach(function(inp){
+      inp.oninput=function(){
+        var gid=this.dataset.gid;
+        var g=LB_GROUP_STATE.find(function(x){return String(x.id)===String(gid);});
+        if(g)g.title=this.value;
+      };
+    });
+  }
+
+  function lbGroupRenderAll(){
+    var container=document.getElementById('lbgrp-groups-container');
+    container.innerHTML=LB_GROUP_STATE.map(function(g,idx){return lbGroupCardHtml(g,idx);}).join('');
+    var n=parseInt(document.getElementById('lbgrp-rows').value,10)||10;
+    LB_GROUP_STATE.forEach(function(g){
+      lbRebuildPreserving('lbgrp-table-'+g.id,LB_GROUP_HEADERS,n);
+      lbEnablePaste('lbgrp-table-'+g.id);
+    });
+    lbGroupBindCardEvents();
+  }
+
   document.getElementById('btn-lbgrp-build').onclick=function(){
     var n=parseInt(document.getElementById('lbgrp-rows').value,10)||10;
-    for(var g=1;g<=6;g++)lbRebuildPreserving('lbgrp-table-'+g,LB_GROUP_HEADERS,n);
+    LB_GROUP_STATE.forEach(function(g){lbRebuildPreserving('lbgrp-table-'+g.id,LB_GROUP_HEADERS,n);});
   };
-  document.getElementById('btn-lbgrp-build').click();
-  document.querySelectorAll('.lbgrp-addrow').forEach(function(btn){
-    btn.onclick=function(){lbAddSimpleRow('lbgrp-table-'+btn.dataset.grp,LB_GROUP_HEADERS.length);};
-  });
-  for(var lbgrpI=1;lbgrpI<=6;lbgrpI++)lbEnablePaste('lbgrp-table-'+lbgrpI);
-  var LB_GROUP_META=[
-    {title:'گروه ۱',icon:'🐢',headBg:'#dcfce7',headColor:'#166534',border:'#86efac'},
-    {title:'گروه ۲',icon:'🐰',headBg:'#fce7f3',headColor:'#9d174d',border:'#f9a8d4'},
-    {title:'گروه ۳',icon:'🐝',headBg:'#fed7aa',headColor:'#9a3412',border:'#fdba74'},
-    {title:'گروه ۴',icon:'🐦',headBg:'#bfdbfe',headColor:'#1e3a8a',border:'#93c5fd'},
-    {title:'گروه ۵',icon:'🦊',headBg:'#f3e8ff',headColor:'#6b21a8',border:'#d8b4fe'},
-    {title:'گروه ۶',icon:'🐬',headBg:'#fef9c3',headColor:'#854d0e',border:'#fde68a'}
-  ];
-  function lbGroupingGroupHtml(idx){
-    var m=LB_GROUP_META[idx-1];
-    var rows=lbTableToRows(document.getElementById('lbgrp-table-'+idx));
+  document.getElementById('btn-lbgrp-addgroup').onclick=function(){
+    LB_GROUP_STATE.push({id:LB_GROUP_NEXT_ID++,title:'گروه '+toFaDigits(String(LB_GROUP_STATE.length+1))});
+    lbGroupRenderAll();
+    toast('گروه جدید اضافه شد ✅');
+  };
+
+  function lbGroupCollectData(){
+    return {
+      meta:{school:document.getElementById('lbgrp-school').value,teacher:document.getElementById('lbgrp-teacher').value,year:document.getElementById('lbgrp-year').value},
+      rowCount:parseInt(document.getElementById('lbgrp-rows').value,10)||10,
+      groups:LB_GROUP_STATE.map(function(g){
+        return {id:g.id,title:g.title,rows:lbTableToRows(document.getElementById('lbgrp-table-'+g.id)).slice(1)};
+      })
+    };
+  }
+
+  async function lbGroupSaveCurrentGrade(silent){
+    await lbSave('grouping-g'+LB_GROUP_CUR_GRADE,lbGroupCollectData(),silent);
+  }
+
+  async function lbGroupLoadGrade(gradeKey){
+    var saved=await lbLoad('grouping-g'+gradeKey);
+    if(saved&&saved.groups&&saved.groups.length){
+      document.getElementById('lbgrp-school').value=(saved.meta&&saved.meta.school)||'';
+      document.getElementById('lbgrp-teacher').value=(saved.meta&&saved.meta.teacher)||'';
+      document.getElementById('lbgrp-year').value=(saved.meta&&saved.meta.year)||'';
+      document.getElementById('lbgrp-rows').value=saved.rowCount||10;
+      var maxId=0;
+      LB_GROUP_STATE=saved.groups.map(function(g,i){
+        var id=g.id||(i+1);
+        if(id>maxId)maxId=id;
+        return {id:id,title:g.title||('گروه '+toFaDigits(String(i+1)))};
+      });
+      LB_GROUP_NEXT_ID=maxId+1;
+      lbGroupRenderAll();
+      LB_GROUP_STATE.forEach(function(g,idx){
+        var origRows=saved.groups[idx]&&saved.groups[idx].rows;
+        if(origRows)lbFillTableRows('lbgrp-table-'+g.id,origRows);
+      });
+    }else{
+      document.getElementById('lbgrp-school').value='';
+      document.getElementById('lbgrp-teacher').value='';
+      document.getElementById('lbgrp-year').value='';
+      document.getElementById('lbgrp-rows').value=10;
+      LB_GROUP_STATE=lbGroupDefaultState();
+      lbGroupRenderAll();
+    }
+  }
+
+  document.getElementById('lbgrp-grade-select').onchange=async function(){
+    var newGrade=this.value;
+    await lbGroupSaveCurrentGrade(true); // ذخیره خودکار و بی‌صدای پایه‌ی قبلی پیش از تعویض
+    LB_GROUP_CUR_GRADE=newGrade;
+    await lbGroupLoadGrade(newGrade);
+    toast('نمایش گروه‌های '+(LB_GROUP_GRADE_TITLES[newGrade]||''));
+  };
+
+  function lbGroupingGroupHtml(g,idx){
+    var c=LB_GROUP_COLORS[idx%LB_GROUP_COLORS.length];
+    var icon=LB_GROUP_ANIMALS[idx%LB_GROUP_ANIMALS.length];
+    var rows=lbTableToRows(document.getElementById('lbgrp-table-'+g.id));
     var inner=lbRowsToHtmlTable(rows);
-    return '<div style="border:2px dashed '+m.border+';border-radius:14px;padding:10px">'
-      +'<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px"><span style="font-size:22px">'+m.icon+'</span><span style="background:'+m.headBg+';color:'+m.headColor+';padding:4px 14px;border-radius:12px;font-weight:800">'+esc(m.title)+'</span></div>'
+    return '<div style="border:2px dashed '+c.border+';border-radius:14px;padding:10px">'
+      +'<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px"><span style="font-size:22px">'+icon+'</span><span style="background:'+c.headBg+';color:'+c.headColor+';padding:4px 14px;border-radius:12px;font-weight:800">'+esc(g.title)+'</span></div>'
       +inner+'</div>';
   }
   function lbGroupingExportHtml(){
-    var meta=lbMetaBlock([['نام مدرسه','lbgrp-school'],['نام آموزگار','lbgrp-teacher'],['پایه تحصیلی','lbgrp-grade'],['سال تحصیلی','lbgrp-year']]);
-    var g1=lbGroupingGroupHtml(1),g2=lbGroupingGroupHtml(2),g3=lbGroupingGroupHtml(3),g4=lbGroupingGroupHtml(4),g5=lbGroupingGroupHtml(5),g6=lbGroupingGroupHtml(6);
-    var grid='<table style="width:100%;border:none;border-collapse:collapse"><tr>'
-      +'<td style="border:none;width:50%;vertical-align:top;padding:6px">'+g1+'</td>'
-      +'<td style="border:none;width:50%;vertical-align:top;padding:6px">'+g2+'</td></tr><tr>'
-      +'<td style="border:none;vertical-align:top;padding:6px">'+g3+'</td>'
-      +'<td style="border:none;vertical-align:top;padding:6px">'+g4+'</td></tr><tr>'
-      +'<td style="border:none;vertical-align:top;padding:6px">'+g5+'</td>'
-      +'<td style="border:none;vertical-align:top;padding:6px">'+g6+'</td></tr></table>';
-    return meta+'<p style="text-align:center;font-weight:800;font-size:18px;margin:6px 0">🧩 گروه‌بندی دانش‌آموزان</p>'+grid;
+    var gradeTitle=LB_GROUP_GRADE_TITLES[LB_GROUP_CUR_GRADE]||'';
+    var meta='<p class="lb-meta">'
+      +'<b>نام مدرسه:</b> '+esc(document.getElementById('lbgrp-school').value||'.......................')+'&nbsp;&nbsp;&nbsp;&nbsp;'
+      +'<b>نام آموزگار:</b> '+esc(document.getElementById('lbgrp-teacher').value||'.......................')+'&nbsp;&nbsp;&nbsp;&nbsp;'
+      +'<b>پایه تحصیلی:</b> '+esc(gradeTitle)+'&nbsp;&nbsp;&nbsp;&nbsp;'
+      +'<b>سال تحصیلی:</b> '+esc(document.getElementById('lbgrp-year').value||'.......................')
+      +'</p>';
+    var cells=LB_GROUP_STATE.map(function(g,idx){return lbGroupingGroupHtml(g,idx);});
+    var grid='<table style="width:100%;border:none;border-collapse:collapse">';
+    for(var i=0;i<cells.length;i+=2){
+      grid+='<tr><td style="border:none;width:50%;vertical-align:top;padding:6px">'+cells[i]+'</td>'
+        +'<td style="border:none;width:50%;vertical-align:top;padding:6px">'+(cells[i+1]||'')+'</td></tr>';
+    }
+    grid+='</table>';
+    return meta+'<p style="text-align:center;font-weight:800;font-size:18px;margin:6px 0">🧩 گروه‌بندی دانش‌آموزان — '+esc(gradeTitle)+'</p>'+grid;
   }
   document.getElementById('btn-lbgrp-word').onclick=function(){lbWordExport('گروه‌بندی دانش‌آموزان',lbGroupingExportHtml(),'گروه-بندی-دانش-آموزان',false);};
   document.getElementById('btn-lbgrp-pdf').onclick=function(){lbPrintExport('گروه‌بندی دانش‌آموزان',lbGroupingExportHtml(),false);};
   document.getElementById('btn-lbgrp-excel').onclick=function(){
     lbExcelExport('گروه-بندی-دانش-آموزان',function(wb){
-      for(var g=1;g<=6;g++)lbAddExcelSheet(wb,LB_GROUP_META[g-1].title,lbTableToRows(document.getElementById('lbgrp-table-'+g)));
+      LB_GROUP_STATE.forEach(function(g){lbAddExcelSheet(wb,g.title,lbTableToRows(document.getElementById('lbgrp-table-'+g.id)));});
     });
   };
   document.getElementById('btn-lbgrp-clear').onclick=function(){
-    if(!confirm('آیا از پاک‌کردن تمام گروه‌ها مطمئن هستید؟ این کار قابل بازگشت نیست.'))return;
-    for(var g=1;g<=6;g++){
-      document.querySelectorAll('#lbgrp-table-'+g+' input,#lbgrp-table-'+g+' textarea').forEach(function(inp){inp.value='';});
-    }
+    if(!confirm('آیا از پاک‌کردن تمام گروه‌های این پایه مطمئن هستید؟ این کار قابل بازگشت نیست.'))return;
+    LB_GROUP_STATE.forEach(function(g){
+      document.querySelectorAll('#lbgrp-table-'+g.id+' input,#lbgrp-table-'+g.id+' textarea').forEach(function(inp){inp.value='';});
+    });
     toast('همه گروه‌ها پاک شدند ✅');
   };
   var LB_GROUPING_LOADED=false;
   async function lbLoadGroupingIfNeeded(){
     if(LB_GROUPING_LOADED)return;
     LB_GROUPING_LOADED=true;
-    var saved=await lbLoad('grouping');
-    if(!saved)return;
-    if(saved.meta){
-      document.getElementById('lbgrp-school').value=saved.meta.school||'';
-      document.getElementById('lbgrp-teacher').value=saved.meta.teacher||'';
-      document.getElementById('lbgrp-grade').value=saved.meta.grade||'';
-      document.getElementById('lbgrp-year').value=saved.meta.year||'';
-    }
-    if(saved.rowCount){document.getElementById('lbgrp-rows').value=saved.rowCount;document.getElementById('btn-lbgrp-build').click();}
-    if(saved.rows){
-      for(var g=1;g<=6;g++){
-        if(saved.rows['g'+g])lbFillTableRows('lbgrp-table-'+g,saved.rows['g'+g]);
-      }
-    }
+    document.getElementById('lbgrp-grade-select').value=LB_GROUP_CUR_GRADE;
+    await lbGroupLoadGrade(LB_GROUP_CUR_GRADE);
   }
   document.getElementById('btn-lbgrp-save').onclick=function(){
-    var rowsObj={};
-    for(var g=1;g<=6;g++)rowsObj['g'+g]=lbTableToRows(document.getElementById('lbgrp-table-'+g)).slice(1);
-    lbSave('grouping',{
-      meta:{school:document.getElementById('lbgrp-school').value,teacher:document.getElementById('lbgrp-teacher').value,grade:document.getElementById('lbgrp-grade').value,year:document.getElementById('lbgrp-year').value},
-      rowCount:parseInt(document.getElementById('lbgrp-rows').value,10)||10,
-      rows:rowsObj
-    });
+    lbGroupSaveCurrentGrade(false);
   };
 
   // ===================== ۴. ثبت سطوح عملکرد دانش‌آموز (جدول شماره ۸) =====================
