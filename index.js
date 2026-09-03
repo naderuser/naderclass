@@ -1412,13 +1412,9 @@ const SHARED_CSS = `
   .lb-pacing-table th,.lb-pacing-table td{border:1px solid #cbd5e1;padding:4px 6px;text-align:center}
   .lb-pacing-table th{background:#dbeafe;color:var(--text)}
   [data-theme="dark"] .lb-pacing-table th{background:#1e3a5f}
-  .lb-pacing-table thead tr:first-child th{background:#0f9b8e;color:#fff;font-weight:800;padding:9px 6px}
+  .lb-pacing-table thead tr:first-child th{background:#fff;color:#000;font-weight:800;padding:9px 6px}
   [data-theme="dark"] .lb-pacing-table thead tr:first-child th{background:#0d7d73;color:#fff}
-  .lb-pacing-table thead tr:nth-child(2) th{color:#1e293b;font-weight:800;padding:7px 6px}
-  .lb-pacing-table thead tr:nth-child(2) th:nth-child(4n+1){background:#bae6fd}
-  .lb-pacing-table thead tr:nth-child(2) th:nth-child(4n+2){background:#fbcfe8}
-  .lb-pacing-table thead tr:nth-child(2) th:nth-child(4n+3){background:#bbf7d0}
-  .lb-pacing-table thead tr:nth-child(2) th:nth-child(4n){background:#fde68a}
+  .lb-pacing-table thead tr:nth-child(2) th{color:#000;font-weight:800;padding:7px 6px;background:#fff}
   .lb-pacing-table thead tr:nth-child(3) th{background:#fff;color:#1e293b;font-weight:700}
   [data-theme="dark"] .lb-pacing-table thead tr:nth-child(3) th{background:#0f172a;color:#e8eef3}
 
@@ -10392,15 +10388,17 @@ function teacherScript() {
   function lbPacingFullHtml(){
     var idx=lbSelectedGradeIdx();
     var grade=LB_GRADES[idx];
+    var term=lbSelectedPacingTerm();
+    var showT1=term==='both'||term==='t1';
+    var showT2=term==='both'||term==='t2';
     var meta=lbMetaBlock([['نام مدرسه','lbp-school'],['نام آموزگار','lbp-teacher'],['سال تحصیلی','lbp-year']]);
     meta+='<p><b>پایه تحصیلی:</b> '+esc(grade.title)+'</p>';
     var note='<p><b>توضیحات:</b></p><p>این بودجه‌بندی پیشنهادی می‌باشد.</p>';
-    // هر نوبت یک جدول کاملاً جدا و مستقل است (کاری به نوبت دیگر ندارد) و هرکدام روی برگه‌ی خودش چاپ می‌شود
-    var page1=meta+'<p style="font-weight:700;font-size:15px;margin:6px 0">نوبت اول (مهر تا دی)</p>'+lbBuildPacingTableHtml(idx,true,'t1')+note;
-    var page2=meta+'<p style="font-weight:700;font-size:15px;margin:6px 0">نوبت دوم (بهمن تا اردیبهشت)</p>'+lbBuildPacingTableHtml(idx,true,'t2')+note;
-    // شکست صفحه‌ی استاندارد و قابل‌اعتماد (هم در فایل Word و هم هنگام چاپ/PDF) تا نوبت دوم روی برگه‌ی جدید بیفتد
-    var pageBreak='<br clear="all" style="mso-special-character:line-break;page-break-before:always">';
-    return page1+pageBreak+page2;
+    // فقط نوبتی که در انتخاب کاربر فعال است ساخته و چاپ می‌شود؛ اگر هر دو نوبت انتخاب شده باشند، هر دو در یک صفحه (بدون شکست صفحه) پشت سر هم می‌آیند
+    var out='';
+    if(showT1)out+=meta+'<p style="font-weight:700;font-size:15px;margin:6px 0">نوبت اول (مهر تا دی)</p>'+lbBuildPacingTableHtml(idx,true,'t1')+note;
+    if(showT2)out+=meta+'<p style="font-weight:700;font-size:15px;margin:6px 0">نوبت دوم (بهمن تا اردیبهشت)</p>'+lbBuildPacingTableHtml(idx,true,'t2')+note;
+    return out;
   }
   document.getElementById('btn-lb-pacing-word').onclick=function(){lbWordExport('جدول بودجه‌بندی آموزشی - '+lbSelectedGrade().title,lbPacingFullHtml(),'بودجه-بندی-'+lbSelectedGrade().title,true);};
   document.getElementById('btn-lb-pacing-pdf').onclick=function(){lbPrintExport('جدول بودجه‌بندی آموزشی - '+lbSelectedGrade().title,lbPacingFullHtml(),true);};
