@@ -1406,6 +1406,54 @@ const SHARED_CSS = `
   [data-theme="dark"] #lbr-table th.lbr-th-6{background:#7c2d12;color:#ffedd5}
   #lbr-table th .lbr-th-ico{display:block;font-size:15px;margin-bottom:2px}
   #lbr-table th .lbr-th-txt{display:block}
+
+  /* ===== جدول حضور و غیاب هفتگی (طرح رنگی پاستلی با ستاره و تزئینات) ===== */
+  .lbat-title-wrap{display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:14px;position:relative;flex-wrap:wrap}
+  .lbat-title{font-size:22px;font-weight:800;color:#be123c;margin:0}
+  .lbat-star{font-size:20px}
+  .lbat-star-1{color:#a78bfa}
+  .lbat-star-2{color:#f472b6}
+  .lbat-deco{font-size:24px;margin-right:auto}
+  .lbat-table{border-collapse:collapse}
+  .lbat-table th,.lbat-table td{border:1px solid #cbd5e1}
+  .lbat-table th.lbat-name-col,.lbat-table td.lbat-name-col{background:#eef2ff;color:#3730a3;font-weight:700;min-width:140px}
+  [data-theme="dark"] .lbat-table th.lbat-name-col,[data-theme="dark"] .lbat-table td.lbat-name-col{background:#1e1b4b;color:#e0e7ff}
+  .lbat-table th.lbat-row-col,.lbat-table td.lbat-row-col{background:#eef2ff;color:#3730a3;font-weight:700;min-width:34px}
+  [data-theme="dark"] .lbat-table th.lbat-row-col,[data-theme="dark"] .lbat-table td.lbat-row-col{background:#1e1b4b;color:#e0e7ff}
+  .lbat-table th.lbat-wk1{background:#fbcfe8;color:#9d174d}
+  .lbat-table th.lbat-wk2{background:#fed7aa;color:#9a3412}
+  .lbat-table th.lbat-wk3{background:#bbf7d0;color:#14532d}
+  .lbat-table th.lbat-wk4{background:#bfdbfe;color:#1e3a8a}
+  .lbat-table th.lbat-day{font-size:10px;font-weight:600;color:#475569;background:#f8fafc}
+  [data-theme="dark"] .lbat-table th.lbat-day{background:#0f172a;color:#cbd5e1}
+  .lbat-table td.lbat-wk1-cell{background:#fef7fa}
+  .lbat-table td.lbat-wk2-cell{background:#fffaf3}
+  .lbat-table td.lbat-wk3-cell{background:#f5fdf8}
+  .lbat-table td.lbat-wk4-cell{background:#f5faff}
+  [data-theme="dark"] .lbat-table td.lbat-wk1-cell,[data-theme="dark"] .lbat-table td.lbat-wk2-cell,[data-theme="dark"] .lbat-table td.lbat-wk3-cell,[data-theme="dark"] .lbat-table td.lbat-wk4-cell{background:#1e293b}
+  .lbat-table input{width:100%;border:none;background:transparent;text-align:center;font-family:inherit;font-size:11px;padding:2px}
+
+  /* ===== گروه‌بندی دانش‌آموزان (کارت‌های رنگی با شکلک حیوانات) ===== */
+  .lbgrp-title-wrap{display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:14px}
+  .lbgrp-title{font-size:22px;font-weight:800;color:#1e3a8a;margin:0}
+  .lbgrp-star{font-size:20px;color:#facc15}
+  .lbgrp-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:16px}
+  @media (max-width:700px){.lbgrp-grid{grid-template-columns:1fr}}
+  .lbgrp-card{border:2px dashed #cbd5e1;border-radius:18px;padding:14px;background:#fff}
+  [data-theme="dark"] .lbgrp-card{background:#1e293b}
+  .lbgrp-card-head{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+  .lbgrp-animal{font-size:26px}
+  .lbgrp-pill{padding:6px 18px;border-radius:14px;font-weight:800;font-size:15px}
+  .lbgrp-card-1{border-color:#86efac}
+  .lbgrp-card-1 .lbgrp-pill{background:#dcfce7;color:#166534}
+  .lbgrp-card-2{border-color:#f9a8d4}
+  .lbgrp-card-2 .lbgrp-pill{background:#fce7f3;color:#9d174d}
+  .lbgrp-card-3{border-color:#fdba74}
+  .lbgrp-card-3 .lbgrp-pill{background:#fed7aa;color:#9a3412}
+  .lbgrp-card-4{border-color:#93c5fd}
+  .lbgrp-card-4 .lbgrp-pill{background:#bfdbfe;color:#1e3a8a}
+  .lbgrp-table th{font-size:11px}
+  .lbgrp-addrow{margin-top:8px}
   .lb-table-tight th,.lb-table-tight td{padding:3px 4px;font-size:11px;min-width:38px}
   .lb-table-tight th:first-child,.lb-table-tight td:first-child{min-width:36px}
   .lb-table-tight input{min-width:22px}
@@ -3257,6 +3305,8 @@ function teacherPage() {
             <a class="tab-child" href="/teacher?tab=logbook&lb=genderstats">🥧 آمار دانش‌آموزان</a>
             <a class="tab-child" href="/teacher?tab=logbook&lb=passrate">🎯 درصد قبولی دانش‌آموزان</a>
             <a class="tab-child" href="/teacher?tab=logbook&lb=absence">📋 ثبت غیبت دانش‌آموزان</a>
+            <a class="tab-child" href="/teacher?tab=logbook&lb=attendance2">🗓️ جدول حضور و غیاب هفتگی</a>
+            <a class="tab-child" href="/teacher?tab=logbook&lb=grouping">🧩 گروه‌بندی دانش‌آموزان</a>
             <a class="tab-child" href="/teacher?tab=logbook&lb=performance">📶 ثبت سطوح عملکرد دانش‌آموز</a>
             <a class="tab-child" href="/teacher?tab=logbook&lb=reportcard">🎓 کارنامه‌ساز</a>
             <a class="tab-child" href="/teacher?tab=logbook&lb=council">💬 صورتجلسه شورای آموزشی اولیا</a>
@@ -4221,6 +4271,8 @@ function teacherPage() {
             <button class="lb-menu-btn" data-lb="genderstats"><span class="lb-ico">🥧</span><span class="lb-t">آمار دانش‌آموزان</span><small>به تفکیک جنسیت</small></button>
             <button class="lb-menu-btn" data-lb="passrate"><span class="lb-ico">🎯</span><span class="lb-t">درصد قبولی دانش‌آموزان</span><small>نمودار به تفکیک پایه</small></button>
             <button class="lb-menu-btn" data-lb="absence"><span class="lb-ico">📋</span><span class="lb-t">ثبت غیبت دانش‌آموزان</span></button>
+            <button class="lb-menu-btn" data-lb="attendance2"><span class="lb-ico">🗓️</span><span class="lb-t">جدول حضور و غیاب هفتگی</span><small>به تفکیک هفته و روز</small></button>
+            <button class="lb-menu-btn" data-lb="grouping"><span class="lb-ico">🧩</span><span class="lb-t">گروه‌بندی دانش‌آموزان</span><small>تا ۴ گروه رنگی</small></button>
             <button class="lb-menu-btn" data-lb="performance"><span class="lb-ico">📶</span><span class="lb-t">ثبت سطوح عملکرد دانش‌آموز</span></button>
             <button class="lb-menu-btn" data-lb="reportcard"><span class="lb-ico">🎓</span><span class="lb-t">کارنامه‌ساز</span><small>ارزشیابی توصیفی هر دانش‌آموز</small></button>
             <button class="lb-menu-btn" data-lb="council"><span class="lb-ico">💬</span><span class="lb-t">صورتجلسه شورای آموزشی اولیا</span></button>
@@ -4499,6 +4551,113 @@ function teacherPage() {
               <button class="btn sm primary" id="btn-lba-print-custom" style="flex:0 0 auto">🖨️ چاپ با این تنظیمات</button>
               <button class="btn sm sec" id="btn-lba-word-custom" style="flex:0 0 auto">📄 دانلود Word با این تنظیمات</button>
             </div>
+          </div>
+        </div>
+
+        <!-- ===== ۳-۲. جدول حضور و غیاب هفتگی (به تفکیک هفته و روز) ===== -->
+        <div class="lb-panel hidden" id="lb-panel-attendance2">
+          <button class="btn sm gray lb-back-btn">← بازگشت به دفتر</button>
+          <div class="lbat-title-wrap">
+            <span class="lbat-star lbat-star-1">✦</span>
+            <h3 class="lbat-title">🗓️ جدول حضور و غیاب</h3>
+            <span class="lbat-star lbat-star-2">✧</span>
+            <span class="lbat-deco">🪴📚🖍️</span>
+          </div>
+          <div class="lb-meta-form">
+            <div><label>کلاس</label><input id="lbat-class" placeholder="......................."></div>
+            <div><label>معلم</label><input id="lbat-teacher" placeholder="......................."></div>
+            <div><label>ماه</label><input id="lbat-month" placeholder="......................."></div>
+            <div><label>سال تحصیلی</label><input id="lbat-year" placeholder="......................."></div>
+            <div><label>دوره</label><input id="lbat-course" placeholder="......................."></div>
+          </div>
+          <div class="row">
+            <label>تعداد دانش‌آموز: </label><input type="number" id="lbat-rows" value="20" min="1" max="60" style="width:80px">
+            <button class="btn sm sec" id="btn-lbat-build">🔄 ساخت جدول</button>
+            <button class="btn sm gray" id="btn-lbat-addrow">➕ افزودن ردیف</button>
+          </div>
+          <div class="lb-preview"><table class="lb-table lb-table-tight lbat-table" id="lbat-table"></table></div>
+          <div class="row" style="align-items:center;flex-wrap:wrap;gap:8px;margin-top:8px">
+            <span style="font-weight:700">🔤 فونت:</span>
+            <select id="lbat-font" style="padding:8px;border:1px solid #ddd;border-radius:6px;width:auto">
+              <option value="default">پیش‌فرض</option>
+              <option value="titr">B Titr</option>
+              <option value="nazanin">B Nazanin</option>
+              <option value="mitra">B Mitra</option>
+            </select>
+            <span style="font-weight:700;margin-right:10px">🔠 اندازه فونت جدول:</span>
+            <button type="button" class="btn sm gray" id="btn-lbat-fontsize-dec" style="flex:0 0 auto">➖</button>
+            <input type="number" id="lbat-fontsize" value="11" min="6" max="30" style="width:60px;text-align:center">
+            <button type="button" class="btn sm gray" id="btn-lbat-fontsize-inc" style="flex:0 0 auto">➕</button>
+          </div>
+          <div class="row" style="margin-top:12px">
+            <button class="btn primary" id="btn-lbat-save">💾 ذخیره</button>
+            <button class="btn primary" id="btn-lb-attendance2-word">📄 دانلود Word</button>
+            <button class="btn sec" id="btn-lb-attendance2-excel">📊 دانلود Excel</button>
+            <button class="btn gray" id="btn-lb-attendance2-pdf">🖨️ چاپ / دانلود PDF</button>
+            <button type="button" class="btn sm sec" id="btn-lbat-print-opts-toggle" title="تنظیمات چاپ" style="flex:0 0 auto">🔧</button>
+            <button class="btn danger" type="button" onclick="lbClearContainer('lbat-table')">🗑️ پاک کردن جدول</button>
+          </div>
+          <div id="lbat-print-opts-drawer" class="cls-options-drawer hidden">
+            <div class="row" style="align-items:center;flex-wrap:wrap;gap:8px">
+              <label style="flex:0 0 auto">جهت صفحه:</label>
+              <select id="lbat-print-orientation" style="flex:0 0 auto;min-width:130px">
+                <option value="landscape" selected>افقی (Landscape)</option>
+                <option value="portrait">عمودی (Portrait)</option>
+              </select>
+              <label style="flex:0 0 auto">اندازه فونت:</label>
+              <input type="number" id="lbat-print-fontsize" value="10" min="6" max="24" style="width:70px">
+              <button class="btn sm primary" id="btn-lbat-print-custom" style="flex:0 0 auto">🖨️ چاپ با این تنظیمات</button>
+              <button class="btn sm sec" id="btn-lbat-word-custom" style="flex:0 0 auto">📄 دانلود Word با این تنظیمات</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- ===== ۳-۳. گروه‌بندی دانش‌آموزان (کارت‌های رنگی) ===== -->
+        <div class="lb-panel hidden" id="lb-panel-grouping">
+          <button class="btn sm gray lb-back-btn">← بازگشت به دفتر</button>
+          <div class="lbgrp-title-wrap">
+            <span class="lbgrp-star">✦</span>
+            <h3 class="lbgrp-title">🧩 گروه‌بندی دانش‌آموزان</h3>
+            <span class="lbgrp-star">✧</span>
+          </div>
+          <div class="lb-meta-form">
+            <div><label>نام مدرسه</label><input id="lbgrp-school" placeholder="......................."></div>
+            <div><label>نام آموزگار</label><input id="lbgrp-teacher" placeholder="......................."></div>
+            <div><label>پایه تحصیلی</label><input id="lbgrp-grade" placeholder="......................."></div>
+            <div><label>سال تحصیلی</label><input id="lbgrp-year" placeholder="......................."></div>
+          </div>
+          <div class="row">
+            <label>تعداد نفر هر گروه: </label><input type="number" id="lbgrp-rows" value="10" min="1" max="20" style="width:80px">
+            <button class="btn sm sec" id="btn-lbgrp-build">🔄 ساخت جدول‌ها</button>
+          </div>
+          <div class="lbgrp-grid">
+            <div class="lbgrp-card lbgrp-card-1">
+              <div class="lbgrp-card-head"><span class="lbgrp-animal">🐢</span><span class="lbgrp-pill">گروه ۱</span></div>
+              <table class="lb-table lb-table-tight lbgrp-table" id="lbgrp-table-1"></table>
+              <button class="btn sm gray lbgrp-addrow" data-grp="1">➕ افزودن نفر</button>
+            </div>
+            <div class="lbgrp-card lbgrp-card-2">
+              <div class="lbgrp-card-head"><span class="lbgrp-animal">🐰</span><span class="lbgrp-pill">گروه ۲</span></div>
+              <table class="lb-table lb-table-tight lbgrp-table" id="lbgrp-table-2"></table>
+              <button class="btn sm gray lbgrp-addrow" data-grp="2">➕ افزودن نفر</button>
+            </div>
+            <div class="lbgrp-card lbgrp-card-3">
+              <div class="lbgrp-card-head"><span class="lbgrp-animal">🐝</span><span class="lbgrp-pill">گروه ۳</span></div>
+              <table class="lb-table lb-table-tight lbgrp-table" id="lbgrp-table-3"></table>
+              <button class="btn sm gray lbgrp-addrow" data-grp="3">➕ افزودن نفر</button>
+            </div>
+            <div class="lbgrp-card lbgrp-card-4">
+              <div class="lbgrp-card-head"><span class="lbgrp-animal">🐦</span><span class="lbgrp-pill">گروه ۴</span></div>
+              <table class="lb-table lb-table-tight lbgrp-table" id="lbgrp-table-4"></table>
+              <button class="btn sm gray lbgrp-addrow" data-grp="4">➕ افزودن نفر</button>
+            </div>
+          </div>
+          <div class="row" style="margin-top:12px">
+            <button class="btn primary" id="btn-lbgrp-save">💾 ذخیره</button>
+            <button class="btn primary" id="btn-lbgrp-word">📄 دانلود Word</button>
+            <button class="btn sec" id="btn-lbgrp-excel">📊 دانلود Excel</button>
+            <button class="btn gray" id="btn-lbgrp-pdf">🖨️ چاپ / دانلود PDF</button>
+            <button class="btn danger" type="button" id="btn-lbgrp-clear">🗑️ پاک کردن همه گروه‌ها</button>
           </div>
         </div>
 
@@ -10238,6 +10397,8 @@ function teacherScript() {
       if(b.dataset.lb==='genderstats')lbLoadGenderStatsIfNeeded();
       if(b.dataset.lb==='passrate')lbLoadPassrateIfNeeded();
       if(b.dataset.lb==='absence')lbLoadAbsenceIfNeeded();
+      if(b.dataset.lb==='attendance2')lbLoadAttendance2IfNeeded();
+      if(b.dataset.lb==='grouping')lbLoadGroupingIfNeeded();
       if(b.dataset.lb==='performance'){
         document.getElementById('lbf-form-wrap').classList.add('hidden');
         LB_PERF_CURRENT_UUID=null;
@@ -11213,6 +11374,213 @@ function teacherScript() {
       days:parseInt(document.getElementById('lba-days').value,10)||30,
       rowCount:parseInt(document.getElementById('lba-rows').value,10)||30,
       rows:lbTableToRows(document.getElementById('lba-table')).slice(1)
+    });
+  };
+
+  // ===================== ۳-۲. جدول حضور و غیاب هفتگی (طرح رنگی با هفته/روز) =====================
+  var LB_ATT_WEEKS=['هفته اول','هفته دوم','هفته سوم','هفته چهارم'];
+  var LB_ATT_DAYS=['شنبه','یکشنبه','دوشنبه','سه‌شنبه','چهارشنبه'];
+  var LB_ATT_WEEK_CLASSES=['lbat-wk1','lbat-wk2','lbat-wk3','lbat-wk4'];
+  var LB_ATT_CELL_CLASSES=['lbat-wk1-cell','lbat-wk2-cell','lbat-wk3-cell','lbat-wk4-cell'];
+  function lbAttRowHtml(rowNum){
+    var h='<tr><td class="lbat-row-col">'+rowNum+'</td><td class="lbat-name-col"><input type="text"></td>';
+    for(var wi=0;wi<4;wi++){for(var di=0;di<5;di++){h+='<td class="'+LB_ATT_CELL_CLASSES[wi]+'"><input type="text"></td>';}}
+    h+='</tr>';
+    return h;
+  }
+  function lbAttBuildTableHtml(rowCount){
+    var h='<thead><tr><th class="lbat-row-col" rowspan="2">ردیف</th><th class="lbat-name-col" rowspan="2">نام و نام خانوادگی دانش‌آموز</th>';
+    LB_ATT_WEEKS.forEach(function(w,wi){h+='<th class="'+LB_ATT_WEEK_CLASSES[wi]+'" colspan="5">'+esc(w)+'</th>';});
+    h+='</tr><tr>';
+    LB_ATT_WEEKS.forEach(function(){LB_ATT_DAYS.forEach(function(d){h+='<th class="lbat-day">'+esc(d)+'</th>';});});
+    h+='</tr></thead><tbody>';
+    for(var r=1;r<=rowCount;r++)h+=lbAttRowHtml(r);
+    h+='</tbody>';
+    return h;
+  }
+  function lbAttRebuildPreserving(rowCount){
+    var tableEl=document.getElementById('lbat-table');
+    var oldRows=[];
+    if(tableEl.querySelector('tbody')){
+      tableEl.querySelectorAll('tbody tr').forEach(function(tr){
+        var vals=[];
+        tr.querySelectorAll('input').forEach(function(inp){vals.push(inp.value);});
+        oldRows.push(vals);
+      });
+    }
+    tableEl.innerHTML=lbAttBuildTableHtml(rowCount);
+    tableEl.querySelectorAll('tbody tr').forEach(function(tr,rIdx){
+      var oldRow=oldRows[rIdx];
+      if(!oldRow)return;
+      tr.querySelectorAll('input').forEach(function(inp,cIdx){if(oldRow[cIdx]!==undefined)inp.value=oldRow[cIdx];});
+    });
+  }
+  document.getElementById('btn-lbat-build').onclick=function(){
+    var n=parseInt(document.getElementById('lbat-rows').value,10)||20;
+    lbAttRebuildPreserving(n);
+  };
+  document.getElementById('btn-lbat-addrow').onclick=function(){
+    var tbody=document.querySelector('#lbat-table tbody');
+    if(!tbody)return;
+    var tr=document.createElement('tr');
+    tr.innerHTML=lbAttRowHtml(tbody.children.length+1).replace(/^<tr>|<\/tr>$/g,'');
+    tbody.appendChild(tr);
+  };
+  document.getElementById('btn-lbat-build').click();
+  lbEnablePaste('lbat-table');
+  function lbAttGetRows(){
+    var rows=[];
+    document.querySelectorAll('#lbat-table tbody tr').forEach(function(tr){
+      var vals=[];
+      tr.querySelectorAll('input').forEach(function(inp){vals.push(inp.value);});
+      rows.push(vals);
+    });
+    return rows;
+  }
+  function lbAttFillRows(rows){
+    document.querySelectorAll('#lbat-table tbody tr').forEach(function(tr,rIdx){
+      var row=rows[rIdx];
+      if(!row)return;
+      tr.querySelectorAll('input').forEach(function(inp,cIdx){if(row[cIdx]!==undefined)inp.value=row[cIdx];});
+    });
+  }
+  function lbAttExportTableHtml(){
+    var rows=lbAttGetRows();
+    var wkColors=['#fbcfe8','#fed7aa','#bbf7d0','#bfdbfe'];
+    var wkTextColors=['#9d174d','#9a3412','#14532d','#1e3a8a'];
+    var h='<table class="lbat-export-table"><tr><th rowspan="2" style="background:#eef2ff;color:#3730a3">ردیف</th><th rowspan="2" style="background:#eef2ff;color:#3730a3">نام و نام خانوادگی دانش‌آموز</th>';
+    LB_ATT_WEEKS.forEach(function(w,wi){h+='<th colspan="5" style="background:'+wkColors[wi]+';color:'+wkTextColors[wi]+'">'+esc(w)+'</th>';});
+    h+='</tr><tr>';
+    LB_ATT_WEEKS.forEach(function(){LB_ATT_DAYS.forEach(function(d){h+='<th style="font-size:10px">'+esc(d)+'</th>';});});
+    h+='</tr>';
+    rows.forEach(function(row,rIdx){
+      h+='<tr><td>'+(rIdx+1)+'</td><td>'+esc(row[0]||'')+'</td>';
+      for(var c=1;c<=20;c++)h+='<td>'+esc(row[c]||'')+'</td>';
+      h+='</tr>';
+    });
+    h+='</table>';
+    return h;
+  }
+  function lbAttendance2ExportHtml(){
+    var meta=lbMetaBlock([['کلاس','lbat-class'],['معلم','lbat-teacher'],['ماه','lbat-month'],['سال تحصیلی','lbat-year'],['دوره','lbat-course']]);
+    meta+='<p style="text-align:center;font-weight:800;font-size:18px;margin:6px 0">🗓️ جدول حضور و غیاب</p>';
+    return meta+lbAttExportTableHtml()+'<p style="margin-top:14px"><b>ادامه جدول حضور و غیاب</b></p>';
+  }
+  var LBAT_FONTS={default:'',titr:"'B Titr','BTitr',Tahoma,Arial",nazanin:"'B Nazanin','BNazanin',Tahoma,Arial",mitra:"'B Mitra','BMitra',Tahoma,Arial"};
+  function lbatFontFamily(){var el=document.getElementById('lbat-font');return LBAT_FONTS[el?el.value:'default']||undefined;}
+  var lbatFontSizeCtl=lbLiveFontSize('#lbat-table','lbat-fontsize','btn-lbat-fontsize-inc','btn-lbat-fontsize-dec',11);
+  document.getElementById('btn-lb-attendance2-word').onclick=function(){lbWordExport('جدول حضور و غیاب هفتگی',lbAttendance2ExportHtml(),'جدول-حضور-و-غیاب',true,lbatFontFamily(),lbatFontSizeCtl.current());};
+  document.getElementById('btn-lb-attendance2-pdf').onclick=function(){lbPrintExport('جدول حضور و غیاب هفتگی',lbAttendance2ExportHtml(),true,lbatFontFamily(),lbatFontSizeCtl.current());};
+  lbSetupPrintWrench({toggleId:'btn-lbat-print-opts-toggle',drawerId:'lbat-print-opts-drawer',orientationId:'lbat-print-orientation',fontSizeId:'lbat-print-fontsize',printBtnId:'btn-lbat-print-custom',wordBtnId:'btn-lbat-word-custom',exportFn:lbAttendance2ExportHtml,title:'جدول حضور و غیاب هفتگی',filename:'جدول-حضور-و-غیاب',fontFamilyFn:lbatFontFamily,currentSizeFn:lbatFontSizeCtl.current});
+  document.getElementById('btn-lb-attendance2-excel').onclick=function(){
+    lbExcelExport('جدول-حضور-و-غیاب',function(wb){
+      var rows=lbAttGetRows();
+      var headerRow=['ردیف','نام و نام خانوادگی دانش‌آموز'];
+      LB_ATT_WEEKS.forEach(function(w){LB_ATT_DAYS.forEach(function(d){headerRow.push(w+' - '+d);});});
+      var sheetRows=[headerRow];
+      rows.forEach(function(row,rIdx){sheetRows.push([rIdx+1,row[0]||''].concat(row.slice(1,21)));});
+      lbAddExcelSheet(wb,'حضور و غیاب',sheetRows);
+    });
+  };
+  var LB_ATTENDANCE2_LOADED=false;
+  async function lbLoadAttendance2IfNeeded(){
+    if(LB_ATTENDANCE2_LOADED)return;
+    LB_ATTENDANCE2_LOADED=true;
+    var saved=await lbLoad('attendance2');
+    if(!saved)return;
+    if(saved.meta){
+      document.getElementById('lbat-class').value=saved.meta.cls||'';
+      document.getElementById('lbat-teacher').value=saved.meta.teacher||'';
+      document.getElementById('lbat-month').value=saved.meta.month||'';
+      document.getElementById('lbat-year').value=saved.meta.year||'';
+      document.getElementById('lbat-course').value=saved.meta.course||'';
+    }
+    if(saved.rowCount){document.getElementById('lbat-rows').value=saved.rowCount;document.getElementById('btn-lbat-build').click();}
+    if(saved.rows)lbAttFillRows(saved.rows);
+  }
+  document.getElementById('btn-lbat-save').onclick=function(){
+    lbSave('attendance2',{
+      meta:{cls:document.getElementById('lbat-class').value,teacher:document.getElementById('lbat-teacher').value,month:document.getElementById('lbat-month').value,year:document.getElementById('lbat-year').value,course:document.getElementById('lbat-course').value},
+      rowCount:parseInt(document.getElementById('lbat-rows').value,10)||20,
+      rows:lbAttGetRows()
+    });
+  };
+
+  // ===================== ۳-۳. گروه‌بندی دانش‌آموزان (تا ۴ گروه رنگی، هر گروه تا چند نفر) =====================
+  var LB_GROUP_HEADERS=['ردیف','نام و نام خانوادگی'];
+  document.getElementById('btn-lbgrp-build').onclick=function(){
+    var n=parseInt(document.getElementById('lbgrp-rows').value,10)||10;
+    for(var g=1;g<=4;g++)lbRebuildPreserving('lbgrp-table-'+g,LB_GROUP_HEADERS,n);
+  };
+  document.getElementById('btn-lbgrp-build').click();
+  document.querySelectorAll('.lbgrp-addrow').forEach(function(btn){
+    btn.onclick=function(){lbAddSimpleRow('lbgrp-table-'+btn.dataset.grp,LB_GROUP_HEADERS.length);};
+  });
+  for(var lbgrpI=1;lbgrpI<=4;lbgrpI++)lbEnablePaste('lbgrp-table-'+lbgrpI);
+  var LB_GROUP_META=[
+    {title:'گروه ۱',icon:'🐢',headBg:'#dcfce7',headColor:'#166534',border:'#86efac'},
+    {title:'گروه ۲',icon:'🐰',headBg:'#fce7f3',headColor:'#9d174d',border:'#f9a8d4'},
+    {title:'گروه ۳',icon:'🐝',headBg:'#fed7aa',headColor:'#9a3412',border:'#fdba74'},
+    {title:'گروه ۴',icon:'🐦',headBg:'#bfdbfe',headColor:'#1e3a8a',border:'#93c5fd'}
+  ];
+  function lbGroupingGroupHtml(idx){
+    var m=LB_GROUP_META[idx-1];
+    var rows=lbTableToRows(document.getElementById('lbgrp-table-'+idx));
+    var inner=lbRowsToHtmlTable(rows);
+    return '<div style="border:2px dashed '+m.border+';border-radius:14px;padding:10px">'
+      +'<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px"><span style="font-size:22px">'+m.icon+'</span><span style="background:'+m.headBg+';color:'+m.headColor+';padding:4px 14px;border-radius:12px;font-weight:800">'+esc(m.title)+'</span></div>'
+      +inner+'</div>';
+  }
+  function lbGroupingExportHtml(){
+    var meta=lbMetaBlock([['نام مدرسه','lbgrp-school'],['نام آموزگار','lbgrp-teacher'],['پایه تحصیلی','lbgrp-grade'],['سال تحصیلی','lbgrp-year']]);
+    var g1=lbGroupingGroupHtml(1),g2=lbGroupingGroupHtml(2),g3=lbGroupingGroupHtml(3),g4=lbGroupingGroupHtml(4);
+    var grid='<table style="width:100%;border:none;border-collapse:collapse"><tr>'
+      +'<td style="border:none;width:50%;vertical-align:top;padding:6px">'+g1+'</td>'
+      +'<td style="border:none;width:50%;vertical-align:top;padding:6px">'+g2+'</td></tr><tr>'
+      +'<td style="border:none;vertical-align:top;padding:6px">'+g3+'</td>'
+      +'<td style="border:none;vertical-align:top;padding:6px">'+g4+'</td></tr></table>';
+    return meta+'<p style="text-align:center;font-weight:800;font-size:18px;margin:6px 0">🧩 گروه‌بندی دانش‌آموزان</p>'+grid;
+  }
+  document.getElementById('btn-lbgrp-word').onclick=function(){lbWordExport('گروه‌بندی دانش‌آموزان',lbGroupingExportHtml(),'گروه-بندی-دانش-آموزان',false);};
+  document.getElementById('btn-lbgrp-pdf').onclick=function(){lbPrintExport('گروه‌بندی دانش‌آموزان',lbGroupingExportHtml(),false);};
+  document.getElementById('btn-lbgrp-excel').onclick=function(){
+    lbExcelExport('گروه-بندی-دانش-آموزان',function(wb){
+      for(var g=1;g<=4;g++)lbAddExcelSheet(wb,LB_GROUP_META[g-1].title,lbTableToRows(document.getElementById('lbgrp-table-'+g)));
+    });
+  };
+  document.getElementById('btn-lbgrp-clear').onclick=function(){
+    if(!confirm('آیا از پاک‌کردن تمام گروه‌ها مطمئن هستید؟ این کار قابل بازگشت نیست.'))return;
+    for(var g=1;g<=4;g++){
+      document.querySelectorAll('#lbgrp-table-'+g+' input,#lbgrp-table-'+g+' textarea').forEach(function(inp){inp.value='';});
+    }
+    toast('همه گروه‌ها پاک شدند ✅');
+  };
+  var LB_GROUPING_LOADED=false;
+  async function lbLoadGroupingIfNeeded(){
+    if(LB_GROUPING_LOADED)return;
+    LB_GROUPING_LOADED=true;
+    var saved=await lbLoad('grouping');
+    if(!saved)return;
+    if(saved.meta){
+      document.getElementById('lbgrp-school').value=saved.meta.school||'';
+      document.getElementById('lbgrp-teacher').value=saved.meta.teacher||'';
+      document.getElementById('lbgrp-grade').value=saved.meta.grade||'';
+      document.getElementById('lbgrp-year').value=saved.meta.year||'';
+    }
+    if(saved.rowCount){document.getElementById('lbgrp-rows').value=saved.rowCount;document.getElementById('btn-lbgrp-build').click();}
+    if(saved.rows){
+      for(var g=1;g<=4;g++){
+        if(saved.rows['g'+g])lbFillTableRows('lbgrp-table-'+g,saved.rows['g'+g]);
+      }
+    }
+  }
+  document.getElementById('btn-lbgrp-save').onclick=function(){
+    var rowsObj={};
+    for(var g=1;g<=4;g++)rowsObj['g'+g]=lbTableToRows(document.getElementById('lbgrp-table-'+g)).slice(1);
+    lbSave('grouping',{
+      meta:{school:document.getElementById('lbgrp-school').value,teacher:document.getElementById('lbgrp-teacher').value,grade:document.getElementById('lbgrp-grade').value,year:document.getElementById('lbgrp-year').value},
+      rowCount:parseInt(document.getElementById('lbgrp-rows').value,10)||10,
+      rows:rowsObj
     });
   };
 
