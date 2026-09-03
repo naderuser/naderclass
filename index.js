@@ -1256,9 +1256,20 @@ const SHARED_CSS = `
   .tab-parent .tab-arrow{font-size:10px;transition:transform .2s ease;flex:0 0 auto;align-self:center}
   .tab-parent.open .tab-arrow{transform:rotate(180deg)}
   .tab-children{display:flex;flex-direction:column;gap:3px;max-height:0;overflow:hidden;transition:max-height .25s ease;padding-right:10px}
-  .tab-children.open{max-height:600px;margin-top:4px}
+  .tab-children.open{max-height:900px;margin-top:4px}
   .tab-child{display:block;padding:7px 10px;border-radius:8px;background:var(--card);font-size:12px;font-weight:600;text-decoration:none;color:var(--text);border:2px solid var(--line);transition:all .15s ease}
   .tab-child:hover{background:var(--soft);border-color:var(--text)}
+  .tab-subgroup{display:flex;flex-direction:column;gap:3px}
+  .tab-subgroup-head{display:flex;align-items:center;gap:6px;padding:7px 10px;border-radius:8px;background:var(--card);border:2px solid var(--line);cursor:pointer;font-weight:700;font-size:12px;color:var(--text);user-select:none;transition:all .15s ease}
+  .tab-subgroup-head:hover{background:var(--soft)}
+  .tab-subgroup-head.open{border-color:var(--primary)}
+  .tab-subgroup-head .tab-sub-ico{flex:0 0 auto;font-size:13px;line-height:1}
+  .tab-subgroup-head .tab-sub-label{flex:1;text-align:right}
+  .tab-subgroup-head .tab-sub-arrow{font-size:9px;transition:transform .2s ease;flex:0 0 auto}
+  .tab-subgroup-head.open .tab-sub-arrow{transform:rotate(180deg)}
+  .tab-subchildren{display:flex;flex-direction:column;gap:3px;max-height:0;overflow:hidden;transition:max-height .25s ease;padding-right:10px}
+  .tab-subchildren.open{max-height:500px;margin-top:3px}
+  .tab-subchildren .tab-child{font-size:11px;padding:6px 9px}
 
   .hidden{display:none}
   .toast{position:fixed;bottom:18px;right:18px;background:var(--primary);color:#fff;padding:12px 20px;border-radius:12px;opacity:0;transform:translateY(20px);transition:all .3s ease;z-index:9999;box-shadow:0 8px 30px rgba(0,0,0,.3);font-weight:600}
@@ -3308,21 +3319,41 @@ function teacherPage() {
         <div class="tab-group">
           <div class="tab-parent" data-tab="logbook"><span class="tab-ico">📖</span><span class="tab-label">دفتر مدیریت کلاسی</span><span class="tab-arrow">▾</span></div>
           <div class="tab-children" id="tab-children-logbook">
-            <a class="tab-child" href="/teacher?tab=logbook&lb=pacing">📈 جدول بودجه‌بندی آموزشی</a>
-            <a class="tab-child" href="/teacher?tab=logbook&lb=roster">👥 لیست اسامی دانش‌آموزان</a>
-            <a class="tab-child" href="/teacher?tab=logbook&lb=genderstats">🥧 آمار دانش‌آموزان</a>
-            <a class="tab-child" href="/teacher?tab=logbook&lb=passrate">🎯 درصد قبولی دانش‌آموزان</a>
-            <a class="tab-child" href="/teacher?tab=logbook&lb=attendance2">🗓️ جدول حضور و غیاب هفتگی</a>
-            <a class="tab-child" href="/teacher?tab=logbook&lb=grouping">🧩 گروه‌بندی دانش‌آموزان</a>
-            <a class="tab-child" href="/teacher?tab=logbook&lb=performance">📶 ثبت سطوح عملکرد دانش‌آموز</a>
-            <a class="tab-child" href="/teacher?tab=logbook&lb=reportcard">🎓 کارنامه‌ساز</a>
-            <a class="tab-child" href="/teacher?tab=logbook&lb=council">💬 صورتجلسه شورای آموزشی اولیا</a>
-            <a class="tab-child" href="/teacher?tab=logbook&lb=meetings">🤝 جلسات فردی با اولیا</a>
-            <a class="tab-child" href="/teacher?tab=logbook&lb=weekly">📅 برنامه درسی هفتگی (چندپایه)</a>
-            <a class="tab-child" href="/teacher?tab=logbook&lb=weekly2">📅 برنامه درسی هفتگی (تک‌پایه)</a>
-            <a class="tab-child" href="/teacher?tab=logbook&lb=staff">🪪 اطلاعات پرسنلی همکاران مدرسه</a>
-            <a class="tab-child" href="/teacher?tab=logbook&lb=minutes">🧾 صورتجلسه</a>
-            <a class="tab-child" href="/teacher?tab=logbook&lb=certificate">🏆 تقدیرنامه‌ساز</a>
+            <div class="tab-subgroup">
+              <div class="tab-subgroup-head" data-sub="lb-lists"><span class="tab-sub-ico">📊</span><span class="tab-sub-label">آمار و لیست دانش‌آموزان</span><span class="tab-sub-arrow">▾</span></div>
+              <div class="tab-subchildren" id="tab-subchildren-lb-lists">
+                <a class="tab-child" href="/teacher?tab=logbook&lb=roster">👥 لیست اسامی دانش‌آموزان</a>
+                <a class="tab-child" href="/teacher?tab=logbook&lb=genderstats">🥧 آمار دانش‌آموزان</a>
+                <a class="tab-child" href="/teacher?tab=logbook&lb=passrate">🎯 درصد قبولی دانش‌آموزان</a>
+                <a class="tab-child" href="/teacher?tab=logbook&lb=grouping">🧩 گروه‌بندی دانش‌آموزان</a>
+              </div>
+            </div>
+            <div class="tab-subgroup">
+              <div class="tab-subgroup-head" data-sub="lb-tables"><span class="tab-sub-ico">📅</span><span class="tab-sub-label">جدول‌ها و برنامه‌ریزی</span><span class="tab-sub-arrow">▾</span></div>
+              <div class="tab-subchildren" id="tab-subchildren-lb-tables">
+                <a class="tab-child" href="/teacher?tab=logbook&lb=pacing">📈 جدول بودجه‌بندی آموزشی</a>
+                <a class="tab-child" href="/teacher?tab=logbook&lb=attendance2">🗓️ جدول حضور و غیاب هفتگی</a>
+                <a class="tab-child" href="/teacher?tab=logbook&lb=weekly">📅 برنامه درسی هفتگی (چندپایه)</a>
+                <a class="tab-child" href="/teacher?tab=logbook&lb=weekly2">📅 برنامه درسی هفتگی (تک‌پایه)</a>
+              </div>
+            </div>
+            <div class="tab-subgroup">
+              <div class="tab-subgroup-head" data-sub="lb-eval"><span class="tab-sub-ico">📶</span><span class="tab-sub-label">ارزشیابی و کارنامه</span><span class="tab-sub-arrow">▾</span></div>
+              <div class="tab-subchildren" id="tab-subchildren-lb-eval">
+                <a class="tab-child" href="/teacher?tab=logbook&lb=performance">📶 ثبت سطوح عملکرد دانش‌آموز</a>
+                <a class="tab-child" href="/teacher?tab=logbook&lb=reportcard">🎓 کارنامه‌ساز</a>
+                <a class="tab-child" href="/teacher?tab=logbook&lb=certificate">🏆 تقدیرنامه‌ساز</a>
+              </div>
+            </div>
+            <div class="tab-subgroup">
+              <div class="tab-subgroup-head" data-sub="lb-meet"><span class="tab-sub-ico">🤝</span><span class="tab-sub-label">جلسات، صورتجلسات و پرسنل</span><span class="tab-sub-arrow">▾</span></div>
+              <div class="tab-subchildren" id="tab-subchildren-lb-meet">
+                <a class="tab-child" href="/teacher?tab=logbook&lb=council">💬 صورتجلسه شورای آموزشی اولیا</a>
+                <a class="tab-child" href="/teacher?tab=logbook&lb=meetings">🤝 جلسات فردی با اولیا</a>
+                <a class="tab-child" href="/teacher?tab=logbook&lb=minutes">🧾 صورتجلسه</a>
+                <a class="tab-child" href="/teacher?tab=logbook&lb=staff">🪪 اطلاعات پرسنلی همکاران مدرسه</a>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -5397,6 +5428,23 @@ function teacherScript() {
       document.querySelectorAll('.tab-children').forEach(function(x){x.classList.remove('open');});
       if(!wasOpen){
         p.classList.add('open');
+        if(kids)kids.classList.add('open');
+      }
+    });
+  });
+
+  document.querySelectorAll('.tab-subgroup-head[data-sub]').forEach(function(sh){
+    sh.addEventListener('click', function(e){
+      e.stopPropagation();
+      var kids=document.getElementById('tab-subchildren-'+sh.dataset.sub);
+      var wasOpen=sh.classList.contains('open');
+      var parentGroup=sh.closest('.tab-children');
+      if(parentGroup){
+        parentGroup.querySelectorAll('.tab-subgroup-head').forEach(function(x){x.classList.remove('open');});
+        parentGroup.querySelectorAll('.tab-subchildren').forEach(function(x){x.classList.remove('open');});
+      }
+      if(!wasOpen){
+        sh.classList.add('open');
         if(kids)kids.classList.add('open');
       }
     });
