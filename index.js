@@ -4361,13 +4361,18 @@ function teacherPage() {
               <canvas id="lbpr-chart" width="700" height="320" style="max-width:100%;background:#fff;border:1px solid var(--line);border-radius:10px"></canvas>
             </div>
             <p class="muted" style="font-size:12px;text-align:center">رنگ‌بندی نمودار: 🟥 قرمز کم‌رنگ = زیر ۶۰٪ (ضعیف) &nbsp;|&nbsp; 🟦 آبی کم‌رنگ = ۶۰ تا ۸۴٪ (متوسط) &nbsp;|&nbsp; 🟩 سبز کم‌رنگ = ۸۵٪ به بالا (خوب)</p>
-            <div class="row" style="justify-content:center;align-items:center;margin-top:10px">
+            <div class="row" style="justify-content:center;align-items:center;margin-top:10px;flex-wrap:wrap;gap:8px">
               <span style="font-weight:700">🔤 فونت:</span>
               <select id="lbpr-font" style="padding:8px;border:1px solid #ddd;border-radius:6px;width:auto">
                 <option value="default">پیش‌فرض</option>
                 <option value="titr">B Titr</option>
                 <option value="nazanin">B Nazanin</option>
+                <option value="mitra">B Mitra</option>
               </select>
+              <span style="font-weight:700;margin-right:10px">🔠 اندازه فونت جدول:</span>
+              <button type="button" class="btn sm gray" id="btn-lbpr-fontsize-dec" style="flex:0 0 auto">➖</button>
+              <input type="number" id="lbpr-fontsize" value="14" min="8" max="30" style="width:60px;text-align:center">
+              <button type="button" class="btn sm gray" id="btn-lbpr-fontsize-inc" style="flex:0 0 auto">➕</button>
             </div>
           </div>
           <div class="row" style="margin-top:12px">
@@ -4375,6 +4380,20 @@ function teacherPage() {
             <button class="btn primary" id="btn-lb-passrate-word">📄 دانلود Word</button>
             <button class="btn sec" id="btn-lb-passrate-excel">📊 دانلود Excel</button>
             <button class="btn gray" id="btn-lb-passrate-pdf">🖨️ چاپ / دانلود PDF</button>
+            <button type="button" class="btn sm sec" id="btn-lbpr-print-opts-toggle" title="تنظیمات چاپ" style="flex:0 0 auto">🔧</button>
+          </div>
+          <div id="lbpr-print-opts-drawer" class="cls-options-drawer hidden">
+            <div class="row" style="align-items:center;flex-wrap:wrap;gap:8px">
+              <label style="flex:0 0 auto">جهت صفحه:</label>
+              <select id="lbpr-print-orientation" style="flex:0 0 auto;min-width:130px">
+                <option value="portrait" selected>عمودی (Portrait)</option>
+                <option value="landscape">افقی (Landscape)</option>
+              </select>
+              <label style="flex:0 0 auto">اندازه فونت:</label>
+              <input type="number" id="lbpr-print-fontsize" value="10" min="6" max="24" style="width:70px">
+              <button class="btn sm primary" id="btn-lbpr-print-custom" style="flex:0 0 auto">🖨️ چاپ با این تنظیمات</button>
+              <button class="btn sm sec" id="btn-lbpr-word-custom" style="flex:0 0 auto">📄 دانلود Word با این تنظیمات</button>
+            </div>
           </div>
         </div>
 
@@ -4400,12 +4419,39 @@ function teacherPage() {
             <button class="btn sm gray" id="btn-lba-addrow">➕ افزودن ردیف (ادامه جدول)</button>
           </div>
           <div class="lb-preview"><table class="lb-table lb-table-tight" id="lba-table"></table></div>
+          <div class="row" style="align-items:center;flex-wrap:wrap;gap:8px;margin-top:8px">
+            <span style="font-weight:700">🔤 فونت:</span>
+            <select id="lba-font" style="padding:8px;border:1px solid #ddd;border-radius:6px;width:auto">
+              <option value="default">پیش‌فرض</option>
+              <option value="titr">B Titr</option>
+              <option value="nazanin">B Nazanin</option>
+              <option value="mitra">B Mitra</option>
+            </select>
+            <span style="font-weight:700;margin-right:10px">🔠 اندازه فونت جدول:</span>
+            <button type="button" class="btn sm gray" id="btn-lba-fontsize-dec" style="flex:0 0 auto">➖</button>
+            <input type="number" id="lba-fontsize" value="11" min="6" max="30" style="width:60px;text-align:center">
+            <button type="button" class="btn sm gray" id="btn-lba-fontsize-inc" style="flex:0 0 auto">➕</button>
+          </div>
           <div class="row" style="margin-top:12px">
             <button class="btn primary" id="btn-lba-save">💾 ذخیره</button>
             <button class="btn primary" id="btn-lb-absence-word">📄 دانلود Word</button>
             <button class="btn sec" id="btn-lb-absence-excel">📊 دانلود Excel</button>
             <button class="btn gray" id="btn-lb-absence-pdf">🖨️ چاپ / دانلود PDF</button>
+            <button type="button" class="btn sm sec" id="btn-lba-print-opts-toggle" title="تنظیمات چاپ" style="flex:0 0 auto">🔧</button>
             <button class="btn danger" type="button" onclick="lbClearContainer('lba-table')">🗑️ پاک کردن جدول</button>
+          </div>
+          <div id="lba-print-opts-drawer" class="cls-options-drawer hidden">
+            <div class="row" style="align-items:center;flex-wrap:wrap;gap:8px">
+              <label style="flex:0 0 auto">جهت صفحه:</label>
+              <select id="lba-print-orientation" style="flex:0 0 auto;min-width:130px">
+                <option value="landscape" selected>افقی (Landscape)</option>
+                <option value="portrait">عمودی (Portrait)</option>
+              </select>
+              <label style="flex:0 0 auto">اندازه فونت:</label>
+              <input type="number" id="lba-print-fontsize" value="10" min="6" max="24" style="width:70px">
+              <button class="btn sm primary" id="btn-lba-print-custom" style="flex:0 0 auto">🖨️ چاپ با این تنظیمات</button>
+              <button class="btn sm sec" id="btn-lba-word-custom" style="flex:0 0 auto">📄 دانلود Word با این تنظیمات</button>
+            </div>
           </div>
         </div>
 
@@ -4451,12 +4497,39 @@ function teacherPage() {
             </div>
             <div class="lb-preview" id="lb-performance-preview"></div>
             <p class="muted" style="margin-top:10px">لازم به ذکر است انتظارات آموزشی تمامی پایه‌ها در جدول شماره ۸ ارائه گردیده. آموزگاران بر پایه بر انتظارات پیش‌بینی شده نسبت به تکمیل جدول اقدام می‌نمایند.</p>
+            <div class="row" style="align-items:center;flex-wrap:wrap;gap:8px">
+              <span style="font-weight:700">🔤 فونت:</span>
+              <select id="lbf-font" style="padding:8px;border:1px solid #ddd;border-radius:6px;width:auto">
+                <option value="default">پیش‌فرض</option>
+                <option value="titr">B Titr</option>
+                <option value="nazanin">B Nazanin</option>
+                <option value="mitra">B Mitra</option>
+              </select>
+              <span style="font-weight:700;margin-right:10px">🔠 اندازه فونت جدول:</span>
+              <button type="button" class="btn sm gray" id="btn-lbf-fontsize-dec" style="flex:0 0 auto">➖</button>
+              <input type="number" id="lbf-fontsize" value="11" min="6" max="30" style="width:60px;text-align:center">
+              <button type="button" class="btn sm gray" id="btn-lbf-fontsize-inc" style="flex:0 0 auto">➕</button>
+            </div>
             <div class="row" style="margin-top:12px">
               <button class="btn primary" id="btn-lbf-save">💾 ذخیره</button>
               <button class="btn primary" id="btn-lb-performance-word">📄 دانلود Word</button>
               <button class="btn sec" id="btn-lb-performance-excel">📊 دانلود Excel</button>
               <button class="btn gray" id="btn-lb-performance-pdf">🖨️ چاپ / دانلود PDF</button>
+              <button type="button" class="btn sm sec" id="btn-lbf-print-opts-toggle" title="تنظیمات چاپ" style="flex:0 0 auto">🔧</button>
               <button class="btn danger" type="button" onclick="lbClearContainer('lb-performance-preview')">🗑️ پاک کردن جدول</button>
+            </div>
+            <div id="lbf-print-opts-drawer" class="cls-options-drawer hidden">
+              <div class="row" style="align-items:center;flex-wrap:wrap;gap:8px">
+                <label style="flex:0 0 auto">جهت صفحه:</label>
+                <select id="lbf-print-orientation" style="flex:0 0 auto;min-width:130px">
+                  <option value="landscape" selected>افقی (Landscape)</option>
+                  <option value="portrait">عمودی (Portrait)</option>
+                </select>
+                <label style="flex:0 0 auto">اندازه فونت:</label>
+                <input type="number" id="lbf-print-fontsize" value="10" min="6" max="24" style="width:70px">
+                <button class="btn sm primary" id="btn-lbf-print-custom" style="flex:0 0 auto">🖨️ چاپ با این تنظیمات</button>
+                <button class="btn sm sec" id="btn-lbf-word-custom" style="flex:0 0 auto">📄 دانلود Word با این تنظیمات</button>
+              </div>
             </div>
           </div>
         </div>
@@ -4513,19 +4586,38 @@ function teacherPage() {
             <label style="margin-top:10px;display:block">توضیحات کلی معلم درباره‌ی روند یادگیری و رفتار دانش‌آموز</label>
             <textarea id="rc-general-note" rows="4" class="lb-textarea" placeholder="توضیحات کلی، نقاط قوت و پیشنهاد برای بهبود..."></textarea>
             <p class="muted" style="font-size:12px;margin-top:6px">سطوح ارزشیابی: 🌟 خیلی خوب | ✅ خوب | 📌 قابل‌قبول | 📖 نیاز به تلاش</p>
-            <div class="row" style="justify-content:center;align-items:center;margin-top:10px">
+            <div class="row" style="justify-content:center;align-items:center;margin-top:10px;flex-wrap:wrap;gap:8px">
               <span style="font-weight:700">🔤 فونت:</span>
               <select id="rc-font" style="padding:8px;border:1px solid #ddd;border-radius:6px;width:auto">
                 <option value="default">پیش‌فرض</option>
                 <option value="titr">B Titr</option>
                 <option value="nazanin">B Nazanin</option>
+                <option value="mitra">B Mitra</option>
               </select>
+              <span style="font-weight:700;margin-right:10px">🔠 اندازه فونت جدول:</span>
+              <button type="button" class="btn sm gray" id="btn-rc-fontsize-dec" style="flex:0 0 auto">➖</button>
+              <input type="number" id="rc-fontsize" value="12" min="6" max="30" style="width:60px;text-align:center">
+              <button type="button" class="btn sm gray" id="btn-rc-fontsize-inc" style="flex:0 0 auto">➕</button>
             </div>
             <div class="row" style="margin-top:12px">
               <button class="btn primary" id="btn-rc-save">💾 ذخیره</button>
               <button class="btn primary" id="btn-rc-word">📄 دانلود Word</button>
               <button class="btn sec" id="btn-rc-excel">📊 دانلود Excel</button>
               <button class="btn gray" id="btn-rc-pdf">🖨️ چاپ / دانلود PDF</button>
+              <button type="button" class="btn sm sec" id="btn-rc-print-opts-toggle" title="تنظیمات چاپ" style="flex:0 0 auto">🔧</button>
+            </div>
+            <div id="rc-print-opts-drawer" class="cls-options-drawer hidden">
+              <div class="row" style="align-items:center;flex-wrap:wrap;gap:8px">
+                <label style="flex:0 0 auto">جهت صفحه:</label>
+                <select id="rc-print-orientation" style="flex:0 0 auto;min-width:130px">
+                  <option value="portrait" selected>عمودی (Portrait)</option>
+                  <option value="landscape">افقی (Landscape)</option>
+                </select>
+                <label style="flex:0 0 auto">اندازه فونت:</label>
+                <input type="number" id="rc-print-fontsize" value="10" min="6" max="24" style="width:70px">
+                <button class="btn sm primary" id="btn-rc-print-custom" style="flex:0 0 auto">🖨️ چاپ با این تنظیمات</button>
+                <button class="btn sm sec" id="btn-rc-word-custom" style="flex:0 0 auto">📄 دانلود Word با این تنظیمات</button>
+              </div>
             </div>
           </div>
         </div>
@@ -4551,12 +4643,39 @@ function teacherPage() {
           </div>
           <div class="lb-preview"><table class="lb-table" id="lbc-table"></table></div>
           <p style="margin-top:10px"><b>امضاء و تأیید مدیر مدرسه:</b> .......................</p>
+          <div class="row" style="align-items:center;flex-wrap:wrap;gap:8px">
+            <span style="font-weight:700">🔤 فونت:</span>
+            <select id="lbc-font" style="padding:8px;border:1px solid #ddd;border-radius:6px;width:auto">
+              <option value="default">پیش‌فرض</option>
+              <option value="titr">B Titr</option>
+              <option value="nazanin">B Nazanin</option>
+              <option value="mitra">B Mitra</option>
+            </select>
+            <span style="font-weight:700;margin-right:10px">🔠 اندازه فونت جدول:</span>
+            <button type="button" class="btn sm gray" id="btn-lbc-fontsize-dec" style="flex:0 0 auto">➖</button>
+            <input type="number" id="lbc-fontsize" value="12" min="6" max="30" style="width:60px;text-align:center">
+            <button type="button" class="btn sm gray" id="btn-lbc-fontsize-inc" style="flex:0 0 auto">➕</button>
+          </div>
           <div class="row" style="margin-top:12px">
             <button class="btn primary" id="btn-lbc-save">💾 ذخیره</button>
             <button class="btn primary" id="btn-lb-council-word">📄 دانلود Word</button>
             <button class="btn sec" id="btn-lb-council-excel">📊 دانلود Excel</button>
             <button class="btn gray" id="btn-lb-council-pdf">🖨️ چاپ / دانلود PDF</button>
+            <button type="button" class="btn sm sec" id="btn-lbc-print-opts-toggle" title="تنظیمات چاپ" style="flex:0 0 auto">🔧</button>
             <button class="btn danger" type="button" onclick="lbClearContainer('lbc-table')">🗑️ پاک کردن جدول</button>
+          </div>
+          <div id="lbc-print-opts-drawer" class="cls-options-drawer hidden">
+            <div class="row" style="align-items:center;flex-wrap:wrap;gap:8px">
+              <label style="flex:0 0 auto">جهت صفحه:</label>
+              <select id="lbc-print-orientation" style="flex:0 0 auto;min-width:130px">
+                <option value="portrait" selected>عمودی (Portrait)</option>
+                <option value="landscape">افقی (Landscape)</option>
+              </select>
+              <label style="flex:0 0 auto">اندازه فونت:</label>
+              <input type="number" id="lbc-print-fontsize" value="10" min="6" max="24" style="width:70px">
+              <button class="btn sm primary" id="btn-lbc-print-custom" style="flex:0 0 auto">🖨️ چاپ با این تنظیمات</button>
+              <button class="btn sm sec" id="btn-lbc-word-custom" style="flex:0 0 auto">📄 دانلود Word با این تنظیمات</button>
+            </div>
           </div>
         </div>
 
@@ -4620,7 +4739,19 @@ function teacherPage() {
             <button class="btn primary" id="btn-lb-weekly-word">📄 دانلود Word</button>
             <button class="btn sec" id="btn-lb-weekly-excel">📊 دانلود Excel</button>
             <button class="btn gray" id="btn-lb-weekly-pdf">🖨️ چاپ / دانلود PDF</button>
+            <button type="button" class="btn sm sec" id="btn-lbw-print-opts-toggle" title="تنظیمات چاپ" style="flex:0 0 auto">🔧</button>
             <button class="btn danger" type="button" onclick="lbClearContainer('lb-weekly-preview')">🗑️ پاک کردن جدول</button>
+          </div>
+          <div id="lbw-print-opts-drawer" class="cls-options-drawer hidden">
+            <div class="row" style="align-items:center;flex-wrap:wrap;gap:8px">
+              <label style="flex:0 0 auto">جهت صفحه:</label>
+              <select id="lbw-print-orientation" style="flex:0 0 auto;min-width:130px">
+                <option value="portrait" selected>عمودی (Portrait)</option>
+                <option value="landscape">افقی (Landscape)</option>
+              </select>
+              <button class="btn sm primary" id="btn-lbw-print-custom" style="flex:0 0 auto">🖨️ چاپ با این تنظیمات</button>
+              <button class="btn sm sec" id="btn-lbw-word-custom" style="flex:0 0 auto">📄 دانلود Word با این تنظیمات</button>
+            </div>
           </div>
         </div>
 
@@ -4650,7 +4781,19 @@ function teacherPage() {
             <button class="btn primary" id="btn-lb-weekly2-word">📄 دانلود Word</button>
             <button class="btn sec" id="btn-lb-weekly2-excel">📊 دانلود Excel</button>
             <button class="btn gray" id="btn-lb-weekly2-pdf">🖨️ چاپ / دانلود PDF</button>
+            <button type="button" class="btn sm sec" id="btn-lbw2-print-opts-toggle" title="تنظیمات چاپ" style="flex:0 0 auto">🔧</button>
             <button class="btn danger" type="button" onclick="lbClearContainer('lb-weekly2-preview')">🗑️ پاک کردن جدول</button>
+          </div>
+          <div id="lbw2-print-opts-drawer" class="cls-options-drawer hidden">
+            <div class="row" style="align-items:center;flex-wrap:wrap;gap:8px">
+              <label style="flex:0 0 auto">جهت صفحه:</label>
+              <select id="lbw2-print-orientation" style="flex:0 0 auto;min-width:130px">
+                <option value="portrait" selected>عمودی (Portrait)</option>
+                <option value="landscape">افقی (Landscape)</option>
+              </select>
+              <button class="btn sm primary" id="btn-lbw2-print-custom" style="flex:0 0 auto">🖨️ چاپ با این تنظیمات</button>
+              <button class="btn sm sec" id="btn-lbw2-word-custom" style="flex:0 0 auto">📄 دانلود Word با این تنظیمات</button>
+            </div>
           </div>
         </div>
 
@@ -10102,6 +10245,46 @@ function teacherScript() {
     w.document.close();
     setTimeout(function(){w.print();},500);
   }
+  // ابزار عمومی: بزرگ/کوچک کردن زنده‌ی فونت جدول‌های نمایشی + کشوی آچار برای تنظیمات چاپ (جهت صفحه/اندازه فونت)
+  function lbLiveFontSize(tableSelector,inputId,incId,decId,defaultPx){
+    function apply(px){
+      px=Math.max(8,Math.min(30,parseInt(px,10)||defaultPx));
+      var input=document.getElementById(inputId);
+      if(input)input.value=px;
+      document.querySelectorAll(tableSelector+' th,'+tableSelector+' td,'+tableSelector+' input,'+tableSelector+' textarea').forEach(function(el){el.style.fontSize=px+'px';});
+      return px;
+    }
+    var input=document.getElementById(inputId);
+    if(input)input.addEventListener('input',function(){apply(this.value);});
+    var incBtn=document.getElementById(incId);
+    if(incBtn)incBtn.onclick=function(){apply((parseInt(document.getElementById(inputId).value,10)||defaultPx)+1);};
+    var decBtn=document.getElementById(decId);
+    if(decBtn)decBtn.onclick=function(){apply((parseInt(document.getElementById(inputId).value,10)||defaultPx)-1);};
+    return {apply:apply,current:function(){return parseInt((document.getElementById(inputId)||{}).value,10)||defaultPx;}};
+  }
+  function lbSetupPrintWrench(o){
+    var toggle=document.getElementById(o.toggleId);
+    if(toggle)toggle.onclick=function(){
+      var drawer=document.getElementById(o.drawerId);
+      if(drawer.classList.contains('hidden')&&o.currentSizeFn){
+        var fsInp=document.getElementById(o.fontSizeId);
+        if(fsInp)fsInp.value=o.currentSizeFn();
+      }
+      drawer.classList.toggle('hidden');
+    };
+    var printBtn=document.getElementById(o.printBtnId);
+    if(printBtn)printBtn.onclick=function(){
+      var landscape=document.getElementById(o.orientationId).value==='landscape';
+      var fontSize=parseInt(document.getElementById(o.fontSizeId).value,10)||(o.currentSizeFn?o.currentSizeFn():10);
+      lbPrintExport(o.title,o.exportFn(),landscape,o.fontFamilyFn?o.fontFamilyFn():'',fontSize);
+    };
+    var wordBtn=document.getElementById(o.wordBtnId);
+    if(wordBtn)wordBtn.onclick=function(){
+      var landscape=document.getElementById(o.orientationId).value==='landscape';
+      var fontSize=parseInt(document.getElementById(o.fontSizeId).value,10)||(o.currentSizeFn?o.currentSizeFn():10);
+      lbWordExport(o.title,o.exportFn(),o.filename,landscape,o.fontFamilyFn?o.fontFamilyFn():'',fontSize);
+    };
+  }
   async function lbExcelExport(filename,buildFn){
     try{
       await loadExcelJS();
@@ -10708,9 +10891,9 @@ function teacherScript() {
 
   // ===================== درصد قبولی دانش‌آموزان =====================
   var LBPR_GRADE_NAMES=['اول','دوم','سوم','چهارم','پنجم','ششم'];
-  // فونت: پیش‌فرض / B Titr / B Nazanin — اسم اول برای فونت سیستمی (اگر نصب باشد) و اسم دوم برای فونت وب بارگذاری‌شده در SHARED_CSS
-  var LBPR_FONTS={default:'',titr:"'B Titr','BTitr',Tahoma,Arial",nazanin:"'B Nazanin','BNazanin',Tahoma,Arial"};
-  var LBPR_CANVAS_FONTS={default:'Tahoma, Arial',titr:"'B Titr','BTitr',Tahoma,Arial",nazanin:"'B Nazanin','BNazanin',Tahoma,Arial"};
+  // فونت: پیش‌فرض / B Titr / B Nazanin / B Mitra — اسم اول برای فونت سیستمی (اگر نصب باشد) و اسم دوم برای فونت وب بارگذاری‌شده در SHARED_CSS
+  var LBPR_FONTS={default:'',titr:"'B Titr','BTitr',Tahoma,Arial",nazanin:"'B Nazanin','BNazanin',Tahoma,Arial",mitra:"'B Mitra','BMitra',Tahoma,Arial"};
+  var LBPR_CANVAS_FONTS={default:'Tahoma, Arial',titr:"'B Titr','BTitr',Tahoma,Arial",nazanin:"'B Nazanin','BNazanin',Tahoma,Arial",mitra:"'B Mitra','BMitra',Tahoma,Arial"};
   function lbprFontKey(){
     var el=document.getElementById('lbpr-font');
     return el?el.value:'default';
@@ -10725,6 +10908,26 @@ function teacherScript() {
     lbprRecalc();
   }
   document.getElementById('lbpr-font').addEventListener('change',lbprApplyFont);
+  function lbprApplyFontSize(px){
+    px=Math.max(8,Math.min(30,parseInt(px,10)||14));
+    document.getElementById('lbpr-fontsize').value=px;
+    document.querySelectorAll('#lbpr-table th,#lbpr-table td,#lbpr-table input').forEach(function(el){
+      el.style.fontSize=px+'px';
+    });
+    return px;
+  }
+  function lbprCurrentFontSize(){
+    return parseInt(document.getElementById('lbpr-fontsize').value,10)||14;
+  }
+  document.getElementById('lbpr-fontsize').addEventListener('input',function(){
+    lbprApplyFontSize(this.value);
+  });
+  document.getElementById('btn-lbpr-fontsize-inc').onclick=function(){
+    lbprApplyFontSize(lbprCurrentFontSize()+1);
+  };
+  document.getElementById('btn-lbpr-fontsize-dec').onclick=function(){
+    lbprApplyFontSize(lbprCurrentFontSize()-1);
+  };
   function lbprColorForPct(pct){
     if(pct<60)return{fill:'#fecaca',border:'#ef4444'};      // قرمز کم‌رنگ - ضعیف
     if(pct<85)return{fill:'#bfdbfe',border:'#3b82f6'};      // آبی کم‌رنگ - متوسط
@@ -10806,6 +11009,7 @@ function teacherScript() {
         document.getElementById('lbpr-font').value=saved.font;
         document.getElementById('lb-panel-passrate').style.fontFamily=LBPR_FONTS[saved.font]||'';
       }
+      if(saved.fontSize)lbprApplyFontSize(saved.fontSize);
       if(saved.grades){
         saved.grades.forEach(function(row,idx){
           var g=idx+1;
@@ -10825,7 +11029,7 @@ function teacherScript() {
       var passInp=document.querySelector('.lbpr-pass[data-grade="'+g+'"]');
       grades.push({total:totalInp.value,pass:passInp.value});
     }
-    lbSave('passrate',{school:document.getElementById('lbpr-school').value,year:document.getElementById('lbpr-year').value,font:lbprFontKey(),grades:grades});
+    lbSave('passrate',{school:document.getElementById('lbpr-school').value,year:document.getElementById('lbpr-year').value,font:lbprFontKey(),fontSize:lbprCurrentFontSize(),grades:grades});
     toast('ذخیره شد ✅');
   };
   function lbprExportHtml(){
@@ -10847,8 +11051,23 @@ function teacherScript() {
     h+='<p style="margin-top:10px;font-size:12px">رنگ‌بندی: قرمز کم‌رنگ = زیر ۶۰٪ | آبی کم‌رنگ = ۶۰ تا ۸۴٪ | سبز کم‌رنگ = ۸۵٪ به بالا</p>';
     return h;
   }
-  document.getElementById('btn-lb-passrate-word').onclick=function(){lbWordExport('نمودار درصد قبولی دانش‌آموزان',lbprExportHtml(),'درصد-قبولی-دانش-آموزان',false,lbprFontFamily());};
-  document.getElementById('btn-lb-passrate-pdf').onclick=function(){lbPrintExport('نمودار درصد قبولی دانش‌آموزان',lbprExportHtml(),false,lbprFontFamily());};
+  document.getElementById('btn-lb-passrate-word').onclick=function(){lbWordExport('نمودار درصد قبولی دانش‌آموزان',lbprExportHtml(),'درصد-قبولی-دانش-آموزان',false,lbprFontFamily(),lbprCurrentFontSize());};
+  document.getElementById('btn-lb-passrate-pdf').onclick=function(){lbPrintExport('نمودار درصد قبولی دانش‌آموزان',lbprExportHtml(),false,lbprFontFamily(),lbprCurrentFontSize());};
+  document.getElementById('btn-lbpr-print-opts-toggle').onclick=function(){
+    var drawer=document.getElementById('lbpr-print-opts-drawer');
+    if(drawer.classList.contains('hidden'))document.getElementById('lbpr-print-fontsize').value=lbprCurrentFontSize();
+    drawer.classList.toggle('hidden');
+  };
+  document.getElementById('btn-lbpr-print-custom').onclick=function(){
+    var landscape=document.getElementById('lbpr-print-orientation').value==='landscape';
+    var fontSize=parseInt(document.getElementById('lbpr-print-fontsize').value,10)||lbprCurrentFontSize();
+    lbPrintExport('نمودار درصد قبولی دانش‌آموزان',lbprExportHtml(),landscape,lbprFontFamily(),fontSize);
+  };
+  document.getElementById('btn-lbpr-word-custom').onclick=function(){
+    var landscape=document.getElementById('lbpr-print-orientation').value==='landscape';
+    var fontSize=parseInt(document.getElementById('lbpr-print-fontsize').value,10)||lbprCurrentFontSize();
+    lbWordExport('نمودار درصد قبولی دانش‌آموزان',lbprExportHtml(),'درصد-قبولی-دانش-آموزان',landscape,lbprFontFamily(),fontSize);
+  };
   document.getElementById('btn-lb-passrate-excel').onclick=function(){
     var pcts=lbprRecalc();
     lbExcelExport('درصد-قبولی-دانش-آموزان',function(wb){
@@ -10884,8 +11103,15 @@ function teacherScript() {
     var rows=lbTableToRows(document.getElementById('lba-table'));
     return meta+lbRowsToHtmlTable(rows)+'<p style="margin-top:14px"><b>ادامه جدول غیبت دانش‌آموزان</b></p>';
   }
-  document.getElementById('btn-lb-absence-word').onclick=function(){lbWordExport('جدول ثبت غیبت دانش‌آموزان',lbAbsenceExportHtml(),'ثبت-غیبت-دانش-آموزان',true);};
-  document.getElementById('btn-lb-absence-pdf').onclick=function(){lbPrintExport('جدول ثبت غیبت دانش‌آموزان',lbAbsenceExportHtml(),true);};
+  var LBA_FONTS={default:'',titr:"'B Titr','BTitr',Tahoma,Arial",nazanin:"'B Nazanin','BNazanin',Tahoma,Arial",mitra:"'B Mitra','BMitra',Tahoma,Arial"};
+  function lbaFontFamily(){
+    var el=document.getElementById('lba-font');
+    return LBA_FONTS[el?el.value:'default']||undefined;
+  }
+  var lbaFontSizeCtl=lbLiveFontSize('#lba-table','lba-fontsize','btn-lba-fontsize-inc','btn-lba-fontsize-dec',11);
+  document.getElementById('btn-lb-absence-word').onclick=function(){lbWordExport('جدول ثبت غیبت دانش‌آموزان',lbAbsenceExportHtml(),'ثبت-غیبت-دانش-آموزان',true,lbaFontFamily(),lbaFontSizeCtl.current());};
+  document.getElementById('btn-lb-absence-pdf').onclick=function(){lbPrintExport('جدول ثبت غیبت دانش‌آموزان',lbAbsenceExportHtml(),true,lbaFontFamily(),lbaFontSizeCtl.current());};
+  lbSetupPrintWrench({toggleId:'btn-lba-print-opts-toggle',drawerId:'lba-print-opts-drawer',orientationId:'lba-print-orientation',fontSizeId:'lba-print-fontsize',printBtnId:'btn-lba-print-custom',wordBtnId:'btn-lba-word-custom',exportFn:lbAbsenceExportHtml,title:'جدول ثبت غیبت دانش‌آموزان',filename:'ثبت-غیبت-دانش-آموزان',fontFamilyFn:lbaFontFamily,currentSizeFn:lbaFontSizeCtl.current});
   document.getElementById('btn-lb-absence-excel').onclick=function(){
     lbExcelExport('ثبت-غیبت-دانش-آموزان',function(wb){
       lbAddExcelSheet(wb,'ثبت غیبت',lbTableToRows(document.getElementById('lba-table')));
@@ -11151,8 +11377,15 @@ function teacherScript() {
     var note='<p style="margin-top:14px" class="muted">لازم به ذکر است انتظارات آموزشی تمامی پایه‌ها در جدول شماره ۸ ارائه گردیده. آموزگاران بر پایه بر انتظارات پیش‌بینی شده نسبت به تکمیل جدول اقدام می‌نمایند.</p>';
     return meta+table+note;
   }
-  document.getElementById('btn-lb-performance-word').onclick=function(){lbWordExport('جدول شماره ۸: ثبت سطوح عملکرد دانش‌آموز',lbPerformanceExportHtml(),'ثبت-سطوح-عملکرد-دانش-آموز',true);};
-  document.getElementById('btn-lb-performance-pdf').onclick=function(){lbPrintExport('جدول شماره ۸: ثبت سطوح عملکرد دانش‌آموز',lbPerformanceExportHtml(),true);};
+  var LBF_FONTS={default:'',titr:"'B Titr','BTitr',Tahoma,Arial",nazanin:"'B Nazanin','BNazanin',Tahoma,Arial",mitra:"'B Mitra','BMitra',Tahoma,Arial"};
+  function lbfFontFamily(){
+    var el=document.getElementById('lbf-font');
+    return LBF_FONTS[el?el.value:'default']||undefined;
+  }
+  var lbfFontSizeCtl=lbLiveFontSize('#lb-performance-preview','lbf-fontsize','btn-lbf-fontsize-inc','btn-lbf-fontsize-dec',11);
+  document.getElementById('btn-lb-performance-word').onclick=function(){lbWordExport('جدول شماره ۸: ثبت سطوح عملکرد دانش‌آموز',lbPerformanceExportHtml(),'ثبت-سطوح-عملکرد-دانش-آموز',true,lbfFontFamily(),lbfFontSizeCtl.current());};
+  document.getElementById('btn-lb-performance-pdf').onclick=function(){lbPrintExport('جدول شماره ۸: ثبت سطوح عملکرد دانش‌آموز',lbPerformanceExportHtml(),true,lbfFontFamily(),lbfFontSizeCtl.current());};
+  lbSetupPrintWrench({toggleId:'btn-lbf-print-opts-toggle',drawerId:'lbf-print-opts-drawer',orientationId:'lbf-print-orientation',fontSizeId:'lbf-print-fontsize',printBtnId:'btn-lbf-print-custom',wordBtnId:'btn-lbf-word-custom',exportFn:lbPerformanceExportHtml,title:'جدول شماره ۸: ثبت سطوح عملکرد دانش‌آموز',filename:'ثبت-سطوح-عملکرد-دانش-آموز',fontFamilyFn:lbfFontFamily,currentSizeFn:lbfFontSizeCtl.current});
   document.getElementById('btn-lb-performance-excel').onclick=function(){
     var cols=lbPerfColsCount();
     var studentName=document.getElementById('lbf-student-name').value||'دانش‌آموز';
@@ -11211,7 +11444,7 @@ function teacherScript() {
   document.getElementById('btn-rc-photo-remove').onclick=function(){rcSetPhoto('');};
 
   // فونت: پیش‌فرض / B Titr / B Nazanin
-  var RC_FONTS={default:'',titr:"'B Titr','BTitr',Tahoma,Arial",nazanin:"'B Nazanin','BNazanin',Tahoma,Arial"};
+  var RC_FONTS={default:'',titr:"'B Titr','BTitr',Tahoma,Arial",nazanin:"'B Nazanin','BNazanin',Tahoma,Arial",mitra:"'B Mitra','BMitra',Tahoma,Arial"};
   function rcFontKey(){
     var el=document.getElementById('rc-font');
     return el?el.value:'default';
@@ -11223,6 +11456,7 @@ function teacherScript() {
     var panel=document.getElementById('lb-panel-reportcard');
     if(panel)panel.style.fontFamily=RC_FONTS[rcFontKey()]||'';
   });
+  var rcFontSizeCtl=lbLiveFontSize('#rc-subjects-preview','rc-fontsize','btn-rc-fontsize-inc','btn-rc-fontsize-dec',12);
 
   var RC_LEVEL_LABELS={excellent:'🌟 خیلی خوب',good:'✅ خوب',acceptable:'📌 قابل‌قبول','needs-improve':'📖 نیاز به تلاش'};
   var RC_LEVEL_OPTIONS=[['excellent','🌟 خیلی خوب'],['good','✅ خوب'],['acceptable','📌 قابل‌قبول'],['needs-improve','📖 نیاز به تلاش']];
@@ -11397,8 +11631,9 @@ function teacherScript() {
     var sign='<p style="margin-top:30px">امضای آموزگار: ......................... &nbsp;&nbsp;&nbsp;&nbsp; امضای مدیر: .........................</p>';
     return meta+table+note+sign;
   }
-  document.getElementById('btn-rc-word').onclick=function(){lbWordExport('کارنامه‌ی توصیفی دانش‌آموز',rcExportHtml(),'کارنامه-دانش-آموز',false,rcFontFamily());};
-  document.getElementById('btn-rc-pdf').onclick=function(){lbPrintExport('کارنامه‌ی توصیفی دانش‌آموز',rcExportHtml(),false,rcFontFamily());};
+  document.getElementById('btn-rc-word').onclick=function(){lbWordExport('کارنامه‌ی توصیفی دانش‌آموز',rcExportHtml(),'کارنامه-دانش-آموز',false,rcFontFamily(),rcFontSizeCtl.current());};
+  document.getElementById('btn-rc-pdf').onclick=function(){lbPrintExport('کارنامه‌ی توصیفی دانش‌آموز',rcExportHtml(),false,rcFontFamily(),rcFontSizeCtl.current());};
+  lbSetupPrintWrench({toggleId:'btn-rc-print-opts-toggle',drawerId:'rc-print-opts-drawer',orientationId:'rc-print-orientation',fontSizeId:'rc-print-fontsize',printBtnId:'btn-rc-print-custom',wordBtnId:'btn-rc-word-custom',exportFn:rcExportHtml,title:'کارنامه‌ی توصیفی دانش‌آموز',filename:'کارنامه-دانش-آموز',fontFamilyFn:rcFontFamily,currentSizeFn:rcFontSizeCtl.current});
   document.getElementById('btn-rc-excel').onclick=function(){
     var studentName=document.getElementById('rc-student-name').value||'دانش‌آموز';
     var subjects=rcActiveSubjects(rcSelectedGradeIdx());
@@ -11421,6 +11656,12 @@ function teacherScript() {
   };
   document.getElementById('btn-lbc-addrow').onclick=function(){lbAddSimpleRow('lbc-table',LB_COUNCIL_HEADERS.length);};
   document.getElementById('btn-lbc-build').click();
+  var LBC_FONTS={default:'',titr:"'B Titr','BTitr',Tahoma,Arial",nazanin:"'B Nazanin','BNazanin',Tahoma,Arial",mitra:"'B Mitra','BMitra',Tahoma,Arial"};
+  function lbcFontFamily(){
+    var el=document.getElementById('lbc-font');
+    return LBC_FONTS[el?el.value:'default']||undefined;
+  }
+  var lbcFontSizeCtl=lbLiveFontSize('#lbc-table','lbc-fontsize','btn-lbc-fontsize-inc','btn-lbc-fontsize-dec',12);
   function lbCouncilExportHtml(){
     var meta=lbMetaBlock([['تاریخ برگزاری','lbc-date'],['موضوع جلسه','lbc-topic'],['شماره جلسه','lbc-num'],['ساعت تشکیل','lbc-time']]);
     var summary='<p><b>۱- خلاصه مباحث مطرح شده:</b></p><p style="border:1px solid #ccc;padding:10px;min-height:60px">'+esc(document.getElementById('lbc-summary').value||'')+'</p>';
@@ -11430,8 +11671,9 @@ function teacherScript() {
     var sign='<p style="margin-top:16px"><b>امضاء و تأیید مدیر مدرسه:</b> .......................</p>';
     return meta+summary+decisions+table+sign;
   }
-  document.getElementById('btn-lb-council-word').onclick=function(){lbWordExport('جدول شماره ۱: جلسات شورای آموزشی اولیا',lbCouncilExportHtml(),'صورتجلسه-شورای-آموزشی',false);};
-  document.getElementById('btn-lb-council-pdf').onclick=function(){lbPrintExport('جدول شماره ۱: جلسات شورای آموزشی اولیا',lbCouncilExportHtml(),false);};
+  document.getElementById('btn-lb-council-word').onclick=function(){lbWordExport('جدول شماره ۱: جلسات شورای آموزشی اولیا',lbCouncilExportHtml(),'صورتجلسه-شورای-آموزشی',false,lbcFontFamily(),lbcFontSizeCtl.current());};
+  document.getElementById('btn-lb-council-pdf').onclick=function(){lbPrintExport('جدول شماره ۱: جلسات شورای آموزشی اولیا',lbCouncilExportHtml(),false,lbcFontFamily(),lbcFontSizeCtl.current());};
+  lbSetupPrintWrench({toggleId:'btn-lbc-print-opts-toggle',drawerId:'lbc-print-opts-drawer',orientationId:'lbc-print-orientation',fontSizeId:'lbc-print-fontsize',printBtnId:'btn-lbc-print-custom',wordBtnId:'btn-lbc-word-custom',exportFn:lbCouncilExportHtml,title:'جدول شماره ۱: جلسات شورای آموزشی اولیا',filename:'صورتجلسه-شورای-آموزشی',fontFamilyFn:lbcFontFamily,currentSizeFn:lbcFontSizeCtl.current});
   document.getElementById('btn-lb-council-excel').onclick=function(){
     lbExcelExport('صورتجلسه-شورای-آموزشی',function(wb){
       var ws=wb.addWorksheet('صورتجلسه',{views:[{rightToLeft:true}]});
@@ -11659,6 +11901,17 @@ function teacherScript() {
   }
   document.getElementById('btn-lb-weekly-word').onclick=function(){lbWordExport('جدول ۱-۳-۱ ـ برنامه درسی هفتگی (ویژه چندپایه)',lbWeeklyExportHtml(),'برنامه-درسی-هفتگی',false);};
   document.getElementById('btn-lb-weekly-pdf').onclick=function(){lbPrintExport('جدول ۱-۳-۱ ـ برنامه درسی هفتگی (ویژه چندپایه)',lbWeeklyExportHtml(),false);};
+  document.getElementById('btn-lbw-print-opts-toggle').onclick=function(){
+    document.getElementById('lbw-print-opts-drawer').classList.toggle('hidden');
+  };
+  document.getElementById('btn-lbw-print-custom').onclick=function(){
+    var landscape=document.getElementById('lbw-print-orientation').value==='landscape';
+    lbPrintExport('جدول ۱-۳-۱ ـ برنامه درسی هفتگی (ویژه چندپایه)',lbWeeklyExportHtml(),landscape);
+  };
+  document.getElementById('btn-lbw-word-custom').onclick=function(){
+    var landscape=document.getElementById('lbw-print-orientation').value==='landscape';
+    lbWordExport('جدول ۱-۳-۱ ـ برنامه درسی هفتگی (ویژه چندپایه)',lbWeeklyExportHtml(),'برنامه-درسی-هفتگی',landscape);
+  };
   document.getElementById('btn-lb-weekly-excel').onclick=function(){
     var grades=lbSelectedWeeklyGrades();
     if(!grades.length)grades=[0,1,2,3,4,5];
@@ -11798,6 +12051,17 @@ function teacherScript() {
   }
   document.getElementById('btn-lb-weekly2-word').onclick=function(){lbWordExport('جدول ۳- برنامه درسی هفتگی (کلاس تک پایه)',lbWeekly2ExportHtml(),'برنامه-درسی-هفتگی-تک-پایه',false);};
   document.getElementById('btn-lb-weekly2-pdf').onclick=function(){lbPrintExport('جدول ۳- برنامه درسی هفتگی (کلاس تک پایه)',lbWeekly2ExportHtml(),false);};
+  document.getElementById('btn-lbw2-print-opts-toggle').onclick=function(){
+    document.getElementById('lbw2-print-opts-drawer').classList.toggle('hidden');
+  };
+  document.getElementById('btn-lbw2-print-custom').onclick=function(){
+    var landscape=document.getElementById('lbw2-print-orientation').value==='landscape';
+    lbPrintExport('جدول ۳- برنامه درسی هفتگی (کلاس تک پایه)',lbWeekly2ExportHtml(),landscape);
+  };
+  document.getElementById('btn-lbw2-word-custom').onclick=function(){
+    var landscape=document.getElementById('lbw2-print-orientation').value==='landscape';
+    lbWordExport('جدول ۳- برنامه درسی هفتگی (کلاس تک پایه)',lbWeekly2ExportHtml(),'برنامه-درسی-هفتگی-تک-پایه',landscape);
+  };
   document.getElementById('btn-lb-weekly2-excel').onclick=function(){
     lbExcelExport('برنامه-درسی-هفتگی-تک-پایه',function(wb){
       var rows=[['روز'].concat(LB_WEEKLY2_SESSIONS)];
