@@ -1404,10 +1404,23 @@ const SHARED_CSS = `
   .lb-font-toolbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:10px 0}
   .lb-font-toolbar label{font-weight:700;font-size:13px}
   .lb-font-toolbar select,.lb-font-toolbar input[type=number]{padding:6px 8px;border:1px solid #cbd5e1;border-radius:6px;font-family:inherit}
+  .lb-pacing-title{display:table;margin:4px auto 16px;padding:9px 28px;border:2px dashed #14b8a6;border-radius:999px;font-weight:800;font-size:16px;color:#0f766e;background:#f0fdfa}
+  [data-theme="dark"] .lb-pacing-title{background:#0d2b28;color:#5eead4;border-color:#2dd4bf}
+  .lb-pacing-wrap{overflow-x:auto;overflow-y:hidden;border-radius:18px;border:2px solid #14b8a6}
+  [data-theme="dark"] .lb-pacing-wrap{border-color:#2dd4bf}
   .lb-pacing-table{width:max-content;min-width:100%;border-collapse:collapse;font-size:11px;margin-bottom:22px}
-  .lb-pacing-table th,.lb-pacing-table td{border:1px solid #94a3b8;padding:4px 6px;text-align:center}
+  .lb-pacing-table th,.lb-pacing-table td{border:1px solid #cbd5e1;padding:4px 6px;text-align:center}
   .lb-pacing-table th{background:#dbeafe;color:var(--text)}
   [data-theme="dark"] .lb-pacing-table th{background:#1e3a5f}
+  .lb-pacing-table thead tr:first-child th{background:#0f9b8e;color:#fff;font-weight:800;padding:9px 6px}
+  [data-theme="dark"] .lb-pacing-table thead tr:first-child th{background:#0d7d73;color:#fff}
+  .lb-pacing-table thead tr:nth-child(2) th{color:#1e293b;font-weight:800;padding:7px 6px}
+  .lb-pacing-table thead tr:nth-child(2) th:nth-child(4n+1){background:#bae6fd}
+  .lb-pacing-table thead tr:nth-child(2) th:nth-child(4n+2){background:#fbcfe8}
+  .lb-pacing-table thead tr:nth-child(2) th:nth-child(4n+3){background:#bbf7d0}
+  .lb-pacing-table thead tr:nth-child(2) th:nth-child(4n){background:#fde68a}
+  .lb-pacing-table thead tr:nth-child(3) th{background:#fff;color:#1e293b;font-weight:700}
+  [data-theme="dark"] .lb-pacing-table thead tr:nth-child(3) th{background:#0f172a;color:#e8eef3}
 
   /* ---- آمار دانش‌آموزان به تفکیک جنسیت ---- */
   .lbg-sheet{max-width:720px;margin:18px auto 0;background:#fff;border:1px solid #e2e8f0;border-radius:16px;padding:28px 24px;box-shadow:0 4px 18px rgba(0,0,0,.05)}
@@ -1431,8 +1444,8 @@ const SHARED_CSS = `
   [data-theme="dark"] .lbg-box-main{background:#1e2a4a}
   .lbg-box-label{display:block;font-size:12.5px;color:var(--muted);margin-bottom:8px;font-weight:600}
   .lbg-box-val{display:block;font-size:26px;font-weight:800;color:var(--primary)}
-  .lb-pacing-table td.lb-subject{background:#f1f5f9;font-weight:700;white-space:nowrap;padding:4px 10px}
-  [data-theme="dark"] .lb-pacing-table td.lb-subject{background:#0f172a}
+  .lb-pacing-table td.lb-subject{background:#fff;color:#0f766e;font-weight:800;white-space:nowrap;padding:4px 10px}
+  [data-theme="dark"] .lb-pacing-table td.lb-subject{background:#0f172a;color:#5eead4}
   .lb-pacing-table td.lb-cell{min-width:100px;padding:2px}
   .lb-pacing-input{width:100%;min-height:56px;border:none;background:transparent;resize:vertical;font-family:inherit;font-size:11px;text-align:center;padding:3px;color:inherit}
   .lb-pacing-input:focus{outline:2px solid var(--primary);outline-offset:1px;background:#eef2ff;border-radius:6px}
@@ -3634,6 +3647,9 @@ function teacherPage() {
             <option value="nazanin">B Nazanin</option>
             <option value="titr">B Titr</option>
           </select>
+          <span style="font-weight:700">📏 اندازه فونت:</span>
+          <input type="number" id="sch-font-size" min="8" max="40" step="1" value="14" style="width:70px;padding:8px;border:1px solid #ddd;border-radius:6px">
+          <span class="muted">با زدن اینتر داخل هر خانه، متن به خط بعد می‌رود و ارتفاع خانه بزرگ‌تر می‌شود.</span>
         </div>
         <div class="row" style="margin-bottom:16px">
           <input id="sch-school" placeholder="نام مدرسه" style="flex:1">
@@ -4183,7 +4199,7 @@ function teacherPage() {
             <div><label>نام آموزگار</label><input id="lbp-teacher" placeholder="......................."></div>
             <div><label>سال تحصیلی</label><input id="lbp-year" placeholder="......................."></div>
           </div>
-          <div class="row" style="align-items:center">
+          <div class="row" style="align-items:center;flex-wrap:wrap;gap:10px">
             <label style="flex:0 0 auto">پایه تحصیلی:</label>
             <select id="lbp-grade-select" style="flex:0 0 auto;min-width:180px">
               <option value="0">پایه اول دبستان</option>
@@ -4192,6 +4208,12 @@ function teacherPage() {
               <option value="3">پایه چهارم دبستان</option>
               <option value="4">پایه پنجم دبستان</option>
               <option value="5">پایه ششم دبستان</option>
+            </select>
+            <label style="flex:0 0 auto">نوبت نمایش:</label>
+            <select id="lbp-term-select" style="flex:0 0 auto;min-width:170px">
+              <option value="both">هر دو نوبت</option>
+              <option value="t1">نوبت اول (مهر تا دی)</option>
+              <option value="t2">نوبت دوم (بهمن تا اردیبهشت)</option>
             </select>
           </div>
           <p class="muted">در هر خانه‌ی جدول: شماره درس، صفحات کتاب، زمان تدریس و توضیحات معلم یادداشت می‌شود.</p>
@@ -4546,6 +4568,16 @@ function teacherPage() {
             <label style="flex:0 0 auto"><input type="checkbox" class="lbw-grade-chk" checked> ششم</label>
             <button class="btn sm sec" id="btn-lbw-build">🔄 ساخت جدول</button>
           </div>
+          <div class="lb-font-toolbar">
+            <label>فونت جدول:</label>
+            <select id="lbw-font">
+              <option value="bnazanin">B Nazanin Bold</option>
+              <option value="bmitra">B Mitra</option>
+            </select>
+            <label>اندازه فونت:</label>
+            <input type="number" id="lbw-font-size" min="8" max="40" step="1" value="12" style="width:70px">
+            <span class="muted">با زدن اینتر داخل هر خانه، متن به خط بعد می‌رود و ارتفاع خانه بزرگ‌تر می‌شود.</span>
+          </div>
           <div class="lb-preview" id="lb-weekly-preview"></div>
           <div class="row" style="margin-top:12px">
             <button class="btn primary" id="btn-lbw-save">💾 ذخیره</button>
@@ -4565,6 +4597,16 @@ function teacherPage() {
             <div><label>نام آموزگار</label><input id="lbw2-teacher" placeholder="......................."></div>
             <div><label>پایه</label><input id="lbw2-grade" placeholder="......................."></div>
             <div><label>کلاس</label><input id="lbw2-class" placeholder="......................."></div>
+          </div>
+          <div class="lb-font-toolbar">
+            <label>فونت جدول:</label>
+            <select id="lbw2-font">
+              <option value="bnazanin">B Nazanin Bold</option>
+              <option value="bmitra">B Mitra</option>
+            </select>
+            <label>اندازه فونت:</label>
+            <input type="number" id="lbw2-font-size" min="8" max="40" step="1" value="12" style="width:70px">
+            <span class="muted">با زدن اینتر داخل هر خانه، متن به خط بعد می‌رود و ارتفاع خانه بزرگ‌تر می‌شود.</span>
           </div>
           <div class="lb-preview" id="lb-weekly2-preview"></div>
           <div class="row" style="margin-top:12px">
@@ -6061,25 +6103,53 @@ function teacherScript() {
     }
   }
 
-  // ===== فونت جدول برنامهٔ هفتگی (پیش‌فرض/نازنین/تیتر) =====
+  // ===== فونت و اندازهٔ فونت جدول برنامهٔ هفتگی (پیش‌فرض/نازنین/تیتر) =====
   var SCH_FONTS={default:'',nazanin:"'B Nazanin','BNazanin',Tahoma,Arial",titr:"'B Titr','BTitr',Tahoma,Arial"};
+  // مثل ورد: با زدن اینتر داخل خانه، متن به خط بعد می‌رود و ارتفاع همان خانه به‌صورت خودکار بزرگ‌تر می‌شود
+  function schAutoResizeTa(ta){
+    ta.style.height='auto';
+    ta.style.height=ta.scrollHeight+'px';
+  }
+  function schWireTextareas(){
+    document.querySelectorAll('#schedule-body textarea').forEach(function(ta){
+      schAutoResizeTa(ta);
+      if(ta.dataset.schWired)return;
+      ta.dataset.schWired='1';
+      ta.addEventListener('input',function(){schAutoResizeTa(ta);});
+    });
+  }
   function schApplyTableFont(){
     var key=document.getElementById('sch-font').value;
-    document.getElementById('schedule-table').style.fontFamily=SCH_FONTS[key]||'';
+    var size=parseInt(document.getElementById('sch-font-size').value,10)||14;
+    var family=SCH_FONTS[key]||'';
+    var tableEl=document.getElementById('schedule-table');
+    tableEl.style.fontFamily=family;
+    tableEl.querySelectorAll('th,td').forEach(function(cell){cell.style.fontFamily=family;});
+    document.querySelectorAll('#schedule-body textarea').forEach(function(ta){
+      ta.style.fontFamily=family;
+      ta.style.fontSize=size+'px';
+    });
+    schWireTextareas();
   }
   document.getElementById('sch-font').addEventListener('change',function(){
     schApplyTableFont();
     lbSave('sch-font',document.getElementById('sch-font').value,true);
   });
+  document.getElementById('sch-font-size').addEventListener('input',schApplyTableFont);
+  document.getElementById('sch-font-size').addEventListener('change',function(){
+    schApplyTableFont();
+    lbSave('sch-font-size',document.getElementById('sch-font-size').value,true);
+  });
+  document.getElementById('sch-font-size').addEventListener('keydown',function(e){if(e.key==='Enter')schApplyTableFont();});
   let SCH_FONT_LOADED=false;
   async function loadScheduleFontIfNeeded(){
     if(SCH_FONT_LOADED)return;
     SCH_FONT_LOADED=true;
     const saved=await lbLoad('sch-font');
-    if(saved){
-      document.getElementById('sch-font').value=saved;
-      schApplyTableFont();
-    }
+    const savedSize=await lbLoad('sch-font-size');
+    if(saved)document.getElementById('sch-font').value=saved;
+    if(savedSize)document.getElementById('sch-font-size').value=savedSize;
+    if(saved||savedSize)schApplyTableFont();
   }
 
   document.getElementById('btn-gen-schedule').onclick=function(){
@@ -6106,6 +6176,7 @@ function teacherScript() {
     }
     body.innerHTML=html;
     schApplyTableFont();
+    schWireTextareas();
     schRefreshRowColorDots();
   };
 
@@ -9926,7 +9997,7 @@ function teacherScript() {
       document.getElementById('lb-menu').classList.add('hidden');
       const panel=document.getElementById('lb-panel-'+b.dataset.lb);
       if(panel)panel.classList.remove('hidden');
-      if(b.dataset.lb==='pacing'){lbRenderPacing();lbLoadPacingIfNeeded(lbSelectedGradeIdx());}
+      if(b.dataset.lb==='pacing'){loadPacingTermIfNeeded().then(function(){lbRenderPacing();lbLoadPacingIfNeeded(lbSelectedGradeIdx());});}
       if(b.dataset.lb==='roster')lbLoadRosterIfNeeded();
       if(b.dataset.lb==='genderstats')lbLoadGenderStatsIfNeeded();
       if(b.dataset.lb==='passrate')lbLoadPassrateIfNeeded();
@@ -10181,14 +10252,25 @@ function teacherScript() {
   var LB_MONTHS1=['مهر','آبان','آذر','دی'];
   var LB_MONTHS2=['بهمن','اسفند','فروردین','اردیبهشت'];
   var LB_PACING_DATA={}; // { gradeIdx: [ [16 مقدار برای هر سطر درس], ... ] } - نگه‌داری مقادیر تایپ‌شده هر پایه در حافظه
-  function lbBuildPacingTableHtml(gradeIdx,forExport){
+  function lbBuildPacingTableHtml(gradeIdx,forExport,term){
+    term=term||'both';
+    var showT1=term==='both'||term==='t1';
+    var showT2=term==='both'||term==='t2';
     var grade=LB_GRADES[gradeIdx];
     var subjects=grade.subjects;
     var saved=LB_PACING_DATA[gradeIdx];
-    var h='<h3>'+esc(grade.title)+'</h3><div style="overflow-x:auto"><table class="lb-pacing-table"><thead>';
-    h+='<tr><th rowspan="3">موضوع</th><th colspan="8">نوبت اول</th><th rowspan="3" class="lb-nowruz">تعطیلات<br>نوروز</th><th colspan="8">نوبت دوم</th></tr>';
-    h+='<tr>'+LB_MONTHS1.map(function(m){return '<th colspan="2">'+m+'</th>';}).join('')+LB_MONTHS2.map(function(m){return '<th colspan="2">'+m+'</th>';}).join('')+'</tr>';
-    h+='<tr>'+Array(8).fill('<th>نیمه۱</th><th>نیمه۲</th>').join('')+'</tr>';
+    var h='<h3 class="lb-pacing-title">'+esc(grade.title)+'</h3><div class="lb-pacing-wrap"><table class="lb-pacing-table"><thead>';
+    h+='<tr><th rowspan="3">موضوع</th>';
+    if(showT1)h+='<th colspan="8">نوبت اول</th>';
+    if(term==='both')h+='<th rowspan="3" class="lb-nowruz">تعطیلات<br>نوروز</th>';
+    if(showT2)h+='<th colspan="8">نوبت دوم</th>';
+    h+='</tr><tr>';
+    if(showT1)h+=LB_MONTHS1.map(function(m){return '<th colspan="2">'+m+'</th>';}).join('');
+    if(showT2)h+=LB_MONTHS2.map(function(m){return '<th colspan="2">'+m+'</th>';}).join('');
+    h+='</tr><tr>';
+    if(showT1)h+=Array(4).fill('<th>نیمه۱</th><th>نیمه۲</th>').join('');
+    if(showT2)h+=Array(4).fill('<th>نیمه۱</th><th>نیمه۲</th>').join('');
+    h+='</tr>';
     h+='</thead><tbody>';
     function cellHtml(rowIdx,colIdx){
       var val=(saved&&saved[rowIdx]&&saved[rowIdx][colIdx])||'';
@@ -10197,9 +10279,9 @@ function teacherScript() {
     }
     subjects.forEach(function(subj,i){
       h+='<tr><td class="lb-subject">'+esc(subj)+'</td>';
-      for(var c=0;c<8;c++)h+=cellHtml(i,c);
-      if(i===0)h+='<td class="lb-nowruz" rowspan="'+subjects.length+'">تعطیلات<br>نوروز</td>';
-      for(var c2=8;c2<16;c2++)h+=cellHtml(i,c2);
+      if(showT1)for(var c=0;c<8;c++)h+=cellHtml(i,c);
+      if(i===0&&term==='both')h+='<td class="lb-nowruz" rowspan="'+subjects.length+'">تعطیلات<br>نوروز</td>';
+      if(showT2)for(var c2=8;c2<16;c2++)h+=cellHtml(i,c2);
       h+='</tr>';
     });
     h+='</tbody></table></div>';
@@ -10211,10 +10293,15 @@ function teacherScript() {
   function lbSelectedGrade(){
     return LB_GRADES[lbSelectedGradeIdx()];
   }
+  function lbSelectedPacingTerm(){
+    var el=document.getElementById('lbp-term-select');
+    return el?el.value:'both';
+  }
   function lbRenderPacing(){
     var idx=lbSelectedGradeIdx();
+    var term=lbSelectedPacingTerm();
     var el=document.getElementById('lb-pacing-preview');
-    el.innerHTML=lbBuildPacingTableHtml(idx,false)+
+    el.innerHTML=lbBuildPacingTableHtml(idx,false,term)+
       '<p><b>توضیحات:</b></p><p class="muted">این بودجه‌بندی پیشنهادی می‌باشد.</p>';
     // ذخیره‌ی زنده‌ی مقادیر تایپ‌شده در حافظه (تا با تغییر پایه از بین نروند)
     el.querySelectorAll('.lb-pacing-input').forEach(function(ta){
@@ -10225,6 +10312,17 @@ function teacherScript() {
         LB_PACING_DATA[g][r][c]=ta.value;
       });
     });
+  }
+  document.getElementById('lbp-term-select').addEventListener('change',function(){
+    lbRenderPacing();
+    lbSave('pacing-term',document.getElementById('lbp-term-select').value,true);
+  });
+  var LB_PACING_TERM_LOADED=false;
+  async function loadPacingTermIfNeeded(){
+    if(LB_PACING_TERM_LOADED)return;
+    LB_PACING_TERM_LOADED=true;
+    var saved=await lbLoad('pacing-term');
+    if(saved)document.getElementById('lbp-term-select').value=saved;
   }
   var LB_PACING_LOADED={};
   async function lbLoadPacingIfNeeded(idx){
@@ -10296,8 +10394,13 @@ function teacherScript() {
     var grade=LB_GRADES[idx];
     var meta=lbMetaBlock([['نام مدرسه','lbp-school'],['نام آموزگار','lbp-teacher'],['سال تحصیلی','lbp-year']]);
     meta+='<p><b>پایه تحصیلی:</b> '+esc(grade.title)+'</p>';
-    var table=lbBuildPacingTableHtml(idx,true);
-    return meta+table+'<p><b>توضیحات:</b></p><p>این بودجه‌بندی پیشنهادی می‌باشد.</p>';
+    var note='<p><b>توضیحات:</b></p><p>این بودجه‌بندی پیشنهادی می‌باشد.</p>';
+    // هر نوبت یک جدول کاملاً جدا و مستقل است (کاری به نوبت دیگر ندارد) و هرکدام روی برگه‌ی خودش چاپ می‌شود
+    var page1=meta+'<p style="font-weight:700;font-size:15px;margin:6px 0">نوبت اول (مهر تا دی)</p>'+lbBuildPacingTableHtml(idx,true,'t1')+note;
+    var page2=meta+'<p style="font-weight:700;font-size:15px;margin:6px 0">نوبت دوم (بهمن تا اردیبهشت)</p>'+lbBuildPacingTableHtml(idx,true,'t2')+note;
+    // شکست صفحه‌ی استاندارد و قابل‌اعتماد (هم در فایل Word و هم هنگام چاپ/PDF) تا نوبت دوم روی برگه‌ی جدید بیفتد
+    var pageBreak='<br clear="all" style="mso-special-character:line-break;page-break-before:always">';
+    return page1+pageBreak+page2;
   }
   document.getElementById('btn-lb-pacing-word').onclick=function(){lbWordExport('جدول بودجه‌بندی آموزشی - '+lbSelectedGrade().title,lbPacingFullHtml(),'بودجه-بندی-'+lbSelectedGrade().title,true);};
   document.getElementById('btn-lb-pacing-pdf').onclick=function(){lbPrintExport('جدول بودجه‌بندی آموزشی - '+lbSelectedGrade().title,lbPacingFullHtml(),true);};
@@ -11348,7 +11451,7 @@ function teacherScript() {
         for(var s=0;s<5;s++){
           var key=dIdx+'-'+gIdx+'-'+s;
           var v=LB_WEEKLY_DATA[key]||'';
-          h+=forExport?'<td style="background:'+(rowHex||'#fff')+'">'+esc(v)+'</td>':'<td><input type="text" class="lb-weekly-cell" data-key="'+key+'" value="'+esc(v)+'"></td>';
+          h+=forExport?'<td style="background:'+(rowHex||'#fff')+'">'+esc(v).replace(/\n/g,'<br>')+'</td>':'<td><textarea class="lb-weekly-cell" rows="1" data-key="'+key+'">'+esc(v)+'</textarea></td>';
         }
         h+='</tr>';
       });
@@ -11358,15 +11461,50 @@ function teacherScript() {
   }
   function lbBindWeeklyInputs(el){
     el.querySelectorAll('.lb-weekly-cell').forEach(function(inp){
-      inp.addEventListener('input',function(){LB_WEEKLY_DATA[inp.dataset.key]=inp.value;});
+      lbAutoResizeStaffTa(inp);
+      inp.addEventListener('input',function(){LB_WEEKLY_DATA[inp.dataset.key]=inp.value;lbAutoResizeStaffTa(inp);});
     });
   }
   var lbWeeklyRowColors={};
+  // --- فونت و اندازه‌ی جدول برنامه چندپایه ---
+  function lbApplyWeeklyStyle(){
+    var fontKey=document.getElementById('lbw-font').value;
+    var size=parseInt(document.getElementById('lbw-font-size').value,10)||12;
+    var family=lbStaffFontCss(fontKey);
+    var el=document.getElementById('lb-weekly-preview');
+    var tableEl=el.querySelector('table');
+    if(!tableEl)return;
+    tableEl.style.fontFamily=family;
+    tableEl.style.fontWeight='bold';
+    tableEl.style.fontSize=size+'px';
+    tableEl.querySelectorAll('th,td').forEach(function(cell){
+      cell.style.fontFamily=family;
+      cell.style.fontWeight='bold';
+      cell.style.fontSize=size+'px';
+    });
+    tableEl.querySelectorAll('textarea').forEach(function(ta){
+      ta.style.fontFamily=family;
+      ta.style.fontWeight='bold';
+      ta.style.fontSize=size+'px';
+      lbAutoResizeStaffTa(ta);
+    });
+  }
+  document.getElementById('lbw-font').addEventListener('change',function(){
+    lbApplyWeeklyStyle();
+    lbSave('weekly-font',document.getElementById('lbw-font').value,true);
+  });
+  document.getElementById('lbw-font-size').addEventListener('input',lbApplyWeeklyStyle);
+  document.getElementById('lbw-font-size').addEventListener('change',function(){
+    lbApplyWeeklyStyle();
+    lbSave('weekly-font-size',document.getElementById('lbw-font-size').value,true);
+  });
+  document.getElementById('lbw-font-size').addEventListener('keydown',function(e){if(e.key==='Enter')lbApplyWeeklyStyle();});
   function lbRenderWeekly(){
     var el=document.getElementById('lb-weekly-preview');
     el.innerHTML=lbBuildWeeklyHtml(false);
     lbBindWeeklyInputs(el);
     refreshRowColorPickers(el,lbWeeklyRowColors);
+    lbApplyWeeklyStyle();
   }
   document.getElementById('lb-weekly-preview').addEventListener('click',function(e){
     var dot=e.target.closest('.row-color-dot');
@@ -11382,6 +11520,8 @@ function teacherScript() {
     LB_WEEKLY_LOADED=true;
     var saved=await lbLoad('weekly');
     var savedColors=await lbLoad('weekly-row-colors');
+    var savedFont=await lbLoad('weekly-font');
+    var savedFontSize=await lbLoad('weekly-font-size');
     if(savedColors&&typeof savedColors==='object')lbWeeklyRowColors=savedColors;
     if(saved){
       document.getElementById('lbw-school').value=saved.school||'';
@@ -11393,7 +11533,11 @@ function teacherScript() {
           chk.checked=saved.grades.indexOf(idx)>=0;
         });
       }
+      if(saved.font)document.getElementById('lbw-font').value=saved.font;
+      if(saved.fontSize)document.getElementById('lbw-font-size').value=saved.fontSize;
     }
+    if(savedFont)document.getElementById('lbw-font').value=savedFont;
+    if(savedFontSize)document.getElementById('lbw-font-size').value=savedFontSize;
     lbRenderWeekly();
   }
   document.getElementById('btn-lbw-save').onclick=function(){
@@ -11402,7 +11546,9 @@ function teacherScript() {
       teacher:document.getElementById('lbw-teacher').value,
       className:document.getElementById('lbw-class').value,
       grades:lbSelectedWeeklyGrades(),
-      data:LB_WEEKLY_DATA
+      data:LB_WEEKLY_DATA,
+      font:document.getElementById('lbw-font').value,
+      fontSize:document.getElementById('lbw-font-size').value
     });
   };
   function lbWeeklySignatureFooterHtml(){
@@ -11413,7 +11559,11 @@ function teacherScript() {
   }
   function lbWeeklyExportHtml(){
     var meta='<p class="lb-meta"><b>نام مدرسه:</b> '+esc(document.getElementById('lbw-school').value)+'&nbsp;&nbsp;&nbsp;&nbsp;<b>نام آموزگار:</b> '+esc(document.getElementById('lbw-teacher').value)+'&nbsp;&nbsp;&nbsp;&nbsp;<b>کلاس:</b> '+esc(document.getElementById('lbw-class').value)+'</p>';
-    return meta+lbBuildWeeklyHtml(true)+lbWeeklySignatureFooterHtml();
+    var fontKey=document.getElementById('lbw-font').value;
+    var fontFamily=lbStaffFontCss(fontKey);
+    var fontSize=parseInt(document.getElementById('lbw-font-size').value,10)||12;
+    var style='<style>.lbw-export-wrap th,.lbw-export-wrap td{font-family:'+fontFamily+' !important;font-weight:bold !important;font-size:'+fontSize+'px !important}</style>';
+    return style+'<div class="lbw-export-wrap">'+meta+lbBuildWeeklyHtml(true)+lbWeeklySignatureFooterHtml()+'</div>';
   }
   document.getElementById('btn-lb-weekly-word').onclick=function(){lbWordExport('جدول ۱-۳-۱ ـ برنامه درسی هفتگی (ویژه چندپایه)',lbWeeklyExportHtml(),'برنامه-درسی-هفتگی',false);};
   document.getElementById('btn-lb-weekly-pdf').onclick=function(){lbPrintExport('جدول ۱-۳-۱ ـ برنامه درسی هفتگی (ویژه چندپایه)',lbWeeklyExportHtml(),false);};
@@ -11460,7 +11610,7 @@ function teacherScript() {
       LB_WEEKLY2_SESSIONS.forEach(function(s,sIdx){
         var key=dIdx+'-'+sIdx;
         var v=LB_WEEKLY2_DATA[key]||'';
-        h+=forExport?'<td style="background:'+(rowHex||'#fff')+'">'+esc(v)+'</td>':'<td><input type="text" class="lb-weekly2-cell" data-key="'+key+'" value="'+esc(v)+'"></td>';
+        h+=forExport?'<td style="background:'+(rowHex||'#fff')+'">'+esc(v).replace(/\n/g,'<br>')+'</td>':'<td><textarea class="lb-weekly2-cell" rows="1" data-key="'+key+'">'+esc(v)+'</textarea></td>';
       });
       h+='</tr>';
     });
@@ -11469,15 +11619,50 @@ function teacherScript() {
   }
   function lbBindWeekly2Inputs(el){
     el.querySelectorAll('.lb-weekly2-cell').forEach(function(inp){
-      inp.addEventListener('input',function(){LB_WEEKLY2_DATA[inp.dataset.key]=inp.value;});
+      lbAutoResizeStaffTa(inp);
+      inp.addEventListener('input',function(){LB_WEEKLY2_DATA[inp.dataset.key]=inp.value;lbAutoResizeStaffTa(inp);});
     });
   }
   var lbWeekly2RowColors={};
+  // --- فونت و اندازه‌ی جدول برنامه تک‌پایه ---
+  function lbApplyWeekly2Style(){
+    var fontKey=document.getElementById('lbw2-font').value;
+    var size=parseInt(document.getElementById('lbw2-font-size').value,10)||12;
+    var family=lbStaffFontCss(fontKey);
+    var el=document.getElementById('lb-weekly2-preview');
+    var tableEl=el.querySelector('table');
+    if(!tableEl)return;
+    tableEl.style.fontFamily=family;
+    tableEl.style.fontWeight='bold';
+    tableEl.style.fontSize=size+'px';
+    tableEl.querySelectorAll('th,td').forEach(function(cell){
+      cell.style.fontFamily=family;
+      cell.style.fontWeight='bold';
+      cell.style.fontSize=size+'px';
+    });
+    tableEl.querySelectorAll('textarea').forEach(function(ta){
+      ta.style.fontFamily=family;
+      ta.style.fontWeight='bold';
+      ta.style.fontSize=size+'px';
+      lbAutoResizeStaffTa(ta);
+    });
+  }
+  document.getElementById('lbw2-font').addEventListener('change',function(){
+    lbApplyWeekly2Style();
+    lbSave('weekly2-font',document.getElementById('lbw2-font').value,true);
+  });
+  document.getElementById('lbw2-font-size').addEventListener('input',lbApplyWeekly2Style);
+  document.getElementById('lbw2-font-size').addEventListener('change',function(){
+    lbApplyWeekly2Style();
+    lbSave('weekly2-font-size',document.getElementById('lbw2-font-size').value,true);
+  });
+  document.getElementById('lbw2-font-size').addEventListener('keydown',function(e){if(e.key==='Enter')lbApplyWeekly2Style();});
   function lbRenderWeekly2(){
     var el=document.getElementById('lb-weekly2-preview');
     el.innerHTML=lbBuildWeekly2Html(false);
     lbBindWeekly2Inputs(el);
     refreshRowColorPickers(el,lbWeekly2RowColors);
+    lbApplyWeekly2Style();
   }
   document.getElementById('lb-weekly2-preview').addEventListener('click',function(e){
     var dot=e.target.closest('.row-color-dot');
@@ -11492,6 +11677,8 @@ function teacherScript() {
     LB_WEEKLY2_LOADED=true;
     var saved=await lbLoad('weekly2');
     var savedColors=await lbLoad('weekly2-row-colors');
+    var savedFont=await lbLoad('weekly2-font');
+    var savedFontSize=await lbLoad('weekly2-font-size');
     if(savedColors&&typeof savedColors==='object')lbWeekly2RowColors=savedColors;
     if(saved){
       document.getElementById('lbw2-school').value=saved.school||'';
@@ -11499,15 +11686,23 @@ function teacherScript() {
       document.getElementById('lbw2-grade').value=saved.grade||'';
       document.getElementById('lbw2-class').value=saved.className||'';
       if(saved.data)LB_WEEKLY2_DATA=saved.data;
+      if(saved.font)document.getElementById('lbw2-font').value=saved.font;
+      if(saved.fontSize)document.getElementById('lbw2-font-size').value=saved.fontSize;
     }
+    if(savedFont)document.getElementById('lbw2-font').value=savedFont;
+    if(savedFontSize)document.getElementById('lbw2-font-size').value=savedFontSize;
     lbRenderWeekly2();
   }
   document.getElementById('btn-lbw2-save').onclick=function(){
-    lbSave('weekly2',{school:document.getElementById('lbw2-school').value,teacher:document.getElementById('lbw2-teacher').value,grade:document.getElementById('lbw2-grade').value,className:document.getElementById('lbw2-class').value,data:LB_WEEKLY2_DATA});
+    lbSave('weekly2',{school:document.getElementById('lbw2-school').value,teacher:document.getElementById('lbw2-teacher').value,grade:document.getElementById('lbw2-grade').value,className:document.getElementById('lbw2-class').value,data:LB_WEEKLY2_DATA,font:document.getElementById('lbw2-font').value,fontSize:document.getElementById('lbw2-font-size').value});
   };
   function lbWeekly2ExportHtml(){
     var meta='<p class="lb-meta"><b>نام مدرسه:</b> '+esc(document.getElementById('lbw2-school').value)+' &nbsp;&nbsp;&nbsp; <b>نام آموزگار:</b> '+esc(document.getElementById('lbw2-teacher').value)+' &nbsp;&nbsp;&nbsp; <b>پایه:</b> '+esc(document.getElementById('lbw2-grade').value)+' &nbsp;&nbsp;&nbsp; <b>کلاس:</b> '+esc(document.getElementById('lbw2-class').value)+'</p>';
-    return meta+lbBuildWeekly2Html(true);
+    var fontKey=document.getElementById('lbw2-font').value;
+    var fontFamily=lbStaffFontCss(fontKey);
+    var fontSize=parseInt(document.getElementById('lbw2-font-size').value,10)||12;
+    var style='<style>.lbw2-export-wrap th,.lbw2-export-wrap td{font-family:'+fontFamily+' !important;font-weight:bold !important;font-size:'+fontSize+'px !important}</style>';
+    return style+'<div class="lbw2-export-wrap">'+meta+lbBuildWeekly2Html(true)+'</div>';
   }
   document.getElementById('btn-lb-weekly2-word').onclick=function(){lbWordExport('جدول ۳- برنامه درسی هفتگی (کلاس تک پایه)',lbWeekly2ExportHtml(),'برنامه-درسی-هفتگی-تک-پایه',false);};
   document.getElementById('btn-lb-weekly2-pdf').onclick=function(){lbPrintExport('جدول ۳- برنامه درسی هفتگی (کلاس تک پایه)',lbWeekly2ExportHtml(),false);};
