@@ -1389,6 +1389,23 @@ const SHARED_CSS = `
   [data-theme="dark"] .lb-table th{background:#1e3a5f}
   .lb-table input,.lb-table textarea{width:100%;border:none;background:transparent;text-align:center;font-family:inherit;font-size:12px;padding:2px}
   .lbs-cell-ta{resize:none;overflow:hidden;box-sizing:border-box;line-height:1.5;display:block;min-height:1.6em}
+  #lbr-table th{color:#1e293b}
+  #lbr-table th.lbr-th-0{background:#e0e7ff}
+  #lbr-table th.lbr-th-1{background:#dcfce7}
+  #lbr-table th.lbr-th-2{background:#fef3c7}
+  #lbr-table th.lbr-th-3{background:#ede9fe}
+  #lbr-table th.lbr-th-4{background:#fce7f3}
+  #lbr-table th.lbr-th-5{background:#cffafe}
+  #lbr-table th.lbr-th-6{background:#ffedd5}
+  [data-theme="dark"] #lbr-table th.lbr-th-0{background:#312e81;color:#e0e7ff}
+  [data-theme="dark"] #lbr-table th.lbr-th-1{background:#14532d;color:#dcfce7}
+  [data-theme="dark"] #lbr-table th.lbr-th-2{background:#78350f;color:#fef3c7}
+  [data-theme="dark"] #lbr-table th.lbr-th-3{background:#4c1d95;color:#ede9fe}
+  [data-theme="dark"] #lbr-table th.lbr-th-4{background:#831843;color:#fce7f3}
+  [data-theme="dark"] #lbr-table th.lbr-th-5{background:#164e63;color:#cffafe}
+  [data-theme="dark"] #lbr-table th.lbr-th-6{background:#7c2d12;color:#ffedd5}
+  #lbr-table th .lbr-th-ico{display:block;font-size:15px;margin-bottom:2px}
+  #lbr-table th .lbr-th-txt{display:block}
   .lb-table-tight th,.lb-table-tight td{padding:3px 4px;font-size:11px;min-width:38px}
   .lb-table-tight th:first-child,.lb-table-tight td:first-child{min-width:36px}
   .lb-table-tight input{min-width:22px}
@@ -10366,6 +10383,20 @@ function teacherScript() {
     h+='</tbody>';
     return h;
   }
+  // سربرگ رنگی و شکلک‌دار مخصوص جدول لیست اسامی دانش‌آموزان
+  var LB_ROSTER_ICONS=['🔢','👤','👨','🪪','📞','🏠','📝'];
+  function lbBuildRosterTableHtml(headers,rowCount){
+    var h='<thead><tr>'+headers.map(function(hd,i){
+      return '<th class="lbr-th-'+i+'"><span class="lbr-th-ico">'+(LB_ROSTER_ICONS[i]||'')+'</span><span class="lbr-th-txt">'+esc(hd)+'</span></th>';
+    }).join('')+'</tr></thead><tbody>';
+    for(var r=1;r<=rowCount;r++){
+      h+='<tr><td>'+r+'</td>';
+      for(var c=1;c<headers.length;c++){h+='<td><input type="text"></td>';}
+      h+='</tr>';
+    }
+    h+='</tbody>';
+    return h;
+  }
   function lbAddSimpleRow(tableId,colCount){
     var tbody=document.querySelector('#'+tableId+' tbody');
     if(!tbody)return;
@@ -10427,10 +10458,10 @@ function teacherScript() {
     });
   }
   // ساخت دوباره‌ی جدول (مثلاً با تعداد ردیف جدید) بدون پاک شدن اطلاعاتی که قبلاً تایپ شده
-  function lbRebuildPreserving(tableId,headers,rowCount){
+  function lbRebuildPreserving(tableId,headers,rowCount,headerHtmlBuilder){
     var tableEl=document.getElementById(tableId);
     var oldRows=tableEl.querySelector('tbody')?lbTableToRows(tableEl).slice(1):[];
-    tableEl.innerHTML=lbBuildSimpleTableHtml(headers,rowCount);
+    tableEl.innerHTML=(headerHtmlBuilder||lbBuildSimpleTableHtml)(headers,rowCount);
     var trs=tableEl.querySelectorAll('tbody tr');
     trs.forEach(function(tr,rIdx){
       var oldRow=oldRows[rIdx];
@@ -10649,7 +10680,7 @@ function teacherScript() {
   var LB_ROSTER_HEADERS=['ردیف','نام و نام خانوادگی دانش‌آموز','نام پدر','کد ملی','شماره تماس ولی','آدرس محل سکونت','توضیحات و پیگیری‌های لازم'];
   document.getElementById('btn-lbr-build').onclick=function(){
     var n=parseInt(document.getElementById('lbr-rows').value,10)||30;
-    lbRebuildPreserving('lbr-table',LB_ROSTER_HEADERS,n);
+    lbRebuildPreserving('lbr-table',LB_ROSTER_HEADERS,n,lbBuildRosterTableHtml);
   };
   document.getElementById('btn-lbr-addrow').onclick=function(){lbAddSimpleRow('lbr-table',LB_ROSTER_HEADERS.length);};
   document.getElementById('btn-lbr-build').click();
