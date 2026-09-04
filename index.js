@@ -1312,8 +1312,8 @@ const SHARED_CSS = `
   .color-swatch:hover{transform:translateY(-2px)}
   .color-swatch.active{box-shadow:0 2px 8px rgba(18,32,48,.14),0 0 0 3px var(--primary)}
   *{box-sizing:border-box}
-  html{scroll-behavior:smooth}
-  body{margin:0;min-height:100vh;font-family:'Vazirmatn',Tahoma,system-ui,sans-serif;color:var(--text);direction:rtl;transition:background .3s,color .3s;-webkit-font-smoothing:antialiased;
+  html{scroll-behavior:smooth;overflow-x:hidden;max-width:100vw}
+  body{margin:0;min-height:100vh;font-family:'Vazirmatn',Tahoma,system-ui,sans-serif;color:var(--text);direction:rtl;transition:background .3s,color .3s;-webkit-font-smoothing:antialiased;overflow-x:hidden;max-width:100vw;
     background:
       radial-gradient(1100px 620px at 18% -12%, var(--soft-2) 0%, transparent 62%),
       radial-gradient(900px 560px at 105% 8%, var(--soft) 0%, transparent 58%),
@@ -1321,7 +1321,7 @@ const SHARED_CSS = `
       var(--bg);
     background-attachment:fixed;
   }
-  .wrap{max-width:1180px;margin:0 auto;padding:18px;position:relative}
+  .wrap{max-width:1180px;margin:0 auto;padding:18px;position:relative;overflow-x:auto}
   .header{position:relative;background:linear-gradient(rgba(0,0,0,.22),rgba(0,0,0,.22)),linear-gradient(120deg,var(--primary),var(--primary-2));color:#fff;border:1px solid rgba(255,255,255,.14);border-radius:16px;padding:28px 22px;text-align:center;box-shadow:var(--shadow);}
   .header::before{content:'';position:absolute;right:0;left:0;bottom:0;height:3px;background:linear-gradient(90deg,transparent,var(--accent),transparent);border-radius:0 0 16px 16px;pointer-events:none}
   .header::after{content:'';position:absolute;right:8%;left:8%;top:-26px;height:60px;background:radial-gradient(60% 100% at 50% 100%, color-mix(in srgb, var(--primary-2) 55%, transparent) 0%, transparent 75%);filter:blur(6px);pointer-events:none;z-index:-1}
