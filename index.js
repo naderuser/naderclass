@@ -5572,6 +5572,19 @@ function teacherPage() {
         <h4 style="margin-top:20px">🔗 لینک‌های اختصاصی</h4>
         <div id="infoexchange-links-list"></div>
 
+        <h4 style="margin-top:20px">✉️ ارسال به یک لینک اختصاصی (بدون نیاز به باز کردن لینک، همین‌جا در پنل)</h4>
+        <p class="muted" style="font-size:12.5px">مثلاً اگر شما راهبر هستید و لینک اختصاصی مدیر مدرسه یا معلم را دارید، لازم نیست لینک را باز کنید — از همین‌جا برایش بفرستید و او در صندوق دریافتی خودش می‌بیند.</p>
+        <div class="lb-meta-form">
+          <div><label>گیرنده (لینک اختصاصی)</label><select id="infoexchange-send-target"><option value="">— انتخاب کنید —</option></select></div>
+          <div><label>نام شما (فرستنده)</label><input id="infoexchange-send-sender" placeholder="نام و نام خانوادگی"></div>
+        </div>
+        <label>پیام</label>
+        <textarea id="infoexchange-send-message" rows="2" class="lb-textarea" placeholder="پیام خود را بنویسید..."></textarea>
+        <label>فایل‌ها (عکس، PDF، Word یا Excel — اختیاری)</label>
+        <input type="file" id="infoexchange-send-files-input" accept="image/*,application/pdf,.doc,.docx,.xls,.xlsx" multiple>
+        <div id="infoexchange-send-files-list"></div>
+        <button class="btn sm primary" id="btn-infoexchange-send" style="margin-top:8px">📤 ارسال</button>
+
         <div id="infoexchange-inbox-wrap" class="hidden" style="margin-top:20px">
           <h4>📥 صندوق دریافتی <span id="infoexchange-inbox-owner" class="muted"></span></h4>
           <div id="infoexchange-inbox-list"></div>
@@ -13849,9 +13862,18 @@ function teacherScript() {
     if(isImg)h+='<img src="'+f.data+'" style="max-width:220px;border-radius:8px;margin-top:6px;border:1px solid var(--line)">';
     return h;
   }
+  function infoexPopulateSendTarget(){
+    var sel=document.getElementById('infoexchange-send-target');
+    var current=sel.value;
+    sel.innerHTML='<option value="">— انتخاب کنید —</option>'+INFOEX_LINKS.map(function(l){
+      return '<option value="'+l.uuid+'">'+esc(l.ownerName)+' ('+esc(l.ownerRole)+')</option>';
+    }).join('');
+    if(INFOEX_LINKS.some(function(l){return l.uuid===current;}))sel.value=current;
+  }
   async function infoexLoadLinks(){
     var d=await api('/api/teacher/info-links');
     INFOEX_LINKS=(d&&d.links)||[];
+    infoexPopulateSendTarget();
     var wrap=document.getElementById('infoexchange-links-list');
     if(!INFOEX_LINKS.length){wrap.innerHTML='<p class="muted">هنوز لینکی نساخته‌اید.</p>';return;}
     wrap.innerHTML=INFOEX_LINKS.map(function(l){
@@ -13880,6 +13902,53 @@ function teacherScript() {
       };
     });
   }
+  var INFOEX_SEND_FILES=[];
+  function infoexRenderSendFilesList(){
+    document.getElementById('infoexchange-send-files-list').innerHTML=INFOEX_SEND_FILES.map(function(f,i){
+      return '<div class="info-file-row" style="display:flex;align-items:center;gap:8px;padding:4px 8px;border:1px solid var(--line);border-radius:8px;margin-top:4px;font-size:12px">📎 '+esc(f.name)+'<button type="button" class="btn sm gray" data-rm="'+i+'" style="margin-inline-start:auto">حذف</button></div>';
+    }).join('');
+    document.querySelectorAll('#infoexchange-send-files-list [data-rm]').forEach(function(b){
+      b.onclick=function(){INFOEX_SEND_FILES.splice(+b.dataset.rm,1);infoexRenderSendFilesList();};
+    });
+  }
+  document.getElementById('infoexchange-send-files-input').addEventListener('change',async function(){
+    var files=Array.from(this.files||[]);
+    for(var i=0;i<files.length;i++){
+      var file=files[i];
+      if(INFOEX_SEND_FILES.length>=6){toast('حداکثر ۶ فایل می‌توانید بفرستید.');break;}
+      try{
+        var dataUrl;
+        if(file.type.indexOf('image/')===0)dataUrl=await compressWorksheetImage(file);
+        else{
+          if(file.size>4*1024*1024){toast('حجم فایل «'+file.name+'» بیش از ۴ مگابایت است.');continue;}
+          dataUrl=await new Promise(function(res,rej){var r=new FileReader();r.onload=function(){res(r.result);};r.onerror=rej;r.readAsDataURL(file);});
+        }
+        INFOEX_SEND_FILES.push({name:file.name,mime:file.type,data:dataUrl});
+      }catch(e){toast(e.message||'خطا در بارگذاری فایل');}
+    }
+    this.value='';
+    infoexRenderSendFilesList();
+  });
+  document.getElementById('btn-infoexchange-send').onclick=async function(){
+    var targetUuid=document.getElementById('infoexchange-send-target').value;
+    var senderName=document.getElementById('infoexchange-send-sender').value.trim();
+    var message=document.getElementById('infoexchange-send-message').value.trim();
+    if(!targetUuid){toast('گیرنده را انتخاب کنید');return;}
+    if(!senderName){toast('نام خود را وارد کنید');return;}
+    if(!message&&!INFOEX_SEND_FILES.length){toast('پیام یا حداقل یک فایل لازم است');return;}
+    this.disabled=true;this.textContent='در حال ارسال...';
+    try{
+      var r=await fetch('/api/info/link/'+encodeURIComponent(targetUuid)+'/send',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({senderName:senderName,message:message,files:INFOEX_SEND_FILES})});
+      var d=await r.json();
+      if(d&&d.ok){
+        toast('ارسال شد ✅ (کد پیگیری: '+d.code+')');
+        document.getElementById('infoexchange-send-message').value='';
+        INFOEX_SEND_FILES=[];infoexRenderSendFilesList();
+        if(INFOEX_SELECTED===targetUuid)infoexOpenInbox(targetUuid);
+      }else toast((d&&d.error)||'خطا در ارسال');
+    }catch(e){toast('خطا در ارتباط با سرور');}
+    this.disabled=false;this.textContent='📤 ارسال';
+  };
   async function infoexOpenInbox(linkUuid){
     INFOEX_SELECTED=linkUuid;
     var owner=INFOEX_LINKS.find(function(l){return l.uuid===linkUuid;});
@@ -13953,7 +14022,13 @@ function teacherScript() {
     var role=document.getElementById('infoexchange-new-role').value;
     if(!name){toast('نام خود را وارد کنید');return;}
     var d=await api('/api/teacher/info-links',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({ownerName:name,ownerRole:role})});
-    if(d&&d.ok){toast('لینک ساخته شد ✅');document.getElementById('infoexchange-new-name').value='';infoexLoadLinks();}
+    if(d&&d.ok){
+      toast('لینک ساخته شد ✅');
+      localStorage.setItem('infoex-my-name',name);
+      document.getElementById('infoexchange-send-sender').value=name;
+      document.getElementById('infoexchange-new-name').value='';
+      infoexLoadLinks();
+    }
     else toast((d&&d.error)||'خطا در ساخت لینک');
   };
   document.getElementById('btn-infoexchange-broadcast-send').onclick=async function(){
@@ -13974,6 +14049,11 @@ function teacherScript() {
   async function loadInfoExchangeIfNeeded(){
     if(INFOEX_LOADED)return;
     INFOEX_LOADED=true;
+    var savedName=localStorage.getItem('infoex-my-name');
+    if(savedName){
+      document.getElementById('infoexchange-new-name').value=savedName;
+      document.getElementById('infoexchange-send-sender').value=savedName;
+    }
     infoexLoadLinks();
     infoexLoadBroadcastCurrent();
   }
