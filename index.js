@@ -222,6 +222,11 @@ export default {
         return await studentPage(env, id);
       }
 
+      if (path.startsWith("/info/")) {
+        const id = decodeURIComponent(path.slice(6));
+        return await infoLinkPage(env, id);
+      }
+
       if (path.startsWith("/w/")) {
         const id = decodeURIComponent(path.slice(3));
         return await workSheetPage(env, id);
@@ -626,6 +631,56 @@ async function handleApi(req, env, url, path) {
     return json({ ok: true, months });
   }
 
+  /* --- دریافت و ارسال اطلاعات: صفحه‌ی عمومی لینک اختصاصی (بدون نیاز به ورود) --- */
+  if (path.startsWith("/api/info/link/") && !path.includes("/reply")) {
+    const rest = path.slice("/api/info/link/".length);
+    const parts = rest.split("/");
+    const linkId = decodeURIComponent(parts[0] || "");
+
+    if (parts.length === 1 && method === "GET") {
+      const raw = await env.EXAM_KV.get("infolink:" + linkId);
+      if (!raw) return json({ ok: false, error: "این لینک معتبر نیست" }, 404);
+      const meta = JSON.parse(raw);
+      return json({ ok: true, ownerName: meta.ownerName, ownerRole: meta.ownerRole });
+    }
+
+    if (parts[1] === "send" && method === "POST") {
+      const raw = await env.EXAM_KV.get("infolink:" + linkId);
+      if (!raw) return json({ ok: false, error: "این لینک معتبر نیست" }, 404);
+      const body = await req.json().catch(() => ({}));
+      const senderName = String(body.senderName || "").slice(0, 80);
+      const message = String(body.message || "").slice(0, 3000);
+      const files = Array.isArray(body.files) ? body.files.slice(0, 6) : [];
+      if (!senderName) return json({ ok: false, error: "نام فرستنده الزامی است" }, 400);
+      if (!message && !files.length) return json({ ok: false, error: "پیام یا حداقل یک فایل الزامی است" }, 400);
+      for (const f of files) {
+        if (!f || typeof f.data !== "string" || !/^data:(image\/|application\/pdf|application\/vnd\.|application\/msword)/.test(f.data)) {
+          return json({ ok: false, error: "فرمت یکی از فایل‌ها معتبر نیست" }, 400);
+        }
+        if (f.data.length > 6_000_000) return json({ ok: false, error: "حجم یکی از فایل‌ها بیش از حد مجاز است (حداکثر ۴ مگابایت)" }, 400);
+      }
+      const code = Math.random().toString(36).slice(2, 8).toUpperCase();
+      const inboxRaw = await env.EXAM_KV.get("infolink-inbox:" + linkId);
+      const inbox = inboxRaw ? JSON.parse(inboxRaw) : [];
+      inbox.unshift({
+        code, senderName, message,
+        files: files.map((f) => ({ name: f.name || "فایل", mime: f.mime || "", data: f.data })),
+        reply: null, createdAt: Date.now(),
+      });
+      await env.EXAM_KV.put("infolink-inbox:" + linkId, JSON.stringify(inbox.slice(0, 300)));
+      return json({ ok: true, code });
+    }
+
+    if (parts[1] === "thread" && parts[2] && method === "GET") {
+      const code = decodeURIComponent(parts[2]);
+      const inboxRaw = await env.EXAM_KV.get("infolink-inbox:" + linkId);
+      const inbox = inboxRaw ? JSON.parse(inboxRaw) : [];
+      const thread = inbox.find((t) => t.code === code);
+      if (!thread) return json({ ok: false, error: "کدی با این مشخصات پیدا نشد" }, 404);
+      return json({ ok: true, thread });
+    }
+  }
+
   /* --- از این به بعد فقط معلم --- */
   if (path.startsWith("/api/teacher/")) {
     if (!(await isTeacher(req, env))) return json({ ok: false, error: "دسترسی غیرمجاز" }, 401);
@@ -642,6 +697,77 @@ async function handleApi(req, env, url, path) {
     if (path === "/api/teacher/schedule" && method === "GET") {
       const raw = await env.EXAM_KV.get("schedule_data");
       return json({ ok: true, data: raw ? JSON.parse(raw) : null });
+    }
+
+    /* --- دریافت و ارسال اطلاعات: مدیریت لینک‌های اختصاصی (فقط معلم/راهبر/مدیر با ورود) --- */
+    if (path === "/api/teacher/info-links" && method === "GET") {
+      const raw = await env.EXAM_KV.get("infolinks-index");
+      const list = raw ? JSON.parse(raw) : [];
+      return json({ ok: true, links: list });
+    }
+    if (path === "/api/teacher/info-links" && method === "POST") {
+      const body = await req.json().catch(() => ({}));
+      const ownerName = String(body.ownerName || "").slice(0, 80);
+      const ownerRole = String(body.ownerRole || "معلم").slice(0, 40);
+      if (!ownerName) return json({ ok: false, error: "نام الزامی است" }, 400);
+      const linkId = uuid();
+      const rec = { uuid: linkId, ownerName, ownerRole, createdAt: Date.now() };
+      await env.EXAM_KV.put("infolink:" + linkId, JSON.stringify(rec));
+      const idxRaw = await env.EXAM_KV.get("infolinks-index");
+      const idx = idxRaw ? JSON.parse(idxRaw) : [];
+      idx.unshift(rec);
+      await env.EXAM_KV.put("infolinks-index", JSON.stringify(idx));
+      return json({ ok: true, link: rec });
+    }
+    if (path.startsWith("/api/teacher/info-links/") && method === "DELETE") {
+      const linkId = decodeURIComponent(path.slice("/api/teacher/info-links/".length));
+      await env.EXAM_KV.delete("infolink:" + linkId);
+      await env.EXAM_KV.delete("infolink-inbox:" + linkId);
+      const idxRaw = await env.EXAM_KV.get("infolinks-index");
+      const idx = idxRaw ? JSON.parse(idxRaw) : [];
+      await env.EXAM_KV.put("infolinks-index", JSON.stringify(idx.filter((l) => l.uuid !== linkId)));
+      return json({ ok: true });
+    }
+    if (path.startsWith("/api/teacher/info-links/") && path.endsWith("/inbox") && method === "GET") {
+      const linkId = decodeURIComponent(path.slice("/api/teacher/info-links/".length, -"/inbox".length));
+      const raw = await env.EXAM_KV.get("infolink-inbox:" + linkId);
+      return json({ ok: true, inbox: raw ? JSON.parse(raw) : [] });
+    }
+    if (path.startsWith("/api/teacher/info-links/") && path.includes("/thread/") && path.endsWith("/reply") && method === "POST") {
+      const rest = path.slice("/api/teacher/info-links/".length);
+      const [linkId, , code] = rest.split("/"); // linkId / thread / code / reply
+      const body = await req.json().catch(() => ({}));
+      const message = String(body.message || "").slice(0, 3000);
+      const files = Array.isArray(body.files) ? body.files.slice(0, 6) : [];
+      for (const f of files) {
+        if (!f || typeof f.data !== "string" || !/^data:(image\/|application\/pdf|application\/vnd\.|application\/msword)/.test(f.data)) {
+          return json({ ok: false, error: "فرمت یکی از فایل‌ها معتبر نیست" }, 400);
+        }
+        if (f.data.length > 6_000_000) return json({ ok: false, error: "حجم یکی از فایل‌ها بیش از حد مجاز است (حداکثر ۴ مگابایت)" }, 400);
+      }
+      const inboxRaw = await env.EXAM_KV.get("infolink-inbox:" + linkId);
+      const inbox = inboxRaw ? JSON.parse(inboxRaw) : [];
+      const thread = inbox.find((t) => t.code === decodeURIComponent(code));
+      if (!thread) return json({ ok: false, error: "پیام پیدا نشد" }, 404);
+      thread.reply = { message, files: files.map((f) => ({ name: f.name || "فایل", mime: f.mime || "", data: f.data })), repliedAt: Date.now() };
+      await env.EXAM_KV.put("infolink-inbox:" + linkId, JSON.stringify(inbox));
+      return json({ ok: true });
+    }
+
+    /* --- دریافت و ارسال اطلاعات: اعلان سراسری راهبر --- */
+    if (path === "/api/teacher/broadcast" && method === "GET") {
+      const raw = await env.EXAM_KV.get("broadcast-msg");
+      return json({ ok: true, broadcast: raw ? JSON.parse(raw) : null });
+    }
+    if (path === "/api/teacher/broadcast" && method === "POST") {
+      const body = await req.json().catch(() => ({}));
+      const message = String(body.message || "").slice(0, 1000);
+      const byName = String(body.byName || "").slice(0, 80);
+      const byRole = String(body.byRole || "").slice(0, 40);
+      if (!message) return json({ ok: false, error: "متن پیام الزامی است" }, 400);
+      const rec = { message, byName, byRole, ts: Date.now() };
+      await env.EXAM_KV.put("broadcast-msg", JSON.stringify(rec));
+      return json({ ok: true, broadcast: rec });
     }
 
     if (path === "/api/teacher/schedule" && method === "POST") {
@@ -1225,6 +1351,7 @@ const SHARED_CSS = `
   .tabs{display:flex;flex-direction:column;gap:6px;flex:0 0 180px;width:180px}
   .tab{padding:9px 12px;border-radius:12px;background:var(--soft);border:1px solid var(--line);cursor:pointer;font-weight:600;font-size:13px;line-height:1.4;text-decoration:none;color:var(--text);display:flex;align-items:center;justify-content:center;gap:7px;text-align:right;transition:all .15s ease}
   .tab .tab-ico{flex:0 0 auto;font-size:15px;line-height:1}
+  .badge-dot{display:inline-block;width:9px;height:9px;border-radius:50%;background:#ef4444;margin-inline-start:auto;flex:0 0 auto}
   .tab .tab-label{flex:0 1 auto}
   .tab:hover{background:var(--soft-2)}
   .tab.active{background:var(--primary);color:#fff;border-color:var(--primary)}
@@ -1401,9 +1528,9 @@ const SHARED_CSS = `
   .lb-textarea{width:100%;padding:10px;border:1px solid #cbd5e1;border-radius:8px;font-family:inherit;font-size:14px;resize:vertical;margin-bottom:12px}
   .lb-preview{overflow-x:auto;margin-top:10px;border:1px solid var(--line);border-radius:10px;padding:10px;background:#fff}
   .rc-header-box{background:#fefce8;border:2px solid #eab308;border-radius:10px;padding:14px;margin:10px 0;display:flex;align-items:flex-start;gap:14px;flex-wrap:wrap}
-  .rc-photo-wrap{flex:0 0 auto;width:92px;display:flex;flex-direction:column;align-items:center;gap:5px}
-  .rc-photo-wrap img#rc-photo-preview{width:92px;height:118px;object-fit:cover;border-radius:6px;border:1px solid #cbd5e1;background:#fff;display:block}
-  .rc-photo-placeholder{width:92px;height:118px;border:1.5px dashed #d6c67a;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:10.5px;color:#a68a1f;text-align:center;background:#fffdf5;padding:4px;box-sizing:border-box}
+  .rc-photo-wrap{flex:0 0 auto;width:62px;display:flex;flex-direction:column;align-items:center;gap:5px}
+  .rc-photo-wrap img#rc-photo-preview{width:62px;height:80px;object-fit:cover;border-radius:6px;border:1px solid #cbd5e1;background:#fff;display:block}
+  .rc-photo-placeholder{width:62px;height:80px;border:1.5px dashed #d6c67a;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:9px;color:#a68a1f;text-align:center;background:#fffdf5;padding:3px;box-sizing:border-box}
   .rc-photo-wrap .btn{width:100%;font-size:11px;padding:6px 4px}
   .rc-header-box .lb-meta-form{flex:1;min-width:220px;margin:0}
   .rc-level-badge{display:inline-block;padding:3px 12px;border-radius:20px;font-size:12px;font-weight:700;white-space:nowrap}
@@ -2263,7 +2390,7 @@ async function studentPage(env, id) {
 
     // ===== مشاهده‌ی کارنامه‌ی ماهیانه توسط دانش‌آموز =====
     const RC_MONTHS=['مهر','آبان','آذر','دی','بهمن','اسفند','فروردین','اردیبهشت'];
-    const RC_LEVEL_LABELS={excellent:'🌟 خیلی خوب',good:'✅ خوب',acceptable:'📌 قابل‌قبول','needs-improve':'📖 نیاز به تلاش'};
+    const RC_LEVEL_LABELS={excellent:'خیلی خوب',good:'خوب',acceptable:'قابل‌قبول','needs-improve':'نیاز به تلاش'};
     const RC_FONTS={default:'',titr:"'B Titr','BTitr',Tahoma,Arial",nazanin:"'B Nazanin','BNazanin',Tahoma,Arial"};
     function rcFontFaceCss(fontFamily){
       var css='';
@@ -2309,8 +2436,8 @@ async function studentPage(env, id) {
       if(!rec){ el.innerHTML='<p class="muted">اطلاعاتی برای این ماه ثبت نشده.</p>'; downloadRow.classList.add('hidden'); return; }
       RC_CURRENT_MONTH=month;
       const photoHtml=rec.photo
-        ? '<img src="'+rec.photo+'" style="width:92px;height:118px;object-fit:cover;border-radius:6px;border:1px solid #cbd5e1;background:#fff;display:block">'
-        : '<div style="width:92px;height:118px;border:1.5px dashed #d6c67a;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:10.5px;color:#a68a1f;text-align:center;background:#fffdf5;box-sizing:border-box">بدون عکس</div>';
+        ? '<img src="'+rec.photo+'" style="width:62px;height:80px;object-fit:cover;border-radius:6px;border:1px solid #cbd5e1;background:#fff;display:block">'
+        : '<div style="width:62px;height:80px;border:1.5px dashed #d6c67a;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:9px;color:#a68a1f;text-align:center;background:#fffdf5;box-sizing:border-box">بدون عکس</div>';
       let h='<div style="background:#fefce8;border:2px solid #eab308;border-radius:10px;padding:14px;display:flex;align-items:flex-start;gap:14px;flex-wrap:wrap;margin-bottom:12px">';
       h+='<div style="flex:0 0 auto">'+photoHtml+'</div>';
       h+='<div style="flex:1;min-width:200px">';
@@ -2705,6 +2832,186 @@ async function studentPage(env, id) {
       document.getElementById('f-date').value = now.toLocaleDateString('fa-IR', {year:'numeric', month:'2-digit', day:'2-digit'}).replace(/\\//g, '/');
     }catch(e){}
     load();
+  </script></body></html>`);
+}
+
+/* ------------------------- دریافت و ارسال اطلاعات - صفحه‌ی عمومی لینک اختصاصی ------------------------- */
+
+async function infoLinkPage(env, linkId) {
+  return html(`<!doctype html><html lang="fa" dir="rtl"><head><meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>ارسال اطلاعات</title>${FONT_LINK}<style>${SHARED_CSS}
+    .info-file-row{display:flex;align-items:center;gap:8px;padding:6px 10px;border:1px solid var(--line);border-radius:8px;margin-top:6px;font-size:13px}
+    .info-file-row a{color:var(--primary);text-decoration:none;font-weight:700}
+    .info-code-box{background:#fefce8;border:2px dashed #eab308;border-radius:10px;padding:14px;text-align:center;margin-top:10px}
+    .info-code-box b{font-size:22px;letter-spacing:2px;color:#92400e}
+  </style></head>
+  <body><div class="wrap">
+    ${pageHeader()}
+    <div class="card" id="info-invalid" style="display:none"><h3>لینک نامعتبر است</h3><p class="muted">این لینک معتبر نیست یا حذف شده است.</p></div>
+
+    <div class="card" id="info-main" style="display:none">
+      <h3>📨 ارسال اطلاعات به <span id="info-owner-name"></span></h3>
+      <p class="muted" id="info-owner-role"></p>
+
+      <div id="info-send-wrap">
+        <label>نام شما</label><input id="info-sender-name" placeholder="نام و نام خانوادگی">
+        <label>پیام (اختیاری)</label><textarea id="info-message" rows="3" class="lb-textarea" placeholder="پیام خود را بنویسید..."></textarea>
+        <label>فایل‌ها (عکس، PDF، Word یا Excel — اختیاری، حداکثر ۶ فایل)</label>
+        <input type="file" id="info-files-input" accept="image/*,application/pdf,.doc,.docx,.xls,.xlsx" multiple>
+        <div id="info-files-list"></div>
+        <p class="muted" id="info-send-status" style="color:var(--danger)"></p>
+        <button class="btn" id="btn-info-send" style="margin-top:10px">📤 ارسال</button>
+      </div>
+
+      <div id="info-sent-result" class="hidden">
+        <div class="info-code-box">
+          <p>✅ با موفقیت ارسال شد. کد پیگیری شما:</p>
+          <b id="info-sent-code"></b>
+          <p class="muted" style="margin-top:8px">این کد را نگه دارید تا بعداً بتوانید پاسخ را ببینید.</p>
+        </div>
+        <button class="btn sec" id="btn-info-send-another" style="margin-top:10px">✉️ ارسال پیام دیگر</button>
+      </div>
+
+      <hr style="margin:22px 0;border:none;border-top:1px solid var(--line)">
+      <h3>🔎 پیگیری پیام قبلی</h3>
+      <div class="row" style="gap:8px">
+        <input id="info-track-code" placeholder="کد پیگیری خود را وارد کنید" style="flex:1">
+        <button class="btn sec" id="btn-info-track">مشاهده</button>
+      </div>
+      <p class="muted" id="info-track-status" style="color:var(--danger)"></p>
+      <div id="info-track-result"></div>
+    </div>
+  </div>
+  <script>
+    const LINK_ID=${JSON.stringify(linkId)};
+    let INFO_FILES=[];
+    function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+    function fmtDate(ts){try{return new Date(ts).toLocaleString('fa-IR');}catch(e){return '';}}
+    function compressImage(file){
+      return new Promise((resolve,reject)=>{
+        const rd=new FileReader();
+        rd.onload=ev=>{
+          const img=new Image();
+          img.onload=()=>{
+            let w=img.width,h=img.height;const maxDim=2000;
+            if(Math.max(w,h)>maxDim){const scale=maxDim/Math.max(w,h);w=Math.round(w*scale);h=Math.round(h*scale);}
+            const c=document.createElement('canvas');c.width=w;c.height=h;
+            const ctx=c.getContext('2d');ctx.fillStyle='#fff';ctx.fillRect(0,0,w,h);ctx.drawImage(img,0,0,w,h);
+            let quality=0.9;
+            (function tryCompress(){
+              c.toBlob(function(blob){
+                if(!blob){reject(new Error('خطا در فشرده‌سازی'));return;}
+                if(blob.size<=1.5*1024*1024||quality<=0.3){
+                  const fr=new FileReader();fr.onload=()=>resolve(fr.result);fr.readAsDataURL(blob);
+                }else{quality-=0.1;tryCompress();}
+              },'image/jpeg',quality);
+            })();
+          };
+          img.onerror=()=>reject(new Error('فایل عکس معتبر نیست'));
+          img.src=ev.target.result;
+        };
+        rd.onerror=()=>reject(new Error('خطا در خواندن فایل'));
+        rd.readAsDataURL(file);
+      });
+    }
+    function readAsDataUrl(file){
+      return new Promise((resolve,reject)=>{
+        const rd=new FileReader();
+        rd.onload=()=>resolve(rd.result);
+        rd.onerror=()=>reject(new Error('خطا در خواندن فایل'));
+        rd.readAsDataURL(file);
+      });
+    }
+    function renderFilesList(){
+      document.getElementById('info-files-list').innerHTML=INFO_FILES.map((f,i)=>
+        '<div class="info-file-row"><span>📎 '+esc(f.name)+'</span><button type="button" class="btn sm gray" data-i="'+i+'" style="margin-inline-start:auto">حذف</button></div>'
+      ).join('');
+      document.querySelectorAll('#info-files-list button').forEach(b=>{
+        b.onclick=()=>{INFO_FILES.splice(+b.dataset.i,1);renderFilesList();};
+      });
+    }
+    document.getElementById('info-files-input').addEventListener('change',async function(){
+      const status=document.getElementById('info-send-status');status.textContent='';
+      const files=Array.from(this.files||[]);
+      for(const file of files){
+        if(INFO_FILES.length>=6){status.textContent='حداکثر ۶ فایل می‌توانید بفرستید.';break;}
+        try{
+          let dataUrl;
+          if(file.type.startsWith('image/'))dataUrl=await compressImage(file);
+          else{
+            if(file.size>4*1024*1024){status.textContent='حجم فایل «'+file.name+'» بیش از ۴ مگابایت است.';continue;}
+            dataUrl=await readAsDataUrl(file);
+          }
+          INFO_FILES.push({name:file.name,mime:file.type,data:dataUrl});
+        }catch(e){status.textContent=e.message||'خطا در بارگذاری فایل';}
+      }
+      this.value='';
+      renderFilesList();
+    });
+    async function loadMeta(){
+      try{
+        const r=await fetch('/api/info/link/'+encodeURIComponent(LINK_ID));
+        const d=await r.json();
+        if(!d.ok){document.getElementById('info-invalid').style.display='';return;}
+        document.getElementById('info-owner-name').textContent=d.ownerName;
+        document.getElementById('info-owner-role').textContent=d.ownerRole?('('+d.ownerRole+')'):'';
+        document.getElementById('info-main').style.display='';
+      }catch(e){document.getElementById('info-invalid').style.display='';}
+    }
+    document.getElementById('btn-info-send').onclick=async function(){
+      const status=document.getElementById('info-send-status');status.textContent='';
+      const senderName=document.getElementById('info-sender-name').value.trim();
+      const message=document.getElementById('info-message').value.trim();
+      if(!senderName){status.textContent='نام خود را وارد کنید.';return;}
+      if(!message&&!INFO_FILES.length){status.textContent='پیام یا حداقل یک فایل الزامی است.';return;}
+      this.disabled=true;this.textContent='در حال ارسال...';
+      try{
+        const r=await fetch('/api/info/link/'+encodeURIComponent(LINK_ID)+'/send',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({senderName,message,files:INFO_FILES})});
+        const d=await r.json();
+        if(!d.ok){status.textContent=d.error||'خطا در ارسال';this.disabled=false;this.textContent='📤 ارسال';return;}
+        document.getElementById('info-send-wrap').classList.add('hidden');
+        document.getElementById('info-sent-result').classList.remove('hidden');
+        document.getElementById('info-sent-code').textContent=d.code;
+      }catch(e){status.textContent='خطا در ارتباط با سرور';}
+      this.disabled=false;this.textContent='📤 ارسال';
+    };
+    document.getElementById('btn-info-send-another').onclick=function(){
+      document.getElementById('info-sender-name').value='';
+      document.getElementById('info-message').value='';
+      INFO_FILES=[];renderFilesList();
+      document.getElementById('info-sent-result').classList.add('hidden');
+      document.getElementById('info-send-wrap').classList.remove('hidden');
+    };
+    function fileRowHtml(f){
+      return '<div class="info-file-row">📎 '+esc(f.name)+(f.mime&&f.mime.startsWith('image/')?'':'')+' &nbsp; <a href="'+f.data+'" download="'+esc(f.name)+'">دانلود</a></div>'
+        + (f.mime&&f.mime.startsWith('image/') ? '<img src="'+f.data+'" style="max-width:100%;border-radius:8px;margin-top:6px;border:1px solid var(--line)">' : '');
+    }
+    document.getElementById('btn-info-track').onclick=async function(){
+      const status=document.getElementById('info-track-status');status.textContent='';
+      document.getElementById('info-track-result').innerHTML='';
+      const code=document.getElementById('info-track-code').value.trim().toUpperCase();
+      if(!code){status.textContent='کد پیگیری را وارد کنید.';return;}
+      try{
+        const r=await fetch('/api/info/link/'+encodeURIComponent(LINK_ID)+'/thread/'+encodeURIComponent(code));
+        const d=await r.json();
+        if(!d.ok){status.textContent=d.error||'پیدا نشد';return;}
+        const t=d.thread;
+        let h='<div class="card" style="margin-top:10px"><p class="muted">پیام شما در تاریخ '+fmtDate(t.createdAt)+'</p>';
+        if(t.message)h+='<p>'+esc(t.message)+'</p>';
+        (t.files||[]).forEach(f=>{h+=fileRowHtml(f);});
+        if(t.reply){
+          h+='<hr style="margin:14px 0;border:none;border-top:1px solid var(--line)"><p class="muted">پاسخ در تاریخ '+fmtDate(t.reply.repliedAt)+'</p>';
+          if(t.reply.message)h+='<p>'+esc(t.reply.message)+'</p>';
+          (t.reply.files||[]).forEach(f=>{h+=fileRowHtml(f);});
+        }else{
+          h+='<p class="muted" style="margin-top:10px">هنوز پاسخی ثبت نشده است.</p>';
+        }
+        h+='</div>';
+        document.getElementById('info-track-result').innerHTML=h;
+      }catch(e){status.textContent='خطا در ارتباط با سرور';}
+    };
+    loadMeta();
   </script></body></html>`);
 }
 
@@ -3294,6 +3601,12 @@ function teacherPage() {
     <div class="card" id="login">
       <h3 id="login-head">🔐 ورود معلم</h3>
       <p class="muted" id="login-hint"></p>
+      <label>ورود به عنوان</label>
+      <select id="login-role">
+        <option value="معلم">👩‍🏫 معلم</option>
+        <option value="راهبر آموزشی">🧭 راهبر آموزشی</option>
+        <option value="مدیر مدرسه">🏫 مدیر مدرسه</option>
+      </select>
       <label>رمز عبور</label><input id="pass" type="password" autocomplete="current-password">
       <p class="muted" id="login-err" style="color:var(--danger)"></p>
       <button class="btn" id="btn-login">ورود</button>
@@ -3389,6 +3702,7 @@ function teacherPage() {
           </div>
         </div>
 
+        <a class="tab" data-tab="infoexchange" href="/teacher?tab=infoexchange"><span class="tab-ico">📨</span><span class="tab-label">دریافت و ارسال اطلاعات</span><span class="badge-dot hidden" id="infoexchange-badge"></span></a>
         <a class="tab" data-tab="settings" href="/teacher?tab=settings"><span class="tab-ico">⚙️</span><span class="tab-label">تنظیمات</span></a>
         <div style="flex:1"></div>
         <div class="tab" id="btn-logout" style="background:#fee2e2;color:#991b1b"><span class="tab-ico">🚪</span><span class="tab-label">خروج</span></div>
@@ -4799,7 +5113,7 @@ function teacherPage() {
             <div class="lb-preview" id="rc-subjects-preview"></div>
             <label style="margin-top:10px;display:block">توضیحات کلی معلم درباره‌ی روند یادگیری و رفتار دانش‌آموز</label>
             <textarea id="rc-general-note" rows="4" class="lb-textarea" placeholder="توضیحات کلی، نقاط قوت و پیشنهاد برای بهبود..."></textarea>
-            <p class="muted" style="font-size:12px;margin-top:6px">سطوح ارزشیابی: 🌟 خیلی خوب | ✅ خوب | 📌 قابل‌قبول | 📖 نیاز به تلاش</p>
+            <p class="muted" style="font-size:12px;margin-top:6px">سطوح ارزشیابی: خیلی خوب | خوب | قابل‌قبول | نیاز به تلاش</p>
             <div class="row" style="justify-content:center;align-items:center;margin-top:10px;flex-wrap:wrap;gap:8px">
               <span style="font-weight:700">🔤 فونت:</span>
               <select id="rc-font" style="padding:8px;border:1px solid #ddd;border-radius:6px;width:auto">
@@ -5230,6 +5544,40 @@ function teacherPage() {
       </div>
 
 
+      <div class="card tab-content hidden" id="tab-infoexchange">
+        <h3>📨 دریافت و ارسال اطلاعات</h3>
+        <p class="muted">برای هر یک از نقش‌های معلم، راهبر آموزشی یا مدیر مدرسه یک لینک اختصاصی بسازید. دیگران با باز کردن آن لینک می‌توانند عکس، PDF، Word یا Excel برایتان بفرستند؛ شما هم می‌توانید از همین‌جا برایشان پاسخ (فایل یا پیام) بفرستید.</p>
+
+        <div id="infoexchange-broadcast-box" style="background:#fefce8;border:2px solid #eab308;border-radius:10px;padding:14px;margin-bottom:16px">
+          <label>📢 ارسال پیام سراسری (برای همه‌ی معلم‌ها/راهبران/مدیرانی که پنل را باز می‌کنند نمایش داده می‌شود)</label>
+          <textarea id="infoexchange-broadcast-text" rows="2" class="lb-textarea" placeholder="متن پیام سراسری..."></textarea>
+          <button class="btn sm sec" id="btn-infoexchange-broadcast-send" style="margin-top:6px">📢 ارسال پیام سراسری</button>
+          <p class="muted" id="infoexchange-broadcast-current" style="margin-top:8px;font-size:12px"></p>
+        </div>
+
+        <h4>➕ ساخت لینک اختصاصی جدید</h4>
+        <div class="lb-meta-form">
+          <div><label>نام شما</label><input id="infoexchange-new-name" placeholder="نام و نام خانوادگی"></div>
+          <div>
+            <label>عنوان/نقش</label>
+            <select id="infoexchange-new-role">
+              <option value="معلم">👩‍🏫 معلم</option>
+              <option value="راهبر آموزشی">🧭 راهبر آموزشی</option>
+              <option value="مدیر مدرسه">🏫 مدیر مدرسه</option>
+            </select>
+          </div>
+        </div>
+        <button class="btn sm primary" id="btn-infoexchange-create">➕ ساخت لینک</button>
+
+        <h4 style="margin-top:20px">🔗 لینک‌های اختصاصی</h4>
+        <div id="infoexchange-links-list"></div>
+
+        <div id="infoexchange-inbox-wrap" class="hidden" style="margin-top:20px">
+          <h4>📥 صندوق دریافتی <span id="infoexchange-inbox-owner" class="muted"></span></h4>
+          <div id="infoexchange-inbox-list"></div>
+        </div>
+      </div>
+
       <div class="card tab-content hidden" id="tab-settings">
         <h3>🌙 تم</h3>
         <div style="display:flex;gap:12px;margin-bottom:20px">
@@ -5398,7 +5746,11 @@ function teacherScript() {
   document.getElementById('btn-login').onclick=async()=>{
     const p=document.getElementById('pass').value;
     const d=await api('/api/teacher/login',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({password:p})});
-    if(d.ok){if(d.created)toast('رمز عبور شما ثبت شد');showDash();}else document.getElementById('login-err').textContent=d.error||'خطا';
+    if(d.ok){
+      localStorage.setItem('panel-role',document.getElementById('login-role').value);
+      if(d.created)toast('رمز عبور شما ثبت شد');
+      showDash();
+    }else document.getElementById('login-err').textContent=d.error||'خطا';
   };
   document.getElementById('pass').addEventListener('keydown',e=>{if(e.key==='Enter')document.getElementById('btn-login').click();});
   document.getElementById('btn-logout').onclick=async()=>{await api('/api/teacher/logout',{method:'POST'});location.reload();};
@@ -5407,6 +5759,7 @@ function teacherScript() {
     document.getElementById('login').classList.add('hidden');
     document.getElementById('dash').classList.remove('hidden');
     loadStudents();loadQuestions();loadSchedule();
+    if(typeof infoexCheckBroadcastNotif==='function')infoexCheckBroadcastNotif();
     try{
       var qs=new URLSearchParams(location.search);
       var wantTab=qs.get('tab');
@@ -5528,6 +5881,7 @@ function teacherScript() {
     if(tabName==='schedule'){document.getElementById('btn-gen-schedule').click();if(typeof loadScheduleThemeIfNeeded==='function')loadScheduleThemeIfNeeded();if(typeof loadScheduleFontIfNeeded==='function')loadScheduleFontIfNeeded();if(typeof loadScheduleRowColorsIfNeeded==='function')loadScheduleRowColorsIfNeeded();}
     if(tabName==='classroom'){renderClassLinks();setTimeout(function(){if(typeof clsResizeBoard==='function')clsResizeBoard();},50);}
     if(tabName==='examsheet'){if(typeof loadExamSheetIfNeeded==='function')loadExamSheetIfNeeded();}
+    if(tabName==='infoexchange'){if(typeof loadInfoExchangeIfNeeded==='function')loadInfoExchangeIfNeeded();}
   }
 
   document.querySelectorAll('.subtab[data-subtab]').forEach(t=>t.onclick=()=>{
@@ -12016,8 +12370,8 @@ function teacherScript() {
   });
   var rcFontSizeCtl=lbLiveFontSize('#rc-subjects-preview','rc-fontsize','btn-rc-fontsize-inc','btn-rc-fontsize-dec',12);
 
-  var RC_LEVEL_LABELS={excellent:'🌟 خیلی خوب',good:'✅ خوب',acceptable:'📌 قابل‌قبول','needs-improve':'📖 نیاز به تلاش'};
-  var RC_LEVEL_OPTIONS=[['excellent','🌟 خیلی خوب'],['good','✅ خوب'],['acceptable','📌 قابل‌قبول'],['needs-improve','📖 نیاز به تلاش']];
+  var RC_LEVEL_LABELS={excellent:'خیلی خوب',good:'خوب',acceptable:'قابل‌قبول','needs-improve':'نیاز به تلاش'};
+  var RC_LEVEL_OPTIONS=[['excellent','خیلی خوب'],['good','خوب'],['acceptable','قابل‌قبول'],['needs-improve','نیاز به تلاش']];
   var RC_LEVEL_COLORS={excellent:{bg:'#dcfce7',color:'#166534'},good:{bg:'#dbeafe',color:'#1e40af'},acceptable:{bg:'#fef3c7',color:'#92400e'},'needs-improve':{bg:'#fee2e2',color:'#991b1b'}};
   function rcLevelBadgeInlineHtml(level){
     if(!level)return '<span style="display:inline-block;padding:3px 12px;border-radius:20px;font-size:12px;font-weight:700;background:#f1f5f9;color:#64748b">—</span>';
@@ -12195,8 +12549,8 @@ function teacherScript() {
     var gradeText=document.getElementById('rc-grade-select').selectedOptions[0].textContent;
     var monthText=rcSelectedMonth();
     var photoHtml=RC_PHOTO
-      ? '<img src="'+RC_PHOTO+'" style="width:92px;height:118px;object-fit:cover;border-radius:6px;border:1px solid #cbd5e1;background:#fff;display:block">'
-      : '<div style="width:92px;height:118px;border:1.5px dashed #d6c67a;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:10.5px;color:#a68a1f;text-align:center;background:#fffdf5;box-sizing:border-box">بدون عکس</div>';
+      ? '<img src="'+RC_PHOTO+'" style="width:62px;height:80px;object-fit:cover;border-radius:6px;border:1px solid #cbd5e1;background:#fff;display:block">'
+      : '<div style="width:62px;height:80px;border:1.5px dashed #d6c67a;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:9px;color:#a68a1f;text-align:center;background:#fffdf5;box-sizing:border-box">بدون عکس</div>';
     var meta='<div style="background:#fefce8;border:2px solid #eab308;border-radius:10px;padding:14px;display:flex;align-items:flex-start;gap:14px;flex-wrap:wrap;margin-bottom:12px">';
     meta+='<div style="flex:0 0 auto">'+photoHtml+'</div>';
     meta+='<div style="flex:1;min-width:200px;font-size:13px;line-height:1.9">';
@@ -13485,6 +13839,161 @@ function teacherScript() {
   }
 
   // ===================== پایان دفتر مدیریت کلاسی =====================
+
+  // ===================== دریافت و ارسال اطلاعات =====================
+  var INFOEX_LINKS=[];
+  var INFOEX_SELECTED=null;
+  function infoexFileRowHtml(f){
+    var isImg=f.mime&&f.mime.indexOf('image/')===0;
+    var h='<div class="info-file-row" style="display:flex;align-items:center;gap:8px;padding:6px 10px;border:1px solid var(--line);border-radius:8px;margin-top:6px;font-size:13px">📎 '+esc(f.name)+' &nbsp; <a href="'+f.data+'" download="'+esc(f.name)+'" style="color:var(--primary);font-weight:700;text-decoration:none;margin-inline-start:auto">دانلود</a></div>';
+    if(isImg)h+='<img src="'+f.data+'" style="max-width:220px;border-radius:8px;margin-top:6px;border:1px solid var(--line)">';
+    return h;
+  }
+  async function infoexLoadLinks(){
+    var d=await api('/api/teacher/info-links');
+    INFOEX_LINKS=(d&&d.links)||[];
+    var wrap=document.getElementById('infoexchange-links-list');
+    if(!INFOEX_LINKS.length){wrap.innerHTML='<p class="muted">هنوز لینکی نساخته‌اید.</p>';return;}
+    wrap.innerHTML=INFOEX_LINKS.map(function(l){
+      var link=location.origin+'/info/'+l.uuid;
+      return '<div class="lb-cert-templates" style="justify-content:space-between;align-items:center;border:1px solid var(--line);border-radius:10px;padding:10px;margin-top:8px">'
+        +'<div><b>'+esc(l.ownerName)+'</b> <span class="muted">('+esc(l.ownerRole)+')</span><br><span class="muted" style="font-size:12px">'+esc(link)+'</span></div>'
+        +'<div style="display:flex;gap:6px;flex-wrap:wrap">'
+        +'<button class="btn sm sec" data-copy="'+esc(link)+'">📋 کپی لینک</button>'
+        +'<button class="btn sm gray" data-inbox="'+l.uuid+'">📥 صندوق دریافتی</button>'
+        +'<button class="btn sm danger" data-del="'+l.uuid+'">🗑️ حذف</button>'
+        +'</div></div>';
+    }).join('');
+    wrap.querySelectorAll('[data-copy]').forEach(function(b){
+      b.onclick=function(){navigator.clipboard.writeText(b.dataset.copy).then(function(){toast('لینک کپی شد ✅');});};
+    });
+    wrap.querySelectorAll('[data-inbox]').forEach(function(b){
+      b.onclick=function(){infoexOpenInbox(b.dataset.inbox);};
+    });
+    wrap.querySelectorAll('[data-del]').forEach(function(b){
+      b.onclick=async function(){
+        if(!confirm('آیا از حذف این لینک مطمئن هستید؟ تمام پیام‌های آن هم حذف می‌شود.'))return;
+        await api('/api/teacher/info-links/'+encodeURIComponent(b.dataset.del),{method:'DELETE'});
+        if(INFOEX_SELECTED===b.dataset.del){INFOEX_SELECTED=null;document.getElementById('infoexchange-inbox-wrap').classList.add('hidden');}
+        infoexLoadLinks();
+        toast('لینک حذف شد ✅');
+      };
+    });
+  }
+  async function infoexOpenInbox(linkUuid){
+    INFOEX_SELECTED=linkUuid;
+    var owner=INFOEX_LINKS.find(function(l){return l.uuid===linkUuid;});
+    document.getElementById('infoexchange-inbox-wrap').classList.remove('hidden');
+    document.getElementById('infoexchange-inbox-owner').textContent=owner?('— '+owner.ownerName+' ('+owner.ownerRole+')'):'';
+    var listEl=document.getElementById('infoexchange-inbox-list');
+    listEl.innerHTML='<p class="muted">در حال بارگذاری...</p>';
+    var d=await api('/api/teacher/info-links/'+encodeURIComponent(linkUuid)+'/inbox');
+    var inbox=(d&&d.inbox)||[];
+    if(!inbox.length){listEl.innerHTML='<p class="muted">پیامی دریافت نشده.</p>';return;}
+    listEl.innerHTML=inbox.map(function(t){
+      var h='<div class="lb-preview" style="margin-top:10px"><p class="muted">از طرف <b>'+esc(t.senderName)+'</b> — کد: '+esc(t.code)+' — '+new Date(t.createdAt).toLocaleString('fa-IR')+'</p>';
+      if(t.message)h+='<p>'+esc(t.message)+'</p>';
+      (t.files||[]).forEach(function(f){h+=infoexFileRowHtml(f);});
+      if(t.reply){
+        h+='<hr style="margin:10px 0;border:none;border-top:1px solid var(--line)"><p class="muted">پاسخ شما — '+new Date(t.reply.repliedAt).toLocaleString('fa-IR')+'</p>';
+        if(t.reply.message)h+='<p>'+esc(t.reply.message)+'</p>';
+        (t.reply.files||[]).forEach(function(f){h+=infoexFileRowHtml(f);});
+      }else{
+        h+='<div style="margin-top:10px">'
+          +'<textarea class="lb-textarea infoex-reply-text" data-code="'+t.code+'" rows="2" placeholder="پاسخ خود را بنویسید..."></textarea>'
+          +'<input type="file" class="infoex-reply-file" data-code="'+t.code+'" accept="image/*,application/pdf,.doc,.docx,.xls,.xlsx" multiple style="margin-top:6px">'
+          +'<div class="infoex-reply-files-list" data-code="'+t.code+'"></div>'
+          +'<button class="btn sm primary infoex-reply-send" data-code="'+t.code+'" style="margin-top:6px">📤 ارسال پاسخ</button>'
+          +'</div>';
+      }
+      h+='</div>';
+      return h;
+    }).join('');
+    var replyFilesMap={};
+    listEl.querySelectorAll('.infoex-reply-file').forEach(function(inp){
+      replyFilesMap[inp.dataset.code]=replyFilesMap[inp.dataset.code]||[];
+      inp.addEventListener('change',async function(){
+        var code=inp.dataset.code;
+        var files=Array.from(inp.files||[]);
+        for(var i=0;i<files.length;i++){
+          var file=files[i];
+          try{
+            var dataUrl;
+            if(file.type.indexOf('image/')===0)dataUrl=await compressWorksheetImage(file);
+            else{
+              if(file.size>4*1024*1024){toast('حجم فایل «'+file.name+'» بیش از ۴ مگابایت است.');continue;}
+              dataUrl=await new Promise(function(res,rej){var r=new FileReader();r.onload=function(){res(r.result);};r.onerror=rej;r.readAsDataURL(file);});
+            }
+            replyFilesMap[code].push({name:file.name,mime:file.type,data:dataUrl});
+          }catch(e){toast(e.message||'خطا در بارگذاری فایل');}
+        }
+        inp.value='';
+        var listBox=listEl.querySelector('.infoex-reply-files-list[data-code="'+code+'"]');
+        listBox.innerHTML=replyFilesMap[code].map(function(f,i){return '<div class="info-file-row" style="display:flex;align-items:center;gap:8px;padding:4px 8px;border:1px solid var(--line);border-radius:8px;margin-top:4px;font-size:12px">📎 '+esc(f.name)+'<button type="button" class="btn sm gray" data-rm="'+i+'" style="margin-inline-start:auto">حذف</button></div>';}).join('');
+        listBox.querySelectorAll('[data-rm]').forEach(function(rb){
+          rb.onclick=function(){replyFilesMap[code].splice(+rb.dataset.rm,1);rb.parentElement.remove();};
+        });
+      });
+    });
+    listEl.querySelectorAll('.infoex-reply-send').forEach(function(btn){
+      btn.onclick=async function(){
+        var code=btn.dataset.code;
+        var msg=listEl.querySelector('.infoex-reply-text[data-code="'+code+'"]').value.trim();
+        var files=replyFilesMap[code]||[];
+        if(!msg&&!files.length){toast('پیام یا حداقل یک فایل برای پاسخ لازم است');return;}
+        btn.disabled=true;btn.textContent='در حال ارسال...';
+        var d=await api('/api/teacher/info-links/'+encodeURIComponent(linkUuid)+'/thread/'+encodeURIComponent(code)+'/reply',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({message:msg,files:files})});
+        if(d&&d.ok){toast('پاسخ ارسال شد ✅');infoexOpenInbox(linkUuid);}
+        else{toast((d&&d.error)||'خطا در ارسال پاسخ');btn.disabled=false;btn.textContent='📤 ارسال پاسخ';}
+      };
+    });
+  }
+  document.getElementById('btn-infoexchange-create').onclick=async function(){
+    var name=document.getElementById('infoexchange-new-name').value.trim();
+    var role=document.getElementById('infoexchange-new-role').value;
+    if(!name){toast('نام خود را وارد کنید');return;}
+    var d=await api('/api/teacher/info-links',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({ownerName:name,ownerRole:role})});
+    if(d&&d.ok){toast('لینک ساخته شد ✅');document.getElementById('infoexchange-new-name').value='';infoexLoadLinks();}
+    else toast((d&&d.error)||'خطا در ساخت لینک');
+  };
+  document.getElementById('btn-infoexchange-broadcast-send').onclick=async function(){
+    var msg=document.getElementById('infoexchange-broadcast-text').value.trim();
+    if(!msg){toast('متن پیام را وارد کنید');return;}
+    var role=localStorage.getItem('panel-role')||'معلم';
+    var d=await api('/api/teacher/broadcast',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({message:msg,byRole:role})});
+    if(d&&d.ok){toast('پیام سراسری ارسال شد ✅');document.getElementById('infoexchange-broadcast-text').value='';infoexLoadBroadcastCurrent();}
+    else toast((d&&d.error)||'خطا در ارسال');
+  };
+  async function infoexLoadBroadcastCurrent(){
+    var d=await api('/api/teacher/broadcast');
+    var el=document.getElementById('infoexchange-broadcast-current');
+    if(d&&d.broadcast)el.textContent='آخرین پیام سراسری ('+(d.broadcast.byRole||'')+') — '+new Date(d.broadcast.ts).toLocaleString('fa-IR')+': '+d.broadcast.message;
+    else el.textContent='';
+  }
+  var INFOEX_LOADED=false;
+  async function loadInfoExchangeIfNeeded(){
+    if(INFOEX_LOADED)return;
+    INFOEX_LOADED=true;
+    infoexLoadLinks();
+    infoexLoadBroadcastCurrent();
+  }
+  async function infoexCheckBroadcastNotif(){
+    try{
+      var d=await api('/api/teacher/broadcast');
+      if(!d||!d.broadcast)return;
+      var lastSeen=parseInt(localStorage.getItem('broadcast-last-seen')||'0',10);
+      if(d.broadcast.ts>lastSeen){
+        document.getElementById('infoexchange-badge').classList.remove('hidden');
+        toast('📢 پیام سراسری از '+(d.broadcast.byRole||'راهبر')+': '+d.broadcast.message);
+      }
+    }catch(e){}
+  }
+  document.querySelector('.tab[data-tab="infoexchange"]').addEventListener('click',function(){
+    document.getElementById('infoexchange-badge').classList.add('hidden');
+    var d2=Date.now();
+    api('/api/teacher/broadcast').then(function(d){if(d&&d.broadcast)localStorage.setItem('broadcast-last-seen',String(d.broadcast.ts));});
+  });
+  // ===================== پایان دریافت و ارسال اطلاعات =====================
 
   checkAuth();
   `;
