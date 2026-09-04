@@ -2014,10 +2014,10 @@ const SHARED_CSS = `
   [data-theme="dark"] .xls-corner{background:#0f172a}
   .xls-rowhead{background:#f3f3f3;color:#616161;text-align:center;font-weight:600;font-size:12px;position:sticky;right:0;z-index:2;min-width:36px;width:36px}
   [data-theme="dark"] .xls-rowhead{background:#0f172a;color:#94a3b8}
-  .xls-titlerow th{background:#e8eaf6;padding:0}
-  [data-theme="dark"] .xls-titlerow th{background:#312e50}
-  .xls-titlerow input{width:100%;height:34px;border:none;background:transparent;text-align:center;font-weight:700;color:#1e293b;padding:0 6px;font-family:inherit;font-size:13px}
-  [data-theme="dark"] .xls-titlerow input{color:#e2e8f0}
+  .xls-titlerow th{background:var(--tbl-color,#e8eaf6);padding:0}
+  [data-theme="dark"] .xls-titlerow th{background:var(--tbl-color,#312e50)}
+  .xls-titlerow input{width:100%;height:34px;border:none;background:transparent;text-align:center;font-weight:700;color:var(--tbl-color-text,#1e293b);padding:0 6px;font-family:inherit;font-size:13px}
+  [data-theme="dark"] .xls-titlerow input{color:var(--tbl-color-text,#e2e8f0)}
   .xls-titlerow input:focus{outline:2px solid var(--primary);outline-offset:-2px;background:#fff}
   .xls-grid td input{width:100%;height:32px;border:none;background:transparent;text-align:center;padding:0 6px;font-family:inherit;font-size:13px;color:#1e293b}
   [data-theme="dark"] .xls-grid td input{color:#e2e8f0}
@@ -4201,6 +4201,7 @@ function teacherPage() {
           <div><label style="display:block;margin-bottom:4px">تعداد ستون:</label><input type="number" id="tbl-cols" value="4" min="1" max="20" style="width:100px;padding:8px;border:1px solid #ddd;border-radius:6px"></div>
           <div><label style="display:block;margin-bottom:4px">عنوان جدول:</label><input type="text" id="tbl-title" placeholder="مثال: لیست نمرات" style="width:200px;padding:8px;border:1px solid #ddd;border-radius:6px"></div>
           <div><label style="display:block;margin-bottom:4px">فونت جدول:</label><select id="tbl-font" style="padding:8px;border:1px solid #ddd;border-radius:6px"><option value="default">پیش‌فرض</option><option value="titr">B Titr</option></select></div>
+          <div><label style="display:block;margin-bottom:4px">🎨 رنگ جدول:</label><select id="tbl-color" style="padding:8px;border:1px solid #ddd;border-radius:6px"><option value="default">پیش‌فرض (بنفش کم‌رنگ)</option><option value="blue">آبی</option><option value="green">سبز</option><option value="orange">نارنجی</option><option value="purple">بنفش</option><option value="red">قرمز</option><option value="teal">فیروزه‌ای</option><option value="gold">طلایی</option></select></div>
         </div>
         <label style="display:flex;align-items:center;gap:8px;margin-bottom:12px;cursor:pointer">
           <input type="checkbox" id="tbl-avg-check" checked>
@@ -4225,10 +4226,11 @@ function teacherPage() {
           <button class="btn sec" id="btn-tbl-add-row">➕ افزودن ردیف</button>
           <button class="btn success" id="btn-save-table">💾 ذخیره</button>
           <button class="btn sec" id="btn-word-table">📄 دانلود Word</button>
+          <select id="tbl-pdf-orientation" title="جهت کاغذ PDF" style="padding:8px;border:1px solid #ddd;border-radius:6px"><option value="portrait">📄 عمودی</option><option value="landscape">📃 افقی</option></select>
           <button class="btn danger" id="btn-pdf-table">📕 دانلود PDF</button>
           <button class="btn gray" id="btn-excel-table">📊 دانلود Excel واقعی (xlsx)</button>
         </div>
-        <p class="muted" style="margin-top:6px">نکته: زدن دوباره‌ی «ساخت جدول» کل جدول را از نو می‌سازد و اطلاعات فعلی پاک می‌شود؛ برای افزودن سطر بدون پاک‌شدن اطلاعات، از دکمه‌ی «افزودن ردیف» استفاده کنید. برای حذف یک ستون، روی دکمه‌ی ✖ کنار عنوان همان ستون بزنید.</p>
+        <p class="muted" style="margin-top:6px">نکته: زدن دوباره‌ی «ساخت جدول» کل جدول را از نو می‌سازد و اطلاعات فعلی پاک می‌شود؛ برای افزودن سطر بدون پاک‌شدن اطلاعات، از دکمه‌ی «افزودن ردیف» استفاده کنید. برای حذف یک ستون، روی دکمه‌ی ✖ کنار عنوان همان ستون بزنید. برای رنگی‌کردن یک ردیف خاص (مثلاً غایبین یا مردودین)، روی دایره‌های رنگی کنار شماره‌ی همان ردیف بزنید؛ این رنگ در دانلود Word، PDF و Excel هم اعمال می‌شود.</p>
       </div>
 
       <div class="subtab-content hidden" id="tab-orgform">
@@ -5616,14 +5618,21 @@ function teacherPage() {
         <div id="infoexchange-send-files-list"></div>
         <button class="btn sm primary" id="btn-infoexchange-send" style="margin-top:8px">📤 ارسال</button>
 
-        <div id="infoexchange-sent-wrap" style="margin-top:20px">
-          <h4>📤 پیام‌های ارسالی من</h4>
-          <div id="infoexchange-sent-list"></div>
-        </div>
+        <div style="margin-top:24px">
+          <div class="subtabs" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;border-bottom:2px solid #e2e8f0;padding-bottom:12px">
+            <div class="subtab active" data-ixtab="inbox">📥 پیام‌های دریافتی</div>
+            <div class="subtab" data-ixtab="sent">📤 پیام‌های ارسالی</div>
+          </div>
 
-        <div id="infoexchange-inbox-wrap" class="hidden" style="margin-top:20px">
-          <h4>📥 صندوق دریافتی <span id="infoexchange-inbox-owner" class="muted"></span></h4>
-          <div id="infoexchange-inbox-list"></div>
+          <div id="infoexchange-inbox-wrap">
+            <h4>📥 صندوق دریافتی <span id="infoexchange-inbox-owner" class="muted"></span></h4>
+            <div id="infoexchange-inbox-list"><p class="muted">یکی از لینک‌های بالا را باز کنید (دکمه «📥 صندوق دریافتی») تا پیام‌های آن این‌جا نمایش داده شود.</p></div>
+          </div>
+
+          <div id="infoexchange-sent-wrap" class="hidden">
+            <h4>📤 پیام‌های ارسالی من</h4>
+            <div id="infoexchange-sent-list"></div>
+          </div>
         </div>
       </div>
 
@@ -7137,12 +7146,39 @@ function teacherScript() {
   }
   document.getElementById('tbl-font').addEventListener('change',xlsApplyTableFont);
 
+  // رنگ کلی جدول (اعمال روی ردیف عنوان ستون‌ها، هم روی صفحه و هم در خروجی‌های Word/PDF/Excel)
+  var XLS_TABLE_COLORS={
+    default:{bg:'',text:''},
+    blue:{bg:'#3b82f6',text:'#ffffff'},
+    green:{bg:'#10b981',text:'#ffffff'},
+    orange:{bg:'#f97316',text:'#ffffff'},
+    purple:{bg:'#8b5cf6',text:'#ffffff'},
+    red:{bg:'#ef4444',text:'#ffffff'},
+    teal:{bg:'#14b8a6',text:'#ffffff'},
+    gold:{bg:'#d4af37',text:'#1e293b'}
+  };
+  function hexToArgb(hex){
+    if(!hex)return null;
+    var h=hex.replace('#','').toUpperCase();
+    if(h.length===3)h=h.split('').map(function(c){return c+c;}).join('');
+    return 'FF'+h;
+  }
+  function xlsApplyTableColor(){
+    var key=document.getElementById('tbl-color').value;
+    var theme=XLS_TABLE_COLORS[key]||XLS_TABLE_COLORS.default;
+    var tableEl=document.getElementById('custom-table');
+    if(theme.bg){tableEl.style.setProperty('--tbl-color',theme.bg);tableEl.style.setProperty('--tbl-color-text',theme.text);}
+    else{tableEl.style.removeProperty('--tbl-color');tableEl.style.removeProperty('--tbl-color-text');}
+  }
+  document.getElementById('tbl-color').addEventListener('change',xlsApplyTableColor);
+
   document.getElementById('btn-gen-table').onclick=function(){
     const rows=parseInt(document.getElementById('tbl-rows').value)||5;
     const cols=parseInt(document.getElementById('tbl-cols').value)||4;
     xlsBuildStructure(rows,cols);
     if(document.getElementById('tbl-avg-check').checked)calcAndShowAvg();
     xlsApplyTableFont();
+    xlsApplyTableColor();
   };
 
   // ساخت کامل ساختار جدول (هدر + بدنه‌ی خالی) با تعداد سطر/ستون داده‌شده — این تابع همه‌چیز را از نو می‌سازد
@@ -7298,7 +7334,7 @@ function teacherScript() {
       for(let c=1;c<=cols;c++){const el=document.getElementById(xlsCellId(r,c));rowVals.push(el?el.value:'');}
       cells.push(rowVals);
     }
-    await lbSave('customtable',{rows,cols,title:document.getElementById('tbl-title').value,avgCheck:document.getElementById('tbl-avg-check').checked,titles,cells});
+    await lbSave('customtable',{rows,cols,title:document.getElementById('tbl-title').value,avgCheck:document.getElementById('tbl-avg-check').checked,titles,cells,font:document.getElementById('tbl-font').value,tableColor:document.getElementById('tbl-color').value});
   };
 
   let TABLE_LOADED=false;
@@ -7313,6 +7349,8 @@ function teacherScript() {
     document.getElementById('tbl-cols').value=saved.cols||4;
     document.getElementById('tbl-title').value=saved.title||'';
     document.getElementById('tbl-avg-check').checked=saved.avgCheck!==false;
+    document.getElementById('tbl-font').value=saved.font||'default';
+    document.getElementById('tbl-color').value=saved.tableColor||'default';
     document.getElementById('btn-gen-table').click();
     (saved.titles||[]).forEach((t,idx)=>{const el=document.getElementById(xlsTitleId(idx+1));if(el)el.value=t;});
     (saved.cells||[]).forEach((rowVals,ri)=>{
@@ -7453,14 +7491,21 @@ function teacherScript() {
     const {rows, cols, titles, data}=xlsGetData();
     const fontKey=document.getElementById('tbl-font').value;
     const fontFamily=fontKey==='titr'?"'B Titr','BTitr',Tahoma,Arial":'tahoma,Arial';
+    const colorKey=document.getElementById('tbl-color').value;
+    const colorTheme=XLS_TABLE_COLORS[colorKey]||XLS_TABLE_COLORS.default;
+    const headerBg=colorTheme.bg||'#667eea';
+    const headerText=colorTheme.bg?colorTheme.text:'#fff';
     let style='<style>';
     if(fontKey==='titr')style+='@font-face{font-family:"BTitr";src:url(https://cdn.jsdelivr.net/gh/intuxicated/css-persian@master/fonts/BTitrBold.ttf)}';
-    style+='body{direction:rtl;font-family:'+fontFamily+';padding:20px}table{width:100%;border-collapse:collapse;margin-top:15px}th,td{border:1px solid #333;padding:8px;text-align:center;font-family:'+fontFamily+'}th{background:#667eea;color:#fff}td:first-child{background:#eee;font-weight:bold}</style>';
+    style+='body{direction:rtl;font-family:'+fontFamily+';padding:20px}table{width:100%;border-collapse:collapse;margin-top:15px}th,td{border:1px solid #333;padding:8px;text-align:center;font-family:'+fontFamily+'}th{background:'+headerBg+';color:'+headerText+'}td:first-child{background:#eee;font-weight:bold}</style>';
     let h='<h2 style="text-align:center">'+esc(title)+'</h2><table><tr><th>#</th>';
     for(let c=0;c<cols;c++){h+='<th>'+esc(titles[c])+'</th>';}h+='</tr>';
     for(let r=0;r<rows;r++){
-      h+='<tr><td>'+(r+1)+'</td>';
-      for(let c=0;c<cols;c++){h+='<td>'+esc(data[r][c])+'</td>';}
+      const rowColorKey=xlsRowColors['r'+(r+1)];
+      const rowHex=(rowColorKey&&rowColorKey!=='none')?ROW_COLOR_HEX[rowColorKey]:'';
+      const cellStyleAttr=rowHex?' style="background:'+rowHex+'"':'';
+      h+='<tr>'+'<td'+cellStyleAttr+'>'+(r+1)+'</td>';
+      for(let c=0;c<cols;c++){h+='<td'+cellStyleAttr+'>'+esc(data[r][c])+'</td>';}
       h+='</tr>';
     }
     if(showAvg){
@@ -7475,10 +7520,13 @@ function teacherScript() {
   // دانلود PDF: مثل «دانلود PDF» برنامه‌ی هفتگی، جدول را در یک پنجره‌ی جدید باز و از دیالوگ چاپ مرورگر به PDF تبدیل می‌کند
   document.getElementById('btn-pdf-table').onclick=function(){
     const title=document.getElementById('tbl-title').value||'جدول';
+    const orientEl=document.getElementById('tbl-pdf-orientation');
+    const orientation=(orientEl&&orientEl.value==='landscape')?'landscape':'portrait';
     const html=xlsBuildTableExportHtml(title);
+    const pageStyle='<style>@page{size:A4 '+orientation+';margin:10mm}</style>';
     const w=window.open('','_blank');
     if(!w){toast('اجازه‌ی باز کردن پنجره‌ی جدید داده نشد؛ لطفاً مسدودکننده‌ی پاپ‌آپ را غیرفعال کنید');return;}
-    w.document.write('<html><head><meta charset="utf-8"><title>'+esc(title)+'</title>'+html.style+'</head><body>'+html.body+'</body></html>');
+    w.document.write('<html><head><meta charset="utf-8"><title>'+esc(title)+'</title>'+html.style+pageStyle+'</head><body>'+html.body+'</body></html>');
     w.document.close();
     setTimeout(function(){w.print();},500);
   };
@@ -7517,19 +7565,23 @@ function teacherScript() {
       titleCell.alignment={ horizontal:'center', vertical:'middle' };
       ws.getRow(1).height=28;
 
-      // سرستون‌ها
+      // سرستون‌ها (با رنگ انتخابی کاربر برای جدول، در صورت انتخاب)
+      const colorKey=document.getElementById('tbl-color').value;
+      const colorTheme=XLS_TABLE_COLORS[colorKey]||XLS_TABLE_COLORS.default;
+      const headerArgb=hexToArgb(colorTheme.bg)||'FF4472C4';
+      const headerTextArgb=colorTheme.bg?(hexToArgb(colorTheme.text)||'FFFFFFFF'):'FFFFFFFF';
       const headerRow=ws.getRow(2);
       headerRow.getCell(1).value='#';
       for(let c=0;c<cols;c++) headerRow.getCell(c+2).value=titles[c];
       headerRow.eachCell(function(cell){
-        cell.font={ name:'Calibri', bold:true, color:{argb:'FFFFFFFF'} };
-        cell.fill={ type:'pattern', pattern:'solid', fgColor:{argb:'FF4472C4'} };
+        cell.font={ name:'Calibri', bold:true, color:{argb:headerTextArgb} };
+        cell.fill={ type:'pattern', pattern:'solid', fgColor:{argb:headerArgb} };
         cell.alignment={ horizontal:'center', vertical:'middle' };
         cell.border={ top:{style:'thin',color:{argb:'FFB7B7B7'}}, left:{style:'thin',color:{argb:'FFB7B7B7'}}, right:{style:'thin',color:{argb:'FFB7B7B7'}}, bottom:{style:'thin',color:{argb:'FFB7B7B7'}} };
       });
       headerRow.height=22;
 
-      // داده‌ها
+      // داده‌ها (با اعمال رنگ ردیف‌های انتخاب‌شده توسط کاربر، مشابه صفحه‌ی جدول‌ساز)
       for(let r=0;r<rows;r++){
         const row=ws.getRow(r+3);
         row.getCell(1).value=r+1;
@@ -7538,11 +7590,14 @@ function teacherScript() {
           const num=parseFloat(raw);
           row.getCell(c+2).value=(raw!==''&&!isNaN(num)&&String(num)===raw.trim())?num:(raw||'');
         }
+        const rowColorKey=xlsRowColors['r'+(r+1)];
+        const rowArgb=(rowColorKey&&rowColorKey!=='none')?hexToArgb(ROW_COLOR_HEX[rowColorKey]):null;
         row.eachCell({includeEmpty:true},function(cell,colNum){
           if(colNum>cols+1) return;
           cell.alignment={ horizontal:'center', vertical:'middle' };
           cell.border={ top:{style:'thin',color:{argb:'FFD4D4D4'}}, left:{style:'thin',color:{argb:'FFD4D4D4'}}, right:{style:'thin',color:{argb:'FFD4D4D4'}}, bottom:{style:'thin',color:{argb:'FFD4D4D4'}} };
-          if((r+3)%2===0) cell.fill={ type:'pattern', pattern:'solid', fgColor:{argb:'FFFAFBFC'} };
+          if(rowArgb) cell.fill={ type:'pattern', pattern:'solid', fgColor:{argb:rowArgb} };
+          else if((r+3)%2===0) cell.fill={ type:'pattern', pattern:'solid', fgColor:{argb:'FFFAFBFC'} };
         });
       }
 
@@ -13891,6 +13946,14 @@ function teacherScript() {
   // ===================== دریافت و ارسال اطلاعات =====================
   var INFOEX_LINKS=[];
   var INFOEX_SELECTED=null;
+  function infoexSwitchTab(tab){
+    document.querySelectorAll('#tab-infoexchange .subtab[data-ixtab]').forEach(function(b){b.classList.toggle('active',b.dataset.ixtab===tab);});
+    document.getElementById('infoexchange-inbox-wrap').classList.toggle('hidden',tab!=='inbox');
+    document.getElementById('infoexchange-sent-wrap').classList.toggle('hidden',tab!=='sent');
+  }
+  document.querySelectorAll('#tab-infoexchange .subtab[data-ixtab]').forEach(function(b){
+    b.onclick=function(){infoexSwitchTab(b.dataset.ixtab);};
+  });
   function infoexFileRowHtml(f){
     var isImg=f.mime&&f.mime.indexOf('image/')===0;
     var h='<div class="info-file-row" style="display:flex;align-items:center;gap:8px;padding:6px 10px;border:1px solid var(--line);border-radius:8px;margin-top:6px;font-size:13px">📎 '+esc(f.name)+' &nbsp; <a href="'+f.data+'" download="'+esc(f.name)+'" style="color:var(--primary);font-weight:700;text-decoration:none;margin-inline-start:auto">دانلود</a></div>';
@@ -13941,7 +14004,7 @@ function teacherScript() {
       b.onclick=async function(){
         if(!confirm('آیا از حذف این لینک مطمئن هستید؟ تمام پیام‌های آن هم حذف می‌شود.'))return;
         await api('/api/teacher/info-links/'+encodeURIComponent(b.dataset.del),{method:'DELETE'});
-        if(INFOEX_SELECTED===b.dataset.del){INFOEX_SELECTED=null;document.getElementById('infoexchange-inbox-wrap').classList.add('hidden');}
+        if(INFOEX_SELECTED===b.dataset.del){INFOEX_SELECTED=null;document.getElementById('infoexchange-inbox-list').innerHTML='<p class="muted">یکی از لینک‌های بالا را باز کنید (دکمه «📥 صندوق دریافتی») تا پیام‌های آن این‌جا نمایش داده شود.</p>';}
         infoexLoadLinks();
         toast('لینک حذف شد ✅');
       };
@@ -14004,7 +14067,7 @@ function teacherScript() {
   async function infoexOpenInbox(linkUuid){
     INFOEX_SELECTED=linkUuid;
     var owner=INFOEX_LINKS.find(function(l){return l.uuid===linkUuid;});
-    document.getElementById('infoexchange-inbox-wrap').classList.remove('hidden');
+    infoexSwitchTab('inbox');
     document.getElementById('infoexchange-inbox-owner').textContent=owner?('— '+owner.ownerName+' ('+owner.ownerRole+')'):'';
     var listEl=document.getElementById('infoexchange-inbox-list');
     listEl.innerHTML='<p class="muted">در حال بارگذاری...</p>';
