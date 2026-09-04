@@ -5573,9 +5573,13 @@ function teacherPage() {
         <div id="infoexchange-links-list"></div>
 
         <h4 style="margin-top:20px">✉️ ارسال به یک لینک اختصاصی (بدون نیاز به باز کردن لینک، همین‌جا در پنل)</h4>
-        <p class="muted" style="font-size:12.5px">مثلاً اگر شما راهبر هستید و لینک اختصاصی مدیر مدرسه یا معلم را دارید، لازم نیست لینک را باز کنید — از همین‌جا برایش بفرستید و او در صندوق دریافتی خودش می‌بیند.</p>
+        <p class="muted" style="font-size:12.5px">مثل ارسال پیامک: لینک یا کدی که یک راهبر، مدیر یا معلمِ دیگر برایتان فرستاده را همین‌جا وارد/پیست کنید و پیام بفرستید — او در صندوق دریافتی خودش می‌بیند.</p>
+        <label>لینک یا کد گیرنده</label>
+        <div class="row" style="gap:8px">
+          <input id="infoexchange-send-target-input" placeholder="مثلاً: https://.../info/xxxx یا فقط کد xxxx" style="flex:1">
+          <select id="infoexchange-send-target-pick" style="flex:0 0 auto;min-width:170px"><option value="">— یا از لیست انتخاب کنید —</option></select>
+        </div>
         <div class="lb-meta-form">
-          <div><label>گیرنده (لینک اختصاصی)</label><select id="infoexchange-send-target"><option value="">— انتخاب کنید —</option></select></div>
           <div><label>نام شما (فرستنده)</label><input id="infoexchange-send-sender" placeholder="نام و نام خانوادگی"></div>
         </div>
         <label>پیام</label>
@@ -13863,12 +13867,19 @@ function teacherScript() {
     return h;
   }
   function infoexPopulateSendTarget(){
-    var sel=document.getElementById('infoexchange-send-target');
-    var current=sel.value;
-    sel.innerHTML='<option value="">— انتخاب کنید —</option>'+INFOEX_LINKS.map(function(l){
+    var sel=document.getElementById('infoexchange-send-target-pick');
+    sel.innerHTML='<option value="">— یا از لیست انتخاب کنید —</option>'+INFOEX_LINKS.map(function(l){
       return '<option value="'+l.uuid+'">'+esc(l.ownerName)+' ('+esc(l.ownerRole)+')</option>';
     }).join('');
-    if(INFOEX_LINKS.some(function(l){return l.uuid===current;}))sel.value=current;
+  }
+  document.getElementById('infoexchange-send-target-pick').addEventListener('change',function(){
+    if(this.value)document.getElementById('infoexchange-send-target-input').value=location.origin+'/info/'+this.value;
+  });
+  function infoexParseTargetInput(raw){
+    raw=(raw||'').trim();
+    var m=raw.match(/\/info\/([^\/\?\#\s]+)/);
+    if(m)return decodeURIComponent(m[1]);
+    return raw.replace(/^\/+|\/+$/g,'');
   }
   async function infoexLoadLinks(){
     var d=await api('/api/teacher/info-links');
@@ -13930,10 +13941,11 @@ function teacherScript() {
     infoexRenderSendFilesList();
   });
   document.getElementById('btn-infoexchange-send').onclick=async function(){
-    var targetUuid=document.getElementById('infoexchange-send-target').value;
+    var targetRaw=document.getElementById('infoexchange-send-target-input').value;
+    var targetUuid=infoexParseTargetInput(targetRaw);
     var senderName=document.getElementById('infoexchange-send-sender').value.trim();
     var message=document.getElementById('infoexchange-send-message').value.trim();
-    if(!targetUuid){toast('گیرنده را انتخاب کنید');return;}
+    if(!targetUuid){toast('لینک یا کد گیرنده را وارد کنید');return;}
     if(!senderName){toast('نام خود را وارد کنید');return;}
     if(!message&&!INFOEX_SEND_FILES.length){toast('پیام یا حداقل یک فایل لازم است');return;}
     this.disabled=true;this.textContent='در حال ارسال...';
@@ -13943,9 +13955,11 @@ function teacherScript() {
       if(d&&d.ok){
         toast('ارسال شد ✅ (کد پیگیری: '+d.code+')');
         document.getElementById('infoexchange-send-message').value='';
+        document.getElementById('infoexchange-send-target-input').value='';
+        document.getElementById('infoexchange-send-target-pick').value='';
         INFOEX_SEND_FILES=[];infoexRenderSendFilesList();
         if(INFOEX_SELECTED===targetUuid)infoexOpenInbox(targetUuid);
-      }else toast((d&&d.error)||'خطا در ارسال');
+      }else toast((d&&d.error)||'لینک/کد گیرنده معتبر نیست یا ارسال ناموفق بود');
     }catch(e){toast('خطا در ارتباط با سرور');}
     this.disabled=false;this.textContent='📤 ارسال';
   };
