@@ -1377,6 +1377,10 @@ const SHARED_CSS = `
   .lb-cert-champion .cert-bismillah{font-size:15px;font-weight:700;color:#1d4ed8;margin:2px 0}
   .lb-cert-champion .cert-kind{font-size:30px;color:#1d4ed8}
   .lb-cert-champion .cert-name{border-bottom:2px solid #b8860b}
+  .lb-cert-white{background:#ffffff;--cert-accent:#334155}
+  .lb-cert-royal{background:#fdfaf5;--cert-accent:#5b21b6}
+  .lb-cert-lapis{background:#fdfaf5;--cert-accent:#1e3a8a}
+  .lb-cert-emerald{background:#fdfaf5;--cert-accent:#065f46}
   .lb-cert-font-titr .cert-kind,.lb-cert-font-titr .cert-name{font-family:"BTitr","B Titr",tahoma,Arial}
   .lb-cert-font-nazanin .cert-kind,.lb-cert-font-nazanin .cert-name,.lb-cert-font-nazanin .cert-reason,.lb-cert-font-nazanin .cert-intro{font-family:"BNazanin","B Nazanin",tahoma,Arial}
   .lb-cert-font-nastaliq .cert-kind{font-family:"Noto Nastaliq Urdu",tahoma,Arial;font-size:32px}
@@ -1386,12 +1390,29 @@ const SHARED_CSS = `
   .lb-cert-font-koodak .cert-kind,.lb-cert-font-koodak .cert-name{font-family:"BKoodak","B Koodak",tahoma,Arial}
   .lb-cert-font-koodak .cert-reason,.lb-cert-font-koodak .cert-intro{font-family:"BNazanin","B Nazanin",tahoma,Arial}
   .lb-cert-font-mitra .cert-kind,.lb-cert-font-mitra .cert-name,.lb-cert-font-mitra .cert-reason,.lb-cert-font-mitra .cert-intro{font-family:"BMitra","B Mitra",tahoma,Arial}
+  .lb-cert-font-shik .cert-kind{font-family:"BTitr","B Titr",tahoma,Arial}
+  .lb-cert-font-shik .cert-name{font-family:"Noto Nastaliq Urdu",tahoma,Arial;font-size:28px}
+  .lb-cert-font-shik .cert-reason,.lb-cert-font-shik .cert-intro{font-family:"BNazanin","B Nazanin",tahoma,Arial}
+  .lb-cert-font-shik .cert-numbox,.lb-cert-font-shik .cert-sign span{font-family:"BMitra","B Mitra",tahoma,Arial}
   [data-theme="dark"] .lb-cert-tpl-btn{background:#0f172a}
   .lb-meta-form{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;margin:14px 0}
   .lb-meta-form label{display:block;font-size:12px;color:var(--muted);margin-bottom:3px}
   .lb-meta-form input{width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:8px;font-family:inherit}
   .lb-textarea{width:100%;padding:10px;border:1px solid #cbd5e1;border-radius:8px;font-family:inherit;font-size:14px;resize:vertical;margin-bottom:12px}
   .lb-preview{overflow-x:auto;margin-top:10px;border:1px solid var(--line);border-radius:10px;padding:10px;background:#fff}
+  .rc-header-box{background:#fefce8;border:2px solid #eab308;border-radius:10px;padding:14px;margin:10px 0;display:flex;align-items:flex-start;gap:14px;flex-wrap:wrap}
+  .rc-photo-wrap{flex:0 0 auto;width:92px;display:flex;flex-direction:column;align-items:center;gap:5px}
+  .rc-photo-wrap img#rc-photo-preview{width:92px;height:118px;object-fit:cover;border-radius:6px;border:1px solid #cbd5e1;background:#fff;display:block}
+  .rc-photo-placeholder{width:92px;height:118px;border:1.5px dashed #d6c67a;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:10.5px;color:#a68a1f;text-align:center;background:#fffdf5;padding:4px;box-sizing:border-box}
+  .rc-photo-wrap .btn{width:100%;font-size:11px;padding:6px 4px}
+  .rc-header-box .lb-meta-form{flex:1;min-width:220px;margin:0}
+  .rc-level-badge{display:inline-block;padding:3px 12px;border-radius:20px;font-size:12px;font-weight:700;white-space:nowrap}
+  .rc-level-badge.rc-lv-excellent{background:#dcfce7;color:#166534}
+  .rc-level-badge.rc-lv-good{background:#dbeafe;color:#1e40af}
+  .rc-level-badge.rc-lv-acceptable{background:#fef3c7;color:#92400e}
+  .rc-level-badge.rc-lv-needs-improve{background:#fee2e2;color:#991b1b}
+  .rc-level-badge.rc-lv-none{background:#f1f5f9;color:#64748b}
+  select.rc-level{border-radius:8px;font-weight:700;padding:6px 8px;border:1.5px solid var(--line)}
   [data-theme="dark"] .lb-preview{background:#1e293b}
   .lb-table{width:100%;border-collapse:collapse;font-size:12px}
   .lb-table th,.lb-table td{border:1px solid #94a3b8;padding:6px 8px;text-align:center;min-width:64px}
@@ -2287,23 +2308,34 @@ async function studentPage(env, id) {
       const downloadRow=document.getElementById('rc-view-download-row');
       if(!rec){ el.innerHTML='<p class="muted">اطلاعاتی برای این ماه ثبت نشده.</p>'; downloadRow.classList.add('hidden'); return; }
       RC_CURRENT_MONTH=month;
-      let h='';
-      if(rec.photo)h+='<img src="'+rec.photo+'" style="width:70px;height:70px;border-radius:50%;object-fit:cover;border:1px solid #94a3b8;margin-bottom:10px">';
+      const photoHtml=rec.photo
+        ? '<img src="'+rec.photo+'" style="width:92px;height:118px;object-fit:cover;border-radius:6px;border:1px solid #cbd5e1;background:#fff;display:block">'
+        : '<div style="width:92px;height:118px;border:1.5px dashed #d6c67a;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:10.5px;color:#a68a1f;text-align:center;background:#fffdf5;box-sizing:border-box">بدون عکس</div>';
+      let h='<div style="background:#fefce8;border:2px solid #eab308;border-radius:10px;padding:14px;display:flex;align-items:flex-start;gap:14px;flex-wrap:wrap;margin-bottom:12px">';
+      h+='<div style="flex:0 0 auto">'+photoHtml+'</div>';
+      h+='<div style="flex:1;min-width:200px">';
       h+='<p><b>نام مدرسه:</b> '+esc((rec.meta&&rec.meta.school)||'—')+'</p>';
       h+='<p><b>نام آموزگار:</b> '+esc((rec.meta&&rec.meta.teacher)||'—')+'</p>';
       h+='<p><b>سال تحصیلی:</b> '+esc((rec.meta&&rec.meta.year)||'—')+'</p>';
       h+='<p><b>نام دانش‌آموز:</b> '+esc(rec.name||'—')+'</p>';
       h+='<p><b>تعداد غیبت:</b> '+esc(rec.absence||'۰')+' روز</p>';
+      h+='</div></div>';
       h+='<table style="width:100%;border-collapse:collapse;margin-top:10px"><tr><th style="border:1px solid #ccc;padding:6px;background:#f1f5f9">درس</th><th style="border:1px solid #ccc;padding:6px;background:#f1f5f9">ارزشیابی</th><th style="border:1px solid #ccc;padding:6px;background:#f1f5f9">توضیح</th></tr>';
       const data=rec.data||{};
       Object.keys(data).forEach(function(subj){
         const d=data[subj]||{};
-        h+='<tr><td style="border:1px solid #ccc;padding:6px">'+esc(subj)+'</td><td style="border:1px solid #ccc;padding:6px">'+esc(RC_LEVEL_LABELS[d.level]||'—')+'</td><td style="border:1px solid #ccc;padding:6px">'+esc(d.note||'')+'</td></tr>';
+        h+='<tr><td style="border:1px solid #ccc;padding:6px">'+esc(subj)+'</td><td style="border:1px solid #ccc;padding:6px;text-align:center">'+rcViewLevelBadgeHtml(d.level)+'</td><td style="border:1px solid #ccc;padding:6px">'+esc(d.note||'')+'</td></tr>';
       });
       h+='</table>';
       if(rec.generalNote)h+='<p style="margin-top:10px"><b>توضیحات کلی معلم:</b><br>'+esc(rec.generalNote)+'</p>';
       el.innerHTML=h;
       downloadRow.classList.remove('hidden');
+    }
+    const RC_VIEW_LEVEL_COLORS={excellent:{bg:'#dcfce7',color:'#166534'},good:{bg:'#dbeafe',color:'#1e40af'},acceptable:{bg:'#fef3c7',color:'#92400e'},'needs-improve':{bg:'#fee2e2',color:'#991b1b'}};
+    function rcViewLevelBadgeHtml(level){
+      if(!level)return '<span style="display:inline-block;padding:3px 12px;border-radius:20px;font-size:12px;font-weight:700;background:#f1f5f9;color:#64748b">—</span>';
+      const c=RC_VIEW_LEVEL_COLORS[level]||{bg:'#f1f5f9',color:'#64748b'};
+      return '<span style="display:inline-block;padding:3px 12px;border-radius:20px;font-size:12px;font-weight:700;background:'+c.bg+';color:'+c.color+'">'+esc(RC_LEVEL_LABELS[level]||'—')+'</span>';
     }
     function rcViewFontFamily(){
       const rec=RC_MONTHS_DATA[RC_CURRENT_MONTH];
@@ -4749,17 +4781,20 @@ function teacherPage() {
           </div>
           <p class="muted" style="margin:4px 0 0">دانش‌آموز موردنظر را نمی‌بینید؟ ابتدا از بخش «لیست اسامی دانش‌آموزان» او را اضافه کنید؛ فقط کارنامه‌ی دانش‌آموزانی که در همان بخش ثبت شده‌اند در پنل خودشان نمایش داده می‌شود.</p>
           <div id="rc-form-wrap" class="hidden">
-            <div class="row" style="align-items:center;gap:14px;margin:10px 0">
-              <img id="rc-photo-preview" class="hidden" style="width:44px;height:44px;border-radius:50%;object-fit:cover;border:1px solid var(--line)">
-              <label class="btn sm sec" style="cursor:pointer">📷 عکس پروفایل دانش‌آموز<input type="file" accept="image/*" id="rc-photo-input" style="display:none"></label>
-              <button class="btn sm gray hidden" id="btn-rc-photo-remove">🗑️ حذف عکس</button>
-            </div>
-            <div class="lb-meta-form">
-              <div><label>نام مدرسه</label><input id="rc-school" placeholder="......................."></div>
-              <div><label>نام آموزگار</label><input id="rc-teacher" placeholder="......................."></div>
-              <div><label>سال تحصیلی</label><input id="rc-year" placeholder="......................."></div>
-              <div><label>نام دانش‌آموز</label><input id="rc-student-name" placeholder="نام و نام خانوادگی دانش‌آموز"></div>
-              <div><label>تعداد غیبت (روز)</label><input id="rc-absence" placeholder="۰" style="width:80px"></div>
+            <div class="rc-header-box">
+              <div class="rc-photo-wrap">
+                <img id="rc-photo-preview" class="hidden">
+                <div id="rc-photo-placeholder" class="rc-photo-placeholder">بدون عکس</div>
+                <label class="btn sm sec" style="cursor:pointer">📷 بارگذاری عکس<input type="file" accept="image/*" id="rc-photo-input" style="display:none"></label>
+                <button class="btn sm gray hidden" id="btn-rc-photo-remove">🗑️ حذف</button>
+              </div>
+              <div class="lb-meta-form">
+                <div><label>نام مدرسه</label><input id="rc-school" placeholder="......................."></div>
+                <div><label>نام آموزگار</label><input id="rc-teacher" placeholder="......................."></div>
+                <div><label>سال تحصیلی</label><input id="rc-year" placeholder="......................."></div>
+                <div><label>نام دانش‌آموز</label><input id="rc-student-name" placeholder="نام و نام خانوادگی دانش‌آموز"></div>
+                <div><label>تعداد غیبت (روز)</label><input id="rc-absence" placeholder="۰" style="width:80px"></div>
+              </div>
             </div>
             <div class="lb-preview" id="rc-subjects-preview"></div>
             <label style="margin-top:10px;display:block">توضیحات کلی معلم درباره‌ی روند یادگیری و رفتار دانش‌آموز</label>
@@ -5083,6 +5118,12 @@ function teacherPage() {
                 <option value="گواهی افتخار">گواهی افتخار</option>
                 <option value="کارت تشویقی">کارت تشویقی</option>
               </select>
+              <label>قالب‌های متنی آماده (اختیاری)</label>
+              <div class="lb-cert-templates">
+                <button type="button" class="btn sm gray lb-cert-preset-btn" data-preset="colleague">🏅 همکار نمونه</button>
+                <button type="button" class="btn sm gray lb-cert-preset-btn" data-preset="student">🎓 دانش‌آموز ممتاز</button>
+                <button type="button" class="btn sm gray lb-cert-preset-btn" data-preset="teacher">📚 مدرس برتر</button>
+              </div>
               <div class="lb-meta-form">
                 <div><label>شماره</label><input id="cert-num" placeholder="......."></div>
                 <div><label>تاریخ</label><input id="cert-date" placeholder="......."></div>
@@ -5110,11 +5151,17 @@ function teacherPage() {
                 <input type="file" id="cert-sign-file" accept="image/*" style="flex:1">
                 <button type="button" class="btn sm gray" id="btn-cert-sign-remove">حذف</button>
               </div>
+              <label>نشان سازمان یا عکس فرد (جایگزین نماد بالای لوح، اختیاری)</label>
+              <div class="row" style="gap:8px;align-items:center">
+                <input type="file" id="cert-logo-file" accept="image/*" style="flex:1">
+                <button type="button" class="btn sm gray" id="btn-cert-logo-remove">حذف</button>
+              </div>
               <label>فونت متن</label>
               <select id="cert-font">
+                <option value="shik" selected>🎩 شیک (ترکیبی حرفه‌ای)</option>
                 <option value="titr">بی‌تیتر</option>
                 <option value="nazanin">بی‌نازنین</option>
-                <option value="nastaliq" selected>ایران نستعلیق</option>
+                <option value="nastaliq">ایران نستعلیق</option>
                 <option value="vazirmatn">وزیرمتن (مدرن)</option>
                 <option value="koodak">بی‌کودک (گرد و صمیمی)</option>
                 <option value="mitra">بی‌میترا</option>
@@ -5155,11 +5202,22 @@ function teacherPage() {
                 <button type="button" class="lb-cert-tpl-btn" data-tpl="green">🟢 سبز</button>
                 <button type="button" class="lb-cert-tpl-btn" data-tpl="purple">🟣 بنفش</button>
                 <button type="button" class="lb-cert-tpl-btn" data-tpl="champion">🕌 قهرمانی (تشریفاتی)</button>
+                <button type="button" class="lb-cert-tpl-btn" data-tpl="white">⚪ ساده سفید</button>
+                <button type="button" class="lb-cert-tpl-btn" data-tpl="royal">👑 سلطنتی</button>
+                <button type="button" class="lb-cert-tpl-btn" data-tpl="lapis">🔷 لاجوردی</button>
+                <button type="button" class="lb-cert-tpl-btn" data-tpl="emerald">💎 زمردی</button>
               </div>
             </div>
             <div class="lb-cert-preview-wrap">
               <div id="cert-preview" class="lb-cert-sheet lb-cert-gold"></div>
             </div>
+          </div>
+          <div class="row" style="align-items:center;gap:8px;margin-top:10px">
+            <label style="flex:0 0 auto">جهت چاپ:</label>
+            <select id="cert-print-orientation" style="flex:0 0 auto;min-width:130px">
+              <option value="portrait" selected>عمودی (Portrait)</option>
+              <option value="landscape">افقی (Landscape)</option>
+            </select>
           </div>
           <div class="row" style="margin-top:14px">
             <button class="btn primary" id="btn-cert-save">💾 ذخیره</button>
@@ -11921,9 +11979,17 @@ function teacherScript() {
   function rcSetPhoto(dataUrl){
     RC_PHOTO=dataUrl||'';
     var img=document.getElementById('rc-photo-preview');
+    var placeholder=document.getElementById('rc-photo-placeholder');
     var removeBtn=document.getElementById('btn-rc-photo-remove');
-    if(RC_PHOTO){img.src=RC_PHOTO;img.classList.remove('hidden');removeBtn.classList.remove('hidden');}
-    else{img.src='';img.classList.add('hidden');removeBtn.classList.add('hidden');}
+    if(RC_PHOTO){
+      img.src=RC_PHOTO;img.classList.remove('hidden');
+      placeholder.classList.add('hidden');
+      removeBtn.classList.remove('hidden');
+    }else{
+      img.src='';img.classList.add('hidden');
+      placeholder.classList.remove('hidden');
+      removeBtn.classList.add('hidden');
+    }
   }
   document.getElementById('rc-photo-input').addEventListener('change',async function(){
     var f=this.files&&this.files[0];this.value='';
@@ -11952,6 +12018,17 @@ function teacherScript() {
 
   var RC_LEVEL_LABELS={excellent:'🌟 خیلی خوب',good:'✅ خوب',acceptable:'📌 قابل‌قبول','needs-improve':'📖 نیاز به تلاش'};
   var RC_LEVEL_OPTIONS=[['excellent','🌟 خیلی خوب'],['good','✅ خوب'],['acceptable','📌 قابل‌قبول'],['needs-improve','📖 نیاز به تلاش']];
+  var RC_LEVEL_COLORS={excellent:{bg:'#dcfce7',color:'#166534'},good:{bg:'#dbeafe',color:'#1e40af'},acceptable:{bg:'#fef3c7',color:'#92400e'},'needs-improve':{bg:'#fee2e2',color:'#991b1b'}};
+  function rcLevelBadgeInlineHtml(level){
+    if(!level)return '<span style="display:inline-block;padding:3px 12px;border-radius:20px;font-size:12px;font-weight:700;background:#f1f5f9;color:#64748b">—</span>';
+    var c=RC_LEVEL_COLORS[level]||{bg:'#f1f5f9',color:'#64748b'};
+    return '<span style="display:inline-block;padding:3px 12px;border-radius:20px;font-size:12px;font-weight:700;background:'+c.bg+';color:'+c.color+'">'+esc(RC_LEVEL_LABELS[level]||'—')+'</span>';
+  }
+  function rcApplySelectColor(sel){
+    var c=RC_LEVEL_COLORS[sel.value];
+    if(c){sel.style.background=c.bg;sel.style.color=c.color;}
+    else{sel.style.background='';sel.style.color='';}
+  }
   function rcBuildSubjectsHtml(forExport){
     var subjects=rcActiveSubjects(rcSelectedGradeIdx());
     var h='<table class="lb-table"><thead><tr><th>نام درس</th><th>ارزشیابی</th><th>توضیح معلم (اختیاری)</th></tr></thead><tbody id="rc-subjects-tbody">';
@@ -11959,7 +12036,7 @@ function teacherScript() {
       var saved=RC_DATA[name]||{};
       var level=saved.level||'';
       if(forExport){
-        h+='<tr><td style="font-weight:700">'+esc(name)+'</td><td>'+esc(RC_LEVEL_LABELS[level]||'—')+'</td><td>'+esc(saved.note||'')+'</td></tr>';
+        h+='<tr><td style="font-weight:700">'+esc(name)+'</td><td style="text-align:center">'+rcLevelBadgeInlineHtml(level)+'</td><td>'+esc(saved.note||'')+'</td></tr>';
       }else{
         var sel='<select class="rc-level" data-key="'+esc(name)+'"><option value="">—</option>';
         RC_LEVEL_OPTIONS.forEach(function(o){
@@ -11974,10 +12051,12 @@ function teacherScript() {
   }
   function rcBindSubjectInputs(el){
     el.querySelectorAll('.rc-level').forEach(function(sel){
+      rcApplySelectColor(sel);
       sel.addEventListener('change',function(){
         var key=sel.dataset.key;
         if(!RC_DATA[key])RC_DATA[key]={};
         RC_DATA[key].level=sel.value;
+        rcApplySelectColor(sel);
       });
     });
     el.querySelectorAll('.rc-note').forEach(function(inp){
@@ -12115,9 +12194,18 @@ function teacherScript() {
   function rcExportHtml(){
     var gradeText=document.getElementById('rc-grade-select').selectedOptions[0].textContent;
     var monthText=rcSelectedMonth();
-    var photoHtml=RC_PHOTO?('<img src="'+RC_PHOTO+'" style="float:left;width:70px;height:70px;border-radius:50%;object-fit:cover;border:1px solid #94a3b8;margin:0 8px 6px 0">'):'';
-    var meta=lbMetaBlock([['نام مدرسه','rc-school'],['نام آموزگار','rc-teacher'],['سال تحصیلی','rc-year'],['نام دانش‌آموز','rc-student-name']]);
-    meta=photoHtml+'<p class="lb-meta"><b>پایه تحصیلی:</b> '+esc(gradeText)+' &nbsp;&nbsp; <b>ماه:</b> '+esc(monthText)+' &nbsp;&nbsp; <b>تعداد غیبت:</b> '+esc(document.getElementById('rc-absence').value||'۰')+' روز</p>'+meta+'<div style="clear:both"></div>';
+    var photoHtml=RC_PHOTO
+      ? '<img src="'+RC_PHOTO+'" style="width:92px;height:118px;object-fit:cover;border-radius:6px;border:1px solid #cbd5e1;background:#fff;display:block">'
+      : '<div style="width:92px;height:118px;border:1.5px dashed #d6c67a;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:10.5px;color:#a68a1f;text-align:center;background:#fffdf5;box-sizing:border-box">بدون عکس</div>';
+    var meta='<div style="background:#fefce8;border:2px solid #eab308;border-radius:10px;padding:14px;display:flex;align-items:flex-start;gap:14px;flex-wrap:wrap;margin-bottom:12px">';
+    meta+='<div style="flex:0 0 auto">'+photoHtml+'</div>';
+    meta+='<div style="flex:1;min-width:200px;font-size:13px;line-height:1.9">';
+    meta+='<p style="margin:2px 0"><b>نام مدرسه:</b> '+esc(document.getElementById('rc-school').value||'.......................')+'</p>';
+    meta+='<p style="margin:2px 0"><b>نام آموزگار:</b> '+esc(document.getElementById('rc-teacher').value||'.......................')+'</p>';
+    meta+='<p style="margin:2px 0"><b>سال تحصیلی:</b> '+esc(document.getElementById('rc-year').value||'.......................')+'</p>';
+    meta+='<p style="margin:2px 0"><b>نام دانش‌آموز:</b> '+esc(document.getElementById('rc-student-name').value||'.......................')+'</p>';
+    meta+='<p style="margin:2px 0"><b>پایه تحصیلی:</b> '+esc(gradeText)+' &nbsp;&nbsp; <b>ماه:</b> '+esc(monthText)+' &nbsp;&nbsp; <b>تعداد غیبت:</b> '+esc(document.getElementById('rc-absence').value||'۰')+' روز</p>';
+    meta+='</div></div>';
     var table=rcBuildSubjectsHtml(true);
     var note='<p style="margin-top:14px"><b>توضیحات کلی معلم:</b><br>'+esc(document.getElementById('rc-general-note').value||'')+'</p>';
     var sign='<p style="margin-top:30px">امضای آموزگار: ......................... &nbsp;&nbsp;&nbsp;&nbsp; امضای مدیر: .........................</p>';
@@ -13047,6 +13135,7 @@ function teacherScript() {
   var CERT_BG_DRAGGING=false;
   var CERT_BG_DRAG_START=null;
   var CERT_SIGN_IMG='';
+  var CERT_LOGO_IMG='';
   var CERT_STUDENTS_LOADED=false;
   async function lbCertLoadStudentsIfNeeded(){
     if(CERT_STUDENTS_LOADED)return;
@@ -13143,8 +13232,47 @@ function teacherScript() {
     CERT_SIGN_IMG='';
     lbCertRenderPreview();
   };
+  document.getElementById('cert-logo-file').addEventListener('change',async function(){
+    var f=this.files&&this.files[0];
+    if(!f)return;
+    try{
+      toast('در حال بارگذاری تصویر...');
+      var dataUrl=await compressWorksheetImage(f);
+      CERT_LOGO_IMG=dataUrl;
+      lbCertRenderPreview();
+      toast('نشان/عکس اضافه شد ✅');
+    }catch(e){toast(e.message||'خطا در بارگذاری تصویر');}
+    this.value='';
+  });
+  document.getElementById('btn-cert-logo-remove').onclick=function(){
+    CERT_LOGO_IMG='';
+    lbCertRenderPreview();
+  };
+  var LB_CERT_PRESETS={
+    colleague:{kind:'تقدیرنامه',salute:'جناب آقای',intro:'این تقدیرنامه به پاس',reason:'همکاری صمیمانه، تعهد کاری و تلاش مستمر ایشان در راستای اهداف آموزشی مجموعه، با افتخار اهدا می‌گردد.'},
+    student:{kind:'تقدیرنامه',salute:'دانش‌آموز عزیز',intro:'این تقدیرنامه به پاس',reason:'کسب رتبه برتر، تلاش و پشتکار در طول سال تحصیلی، با افتخار اهدا می‌گردد.'},
+    teacher:{kind:'تقدیرنامه',salute:'جناب آقای',intro:'این تقدیرنامه به پاس',reason:'تلاش ارزشمند، دلسوزی و ارائه آموزش با کیفیت در طول سال تحصیلی، با افتخار اهدا می‌گردد.'}
+  };
+  document.querySelectorAll('.lb-cert-preset-btn').forEach(function(b){
+    b.onclick=function(){
+      var p=LB_CERT_PRESETS[b.dataset.preset];
+      if(!p)return;
+      document.getElementById('cert-kind').value=p.kind;
+      document.getElementById('cert-salute').value=p.salute;
+      document.getElementById('cert-intro').value=p.intro;
+      document.getElementById('cert-reason').value=p.reason;
+      lbCertRenderPreview();
+      toast('متن پیشنهادی اعمال شد — می‌توانید ویرایش کنید ✅');
+    };
+  });
   function lbCertBadge(tpl){
-    return {gold:'🏆',blue:'🎖️',green:'🌿',purple:'🎗️',champion:'🥇'}[tpl]||'🏆';
+    return {gold:'🏆',blue:'🎖️',green:'🌿',purple:'🎗️',champion:'🥇',white:'📜',royal:'👑',lapis:'🔷',emerald:'💎'}[tpl]||'🏆';
+  }
+  function lbCertBadgeHtml(d){
+    if(d.logoImage&&d.logoImage.indexOf('data:image/')===0){
+      return '<img src="'+d.logoImage+'" style="max-height:52px;max-width:130px;object-fit:contain">';
+    }
+    return lbCertBadge(d.tpl);
   }
   function lbCertFontFamilyCss(key){
     var m={titr:'"BTitr","B Titr",tahoma,Arial',nazanin:'"BNazanin","B Nazanin",tahoma,Arial',nastaliq:'"Noto Nastaliq Urdu",tahoma,Arial',vazirmatn:'"Vazirmatn",tahoma,Arial',koodak:'"BKoodak","B Koodak",tahoma,Arial',mitra:'"BMitra","B Mitra",tahoma,Arial'};
@@ -13183,6 +13311,7 @@ function teacherScript() {
       bgOffY:CERT_BG_OFFY,
       bgOpacity:CERT_BG_OPACITY,
       signImage:CERT_SIGN_IMG,
+      logoImage:CERT_LOGO_IMG,
       framePad:document.getElementById('cert-frame-pad').value
     };
   }
@@ -13192,7 +13321,7 @@ function teacherScript() {
     return (salute?salute+' ':'')+name;
   }
   function lbCertInnerHtml(d){
-    var badge=lbCertBadge(d.tpl);
+    var badge=lbCertBadgeHtml(d);
     var fs=parseInt(d.fontSize,10)||13;
     var h='';
     h+=lbCertBgLayerHtml(d);
@@ -13238,13 +13367,20 @@ function teacherScript() {
   }
   function lbCertExportHtml(){
     var d=lbCertData();
-    var accents={gold:'#b8860b',blue:'#1d4ed8',green:'#15803d',purple:'#7e22ce',champion:'#1d4ed8'};
-    var bgs={gold:'#fdf6e3',blue:'#e6f0ff',green:'#e5f9ec',purple:'#f1e6ff',champion:'#fdfdfb'};
+    var accents={gold:'#b8860b',blue:'#1d4ed8',green:'#15803d',purple:'#7e22ce',champion:'#1d4ed8',white:'#334155',royal:'#5b21b6',lapis:'#1e3a8a',emerald:'#065f46'};
+    var bgs={gold:'#fdf6e3',blue:'#e6f0ff',green:'#e5f9ec',purple:'#f1e6ff',champion:'#fdfdfb',white:'#ffffff',royal:'#fdfaf5',lapis:'#fdfaf5',emerald:'#fdfaf5'};
     var accent=accents[d.tpl]||accents.gold;
     var bg=bgs[d.tpl]||bgs.gold;
-    var badge=lbCertBadge(d.tpl);
+    var badge=(d.logoImage&&d.logoImage.indexOf('data:image/')===0)?'<img src="'+d.logoImage+'" style="max-height:52px;max-width:130px;object-fit:contain">':lbCertBadge(d.tpl);
     var titleFont=lbCertFontFamilyCss(d.font);
-    var bodyFont=(d.font==='nastaliq')?lbCertFontFamilyCss('nazanin'):titleFont;
+    var nameFont=titleFont;
+    var bodyFont=(d.font==='nastaliq'||d.font==='shik')?lbCertFontFamilyCss('nazanin'):titleFont;
+    var metaFont=titleFont;
+    if(d.font==='shik'){
+      titleFont=lbCertFontFamilyCss('titr');
+      nameFont=lbCertFontFamilyCss('nastaliq');
+      metaFont=lbCertFontFamilyCss('mitra');
+    }
     var fs=parseInt(d.fontSize,10)||13;
     var pad=parseInt(d.framePad,10)||10;
     var h='<div style="position:relative;width:100%;box-sizing:border-box;padding:26px;border:3px solid '+accent+';border-radius:6px;text-align:center;background:'+bg+';font-family:tahoma,Arial;overflow:visible">';
@@ -13256,17 +13392,17 @@ function teacherScript() {
       h+='<div style="position:absolute;inset:0;overflow:hidden;border-radius:4px;z-index:0"><div style="position:absolute;inset:0;background-image:url('+d.bgImage+');background-size:cover;background-position:center;background-repeat:no-repeat;opacity:'+op+';transform:scale('+(zoom/100)+') translate('+ox+'%,'+oy+'%)"></div></div>';
     }
     h+='<div style="position:relative;z-index:1">';
-    h+='<div style="position:absolute;top:6px;right:10px;text-align:right;font-size:11px;font-weight:700;color:#334155;line-height:1.8">شماره: '+esc(d.num||'.......')+'<br>تاریخ: '+esc(d.date||'.......')+'</div>';
+    h+='<div style="position:absolute;top:6px;right:10px;text-align:right;font-size:11px;font-weight:700;color:#334155;line-height:1.8;font-family:'+metaFont+'">شماره: '+esc(d.num||'.......')+'<br>تاریخ: '+esc(d.date||'.......')+'</div>';
     if(d.tpl==='champion')h+='<p style="font-size:15px;font-weight:700;color:'+accent+';margin:2px 0 10px">بسم الله الرحمن الرحیم</p>';
     h+='<div style="font-size:40px;margin-top:'+(d.tpl==='champion'?'0':'6px')+'">'+badge+'</div>';
     h+='<p style="font-size:28px;font-weight:800;color:'+accent+';margin:8px auto;max-width:92%;overflow-wrap:break-word;word-break:break-word;font-family:'+titleFont+'">'+esc(d.kind||'تقدیرنامه')+'</p>';
     h+='<p style="font-size:13px;color:#334155;margin:6px auto 0;max-width:88%;overflow-wrap:break-word;word-break:break-word;font-family:'+bodyFont+'">'+esc(d.intro||'این سند به پاس تلاش و شایستگی به')+'</p>';
-    h+='<div style="font-size:26px;font-weight:800;color:#1e293b;margin:10px auto;border-bottom:2px solid '+accent+';display:inline-block;padding-bottom:6px;max-width:92%;overflow-wrap:break-word;word-break:break-word;font-family:'+titleFont+'">'+esc(lbCertFullName(d))+'</div>';
+    h+='<div style="font-size:26px;font-weight:800;color:#1e293b;margin:10px auto;border-bottom:2px solid '+accent+';display:inline-block;padding-bottom:6px;max-width:92%;overflow-wrap:break-word;word-break:break-word;font-family:'+nameFont+'">'+esc(lbCertFullName(d))+'</div>';
     h+='<p style="font-size:'+fs+'px;color:#334155;max-width:88%;line-height:1.9;margin:6px auto;overflow-wrap:break-word;word-break:break-word;white-space:pre-line;font-family:'+bodyFont+'">'+esc(d.reason||'')+'</p>';
     if(d.signImage||d.issuer){
       h+='<div style="margin:22px auto 0;display:flex;flex-direction:column;align-items:center;gap:4px">';
       if(d.signImage&&d.signImage.indexOf('data:image/')===0)h+='<img src="'+d.signImage+'" style="max-height:70px;max-width:160px;object-fit:contain">';
-      if(d.issuer)h+='<span style="font-size:12px;color:#475569;font-weight:700">'+esc(d.issuer)+'</span>';
+      if(d.issuer)h+='<span style="font-size:12px;color:#475569;font-weight:700;font-family:'+metaFont+'">'+esc(d.issuer)+'</span>';
       h+='</div>';
     }
     h+='</div>';
@@ -13275,11 +13411,13 @@ function teacherScript() {
   }
   document.getElementById('btn-cert-word').onclick=function(){
     var d=lbCertData();
-    lbWordExport(d.kind||'تقدیرنامه',lbCertExportHtml(),'تقدیرنامه',false,lbCertFontFamilyCss(d.font));
+    var landscape=document.getElementById('cert-print-orientation').value==='landscape';
+    lbWordExport(d.kind||'تقدیرنامه',lbCertExportHtml(),'تقدیرنامه',landscape,lbCertFontFamilyCss(d.font));
   };
   document.getElementById('btn-cert-pdf').onclick=function(){
     var d=lbCertData();
-    lbPrintExport(d.kind||'تقدیرنامه',lbCertExportHtml(),false,lbCertFontFamilyCss(d.font));
+    var landscape=document.getElementById('cert-print-orientation').value==='landscape';
+    lbPrintExport(d.kind||'تقدیرنامه',lbCertExportHtml(),landscape,lbCertFontFamilyCss(d.font));
   };
   document.getElementById('btn-cert-save').onclick=function(){
     lbSave('certificate',lbCertData());
@@ -13289,12 +13427,12 @@ function teacherScript() {
     ['cert-num','cert-date','cert-name','cert-intro','cert-reason','cert-issuer'].forEach(function(id){document.getElementById(id).value='';});
     document.getElementById('cert-kind').value='تقدیرنامه';
     document.getElementById('cert-salute').value='جناب آقای';
-    document.getElementById('cert-font').value='nastaliq';
+    document.getElementById('cert-font').value='shik';
     document.getElementById('cert-font-size').value='13';
     document.getElementById('cert-font-size-val').textContent='۱۳';
     document.getElementById('cert-student-select').value='';
     CERT_TPL='gold';
-    CERT_BG_IMG='';CERT_BG_ZOOM=100;CERT_BG_OFFX=0;CERT_BG_OFFY=0;CERT_BG_OPACITY=100;CERT_SIGN_IMG='';
+    CERT_BG_IMG='';CERT_BG_ZOOM=100;CERT_BG_OFFX=0;CERT_BG_OFFY=0;CERT_BG_OPACITY=100;CERT_SIGN_IMG='';CERT_LOGO_IMG='';
     document.getElementById('cert-bg-controls').classList.add('hidden');
     document.getElementById('cert-bg-zoom').value=100;
     document.getElementById('cert-bg-zoom-val').textContent='۱۰۰٪';
@@ -13302,6 +13440,7 @@ function teacherScript() {
     document.getElementById('cert-bg-opacity-val').textContent='۱۰۰٪';
     document.getElementById('cert-frame-pad').value=10;
     document.getElementById('cert-frame-pad-val').textContent='۱۰';
+    document.getElementById('cert-print-orientation').value='portrait';
     document.querySelectorAll('.lb-cert-tpl-btn').forEach(function(x){x.classList.remove('active');});
     document.querySelector('.lb-cert-tpl-btn[data-tpl="gold"]').classList.add('active');
     lbCertRenderPreview();
@@ -13322,7 +13461,7 @@ function teacherScript() {
       document.getElementById('cert-intro').value=saved.intro||'';
       document.getElementById('cert-reason').value=saved.reason||'';
       document.getElementById('cert-issuer').value=saved.issuer||'';
-      document.getElementById('cert-font').value=saved.font||'nastaliq';
+      document.getElementById('cert-font').value=saved.font||'shik';
       document.getElementById('cert-font-size').value=saved.fontSize||'13';
       document.getElementById('cert-font-size-val').textContent=toFaDigits(saved.fontSize||'13');
       CERT_TPL=saved.tpl||'gold';
@@ -13332,6 +13471,7 @@ function teacherScript() {
       CERT_BG_OFFY=saved.bgOffY||0;
       CERT_BG_OPACITY=saved.bgOpacity||100;
       CERT_SIGN_IMG=saved.signImage||'';
+      CERT_LOGO_IMG=saved.logoImage||'';
       document.getElementById('cert-bg-zoom').value=CERT_BG_ZOOM;
       document.getElementById('cert-bg-zoom-val').textContent=toFaDigits(String(CERT_BG_ZOOM))+'٪';
       document.getElementById('cert-bg-opacity').value=CERT_BG_OPACITY;
