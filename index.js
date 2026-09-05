@@ -1098,13 +1098,34 @@ async function handleApi(req, env, url, path) {
       // ----- موتور Cloudflare Workers AI — بدون نیاز به API key، از طریق AI binding خودِ همین Worker -----
       if (provider === "cloudflare") {
         if (!env.AI) return json({ error: 'AI binding تنظیم نشده — باید [ai] binding = "AI" را به wrangler.toml اضافه و دوباره deploy کنید' }, 500);
-        const cfModel = body.model || env.CLOUDFLARE_AI_MODEL || "@cf/meta/llama-3.1-8b-instruct-fast";
+        let cfModel = body.model || env.CLOUDFLARE_AI_MODEL || "@cf/meta/llama-3.1-8b-instruct-fast";
         const trimmedMessages = messages.slice(-10);
+        // برخلاف Gemini/Groq/OpenCode که فرمت OpenAI-style با content آرایه‌ای (image_url) را می‌پذیرند،
+        // AI binding بومی Cloudflare انتظار دارد content هر پیام یک رشته‌ی ساده باشد و عکس در فیلد جداگانه‌ی
+        // top-level به نام image (به‌صورت data URL کامل) ارسال شود — وگرنه خطای schema validation می‌دهد.
+        let cfImage = null;
+        const cfMessages = trimmedMessages.map((m) => {
+          if (typeof m.content === "string") return { role: m.role, content: m.content };
+          if (Array.isArray(m.content)) {
+            let text = "";
+            for (const c of m.content) {
+              if (c && c.type === "text") text += (text ? "\n" : "") + (c.text || "");
+              else if (c && c.type === "image_url" && c.image_url?.url) cfImage = c.image_url.url;
+            }
+            return { role: m.role, content: text };
+          }
+          return { role: m.role, content: "" };
+        });
+        // اگر عکسی در پیام‌ها بود ولی مدل انتخاب‌شده از تصویر پشتیبانی نمی‌کند، خودکار به مدل Vision سوییچ کن
+        const CF_VISION_MODELS = ["@cf/google/gemma-4-26b-a4b-it", "@cf/meta/llama-3.2-11b-vision-instruct"];
+        if (cfImage && !CF_VISION_MODELS.includes(cfModel)) cfModel = "@cf/google/gemma-4-26b-a4b-it";
+        const cfInput = { messages: cfMessages, max_tokens: maxTokens };
+        if (cfImage) cfInput.image = cfImage;
         const MAX_ATTEMPTS = 3;
         let lastErr = null;
         for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
           try {
-            const result = await env.AI.run(cfModel, { messages: trimmedMessages, max_tokens: maxTokens });
+            const result = await env.AI.run(cfModel, cfInput);
             const content = (result && (result.response || result.result?.response)) || "";
             return json({ ok: true, content });
           } catch (e) {
