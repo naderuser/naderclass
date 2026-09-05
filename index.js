@@ -1086,10 +1086,16 @@ async function handleApi(req, env, url, path) {
       if (provider === "groq") {
         const groqKey = env.GROQ_API_KEY;
         if (!groqKey) return json({ error: "کلید GROQ_API_KEY تنظیم نشده" }, 500);
-        const groqModel = body.model || env.GROQ_MODEL || "openai/gpt-oss-20b";
+        let groqModel = body.model || env.GROQ_MODEL || "openai/gpt-oss-20b";
+        // فقط مدل‌های Qwen ورودی تصویر (content آرایه‌ای) را قبول می‌کنند؛ بقیه با خطای
+        // "content must be a string" رد می‌شوند، پس اگر عکسی در پیام‌ها بود خودکار سوییچ کن
+        const GROQ_VISION_MODELS = ["qwen/qwen3.6-27b", "qwen/qwen3.8-27b"];
+        const trimmedGroqMessages = messages.slice(-10);
+        const hasImage = trimmedGroqMessages.some((m) => Array.isArray(m.content) && m.content.some((c) => c && c.type === "image_url"));
+        if (hasImage && !GROQ_VISION_MODELS.includes(groqModel)) groqModel = "qwen/qwen3.6-27b";
         const result = await callOpenAiCompatible(
           "https://api.groq.com/openai/v1/chat/completions",
-          groqKey, groqModel, messages.slice(-10), maxTokens
+          groqKey, groqModel, trimmedGroqMessages, maxTokens
         );
         if (!result.ok) return json({ error: "Groq: " + result.error }, result.status);
         return json({ ok: true, content: result.content });
