@@ -147,14 +147,39 @@ async function isTeacher(req, env) {
   return Boolean(cookies.t_auth && cookies.t_auth === stored);
 }
 
-async function getMeta(env) {
-  const raw = await env.EXAM_KV.get("meta");
-  return raw ? { ...DEFAULT_META, ...JSON.parse(raw) } : { ...DEFAULT_META };
+async function getMeta(env, grade) {
+  const g = clampGrade(grade);
+  const raw = await env.EXAM_KV.get("meta:" + g);
+  if (raw) return { ...DEFAULT_META, ...JSON.parse(raw) };
+  if (g === 0) {
+    // سازگاری با نسخه‌ی قدیمی که فقط یک سربرگ/آزمون سراسری داشت (بدون تفکیک پایه)
+    const legacy = await env.EXAM_KV.get("meta");
+    if (legacy) return { ...DEFAULT_META, ...JSON.parse(legacy) };
+  }
+  return { ...DEFAULT_META };
 }
 
-async function getQuestions(env) {
-  const raw = await env.EXAM_KV.get("questions");
-  return raw ? JSON.parse(raw) : [];
+function clampGrade(grade) {
+  const g = parseInt(grade, 10);
+  return Number.isInteger(g) && g >= 0 && g <= 11 ? g : 0;
+}
+
+function gradeLevelOf(grade) {
+  if (grade >= 9) return "high";
+  if (grade >= 6) return "middle";
+  return "elementary";
+}
+
+async function getQuestions(env, grade) {
+  const g = clampGrade(grade);
+  const raw = await env.EXAM_KV.get("questions:" + g);
+  if (raw) return JSON.parse(raw);
+  if (g === 0) {
+    // سازگاری با نسخه‌ی قدیمی
+    const legacy = await env.EXAM_KV.get("questions");
+    if (legacy) return JSON.parse(legacy);
+  }
+  return [];
 }
 
 async function listStudents(env) {
@@ -548,14 +573,16 @@ async function handleApi(req, env, url, path) {
     const id = decodeURIComponent(parts[0] || "");
     const studentRaw = await env.EXAM_KV.get("student:" + id);
     if (!studentRaw) return json({ ok: false, error: "لینک نامعتبر است" }, 404);
+    const st = JSON.parse(studentRaw);
+    const studentGrade = clampGrade(st.grade);
 
     if (parts[1] === "submit" && method === "POST") {
       const existing = await env.EXAM_KV.get("submission:" + id);
       if (existing) return json({ ok: false, error: "این آزمون قبلاً ثبت شده است" }, 409);
       
       const body = await req.json().catch(() => ({}));
-      const meta = await getMeta(env);
-      const questions = await getQuestions(env);
+      const meta = await getMeta(env, studentGrade);
+      const questions = await getQuestions(env, studentGrade);
       
       const durationMinutes = parseInt(meta.examDuration) || 30;
       const endTime = Date.now() + (durationMinutes * 60 * 1000);
@@ -582,9 +609,8 @@ async function handleApi(req, env, url, path) {
     }
 
     if (method === "GET") {
-      const meta = await getMeta(env);
+      const meta = await getMeta(env, studentGrade);
       const subRaw = await env.EXAM_KV.get("submission:" + id);
-      const st = JSON.parse(studentRaw);
       
       if (subRaw) {
         const sub = JSON.parse(subRaw);
@@ -609,7 +635,7 @@ async function handleApi(req, env, url, path) {
           },
         });
       }
-      const questions = (await getQuestions(env)).map(safeQuestion);
+      const questions = (await getQuestions(env, studentGrade)).map(safeQuestion);
       const durationMinutes = parseInt(meta.examDuration) || 30;
       
       return json({ 
@@ -944,7 +970,7 @@ async function handleApi(req, env, url, path) {
         photo = body.photo;
       }
       let grade = parseInt(body.grade, 10);
-      if (!Number.isInteger(grade) || grade < 0 || grade > 5) grade = 0;
+      if (!Number.isInteger(grade) || grade < 0 || grade > 11) grade = 0;
       const rec = { uuid: id, label: String(body.label || "").slice(0, 120), photo, grade, createdAt: Date.now() };
       await env.EXAM_KV.put("student:" + id, JSON.stringify(rec));
       return json({ ok: true, student: rec });
@@ -967,7 +993,7 @@ async function handleApi(req, env, url, path) {
       if (typeof body.label === "string") rec.label = body.label.slice(0, 120);
       if (body.grade !== undefined) {
         const g = parseInt(body.grade, 10);
-        if (Number.isInteger(g) && g >= 0 && g <= 5) rec.grade = g;
+        if (Number.isInteger(g) && g >= 0 && g <= 11) rec.grade = g;
       }
       await env.EXAM_KV.put("student:" + id, JSON.stringify(rec));
       return json({ ok: true, student: rec });
@@ -981,11 +1007,13 @@ async function handleApi(req, env, url, path) {
     }
 
     if (path === "/api/teacher/questions" && method === "GET") {
-      return json({ ok: true, meta: await getMeta(env), questions: await getQuestions(env) });
+      const grade = clampGrade(url.searchParams.get("grade"));
+      return json({ ok: true, meta: await getMeta(env, grade), questions: await getQuestions(env, grade) });
     }
 
     if (path === "/api/teacher/questions" && method === "PUT") {
       const body = await req.json().catch(() => ({}));
+      const grade = clampGrade(body.grade);
       const questions = (Array.isArray(body.questions) ? body.questions : []).map((q, i) => {
         const type = QUESTION_TYPES[q.type] ? q.type : "descriptive";
         const rich = type === "descriptive" && Boolean(q.rich);
@@ -1003,10 +1031,10 @@ async function handleApi(req, env, url, path) {
           order: i,
         };
       });
-      await env.EXAM_KV.put("questions", JSON.stringify(questions));
+      await env.EXAM_KV.put("questions:" + grade, JSON.stringify(questions));
       if (body.meta) {
-        const meta = { ...DEFAULT_META, ...body.meta };
-        await env.EXAM_KV.put("meta", JSON.stringify(meta));
+        const meta = { ...DEFAULT_META, ...body.meta, gradeLevel: gradeLevelOf(grade) };
+        await env.EXAM_KV.put("meta:" + grade, JSON.stringify(meta));
       }
       return json({ ok: true });
     }
@@ -1046,7 +1074,8 @@ async function handleApi(req, env, url, path) {
 
     if (path === "/api/teacher/word" && method === "GET") {
       const type = url.searchParams.get("type") || "questions";
-      const meta = await getMeta(env);
+      const wordGrade = clampGrade(url.searchParams.get("grade"));
+      const meta = await getMeta(env, wordGrade);
       if (type === "answers") {
         const id = url.searchParams.get("uuid");
         const raw = await env.EXAM_KV.get("submission:" + id);
@@ -1054,7 +1083,7 @@ async function handleApi(req, env, url, path) {
         const sub = JSON.parse(raw);
         return wordResponse(answerSheetWord(sub), `پاسخنامه-${sub.student.name || id}.doc`);
       }
-      const questions = await getQuestions(env);
+      const questions = await getQuestions(env, wordGrade);
       if (type === "examsheet") {
         const raw = await env.EXAM_KV.get("lbdata:examsheet");
         const data = raw ? JSON.parse(raw) : {};
@@ -3937,28 +3966,64 @@ function teacherPage() {
         <h3>👨‍🎓 ساخت دانش‌آموز جدید</h3>
         <div class="row" style="align-items:center">
           <input id="new-label" placeholder="نام دانش‌آموز (اختیاری)">
-          <select id="new-grade" style="flex:0 0 auto;min-width:150px">
-            <option value="0">پایه اول دبستان</option>
-            <option value="1">پایه دوم دبستان</option>
-            <option value="2">پایه سوم دبستان</option>
-            <option value="3">پایه چهارم دبستان</option>
-            <option value="4">پایه پنجم دبستان</option>
-            <option value="5">پایه ششم دبستان</option>
-          </select>
-          <label class="btn sec sm" style="flex:0 0 auto;cursor:pointer">📷 عکس پروفایل<input type="file" accept="image/*" id="new-student-photo" style="display:none"></label>
-          <img id="new-student-photo-preview" class="hidden" style="width:36px;height:36px;border-radius:50%;object-fit:cover;flex:0 0 auto">
-          <button class="btn" id="btn-add-student" style="flex:0 0 auto">➕ ساخت لینک اختصاصی</button>
         </div>
-        <p class="muted">برای هر دانش‌آموز یک UUID و لینک جداگانه ساخته می‌شود. عکس پروفایل اختیاری است (حداکثر ۲ مگابایت).</p>
+        <div class="row" style="align-items:center;flex-wrap:wrap;gap:10px;margin-top:8px">
+          <div>
+            <label style="font-size:12px">🟢 ابتدایی</label>
+            <select id="new-grade-elementary" class="new-grade-group" style="min-width:150px">
+              <option value="">— انتخاب نشده —</option>
+              <option value="0">پایه اول دبستان</option>
+              <option value="1">پایه دوم دبستان</option>
+              <option value="2">پایه سوم دبستان</option>
+              <option value="3">پایه چهارم دبستان</option>
+              <option value="4">پایه پنجم دبستان</option>
+              <option value="5">پایه ششم دبستان</option>
+            </select>
+          </div>
+          <div>
+            <label style="font-size:12px">🔵 متوسطه اول</label>
+            <select id="new-grade-middle" class="new-grade-group" style="min-width:150px">
+              <option value="">— انتخاب نشده —</option>
+              <option value="6">پایه هفتم</option>
+              <option value="7">پایه هشتم</option>
+              <option value="8">پایه نهم</option>
+            </select>
+          </div>
+          <div>
+            <label style="font-size:12px">🟣 متوسطه دوم</label>
+            <select id="new-grade-high" class="new-grade-group" style="min-width:150px">
+              <option value="">— انتخاب نشده —</option>
+              <option value="9">پایه دهم</option>
+              <option value="10">پایه یازدهم</option>
+              <option value="11">پایه دوازدهم</option>
+            </select>
+          </div>
+          <label class="btn sec sm" style="flex:0 0 auto;cursor:pointer;align-self:flex-end">📷 عکس پروفایل<input type="file" accept="image/*" id="new-student-photo" style="display:none"></label>
+          <img id="new-student-photo-preview" class="hidden" style="width:36px;height:36px;border-radius:50%;object-fit:cover;flex:0 0 auto;align-self:flex-end">
+          <button class="btn" id="btn-add-student" style="flex:0 0 auto;align-self:flex-end">➕ ساخت لینک اختصاصی</button>
+        </div>
+        <p class="muted">برای هر دانش‌آموز یک UUID و لینک جداگانه ساخته می‌شود. عکس پروفایل اختیاری است (حداکثر ۲ مگابایت). دقیقاً یکی از سه کشوی بالا (ابتدایی/متوسطه اول/متوسطه دوم) باید پایه‌ی دانش‌آموز را مشخص کند.</p>
         <div class="row" style="align-items:center;margin-top:10px">
           <label style="flex:0 0 auto">نمایش دانش‌آموزان پایه:</label>
-          <select id="students-filter-grade" style="flex:0 0 auto;min-width:150px">
-            <option value="0">پایه اول دبستان</option>
-            <option value="1">پایه دوم دبستان</option>
-            <option value="2">پایه سوم دبستان</option>
-            <option value="3">پایه چهارم دبستان</option>
-            <option value="4">پایه پنجم دبستان</option>
-            <option value="5">پایه ششم دبستان</option>
+          <select id="students-filter-grade" style="flex:0 0 auto;min-width:170px">
+            <optgroup label="🟢 ابتدایی">
+              <option value="0">پایه اول دبستان</option>
+              <option value="1">پایه دوم دبستان</option>
+              <option value="2">پایه سوم دبستان</option>
+              <option value="3">پایه چهارم دبستان</option>
+              <option value="4">پایه پنجم دبستان</option>
+              <option value="5">پایه ششم دبستان</option>
+            </optgroup>
+            <optgroup label="🔵 متوسطه اول">
+              <option value="6">پایه هفتم</option>
+              <option value="7">پایه هشتم</option>
+              <option value="8">پایه نهم</option>
+            </optgroup>
+            <optgroup label="🟣 متوسطه دوم">
+              <option value="9">پایه دهم</option>
+              <option value="10">پایه یازدهم</option>
+              <option value="11">پایه دوازدهم</option>
+            </optgroup>
             <option value="all">همه‌ی پایه‌ها</option>
           </select>
         </div>
@@ -3966,6 +4031,42 @@ function teacherPage() {
       </div>
 
       <div class="subtab-content hidden" id="tab-questions">
+        <h3>🎓 انتخاب پایه برای طراحی سوالات</h3>
+        <p class="muted" style="font-size:12px">هر پایه سوالات و سربرگ جداگانه‌ی خودش را دارد؛ دانش‌آموز هر پایه فقط سوالات همان پایه را می‌بیند.</p>
+        <div class="row" style="align-items:center;flex-wrap:wrap;gap:10px">
+          <div>
+            <label style="font-size:12px">🟢 ابتدایی</label>
+            <select id="qd-grade-elementary" class="qd-grade-group" style="min-width:150px">
+              <option value="">— انتخاب نشده —</option>
+              <option value="0">پایه اول دبستان</option>
+              <option value="1">پایه دوم دبستان</option>
+              <option value="2">پایه سوم دبستان</option>
+              <option value="3">پایه چهارم دبستان</option>
+              <option value="4">پایه پنجم دبستان</option>
+              <option value="5">پایه ششم دبستان</option>
+            </select>
+          </div>
+          <div>
+            <label style="font-size:12px">🔵 متوسطه اول</label>
+            <select id="qd-grade-middle" class="qd-grade-group" style="min-width:150px">
+              <option value="">— انتخاب نشده —</option>
+              <option value="6">پایه هفتم</option>
+              <option value="7">پایه هشتم</option>
+              <option value="8">پایه نهم</option>
+            </select>
+          </div>
+          <div>
+            <label style="font-size:12px">🟣 متوسطه دوم</label>
+            <select id="qd-grade-high" class="qd-grade-group" style="min-width:150px">
+              <option value="">— انتخاب نشده —</option>
+              <option value="9">پایه دهم</option>
+              <option value="10">پایه یازدهم</option>
+              <option value="11">پایه دوازدهم</option>
+            </select>
+          </div>
+        </div>
+        <p class="muted" id="qd-active-label" style="margin-top:6px;font-weight:600"></p>
+        <hr style="border:none;border-top:1px solid var(--line);margin:14px 0">
         <h3>📝 سربرگ آزمون</h3>
         <div class="row">
           <div><label>🏫 نام مدرسه</label><input id="m-school" placeholder="نام مدرسه"></div>
@@ -3973,15 +4074,8 @@ function teacherPage() {
         </div>
         <div class="row">
           <div><label>📝 نام آزمون</label><input id="m-exam-name" placeholder="نام آزمون"></div>
-          <div><label>🎓 مقطع تحصیلی</label>
-            <select id="m-grade-level">
-              <option value="elementary">ابتدایی (توصیفی)</option>
-              <option value="middle">متوسطه اول (نمره‌ای)</option>
-              <option value="high">متوسطه دوم (نمره‌ای)</option>
-            </select>
-            <span class="muted" style="font-size:12px">نوع ارزیابی: ابتدایی توصیفی، متوسطه نمره‌ای</span>
-          </div>
         </div>
+
         <div class="row">
           <div><label>⏱️ مدت زمان (دقیقه)</label>
             <input id="m-exam-duration" type="number" min="1" max="180" value="30">
@@ -6127,7 +6221,7 @@ function teacherScript() {
 
   // ===== دانش‌آموزان =====
   let TEACHER_STUDENTS=[];
-  const GRADE_LABELS=['پایه اول','پایه دوم','پایه سوم','پایه چهارم','پایه پنجم','پایه ششم'];
+  const GRADE_LABELS=['پایه اول (ابتدایی)','پایه دوم (ابتدایی)','پایه سوم (ابتدایی)','پایه چهارم (ابتدایی)','پایه پنجم (ابتدایی)','پایه ششم (ابتدایی)','پایه هفتم (متوسطه اول)','پایه هشتم (متوسطه اول)','پایه نهم (متوسطه اول)','پایه دهم (متوسطه دوم)','پایه یازدهم (متوسطه دوم)','پایه دوازدهم (متوسطه دوم)'];
   function renderStudentsFiltered(){
     const filterVal=document.getElementById('students-filter-grade').value;
     const list=filterVal==='all'?TEACHER_STUDENTS:TEACHER_STUDENTS.filter(s=>(Number.isInteger(s.grade)?s.grade:0)===parseInt(filterVal,10));
@@ -6245,6 +6339,25 @@ function teacherScript() {
     }catch(e){toast(e.message);}
   });
 
+  // ===== سه کشوی جدای پایه برای «ساخت دانش‌آموز جدید» (ابتدایی/متوسطه اول/متوسطه دوم) =====
+  var NEW_STUDENT_GRADE=0;
+  var NEW_GRADE_SELECT_IDS=['new-grade-elementary','new-grade-middle','new-grade-high'];
+  function nsSetGrade(g,sourceId){
+    NEW_STUDENT_GRADE=g;
+    NEW_GRADE_SELECT_IDS.forEach(function(sid){
+      var el=document.getElementById(sid);
+      if(!el)return;
+      if(sid===sourceId)return;
+      el.value='';
+    });
+  }
+  NEW_GRADE_SELECT_IDS.forEach(function(sid){
+    var el=document.getElementById(sid);
+    if(el)el.addEventListener('change',function(){ if(this.value!=='') nsSetGrade(parseInt(this.value,10),sid); });
+  });
+  // پیش‌فرض: پایه اول دبستان انتخاب‌شده باشد
+  (function(){var el=document.getElementById('new-grade-elementary');if(el)el.value='0';})();
+
   window.changeStudentGrade=async(id,sel)=>{
     const grade=parseInt(sel.value,10)||0;
     const prevGrade=sel.dataset.prev!==undefined?parseInt(sel.dataset.prev,10):null;
@@ -6281,7 +6394,7 @@ function teacherScript() {
 
   document.getElementById('btn-add-student').onclick=async()=>{
     const label=document.getElementById('new-label').value.trim();
-    const grade=parseInt(document.getElementById('new-grade').value,10)||0;
+    const grade=NEW_STUDENT_GRADE;
     const btn=document.getElementById('btn-add-student');btn.disabled=true;
     try{
       const r=await api('/api/teacher/students',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({label,grade,photo:newStudentPhoto})});
@@ -6299,16 +6412,53 @@ function teacherScript() {
     }finally{btn.disabled=false;}
   };
 
+  // ===== سه کشوی جدای پایه برای «طراحی سوالات» (ابتدایی/متوسطه اول/متوسطه دوم) =====
+  var QD_GRADE=0;
+  var QD_GRADE_SELECT_IDS=['qd-grade-elementary','qd-grade-middle','qd-grade-high'];
+  function qdActiveLabel(g){
+    return 'در حال ویرایش سربرگ و سوالات: '+(GRADE_LABELS[g]||('پایه '+(g+1)));
+  }
+  function qdSetGrade(g,sourceId){
+    QD_GRADE=g;
+    QD_GRADE_SELECT_IDS.forEach(function(sid){
+      var el=document.getElementById(sid);
+      if(!el)return;
+      if(sid===sourceId)return;
+      el.value='';
+    });
+    try{localStorage.setItem('qd-active-grade',String(g));}catch(e){}
+    var lbl=document.getElementById('qd-active-label');
+    if(lbl)lbl.textContent=qdActiveLabel(g);
+    var wl=document.getElementById('btn-word-exam');
+    if(wl)wl.href='/api/teacher/word?type=questions&grade='+g;
+    loadQuestions();
+  }
+  QD_GRADE_SELECT_IDS.forEach(function(sid){
+    var el=document.getElementById(sid);
+    if(el)el.addEventListener('change',function(){ if(this.value!=='') qdSetGrade(parseInt(this.value,10),sid); });
+  });
+  (function(){
+    var saved=parseInt(localStorage.getItem('qd-active-grade'),10);
+    var g=(Number.isInteger(saved)&&saved>=0&&saved<=11)?saved:0;
+    QD_GRADE=g;
+    var sid = g<=5?'qd-grade-elementary':(g<=8?'qd-grade-middle':'qd-grade-high');
+    var el=document.getElementById(sid);
+    if(el)el.value=String(g);
+    var lbl=document.getElementById('qd-active-label');
+    if(lbl)lbl.textContent=qdActiveLabel(g);
+  })();
+
   // ===== سوالات =====
   async function loadQuestions(){
-    const d=await api('/api/teacher/questions');
+    const d=await api('/api/teacher/questions?grade='+QD_GRADE);
     META=d.meta||{};
     QUESTIONS=d.questions||[];
     document.getElementById('m-school').value=META.school||'';
     document.getElementById('m-teacher').value=META.teacher||'';
     document.getElementById('m-exam-name').value=META.examName||'';
     document.getElementById('m-exam-duration').value=META.examDuration||'30';
-    document.getElementById('m-grade-level').value=META.gradeLevel||'elementary';
+    const wl=document.getElementById('btn-word-exam');
+    if(wl)wl.href='/api/teacher/word?type=questions&grade='+QD_GRADE;
     updateDurationDisplay();
     renderQ();
   }
@@ -6841,11 +6991,10 @@ function teacherScript() {
       school: document.getElementById('m-school').value,
       teacher: document.getElementById('m-teacher').value,
       examName: document.getElementById('m-exam-name').value,
-      examDuration: String(duration),
-      gradeLevel: document.getElementById('m-grade-level').value
+      examDuration: String(duration)
     };
-    const d=await api('/api/teacher/questions',{method:'PUT',headers:{'content-type':'application/json'},body:JSON.stringify({questions:QUESTIONS,meta:META})});
-    if(d.ok){toast('سربرگ و سوالات ذخیره شد ✅');}else toast(d.error||'خطا');
+    const d=await api('/api/teacher/questions',{method:'PUT',headers:{'content-type':'application/json'},body:JSON.stringify({questions:QUESTIONS,meta:META,grade:QD_GRADE})});
+    if(d.ok){toast('سربرگ و سوالات پایه «'+(GRADE_LABELS[QD_GRADE]||QD_GRADE)+'» ذخیره شد ✅');}else toast(d.error||'خطا');
   };
 
   // ===== پاسخنامه‌ها =====
