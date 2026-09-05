@@ -2378,6 +2378,7 @@ async function studentPage(env, id) {
       </div>
       <p class="muted" id="info-err" style="color:var(--danger)"></p>
       <button class="btn" id="btn-enter">🚀 ورود به آزمون</button>
+      <button class="btn sec" id="btn-info-back" style="margin-top:10px">↩️ بازگشت</button>
     </div>
 
     <!-- مرحله ۲: سوالات با تایمر -->
@@ -2500,6 +2501,10 @@ async function studentPage(env, id) {
       };
       document.getElementById('btn-rc-view-back').onclick=function(){
         document.getElementById('step-reportcard').classList.add('hidden');
+        document.getElementById('step-choice').classList.remove('hidden');
+      };
+      document.getElementById('btn-info-back').onclick=function(){
+        document.getElementById('step-info').classList.add('hidden');
         document.getElementById('step-choice').classList.remove('hidden');
       };
     }
@@ -3150,6 +3155,7 @@ async function workSheetPage(env, id) {
   <body><div class="wrap">
     ${pageHeader()}
     <div class="card">
+      <button class="btn sec sm" id="ws-btn-back" style="margin-bottom:14px">↩️ بازگشت به گزینه‌ها</button>
       <h2>🧾 کاربرگ</h2>
       <div id="ws-label" class="muted" style="margin-bottom:14px"></div>
 
@@ -3195,6 +3201,7 @@ async function workSheetPage(env, id) {
   <div class="toast" id="toast"></div>
   <script>
     const ID=${JSON.stringify(id)};
+    document.getElementById('ws-btn-back').onclick=function(){ location.href='/s/'+encodeURIComponent(ID); };
     function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.style.opacity='1';setTimeout(()=>t.style.opacity='0',2600);}
     async function api(path,opts){const r=await fetch(path,opts);return r.json();}
 
@@ -4735,6 +4742,7 @@ function teacherPage() {
         <div class="subtabs" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;border-bottom:2px solid #e2e8f0;padding-bottom:12px">
           <div class="subtab active" data-subtab="translate">🌐 ترجمه</div>
           <div class="subtab" data-subtab="ai">🤖 هوش مصنوعی</div>
+          <div class="subtab" data-subtab="exceltable">📊 جدول‌ساز اکسل</div>
         </div>
 
       <div class="subtab-content" id="tab-translate">
@@ -4856,6 +4864,35 @@ function teacherPage() {
             <textarea id="ai-input" placeholder="پیام خود را بنویسید..." rows="1"></textarea>
             <button class="btn primary ai-send-btn" id="btn-ai-send"><span>➤</span></button>
           </div>
+        </div>
+      </div>
+
+      <div class="subtab-content hidden" id="tab-exceltable">
+        <h3>📊 جدول‌ساز اکسل</h3>
+        <p class="muted">یک عکس یا اسکن از فرم/جدول/لیست (مثلاً لیست اسامی دانش‌آموزان، نمرات یا هر فرم دیگری) بفرستید تا هوش مصنوعی اطلاعاتش را در قالب جدول استخراج کند؛ بعد از بازبینی و ویرایش، می‌توانید آن را به‌صورت فایل اکسل دانلود کنید.</p>
+        <div class="row" style="align-items:center;flex-wrap:wrap;gap:10px">
+          <input type="file" id="exl-file" accept="image/*,application/pdf" class="hidden">
+          <label class="btn sec" for="exl-file" style="cursor:pointer;flex:0 0 auto">📷 انتخاب عکس یا PDF فرم</label>
+          <span class="muted" id="exl-file-name" style="font-size:13px"></span>
+        </div>
+        <div id="exl-img-preview" class="hidden" style="margin-top:10px">
+          <img id="exl-img-preview-img" style="max-width:260px;max-height:200px;border:1px solid var(--line);border-radius:8px">
+        </div>
+        <div class="row" style="margin-top:12px">
+          <button class="btn primary" id="btn-exl-extract">🔎 استخراج جدول با هوش مصنوعی</button>
+          <button class="btn gray" id="btn-exl-reset">🗑️ شروع دوباره</button>
+        </div>
+        <p class="muted" id="exl-status" style="margin-top:8px"></p>
+        <div id="exl-table-wrap" class="hidden" style="margin-top:16px">
+          <div class="row" style="flex-wrap:wrap;gap:8px">
+            <button class="btn sm sec" id="btn-exl-add-row">➕ ردیف</button>
+            <button class="btn sm sec" id="btn-exl-add-col">➕ ستون</button>
+            <button class="btn sm primary" id="btn-exl-download">📥 دانلود فایل اکسل</button>
+          </div>
+          <div style="overflow:auto;margin-top:10px;max-height:60vh;border:1px solid var(--line);border-radius:8px">
+            <table id="exl-table" style="width:100%;border-collapse:collapse"></table>
+          </div>
+          <p class="muted" style="font-size:12px;margin-top:6px">قبل از دانلود، سلول‌ها را در صورت نیاز ویرایش کنید (روی هر خانه کلیک کنید). برای حذف یک ردیف یا ستون، از دکمه‌ی 🗑 کنار آن استفاده کنید.</p>
         </div>
       </div>
 
@@ -10846,6 +10883,150 @@ function teacherScript() {
     }
   };
   aiInput.onkeydown=e=>{ if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();document.getElementById('btn-ai-send').click();} };
+
+  // ===== جدول‌ساز اکسل (استخراج جدول از عکس/PDF با هوش مصنوعی) =====
+  (function(){
+    let exlDataUrl=null, exlRows=null; // exlRows: آرایه‌ای از آرایه‌ها (سطر اول = هدر)
+    const exlFileInput=document.getElementById('exl-file');
+    const exlFileName=document.getElementById('exl-file-name');
+    const exlPreviewBox=document.getElementById('exl-img-preview');
+    const exlPreviewImg=document.getElementById('exl-img-preview-img');
+    const exlStatus=document.getElementById('exl-status');
+    const exlTableWrap=document.getElementById('exl-table-wrap');
+    const exlTable=document.getElementById('exl-table');
+
+    exlFileInput.addEventListener('change',async function(e){
+      const file=e.target.files[0];
+      if(!file)return;
+      exlFileName.textContent=file.name;
+      try{
+        if(file.type==='application/pdf'){
+          exlStatus.textContent='⏳ در حال تبدیل صفحه‌ی اول PDF به تصویر...';
+          const buf=await file.arrayBuffer();
+          const doc=await pdfjsLib.getDocument({data:buf}).promise;
+          const page=await doc.getPage(1);
+          const viewport=page.getViewport({scale:2});
+          const canvas=document.createElement('canvas');
+          canvas.width=viewport.width;canvas.height=viewport.height;
+          await page.render({canvasContext:canvas.getContext('2d'),viewport}).promise;
+          exlDataUrl=canvas.toDataURL('image/png');
+          exlStatus.textContent='';
+        }else if(file.type.startsWith('image/')){
+          exlDataUrl=await new Promise((resolve,reject)=>{
+            const rd=new FileReader();
+            rd.onload=()=>resolve(rd.result);
+            rd.onerror=reject;
+            rd.readAsDataURL(file);
+          });
+        }else{
+          toast('فقط عکس یا PDF مجاز است');return;
+        }
+        exlPreviewImg.src=exlDataUrl;
+        exlPreviewBox.classList.remove('hidden');
+      }catch(err){toast('خطا در خواندن فایل: '+err.message);}
+    });
+
+    function exlRenderTable(){
+      if(!exlRows||!exlRows.length){exlTableWrap.classList.add('hidden');return;}
+      let h='<thead><tr>';
+      exlRows[0].forEach(function(_,ci){
+        h+='<th style="border:1px solid var(--line);padding:4px;background:#f1f5f9;position:relative"><button type="button" data-col-del="'+ci+'" title="حذف ستون" style="position:absolute;top:2px;left:2px;border:none;background:transparent;cursor:pointer;font-size:11px">🗑</button></th>';
+      });
+      h+='</tr></thead><tbody>';
+      exlRows.forEach(function(row,ri){
+        h+='<tr>';
+        row.forEach(function(cell,ci){
+          h+='<td style="border:1px solid var(--line);padding:0;'+(ri===0?'background:#eff6ff;font-weight:600':'')+'">'+
+            '<div contenteditable="true" data-r="'+ri+'" data-c="'+ci+'" style="padding:6px 8px;min-width:90px;outline:none">'+esc(cell==null?'':cell)+'</div></td>';
+        });
+        h+='<td style="border:none;padding:0 4px"><button type="button" data-row-del="'+ri+'" title="حذف ردیف" style="border:none;background:transparent;cursor:pointer">🗑</button></td>';
+        h+='</tr>';
+      });
+      h+='</tbody>';
+      exlTable.innerHTML=h;
+      exlTableWrap.classList.remove('hidden');
+
+      exlTable.querySelectorAll('[contenteditable]').forEach(function(cellEl){
+        cellEl.addEventListener('input',function(){
+          const r=parseInt(this.dataset.r,10), c=parseInt(this.dataset.c,10);
+          if(exlRows[r])exlRows[r][c]=this.textContent;
+        });
+      });
+      exlTable.querySelectorAll('[data-row-del]').forEach(function(btn){
+        btn.addEventListener('click',function(){
+          const r=parseInt(this.dataset.rowDel,10);
+          if(exlRows.length<=1){toast('حداقل یک ردیف باید باقی بماند');return;}
+          exlRows.splice(r,1);
+          exlRenderTable();
+        });
+      });
+      exlTable.querySelectorAll('[data-col-del]').forEach(function(btn){
+        btn.addEventListener('click',function(){
+          const c=parseInt(this.dataset.colDel,10);
+          if(exlRows[0].length<=1){toast('حداقل یک ستون باید باقی بماند');return;}
+          exlRows.forEach(function(row){row.splice(c,1);});
+          exlRenderTable();
+        });
+      });
+    }
+
+    document.getElementById('btn-exl-extract').onclick=async function(){
+      if(!exlDataUrl){toast('لطفاً ابتدا یک عکس یا PDF انتخاب کنید');return;}
+      const btn=this;btn.disabled=true;
+      exlStatus.textContent='⏳ در حال استخراج جدول با هوش مصنوعی... (ممکن است چند ثانیه طول بکشد)';
+      try{
+        const sys='شما یک دستیار استخراج داده‌ی جدولی هستید. در تصویر ارسالی یک فرم، جدول یا لیست وجود دارد. تمام اطلاعات آن را دقیقاً به‌صورت یک آرایه‌ی JSON از آرایه‌ها (آرایه‌ی دوبعدی) استخراج کن. سطر اول باید عنوان ستون‌ها (هدر) باشد و سطرهای بعدی مقادیر واقعی. اگر ستون یا سطری خالی بود، رشته‌ی خالی "" بگذار. خروجی را فقط و فقط به‌صورت JSON خالص برگردان — بدون هیچ توضیح، بدون قالب‌بندی مارک‌داون یا نشانه‌ی کد، فقط خودِ آرایه.';
+        const res=await fetch('/api/teacher/ai/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({messages:[{role:'system',content:sys},{role:'user',content:[{type:'text',text:'اطلاعات جدول این تصویر را استخراج کن.'},{type:'image_url',image_url:{url:exlDataUrl}}]}],max_tokens:4096,provider:getAiProvider(),model:getAiModel()})});
+        const data=await res.json();
+        if(data.error)throw new Error(data.error);
+        let raw=(data.content||'').trim();
+        var FENCE=String.fromCharCode(96,96,96);
+        if(raw.slice(0,FENCE.length+4).toLowerCase()===(FENCE+'json').toLowerCase())raw=raw.slice(FENCE.length+4);
+        else if(raw.slice(0,FENCE.length)===FENCE)raw=raw.slice(FENCE.length);
+        if(raw.slice(-FENCE.length)===FENCE)raw=raw.slice(0,-FENCE.length);
+        raw=raw.trim();
+        const start=raw.indexOf('[');
+        const end=raw.lastIndexOf(']');
+        if(start===-1||end===-1)throw new Error('پاسخ هوش مصنوعی قابل پردازش نبود، دوباره تلاش کنید');
+        const parsed=JSON.parse(raw.slice(start,end+1));
+        if(!Array.isArray(parsed)||!parsed.length)throw new Error('هوش مصنوعی جدولی برنگرداند، دوباره تلاش کنید');
+        exlRows=parsed.map(function(row){return Array.isArray(row)?row.map(function(c){return c==null?'':String(c);}):[String(row)];});
+        const maxCols=Math.max.apply(null,exlRows.map(function(r){return r.length;}));
+        exlRows=exlRows.map(function(row){while(row.length<maxCols)row.push('');return row;});
+        exlRenderTable();
+        exlStatus.textContent='✅ جدول استخراج شد. قبل از دانلود، سلول‌ها را بازبینی کنید.';
+        toast('جدول با موفقیت استخراج شد ✅');
+      }catch(err){
+        exlStatus.textContent='';
+        toast('خطا: '+err.message);
+      }
+      btn.disabled=false;
+    };
+
+    document.getElementById('btn-exl-add-row').onclick=function(){
+      if(!exlRows){exlRows=[['ستون ۱']];}
+      exlRows.push(exlRows[0].map(function(){return '';}));
+      exlRenderTable();
+    };
+    document.getElementById('btn-exl-add-col').onclick=function(){
+      if(!exlRows){exlRows=[['ستون ۱']];}
+      exlRows.forEach(function(row,ri){row.push(ri===0?('ستون '+row.length):'');});
+      exlRenderTable();
+    };
+    document.getElementById('btn-exl-reset').onclick=function(){
+      exlDataUrl=null;exlRows=null;
+      exlFileInput.value='';exlFileName.textContent='';
+      exlPreviewBox.classList.add('hidden');
+      exlTableWrap.classList.add('hidden');
+      exlStatus.textContent='';
+    };
+    document.getElementById('btn-exl-download').onclick=async function(){
+      if(!exlRows||!exlRows.length){toast('جدولی برای دانلود وجود ندارد');return;}
+      await lbExcelExport('جدول-استخراج‌شده',function(wb){
+        lbAddExcelSheet(wb,'جدول',exlRows);
+      });
+    };
+  })();
 
   // ===== تغییر رمز عبور =====
   document.getElementById('btn-change-pass').onclick=async()=>{
