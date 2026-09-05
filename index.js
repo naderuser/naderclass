@@ -3704,7 +3704,7 @@ async function studentClassPage(env, id) {
 /* ------------------------- Service Worker حالت آفلاین (فقط پنل معلم) ------------------------- */
 function teacherServiceWorkerScript() {
   return `
-const SW_VER='panel-offline-v2';
+const SW_VER='panel-offline-v3';
 const SHELL_CACHE='shell-'+SW_VER, API_CACHE='api-'+SW_VER, CDN_CACHE='cdn-'+SW_VER;
 const KEEP=[SHELL_CACHE,API_CACHE,CDN_CACHE];
 
@@ -4026,6 +4026,7 @@ function teacherPage() {
             </optgroup>
             <option value="all">همه‌ی پایه‌ها</option>
           </select>
+          <button class="btn sm" id="btn-apply-students-filter" style="flex:0 0 auto">نمایش</button>
         </div>
         <div id="students-list"></div>
       </div>
@@ -6228,6 +6229,7 @@ function teacherScript() {
     renderStudentsTable(list);
   }
   document.getElementById('students-filter-grade').addEventListener('change',renderStudentsFiltered);
+  document.getElementById('btn-apply-students-filter').addEventListener('click',renderStudentsFiltered);
   function renderStudentsTable(students){
     const box=document.getElementById('students-list');
     if(!students.length){box.innerHTML='<p class="muted">دانش‌آموزی در این پایه ثبت نشده است.</p>';return;}
