@@ -1086,7 +1086,7 @@ async function handleApi(req, env, url, path) {
       if (provider === "groq") {
         const groqKey = env.GROQ_API_KEY;
         if (!groqKey) return json({ error: "کلید GROQ_API_KEY تنظیم نشده" }, 500);
-        const groqModel = body.model || env.GROQ_MODEL || "llama-3.1-8b-instant";
+        const groqModel = body.model || env.GROQ_MODEL || "openai/gpt-oss-20b";
         const result = await callOpenAiCompatible(
           "https://api.groq.com/openai/v1/chat/completions",
           groqKey, groqModel, messages.slice(-10), maxTokens
@@ -5647,13 +5647,12 @@ function teacherPage() {
         <div id="ai-groq-model-wrap" class="hidden" style="margin-bottom:18px">
           <label>مدل Groq</label>
           <select id="ai-groq-model">
-            <option value="llama-3.1-8b-instant">Llama 3.1 8B Instant (سریع‌ترین)</option>
-            <option value="llama-3.3-70b-versatile">Llama 3.3 70B (قوی‌تر و دقیق‌تر)</option>
-            <option value="mixtral-8x7b-32768">Mixtral 8x7B</option>
-            <option value="gemma2-9b-it">Gemma2 9B</option>
-            <option value="llama-3.2-90b-vision-preview">Llama 3.2 90B Vision (پشتیبانی از عکس)</option>
+            <option value="openai/gpt-oss-20b">GPT-OSS 20B (سریع‌ترین، پیش‌فرض)</option>
+            <option value="openai/gpt-oss-120b">GPT-OSS 120B (قوی‌تر و دقیق‌تر)</option>
+            <option value="qwen/qwen3.6-27b">Qwen 3.6 27B (پشتیبانی از عکس)</option>
+            <option value="qwen/qwen3.8-27b">Qwen 3.8 27B (پشتیبانی از عکس، استدلال قابل‌تنظیم)</option>
           </select>
-          <p class="muted" style="font-size:12px;margin-top:6px">⚡ Groq روی سخت‌افزار مخصوص (LPU) اجرا می‌شود و معمولاً چند برابر سریع‌تر از موتورهای دیگر جواب می‌دهد. برای استخراج متن از عکس (OCR) و ترجمه‌ی تصویر، مدل «Vision» را انتخاب کنید؛ بقیه‌ی مدل‌های بالا فقط متنی هستند.</p>
+          <p class="muted" style="font-size:12px;margin-top:6px">⚡ Groq روی سخت‌افزار مخصوص (LPU) اجرا می‌شود و معمولاً چند برابر سریع‌تر از موتورهای دیگر جواب می‌دهد. برای استخراج متن از عکس (OCR) و ترجمه‌ی تصویر، یکی از مدل‌های «Qwen» (پشتیبانی از عکس) را انتخاب کنید؛ مدل‌های GPT-OSS فقط متنی هستند.</p>
         </div>
         <div id="ai-cloudflare-model-wrap" class="hidden" style="margin-bottom:18px">
           <label>مدل Cloudflare Workers AI</label>
@@ -5807,7 +5806,7 @@ function teacherScript() {
   window.getAiModel=function(){
     var p=getAiProvider();
     if(p==='opencode')return localStorage.getItem(AI_MODEL_KEY_OPENCODE)||'kimi-k2.5-free';
-    if(p==='groq')return localStorage.getItem(AI_MODEL_KEY_GROQ)||'llama-3.1-8b-instant';
+    if(p==='groq')return localStorage.getItem(AI_MODEL_KEY_GROQ)||'openai/gpt-oss-20b';
     if(p==='cloudflare')return localStorage.getItem(AI_MODEL_KEY_CLOUDFLARE)||'@cf/meta/llama-3.1-8b-instruct-fast';
     return '';
   };
@@ -5829,7 +5828,7 @@ function teacherScript() {
     radios.forEach(function(r){r.checked=(r.value===current);});
     applyVisibility(current);
     if(opencodeSel)opencodeSel.value=localStorage.getItem(AI_MODEL_KEY_OPENCODE)||'kimi-k2.5-free';
-    if(groqSel)groqSel.value=localStorage.getItem(AI_MODEL_KEY_GROQ)||'llama-3.1-8b-instant';
+    if(groqSel)groqSel.value=localStorage.getItem(AI_MODEL_KEY_GROQ)||'openai/gpt-oss-20b';
     if(cfSel)cfSel.value=localStorage.getItem(AI_MODEL_KEY_CLOUDFLARE)||'@cf/meta/llama-3.1-8b-instruct-fast';
     var AI_PROVIDER_LABELS={gemini:'Gemini',opencode:'OpenCode',groq:'Groq',cloudflare:'Cloudflare Workers AI'};
     radios.forEach(function(r){
