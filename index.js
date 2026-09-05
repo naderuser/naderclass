@@ -299,7 +299,7 @@ export default {
         return await studentClassPage(env, id);
       }
 
-      if (path === "/teacher" || path === "/teacher/") return html(teacherPage());
+      if (path === "/teacher" || path === "/teacher/") return html(teacherPage(), 200, { "cache-control": "no-store" });
 
       if (path === "/") return html(landingPage());
 
@@ -3704,7 +3704,7 @@ async function studentClassPage(env, id) {
 /* ------------------------- Service Worker حالت آفلاین (فقط پنل معلم) ------------------------- */
 function teacherServiceWorkerScript() {
   return `
-const SW_VER='panel-offline-v1';
+const SW_VER='panel-offline-v2';
 const SHELL_CACHE='shell-'+SW_VER, API_CACHE='api-'+SW_VER, CDN_CACHE='cdn-'+SW_VER;
 const KEEP=[SHELL_CACHE,API_CACHE,CDN_CACHE];
 
