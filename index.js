@@ -1098,7 +1098,7 @@ async function handleApi(req, env, url, path) {
       // ----- موتور Cloudflare Workers AI — بدون نیاز به API key، از طریق AI binding خودِ همین Worker -----
       if (provider === "cloudflare") {
         if (!env.AI) return json({ error: 'AI binding تنظیم نشده — باید [ai] binding = "AI" را به wrangler.toml اضافه و دوباره deploy کنید' }, 500);
-        const cfModel = body.model || env.CLOUDFLARE_AI_MODEL || "@cf/meta/llama-3.1-8b-instruct";
+        const cfModel = body.model || env.CLOUDFLARE_AI_MODEL || "@cf/meta/llama-3.1-8b-instruct-fast";
         const trimmedMessages = messages.slice(-10);
         const MAX_ATTEMPTS = 3;
         let lastErr = null;
@@ -5637,7 +5637,7 @@ function teacherPage() {
         <div id="ai-cloudflare-model-wrap" class="hidden" style="margin-bottom:18px">
           <label>مدل Cloudflare Workers AI</label>
           <select id="ai-cloudflare-model">
-            <option value="@cf/meta/llama-3.1-8b-instruct">Llama 3.1 8B (پیش‌فرض، متعادل)</option>
+            <option value="@cf/meta/llama-3.1-8b-instruct-fast">Llama 3.1 8B Fast (پیش‌فرض، متعادل)</option>
             <option value="@cf/meta/llama-3.2-3b-instruct">Llama 3.2 3B (سبک‌تر و سریع‌تر)</option>
             <option value="@cf/zai-org/glm-4.7-flash">GLM-4.7 Flash (سریع، چندزبانه)</option>
             <option value="@cf/google/gemma-4-26b-a4b-it">Gemma 4 26B (پشتیبانی از عکس)</option>
@@ -5787,7 +5787,7 @@ function teacherScript() {
     var p=getAiProvider();
     if(p==='opencode')return localStorage.getItem(AI_MODEL_KEY_OPENCODE)||'kimi-k2.5-free';
     if(p==='groq')return localStorage.getItem(AI_MODEL_KEY_GROQ)||'llama-3.1-8b-instant';
-    if(p==='cloudflare')return localStorage.getItem(AI_MODEL_KEY_CLOUDFLARE)||'@cf/meta/llama-3.1-8b-instruct';
+    if(p==='cloudflare')return localStorage.getItem(AI_MODEL_KEY_CLOUDFLARE)||'@cf/meta/llama-3.1-8b-instruct-fast';
     return '';
   };
   (function initAiProviderUI(){
@@ -5809,7 +5809,7 @@ function teacherScript() {
     applyVisibility(current);
     if(opencodeSel)opencodeSel.value=localStorage.getItem(AI_MODEL_KEY_OPENCODE)||'kimi-k2.5-free';
     if(groqSel)groqSel.value=localStorage.getItem(AI_MODEL_KEY_GROQ)||'llama-3.1-8b-instant';
-    if(cfSel)cfSel.value=localStorage.getItem(AI_MODEL_KEY_CLOUDFLARE)||'@cf/meta/llama-3.1-8b-instruct';
+    if(cfSel)cfSel.value=localStorage.getItem(AI_MODEL_KEY_CLOUDFLARE)||'@cf/meta/llama-3.1-8b-instruct-fast';
     var AI_PROVIDER_LABELS={gemini:'Gemini',opencode:'OpenCode',groq:'Groq',cloudflare:'Cloudflare Workers AI'};
     radios.forEach(function(r){
       r.addEventListener('change',function(){
