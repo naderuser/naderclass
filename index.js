@@ -4027,7 +4027,9 @@ function teacherPage() {
             <select id="ans-student-select"><option value="">— یک دانش‌آموز را انتخاب کنید —</option></select>
           </div>
           <button class="btn gray sm" id="btn-refresh-ans" style="flex:0 0 auto;margin-top:20px">🔄 به‌روزرسانی</button>
+          <button class="btn sm" id="btn-autograde-all" style="flex:0 0 auto;margin-top:20px;background:#059669;color:#fff">🤖 تصحیح خودکار (چهارگزینه‌ای و صحیح/غلط)</button>
         </div>
+        <p class="muted" style="font-size:12px;margin-top:6px">تصحیح خودکار فقط برای سوالات چهارگزینه‌ای و صحیح/غلط (که پاسخ درست مشخصی دارند) انجام می‌شود؛ سوالات کوتاه‌پاسخ و تشریحی همیشه به‌صورت دستی تصحیح می‌شوند.</p>
         <div id="answers-list" style="margin-top:14px"></div>
       </div>
 
@@ -6852,6 +6854,72 @@ function teacherScript() {
     if(q.type==='truefalse'){return ans==='true'?'صحیح':(ans==='false'?'غلط':'');}
     return esc(ans);
   }
+
+  // ===== تصحیح خودکار (فقط چهارگزینه‌ای و صحیح/غلط که پاسخ درست مشخص دارند) =====
+  function isAnswerCorrect(q,ans){
+    if(q.type==='multiple'){
+      if(q.correct===undefined||q.correct===null||q.correct==='') return null;
+      if(ans===undefined||ans===null||ans==='') return false;
+      return String(ans)===String(q.correct);
+    }
+    if(q.type==='truefalse'){
+      if(q.correct===undefined||q.correct===null||q.correct==='') return null;
+      if(ans===undefined||ans===null||ans==='') return false;
+      return String(ans)===String(q.correct);
+    }
+    return null; // کوتاه‌پاسخ و تشریحی: تصحیح خودکار نمی‌شوند
+  }
+  window.autoGradeObjectiveAll=async function(){
+    if(!SUBS||!SUBS.length){toast('پاسخنامه‌ای برای تصحیح وجود ندارد');return;}
+    var isNumeric=GRADING_TYPE==='numeric';
+    var fullyDone=0, partiallyFilled=0;
+    for(var si=0; si<SUBS.length; si++){
+      var s=SUBS[si];
+      var g=s.grading||{graded:false,feedback:{},marks:{},overall:''};
+      if(g.graded) continue; // پاسخنامه‌ی از قبل تصحیح‌شده دست نمی‌خورد
+      var qs=s.questionsSnapshot||[];
+      if(!qs.length) continue;
+      var totalWeight=qs.reduce(function(sum,qq){return sum+(qq.weight||1);},0)||20;
+      var marks={}, feedback=Object.assign({},g.feedback||{});
+      var allObjective=true, anyAutoGraded=false;
+      qs.forEach(function(q){
+        var ans=s.answers?s.answers[q.id]:'';
+        var existingMk=(g.marks&&g.marks[q.id])||'';
+        var ac=isAnswerCorrect(q,ans);
+        if(ac!==null){
+          if(existingMk){ marks[q.id]=existingMk; }
+          else{
+            if(isNumeric){
+              var maxScore=((q.weight||1)/totalWeight)*20;
+              marks[q.id]=(ac?maxScore:0).toFixed(1);
+            }else{
+              marks[q.id]=ac?'excellent':'needs-improve';
+            }
+            anyAutoGraded=true;
+          }
+        }else{
+          allObjective=false;
+          if(existingMk) marks[q.id]=existingMk;
+        }
+      });
+      if(!anyAutoGraded) continue;
+      if(allObjective){
+        var d=await api('/api/teacher/grade',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({uuid:s.uuid,feedback:feedback,marks:marks,overall:g.overall||''})});
+        if(d&&d.ok) fullyDone++;
+      }else{
+        s.grading=Object.assign({},g,{marks:marks,feedback:feedback});
+        partiallyFilled++;
+      }
+    }
+    await loadAnswers();
+    var sel=document.getElementById('ans-student-select');
+    if(sel&&sel.value) renderAnswerDetail(sel.value);
+    if(fullyDone===0&&partiallyFilled===0){ toast('چیزی برای تصحیح خودکار پیدا نشد'); return; }
+    var msg='🤖 '+fullyDone+' پاسخنامه به‌طور کامل تصحیح شد';
+    if(partiallyFilled) msg+='، بخش عینی '+partiallyFilled+' پاسخنامه‌ی دیگر پر شد (نیاز به تکمیل دستی سوالات کوتاه‌پاسخ/تشریحی)';
+    toast(msg);
+  };
+
   
   let GRADING_TYPE = 'descriptive';
   
@@ -6906,23 +6974,31 @@ function teacherScript() {
       const ans=s.answers?s.answers[q.id]:'';
       const photoAns=s.photoAnswers?s.photoAnswers[q.id]:'';
       const fb=(g.feedback&&g.feedback[q.id])||'';
-      const mk=(g.marks&&g.marks[q.id])||'';
+      let mk=(g.marks&&g.marks[q.id])||'';
       const weight = q.weight || 1;
-      
+      const totalWeightAll = s.questionsSnapshot.reduce((sum, qq) => sum + (qq.weight || 1), 0) || 20;
+      const maxScore = (weight / totalWeightAll) * 20;
+      const autoCorrect = isAnswerCorrect(q,ans);
+      let autoFilled=false;
+      if(!mk && autoCorrect!==null){
+        mk = isNumeric ? (autoCorrect?maxScore:0).toFixed(1) : (autoCorrect?'excellent':'needs-improve');
+        autoFilled=true;
+      }
+      const autoBadge = autoCorrect===null ? '' :
+        (' <span class="pill '+(autoCorrect?'ok':'gr')+'" style="font-size:11px">'+(autoCorrect?'✅ صحیح':'❌ نادرست')+' (خودکار)</span>');
+
       let gradeCell;
       if(isNumeric){
         // محاسبه حداکثر نمره برای این سوال (بر اساس وزن)
-        const totalWeight = s.questionsSnapshot.reduce((sum, qq) => sum + (qq.weight || 1), 0) || 20;
-        const maxScore = (weight / totalWeight) * 20;
-        gradeCell='<input type="number" id="mk_'+s.uuid+'_'+q.id+'" value="'+esc(mk)+'" placeholder="نمره" min="0" max="'+maxScore.toFixed(1)+'" step="0.5" style="width:80px;padding:6px;border:1px solid #ddd;border-radius:4px">'+
+        gradeCell='<input type="number" id="mk_'+s.uuid+'_'+q.id+'" value="'+esc(mk)+'" placeholder="نمره" min="0" max="'+maxScore.toFixed(1)+'" step="0.5" style="width:80px;padding:6px;border:1px solid #ddd;border-radius:4px'+(autoFilled?';background:#ecfdf5':'')+'">'+
           '<span style="font-size:11px;color:#64748b;margin-right:4px">از '+maxScore.toFixed(1)+'</span>';
       } else {
         const opt=(v,t)=>'<option value="'+v+'" '+(mk===v?'selected':'')+'>'+t+'</option>';
-        gradeCell='<select id="mk_'+s.uuid+'_'+q.id+'"><option value="">—</option>'+opt('excellent','🌟 خیلی خوب')+opt('good','✅ خوب')+opt('acceptable','📌 قابل‌قبول')+opt('needs-improve','📖 نیاز به تلاش')+'</select>';
+        gradeCell='<select id="mk_'+s.uuid+'_'+q.id+'" style="'+(autoFilled?'background:#ecfdf5':'')+'"><option value="">—</option>'+opt('excellent','🌟 خیلی خوب')+opt('good','✅ خوب')+opt('acceptable','📌 قابل‌قبول')+opt('needs-improve','📖 نیاز به تلاش')+'</select>';
       }
       
       return '<tr><td>'+(i+1)+'</td><td>'+qHtml(q)+(q.image?'<br><img src="'+q.image+'" class="imgprev" style="max-width:'+(q.imageWidth||320)+'px;width:100%;cursor:zoom-in" onclick="openAnsPhoto(this.src)" title="برای بزرگ‌نمایی کلیک کنید">':'')+'</td>'+
-        '<td>'+(ansText(q,ans)||(photoAns?'':'<i>بدون پاسخ</i>'))+(photoAns?'<br><img src="'+photoAns+'" class="ans-photo-thumb" onclick="openAnsPhoto(this.src)" style="max-width:200px;width:100%;border:1px solid #ddd;border-radius:6px;margin-top:6px;cursor:zoom-in" title="برای بزرگ‌نمایی کلیک کنید"><br><a href="'+photoAns+'" download="پاسخ.jpg" class="btn sm secondary" style="margin-top:4px;display:inline-block">⬇️ دانلود عکس</a>':'')+'</td>'+
+        '<td>'+(ansText(q,ans)||(photoAns?'':'<i>بدون پاسخ</i>'))+autoBadge+(photoAns?'<br><img src="'+photoAns+'" class="ans-photo-thumb" onclick="openAnsPhoto(this.src)" style="max-width:200px;width:100%;border:1px solid #ddd;border-radius:6px;margin-top:6px;cursor:zoom-in" title="برای بزرگ‌نمایی کلیک کنید"><br><a href="'+photoAns+'" download="پاسخ.jpg" class="btn sm secondary" style="margin-top:4px;display:inline-block">⬇️ دانلود عکس</a>':'')+'</td>'+
         '<td>'+gradeCell+'</td>'+
         '<td><input type="text" id="fb_'+s.uuid+'_'+q.id+'" value="'+esc(fb)+'" placeholder="بازخورد"></td></tr>';
     }).join('');
@@ -6958,6 +7034,7 @@ function teacherScript() {
     if(d.ok){toast('تصحیح ثبت شد ✅');loadAnswers();}else toast(d.error||'خطا');
   };
   document.getElementById('btn-refresh-ans').onclick=loadAnswers;
+  document.getElementById('btn-autograde-all').onclick=function(){autoGradeObjectiveAll();};
 
   // ===== کاربرگ =====
   let WORKSHEET_STUDENTS=[];
