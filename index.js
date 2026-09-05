@@ -250,6 +250,8 @@ export default {
     try {
       if (path === "/api/classroom/ws") return await handleClassroomSocket(req, env, url);
 
+      if (path === "/sw.js") return new Response(teacherServiceWorkerScript(), { headers: { "content-type": "application/javascript; charset=utf-8", "cache-control": "no-cache" } });
+
       if (path.startsWith("/api/")) return await handleApi(req, env, url, path);
 
       if (path.startsWith("/s/")) {
@@ -3670,6 +3672,69 @@ async function studentClassPage(env, id) {
 
 /* ------------------------- پنل معلم (کامل) ------------------------- */
 
+/* ------------------------- Service Worker حالت آفلاین (فقط پنل معلم) ------------------------- */
+function teacherServiceWorkerScript() {
+  return `
+const SW_VER='panel-offline-v1';
+const SHELL_CACHE='shell-'+SW_VER, API_CACHE='api-'+SW_VER, CDN_CACHE='cdn-'+SW_VER;
+const KEEP=[SHELL_CACHE,API_CACHE,CDN_CACHE];
+
+self.addEventListener('install',(e)=>{ self.skipWaiting(); });
+
+self.addEventListener('activate',(e)=>{
+  e.waitUntil((async()=>{
+    const keys=await caches.keys();
+    await Promise.all(keys.filter(k=>!KEEP.includes(k)).map(k=>caches.delete(k)));
+    await self.clients.claim();
+  })());
+});
+
+self.addEventListener('fetch',(event)=>{
+  const req=event.request;
+  if(req.method!=='GET') return; // فقط درخواست‌های خواندنی کش می‌شوند؛ ارسال‌ها توسط خود پنل صف‌بندی می‌شود
+  const url=new URL(req.url);
+
+  // فایل‌های CDN (jspdf, pdf.js, jszip, tesseract, فونت‌ها): cache-first
+  if(url.origin!==self.location.origin){
+    event.respondWith((async()=>{
+      const cache=await caches.open(CDN_CACHE);
+      const cached=await cache.match(req);
+      if(cached){ fetch(req).then(res=>{ if(res&&res.ok) cache.put(req,res.clone()); }).catch(()=>{}); return cached; }
+      try{ const res=await fetch(req); if(res&&res.ok) cache.put(req,res.clone()); return res; }
+      catch(e){ return cached||Response.error(); }
+    })());
+    return;
+  }
+
+  // خود پنل معلم: network-first با بازگشت به نسخه‌ی کش‌شده هنگام قطعی
+  if(url.pathname==='/teacher'||url.pathname==='/teacher/'){
+    event.respondWith((async()=>{
+      const cache=await caches.open(SHELL_CACHE);
+      try{ const res=await fetch(req); if(res&&res.ok) cache.put(req,res.clone()); return res; }
+      catch(e){
+        const cached=await cache.match(req)||await cache.match('/teacher');
+        return cached||new Response('حالت آفلاین: نسخه‌ای از پنل هنوز در کش ذخیره نشده. یک‌بار با اینترنت وارد پنل شوید.',{status:503,headers:{'content-type':'text/plain; charset=utf-8'}});
+      }
+    })());
+    return;
+  }
+
+  // درخواست‌های GET به API (لیست دانش‌آموزان، سوالات، جدول‌ها و ...): network-first با کش برای مشاهده آفلاین
+  if(url.pathname.startsWith('/api/')){
+    event.respondWith((async()=>{
+      const cache=await caches.open(API_CACHE);
+      try{ const res=await fetch(req); if(res&&res.ok) cache.put(req,res.clone()); return res; }
+      catch(e){
+        const cached=await cache.match(req);
+        if(cached) return cached;
+        return new Response(JSON.stringify({ok:false,offline:true,error:'آفلاین هستید و داده‌ای در کش موجود نیست'}),{status:200,headers:{'content-type':'application/json; charset=utf-8'}});
+      }
+    })());
+  }
+});
+`;
+}
+
 function teacherPage() {
   return `<!doctype html><html lang="fa" dir="rtl"><head><meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -5680,6 +5745,60 @@ function teacherScript() {
     {name:'پاره‌خط', svg:'<svg viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="3"><path d="M14 50 L86 50"/><circle cx="14" cy="50" r="4" fill="currentColor"/><circle cx="86" cy="50" r="4" fill="currentColor"/></svg>'}
   ];
   let QUESTIONS=[], META={}, SUBS=[], TABLES=[], RESIZE_IMAGES=[], scheduleData={cells:{}};
+
+  // ===================== حالت آفلاین =====================
+  if('serviceWorker' in navigator){
+    window.addEventListener('load',function(){ navigator.serviceWorker.register('/sw.js').catch(function(e){console.error('ثبت Service Worker ناموفق بود',e);}); });
+  }
+  var OFFLINE_Q_KEY='panel-offline-queue';
+  function faNum(n){var d=['۰','۱','۲','۳','۴','۵','۶','۷','۸','۹'];return String(n).replace(/[0-9]/g,function(x){return d[+x];});}
+  function offQueueGet(){try{return JSON.parse(localStorage.getItem(OFFLINE_Q_KEY)||'[]');}catch(e){return [];}}
+  function offQueueSet(q){localStorage.setItem(OFFLINE_Q_KEY,JSON.stringify(q));}
+  function offBadgeEl(){
+    var b=document.getElementById('offline-badge');
+    if(!b){
+      b=document.createElement('div');
+      b.id='offline-badge';
+      b.style.cssText='position:fixed;bottom:14px;inset-inline-start:14px;z-index:9999;padding:8px 14px;border-radius:20px;font-size:13px;font-weight:600;box-shadow:0 2px 10px rgba(0,0,0,.18);display:none;cursor:pointer;user-select:none';
+      document.body.appendChild(b);
+      b.onclick=function(){offlineSync(true);};
+    }
+    return b;
+  }
+  function offlineBadgeUpdate(){
+    var b=offBadgeEl(), q=offQueueGet();
+    if(!navigator.onLine){
+      b.style.display='block'; b.style.background='#fee2e2'; b.style.color='#991b1b';
+      b.textContent='📴 حالت آفلاین'+(q.length?(' — '+faNum(q.length)+' تغییر در صف'):'');
+    }else if(q.length){
+      b.style.display='block'; b.style.background='#fef9c3'; b.style.color='#854d0e';
+      b.textContent='🔄 همگام‌سازی '+faNum(q.length)+' مورد — کلیک کنید';
+    }else{
+      b.style.display='none';
+    }
+  }
+  async function offlineSync(manual){
+    if(!navigator.onLine){ if(manual) toast('هنوز به اینترنت وصل نیستید'); return; }
+    var q=offQueueGet();
+    if(!q.length){ offlineBadgeUpdate(); return; }
+    var remaining=[];
+    for(var i=0;i<q.length;i++){
+      var it=q[i];
+      try{
+        var r=await fetch(it.path,{method:it.method,headers:it.headers,body:it.body});
+        if(!r.ok) remaining.push(it);
+      }catch(e){ remaining=remaining.concat(q.slice(i)); break; }
+    }
+    offQueueSet(remaining);
+    offlineBadgeUpdate();
+    if(manual) toast(remaining.length?'برخی موارد هنوز ارسال نشد؛ دوباره تلاش می‌شود':'همگام‌سازی کامل شد ✅');
+    else if(!remaining.length) toast('تغییرات ذخیره‌شده‌ی آفلاین با موفقیت همگام‌سازی شد ✅');
+  }
+  window.addEventListener('online',function(){ offlineBadgeUpdate(); offlineSync(false); });
+  window.addEventListener('offline',offlineBadgeUpdate);
+  setInterval(function(){ if(navigator.onLine) offlineSync(false); else offlineBadgeUpdate(); },20000);
+  setTimeout(offlineBadgeUpdate,0);
+  // ===================== پایان حالت آفلاین (بخش اول) =====================
   
   function esc(s){const d=document.createElement('div');d.textContent=s==null?'':s;return d.innerHTML;}
   function toast(m){const t=document.getElementById('toast');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2500);}
@@ -5692,7 +5811,23 @@ function teacherScript() {
     try{toast('⚠️ خطایی رخ داد؛ لطفاً دوباره تلاش کنید');}catch(_){}
   });
   function uid(){return 'q-'+Math.random().toString(36).slice(2,10);}
-  async function api(path,opts){const r=await fetch(path,opts);return r.json();}
+  async function api(path,opts){
+    opts=opts||{};
+    var method=(opts.method||'GET').toUpperCase();
+    try{
+      const r=await fetch(path,opts);
+      return await r.json();
+    }catch(e){
+      if(method==='GET') return {ok:false,offline:true,error:'آفلاین هستید'};
+      // درخواست‌های تغییردهنده (POST/PUT/DELETE) در صف آفلاین ذخیره می‌شوند تا با اتصال مجدد ارسال شوند
+      var q=offQueueGet();
+      q.push({path:path,method:method,headers:opts.headers||{},body:opts.body||null,ts:Date.now()});
+      offQueueSet(q);
+      offlineBadgeUpdate();
+      toast('📴 آفلاین: تغییر ذخیره شد و پس از اتصال مجدد ارسال می‌شود');
+      return {ok:true,queued:true,offline:true};
+    }
+  }
   async function lbSave(key,value,silent){
     try{
       const d=await api('/api/teacher/lb-save',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({key,value})});
@@ -13844,7 +13979,19 @@ function teacherScript() {
         INFOEX_SEND_FILES=[];infoexRenderSendFilesList();
         if(!target.origin&&INFOEX_SELECTED===target.code)infoexOpenInbox(target.code);
       }else toast((d&&d.error)||'لینک/کد گیرنده معتبر نیست یا ارسال ناموفق بود');
-    }catch(e){toast('خطا در ارتباط با سرور — اگر لینک از یک پنل دیگر است، از صحیح‌بودن آدرس مطمئن شوید');}
+    }catch(e){
+      if(!navigator.onLine){
+        var qi=offQueueGet();
+        qi.push({path:base+'/api/info/link/'+encodeURIComponent(target.code)+'/send',method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({senderName:senderName,message:message,files:INFOEX_SEND_FILES}),ts:Date.now()});
+        offQueueSet(qi);
+        offlineBadgeUpdate();
+        toast('📴 آفلاین: پیام ذخیره شد و پس از اتصال مجدد ارسال می‌شود');
+        document.getElementById('infoexchange-send-message').value='';
+        INFOEX_SEND_FILES=[];infoexRenderSendFilesList();
+      }else{
+        toast('خطا در ارتباط با سرور — اگر لینک از یک پنل دیگر است، از صحیح‌بودن آدرس مطمئن شوید');
+      }
+    }
     this.disabled=false;this.textContent='📤 ارسال';
   };
   async function infoexOpenInbox(linkUuid){
