@@ -507,8 +507,6 @@ async function handleApi(req, env, url, path) {
     return json({
       hasGeminiKey: typeof env.GEMINI_API_KEY === "string" && env.GEMINI_API_KEY.length > 0,
       geminiKeyLength: env.GEMINI_API_KEY ? env.GEMINI_API_KEY.length : 0,
-      hasOpenCodeKey: typeof env.OPENCODE_API_KEY === "string" && env.OPENCODE_API_KEY.length > 0,
-      openCodeKeyLength: env.OPENCODE_API_KEY ? env.OPENCODE_API_KEY.length : 0,
       hasGroqKey: typeof env.GROQ_API_KEY === "string" && env.GROQ_API_KEY.length > 0,
       groqKeyLength: env.GROQ_API_KEY ? env.GROQ_API_KEY.length : 0,
       hasCloudflareAiBinding: typeof env.AI !== "undefined" && env.AI !== null,
@@ -1067,20 +1065,7 @@ async function handleApi(req, env, url, path) {
       const body = await req.json().catch(() => ({}));
       const messages = body.messages || [];
       const maxTokens = Math.min(Math.max(parseInt(body.max_tokens, 10) || 1024, 256), 8192);
-      const provider = body.provider === "opencode" ? "opencode" : body.provider === "groq" ? "groq" : body.provider === "cloudflare" ? "cloudflare" : "gemini";
-
-      // ----- موتور OpenCode (Zen) — سازگار با فرمت OpenAI، بدون نیاز به تبدیل پیام‌ها -----
-      if (provider === "opencode") {
-        const openCodeKey = env.OPENCODE_API_KEY;
-        if (!openCodeKey) return json({ error: "کلید OPENCODE_API_KEY تنظیم نشده" }, 500);
-        const openCodeModel = body.model || env.OPENCODE_MODEL || "kimi-k2.5-free";
-        const result = await callOpenAiCompatible(
-          "https://opencode.ai/zen/v1/chat/completions",
-          openCodeKey, openCodeModel, messages.slice(-10), maxTokens
-        );
-        if (!result.ok) return json({ error: "OpenCode: " + result.error }, result.status);
-        return json({ ok: true, content: result.content });
-      }
+      const provider = body.provider === "groq" ? "groq" : body.provider === "cloudflare" ? "cloudflare" : "gemini";
 
       // ----- موتور Groq — سازگار با فرمت OpenAI، سخت‌افزار LPU با سرعت بسیار بالا -----
       if (provider === "groq") {
@@ -1106,7 +1091,7 @@ async function handleApi(req, env, url, path) {
         if (!env.AI) return json({ error: 'AI binding تنظیم نشده — باید [ai] binding = "AI" را به wrangler.toml اضافه و دوباره deploy کنید' }, 500);
         let cfModel = body.model || env.CLOUDFLARE_AI_MODEL || "@cf/meta/llama-3.1-8b-instruct-fast";
         const trimmedMessages = messages.slice(-10);
-        // برخلاف Gemini/Groq/OpenCode که فرمت OpenAI-style با content آرایه‌ای (image_url) را می‌پذیرند،
+        // برخلاف Gemini/Groq که فرمت OpenAI-style با content آرایه‌ای (image_url) را می‌پذیرند،
         // AI binding بومی Cloudflare انتظار دارد content هر پیام یک رشته‌ی ساده باشد و عکس در فیلد جداگانه‌ی
         // top-level به نام image (به‌صورت data URL کامل) ارسال شود — وگرنه خطای schema validation می‌دهد.
         let cfImage = null;
@@ -5634,21 +5619,8 @@ function teacherPage() {
         <p class="muted" style="margin-bottom:12px">تمام قابلیت‌های هوش مصنوعی (ترجمه، استخراج متن از عکس/PDF، چت دستیار، پیشنهاد سوال و ...) با یکی از این موتورها انجام می‌شود. کلید API هرکدام باید از قبل توسط مدیر سیستم تنظیم شده باشد.</p>
         <div class="row" style="gap:16px;flex-wrap:wrap;margin-bottom:10px">
           <label style="display:flex;align-items:center;gap:6px;font-weight:700;cursor:pointer"><input type="radio" name="ai-provider" value="gemini" id="ai-provider-gemini"> ✨ Gemini (گوگل)</label>
-          <label style="display:flex;align-items:center;gap:6px;font-weight:700;cursor:pointer"><input type="radio" name="ai-provider" value="opencode" id="ai-provider-opencode"> 🧠 OpenCode</label>
           <label style="display:flex;align-items:center;gap:6px;font-weight:700;cursor:pointer"><input type="radio" name="ai-provider" value="groq" id="ai-provider-groq"> ⚡ Groq</label>
           <label style="display:flex;align-items:center;gap:6px;font-weight:700;cursor:pointer"><input type="radio" name="ai-provider" value="cloudflare" id="ai-provider-cloudflare"> ☁️ Cloudflare Workers AI</label>
-        </div>
-        <div id="ai-opencode-model-wrap" class="hidden" style="margin-bottom:18px">
-          <label>مدل OpenCode</label>
-          <select id="ai-opencode-model">
-            <option value="kimi-k2.5-free">Kimi K2.5 (رایگان)</option>
-            <option value="glm-4.7-free">GLM-4.7 (رایگان)</option>
-            <option value="minimax-m2.5-free">MiniMax M2.5 (رایگان)</option>
-            <option value="nemotron-3-super-free">Nemotron 3 Super (رایگان)</option>
-            <option value="big-pickle">Big Pickle (رایگان)</option>
-            <option value="deepseek-v4-flash-free">DeepSeek V4 Flash (رایگان)</option>
-          </select>
-          <p class="muted" style="font-size:12px;margin-top:6px">💡 مدل‌های بالا رایگان‌اند. توجه: استخراج متن از عکس (OCR) و ترجمه‌ی تصویر فقط با مدل‌هایی کار می‌کند که از ورودی تصویر پشتیبانی کنند؛ اگر با خطا مواجه شدید، موقتاً موتور را روی Gemini بگذارید.</p>
         </div>
         <div id="ai-groq-model-wrap" class="hidden" style="margin-bottom:18px">
           <label>مدل Groq</label>
@@ -5803,40 +5775,37 @@ function teacherScript() {
     applyColorTheme(b.dataset.color);
   });});
 
-  // ===== موتور هوش مصنوعی: قابل انتخاب بین Gemini، OpenCode، Groq و Cloudflare Workers AI =====
+  // ===== موتور هوش مصنوعی: قابل انتخاب بین Gemini، Groq و Cloudflare Workers AI =====
   var AI_PROVIDER_KEY='ai-provider-choice';
-  var AI_MODEL_KEY_OPENCODE='ai-opencode-model-choice';
   var AI_MODEL_KEY_GROQ='ai-groq-model-choice';
   var AI_MODEL_KEY_CLOUDFLARE='ai-cloudflare-model-choice';
-  window.getAiProvider=function(){return localStorage.getItem(AI_PROVIDER_KEY)||'gemini';};
+  window.getAiProvider=function(){
+    var p=localStorage.getItem(AI_PROVIDER_KEY)||'gemini';
+    return (p==='groq'||p==='cloudflare')?p:'gemini'; // موتور OpenCode حذف شده؛ اگر قبلاً انتخاب شده بود، برگرد به Gemini
+  };
   window.getAiModel=function(){
     var p=getAiProvider();
-    if(p==='opencode')return localStorage.getItem(AI_MODEL_KEY_OPENCODE)||'kimi-k2.5-free';
     if(p==='groq')return localStorage.getItem(AI_MODEL_KEY_GROQ)||'openai/gpt-oss-20b';
     if(p==='cloudflare')return localStorage.getItem(AI_MODEL_KEY_CLOUDFLARE)||'@cf/meta/llama-3.1-8b-instruct-fast';
     return '';
   };
   (function initAiProviderUI(){
     var radios=document.querySelectorAll('input[name="ai-provider"]');
-    var opencodeWrap=document.getElementById('ai-opencode-model-wrap');
-    var opencodeSel=document.getElementById('ai-opencode-model');
     var groqWrap=document.getElementById('ai-groq-model-wrap');
     var groqSel=document.getElementById('ai-groq-model');
     var cfWrap=document.getElementById('ai-cloudflare-model-wrap');
     var cfSel=document.getElementById('ai-cloudflare-model');
     if(!radios.length)return;
     function applyVisibility(p){
-      if(opencodeWrap)opencodeWrap.classList.toggle('hidden',p!=='opencode');
       if(groqWrap)groqWrap.classList.toggle('hidden',p!=='groq');
       if(cfWrap)cfWrap.classList.toggle('hidden',p!=='cloudflare');
     }
     var current=getAiProvider();
     radios.forEach(function(r){r.checked=(r.value===current);});
     applyVisibility(current);
-    if(opencodeSel)opencodeSel.value=localStorage.getItem(AI_MODEL_KEY_OPENCODE)||'kimi-k2.5-free';
     if(groqSel)groqSel.value=localStorage.getItem(AI_MODEL_KEY_GROQ)||'openai/gpt-oss-20b';
     if(cfSel)cfSel.value=localStorage.getItem(AI_MODEL_KEY_CLOUDFLARE)||'@cf/meta/llama-3.1-8b-instruct-fast';
-    var AI_PROVIDER_LABELS={gemini:'Gemini',opencode:'OpenCode',groq:'Groq',cloudflare:'Cloudflare Workers AI'};
+    var AI_PROVIDER_LABELS={gemini:'Gemini',groq:'Groq',cloudflare:'Cloudflare Workers AI'};
     radios.forEach(function(r){
       r.addEventListener('change',function(){
         if(!this.checked)return;
@@ -5845,12 +5814,6 @@ function teacherScript() {
         toast('موتور هوش مصنوعی به «'+(AI_PROVIDER_LABELS[this.value]||this.value)+'» تغییر کرد ✅');
       });
     });
-    if(opencodeSel){
-      opencodeSel.addEventListener('change',function(){
-        localStorage.setItem(AI_MODEL_KEY_OPENCODE,this.value);
-        toast('مدل OpenCode ذخیره شد ✅');
-      });
-    }
     if(groqSel){
       groqSel.addEventListener('change',function(){
         localStorage.setItem(AI_MODEL_KEY_GROQ,this.value);
