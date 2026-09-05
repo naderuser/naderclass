@@ -53,6 +53,41 @@ function json(data, status = 200, headers = {}) {
   });
 }
 
+/* فراخوانی یک سرویس هوش مصنوعی سازگار با فرمت OpenAI (chat/completions) با تلاش مجدد خودکار برای خطاهای موقت (503/429) */
+async function callOpenAiCompatible(apiUrl, apiKey, model, messages, maxTokens) {
+  const RETRYABLE_STATUSES = [503, 429];
+  const MAX_ATTEMPTS = 3;
+  let lastErr = null, lastStatus = 500;
+  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+    try {
+      const aiRes = await fetch(apiUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Authorization": "Bearer " + apiKey },
+        body: JSON.stringify({ model, messages, max_tokens: maxTokens }),
+      });
+      if (!aiRes.ok) {
+        const errText = await aiRes.text();
+        lastErr = errText;
+        lastStatus = aiRes.status;
+        if (RETRYABLE_STATUSES.includes(aiRes.status) && attempt < MAX_ATTEMPTS) {
+          await new Promise((r) => setTimeout(r, attempt * 1200));
+          continue;
+        }
+        return { ok: false, error: lastErr, status: lastStatus };
+      }
+      const aiData = await aiRes.json();
+      const content = aiData.choices?.[0]?.message?.content || "";
+      return { ok: true, content };
+    } catch (e) {
+      lastErr = "Error: " + e.message;
+      lastStatus = 500;
+      if (attempt < MAX_ATTEMPTS) { await new Promise((r) => setTimeout(r, attempt * 1200)); continue; }
+      return { ok: false, error: lastErr, status: lastStatus };
+    }
+  }
+  return { ok: false, error: lastErr || "خطای نامشخص در ارتباط با هوش مصنوعی", status: lastStatus };
+}
+
 function html(body, status = 200, headers = {}) {
   return new Response(body, {
     status,
@@ -472,6 +507,11 @@ async function handleApi(req, env, url, path) {
     return json({
       hasGeminiKey: typeof env.GEMINI_API_KEY === "string" && env.GEMINI_API_KEY.length > 0,
       geminiKeyLength: env.GEMINI_API_KEY ? env.GEMINI_API_KEY.length : 0,
+      hasOpenCodeKey: typeof env.OPENCODE_API_KEY === "string" && env.OPENCODE_API_KEY.length > 0,
+      openCodeKeyLength: env.OPENCODE_API_KEY ? env.OPENCODE_API_KEY.length : 0,
+      hasGroqKey: typeof env.GROQ_API_KEY === "string" && env.GROQ_API_KEY.length > 0,
+      groqKeyLength: env.GROQ_API_KEY ? env.GROQ_API_KEY.length : 0,
+      hasCloudflareAiBinding: typeof env.AI !== "undefined" && env.AI !== null,
     });
   }
 
@@ -1027,7 +1067,57 @@ async function handleApi(req, env, url, path) {
       const body = await req.json().catch(() => ({}));
       const messages = body.messages || [];
       const maxTokens = Math.min(Math.max(parseInt(body.max_tokens, 10) || 1024, 256), 8192);
+      const provider = body.provider === "opencode" ? "opencode" : body.provider === "groq" ? "groq" : body.provider === "cloudflare" ? "cloudflare" : "gemini";
 
+      // ----- موتور OpenCode (Zen) — سازگار با فرمت OpenAI، بدون نیاز به تبدیل پیام‌ها -----
+      if (provider === "opencode") {
+        const openCodeKey = env.OPENCODE_API_KEY;
+        if (!openCodeKey) return json({ error: "کلید OPENCODE_API_KEY تنظیم نشده" }, 500);
+        const openCodeModel = body.model || env.OPENCODE_MODEL || "kimi-k2.5-free";
+        const result = await callOpenAiCompatible(
+          "https://opencode.ai/zen/v1/chat/completions",
+          openCodeKey, openCodeModel, messages.slice(-10), maxTokens
+        );
+        if (!result.ok) return json({ error: "OpenCode: " + result.error }, result.status);
+        return json({ ok: true, content: result.content });
+      }
+
+      // ----- موتور Groq — سازگار با فرمت OpenAI، سخت‌افزار LPU با سرعت بسیار بالا -----
+      if (provider === "groq") {
+        const groqKey = env.GROQ_API_KEY;
+        if (!groqKey) return json({ error: "کلید GROQ_API_KEY تنظیم نشده" }, 500);
+        const groqModel = body.model || env.GROQ_MODEL || "llama-3.1-8b-instant";
+        const result = await callOpenAiCompatible(
+          "https://api.groq.com/openai/v1/chat/completions",
+          groqKey, groqModel, messages.slice(-10), maxTokens
+        );
+        if (!result.ok) return json({ error: "Groq: " + result.error }, result.status);
+        return json({ ok: true, content: result.content });
+      }
+
+      // ----- موتور Cloudflare Workers AI — بدون نیاز به API key، از طریق AI binding خودِ همین Worker -----
+      if (provider === "cloudflare") {
+        if (!env.AI) return json({ error: 'AI binding تنظیم نشده — باید [ai] binding = "AI" را به wrangler.toml اضافه و دوباره deploy کنید' }, 500);
+        const cfModel = body.model || env.CLOUDFLARE_AI_MODEL || "@cf/meta/llama-3.1-8b-instruct";
+        const trimmedMessages = messages.slice(-10);
+        const MAX_ATTEMPTS = 3;
+        let lastErr = null;
+        for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+          try {
+            const result = await env.AI.run(cfModel, { messages: trimmedMessages, max_tokens: maxTokens });
+            const content = (result && (result.response || result.result?.response)) || "";
+            return json({ ok: true, content });
+          } catch (e) {
+            lastErr = e.message || String(e);
+            const retryable = /429|3040|capacity/i.test(lastErr);
+            if (retryable && attempt < MAX_ATTEMPTS) { await new Promise((r) => setTimeout(r, attempt * 1200)); continue; }
+            return json({ error: "Cloudflare AI: " + lastErr }, 500);
+          }
+        }
+        return json({ error: "Cloudflare AI: " + (lastErr || "خطای نامشخص") }, 500);
+      }
+
+      // ----- موتور Gemini (پیش‌فرض) -----
       const geminiKey = env.GEMINI_API_KEY;
       if (!geminiKey) return json({ error: "کلید GEMINI_API_KEY تنظیم نشده" }, 500);
       // مدل فعلی: gemini-3.6-flash (نسخه‌ی پایدار/GA در سال ۲۰۲۶؛ در صورت بازنشستگی باید به‌روزرسانی شود)
@@ -1505,57 +1595,6 @@ const SHARED_CSS = `
   .lb-menu-btn .lb-t{font-weight:700;font-size:14px}
   .lb-menu-btn small{color:var(--muted);font-size:11px}
   .lb-panel{margin-top:8px}
-  .lb-cert-wrap{display:flex;gap:20px;flex-wrap:wrap;align-items:flex-start;margin-top:10px}
-  .lb-cert-form{flex:1 1 320px;min-width:280px;display:flex;flex-direction:column;gap:8px}
-  .lb-cert-form label{font-weight:700;font-size:13px;margin-top:4px}
-  .lb-cert-templates{display:flex;gap:8px;flex-wrap:wrap}
-  .lb-cert-tpl-btn{padding:8px 14px;border-radius:10px;border:1.5px solid var(--line);background:#f8fafc;cursor:pointer;font-family:inherit;font-weight:700;font-size:13px}
-  .lb-cert-tpl-btn.active{border-color:var(--primary);box-shadow:0 0 0 2px var(--primary) inset}
-  .lb-cert-preview-wrap{flex:1 1 380px;min-width:300px;display:flex;justify-content:center}
-  .lb-cert-sheet{position:relative;width:100%;max-width:460px;min-height:640px;box-sizing:border-box;padding:30px 22px;border-radius:6px;font-family:tahoma,Arial;text-align:center;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;overflow:visible}
-  .lb-cert-sheet::before{content:'';position:absolute;inset:var(--cert-frame-pad,10px);border:2.5px solid var(--cert-accent,#b8860b);border-radius:4px;pointer-events:none}
-  .lb-cert-sheet::after{content:'';position:absolute;inset:calc(var(--cert-frame-pad,10px) + 6px);border:1px solid var(--cert-accent,#b8860b);border-radius:2px;pointer-events:none;opacity:.6}
-  .lb-cert-bg-layer{position:absolute;inset:0;overflow:hidden;border-radius:6px;z-index:-1}
-  .lb-cert-bg-fill{position:absolute;inset:0;background-repeat:no-repeat;background-size:cover;background-position:center;cursor:grab;touch-action:none}
-  .lb-cert-bg-fill:active{cursor:grabbing}
-  .lb-cert-sheet .cert-numbox{position:absolute;top:24px;right:26px;text-align:right;font-size:10.5px;line-height:1.7;color:#334155;font-family:tahoma,Arial;font-weight:700}
-  .lb-cert-sheet .cert-badge{font-size:38px;line-height:1}
-  .lb-cert-sheet .cert-kind{font-size:24px;font-weight:800;color:var(--cert-accent,#b8860b);margin:0;max-width:92%;overflow-wrap:break-word;word-break:break-word}
-  .lb-cert-sheet .cert-intro{font-size:12.5px;color:#334155;margin:6px 0 0;max-width:88%;overflow-wrap:break-word;word-break:break-word}
-  .lb-cert-sheet .cert-name{font-size:26px;font-weight:800;color:#1e293b;margin:4px 0;border-bottom:2px solid var(--cert-accent,#b8860b);padding-bottom:6px;display:inline-block;max-width:92%;overflow-wrap:break-word;word-break:break-word}
-  .lb-cert-sheet .cert-reason{font-size:13px;color:#334155;max-width:88%;line-height:1.9;overflow-wrap:break-word;word-break:break-word;white-space:pre-line}
-  .lb-cert-sheet .cert-footer{display:flex;justify-content:space-between;width:88%;margin-top:16px;font-size:11.5px;color:#475569;font-weight:700}
-  .lb-cert-sheet .cert-sign{display:flex;flex-direction:column;align-items:center;gap:4px;margin-top:14px}
-  .lb-cert-sheet .cert-sign img{max-height:70px;max-width:160px;object-fit:contain}
-  .lb-cert-sheet .cert-sign span{font-size:11.5px;color:#475569;font-weight:700}
-  .lb-cert-gold{background:linear-gradient(135deg,#fffdf5,#fdf6e3);--cert-accent:#b8860b}
-  .lb-cert-blue{background:linear-gradient(135deg,#f3f8ff,#e6f0ff);--cert-accent:#1d4ed8}
-  .lb-cert-green{background:linear-gradient(135deg,#f3fdf6,#e5f9ec);--cert-accent:#15803d}
-  .lb-cert-purple{background:linear-gradient(135deg,#faf5ff,#f1e6ff);--cert-accent:#7e22ce}
-  .lb-cert-champion{background:#fdfdfb;--cert-accent:#1d4ed8;padding:14px}
-  .lb-cert-champion::before{inset:8px;border:3px solid #1d4ed8;border-radius:10px}
-  .lb-cert-champion::after{inset:15px;border:2px solid #b8860b;border-radius:8px;opacity:1}
-  .lb-cert-champion .cert-bismillah{font-size:15px;font-weight:700;color:#1d4ed8;margin:2px 0}
-  .lb-cert-champion .cert-kind{font-size:30px;color:#1d4ed8}
-  .lb-cert-champion .cert-name{border-bottom:2px solid #b8860b}
-  .lb-cert-white{background:#ffffff;--cert-accent:#334155}
-  .lb-cert-royal{background:#fdfaf5;--cert-accent:#5b21b6}
-  .lb-cert-lapis{background:#fdfaf5;--cert-accent:#1e3a8a}
-  .lb-cert-emerald{background:#fdfaf5;--cert-accent:#065f46}
-  .lb-cert-font-titr .cert-kind,.lb-cert-font-titr .cert-name{font-family:"BTitr","B Titr",tahoma,Arial}
-  .lb-cert-font-nazanin .cert-kind,.lb-cert-font-nazanin .cert-name,.lb-cert-font-nazanin .cert-reason,.lb-cert-font-nazanin .cert-intro{font-family:"BNazanin","B Nazanin",tahoma,Arial}
-  .lb-cert-font-nastaliq .cert-kind{font-family:"Noto Nastaliq Urdu",tahoma,Arial;font-size:32px}
-  .lb-cert-font-nastaliq .cert-name{font-family:"Noto Nastaliq Urdu",tahoma,Arial;font-size:28px}
-  .lb-cert-font-nastaliq .cert-reason,.lb-cert-font-nastaliq .cert-intro{font-family:"BNazanin","B Nazanin",tahoma,Arial}
-  .lb-cert-font-vazirmatn .cert-kind,.lb-cert-font-vazirmatn .cert-name,.lb-cert-font-vazirmatn .cert-reason,.lb-cert-font-vazirmatn .cert-intro{font-family:"Vazirmatn",tahoma,Arial}
-  .lb-cert-font-koodak .cert-kind,.lb-cert-font-koodak .cert-name{font-family:"BKoodak","B Koodak",tahoma,Arial}
-  .lb-cert-font-koodak .cert-reason,.lb-cert-font-koodak .cert-intro{font-family:"BNazanin","B Nazanin",tahoma,Arial}
-  .lb-cert-font-mitra .cert-kind,.lb-cert-font-mitra .cert-name,.lb-cert-font-mitra .cert-reason,.lb-cert-font-mitra .cert-intro{font-family:"BMitra","B Mitra",tahoma,Arial}
-  .lb-cert-font-shik .cert-kind{font-family:"BTitr","B Titr",tahoma,Arial}
-  .lb-cert-font-shik .cert-name{font-family:"Noto Nastaliq Urdu",tahoma,Arial;font-size:28px}
-  .lb-cert-font-shik .cert-reason,.lb-cert-font-shik .cert-intro{font-family:"BNazanin","B Nazanin",tahoma,Arial}
-  .lb-cert-font-shik .cert-numbox,.lb-cert-font-shik .cert-sign span{font-family:"BMitra","B Mitra",tahoma,Arial}
-  [data-theme="dark"] .lb-cert-tpl-btn{background:#0f172a}
   .lb-meta-form{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;margin:14px 0}
   .lb-meta-form label{display:block;font-size:12px;color:var(--muted);margin-bottom:3px}
   .lb-meta-form input{width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:8px;font-family:inherit}
@@ -3680,6 +3719,7 @@ function teacherPage() {
             <a class="tab-child" href="/teacher?tab=imgtools&subtab=scan">📷 اسکنر</a>
             <a class="tab-child" href="/teacher?tab=imgtools&subtab=resize">🗜️ کاهش حجم</a>
             <a class="tab-child" href="/teacher?tab=imgtools&subtab=crop">✂️ برش عکس</a>
+            <a class="tab-child" href="/teacher?tab=imgtools&subtab=img2pdf">🖼️➡️📄 عکس به PDF</a>
             <a class="tab-child" href="/teacher?tab=imgtools&subtab=pdf2img">📄 PDF به عکس</a>
             <a class="tab-child" href="/teacher?tab=imgtools&subtab=pdf2word">📘 PDF به Word</a>
           </div>
@@ -3721,7 +3761,6 @@ function teacherPage() {
               <div class="tab-subchildren" id="tab-subchildren-lb-eval">
                 <a class="tab-child" href="/teacher?tab=logbook&lb=performance">📶 ثبت سطوح عملکرد دانش‌آموز</a>
                 <a class="tab-child" href="/teacher?tab=logbook&lb=reportcard">🎓 کارنامه‌ساز</a>
-                <a class="tab-child" href="/teacher?tab=logbook&lb=certificate">🏆 تقدیرنامه‌ساز</a>
               </div>
             </div>
             <div class="tab-subgroup">
@@ -3797,7 +3836,7 @@ function teacherPage() {
               <li>📊 بودجه‌بندی آموزشی، 👨‍🎓 لیست اسامی</li>
               <li>📋 غیبت، 📈 عملکرد، 🎓 کارنامه‌ساز</li>
               <li>🗣️ صورتجلسه، 🧑‍🏫 اطلاعات همکاران</li>
-              <li>📅 برنامه هفتگی، 🏆 تقدیرنامه‌ساز</li>
+              <li>📅 برنامه هفتگی</li>
             </ul>
           </a>
           <a class="home-card" href="/teacher?tab=settings">
@@ -4318,6 +4357,7 @@ function teacherPage() {
           <div class="subtab active" data-subtab="scan">📷 اسکنر</div>
           <div class="subtab" data-subtab="resize">🗜️ کاهش حجم</div>
           <div class="subtab" data-subtab="crop">✂️ برش عکس</div>
+          <div class="subtab" data-subtab="img2pdf">🖼️➡️📄 عکس به PDF</div>
           <div class="subtab" data-subtab="pdf2img">📄 PDF به عکس</div>
           <div class="subtab" data-subtab="pdf2word">📘 PDF به Word</div>
         </div>
@@ -4431,6 +4471,38 @@ function teacherPage() {
             </div>
           </div>
           <div class="crop-actions"><button class="btn danger" id="btn-crop-delete">🗑️ حذف عکس</button><button class="btn secondary" id="btn-crop-reset">↩️ بازنشانی</button><button class="btn primary" id="btn-crop-download">💾 دانلود عکس</button></div>
+        </div>
+      </div>
+
+      <div class="subtab-content hidden" id="tab-img2pdf">
+        <h3>🖼️➡️📄 تبدیل عکس به PDF</h3>
+        <p class="muted">هر تعداد عکس که بخواهید اضافه کنید (بدون محدودیت تعداد)، ترتیب‌شان را با دکمه‌های ⬆ و ⬇ تنظیم کنید، عکس‌های اضافی را حذف کنید و در پایان همه را در یک فایل PDF واحد ادغام و دانلود کنید — هر عکس یک صفحه از PDF می‌شود.</p>
+        <div class="upload-zone" id="img2pdf-drop-zone">
+          <input type="file" accept="image/*" id="img2pdf-file" class="hidden" multiple>
+          <div class="upload-icon">🖼️</div>
+          <p>عکس‌ها را اینجا رها کنید یا کلیک کنید</p>
+          <span class="muted">می‌توانید چند عکس را هم‌زمان انتخاب کنید و هر زمان بخواهید عکس بیشتری اضافه کنید</span>
+        </div>
+        <div id="img2pdf-controls" class="hidden">
+          <div class="row" style="margin:12px 0;align-items:center;gap:10px">
+            <span class="muted">تعداد عکس‌ها: <strong id="img2pdf-count">0</strong></span>
+            <button class="btn sm secondary" id="btn-img2pdf-add-more">➕ افزودن عکس بیشتر</button>
+            <button class="btn sm danger" id="btn-img2pdf-clear">🗑️ حذف همه</button>
+          </div>
+          <div id="img2pdf-preview" class="resize-preview"></div>
+          <div class="row" style="margin-top:16px;gap:12px;align-items:center">
+            <label style="display:flex;align-items:center;gap:6px">
+              <span>حاشیه‌ی صفحه:</span>
+              <select id="img2pdf-margin">
+                <option value="0">بدون حاشیه (تمام صفحه)</option>
+                <option value="24" selected>کم</option>
+                <option value="48">متوسط</option>
+              </select>
+            </label>
+          </div>
+          <div class="pdf-toolbar" style="margin-top:12px">
+            <button class="btn primary" id="btn-img2pdf-build">📄 ادغام و دانلود PDF</button>
+          </div>
         </div>
       </div>
 
@@ -4700,7 +4772,6 @@ function teacherPage() {
             <button class="lb-menu-btn" data-lb="weekly2"><span class="lb-ico">📅</span><span class="lb-t">برنامه درسی هفتگی (تک‌پایه)</span></button>
             <button class="lb-menu-btn" data-lb="staff"><span class="lb-ico">🪪</span><span class="lb-t">اطلاعات پرسنلی همکاران مدرسه</span></button>
             <button class="lb-menu-btn" data-lb="minutes"><span class="lb-ico">🧾</span><span class="lb-t">صورتجلسه</span><small>فرم عمومی صورتجلسه مدرسه</small></button>
-            <button class="lb-menu-btn" data-lb="certificate"><span class="lb-ico">🏆</span><span class="lb-t">تقدیرنامه‌ساز</span><small>قالب آماده برای چاپ با اسم و دلیل تشویق</small></button>
           </div>
         </div>
 
@@ -5454,128 +5525,6 @@ function teacherPage() {
           </div>
         </div>
 
-        <!-- ===== تقدیرنامه‌ساز ===== -->
-        <div class="lb-panel hidden" id="lb-panel-certificate">
-          <button class="btn sm gray lb-back-btn">← بازگشت به دفتر</button>
-          <h3>🏆 تقدیرنامه‌ساز</h3>
-          <div class="lb-cert-wrap">
-            <div class="lb-cert-form">
-              <label>عنوان سند</label>
-              <select id="cert-kind">
-                <option value="تقدیرنامه">تقدیرنامه</option>
-                <option value="لوح تقدیر">لوح تقدیر</option>
-                <option value="لوح قهرمانی">لوح قهرمانی</option>
-                <option value="گواهی افتخار">گواهی افتخار</option>
-                <option value="کارت تشویقی">کارت تشویقی</option>
-              </select>
-              <label>قالب‌های متنی آماده (اختیاری)</label>
-              <div class="lb-cert-templates">
-                <button type="button" class="btn sm gray lb-cert-preset-btn" data-preset="colleague">🏅 همکار نمونه</button>
-                <button type="button" class="btn sm gray lb-cert-preset-btn" data-preset="student">🎓 دانش‌آموز ممتاز</button>
-                <button type="button" class="btn sm gray lb-cert-preset-btn" data-preset="teacher">📚 مدرس برتر</button>
-              </div>
-              <div class="lb-meta-form">
-                <div><label>شماره</label><input id="cert-num" placeholder="......."></div>
-                <div><label>تاریخ</label><input id="cert-date" placeholder="......."></div>
-              </div>
-              <label>دانش‌آموز</label>
-              <div class="row" style="gap:8px">
-                <select id="cert-student-select" style="flex:1"><option value="">— انتخاب از لیست دانش‌آموزان —</option></select>
-              </div>
-              <div class="row" style="gap:8px;margin-top:6px">
-                <select id="cert-salute" style="flex:0 0 auto;min-width:130px">
-                  <option value="جناب آقای">جناب آقای</option>
-                  <option value="سرکار خانم">سرکار خانم</option>
-                  <option value="دانش‌آموز عزیز">دانش‌آموز عزیز</option>
-                </select>
-                <input id="cert-name" placeholder="یا نام را اینجا مستقیم تایپ کنید" style="flex:1">
-              </div>
-              <label>متن مقدمه</label>
-              <input id="cert-intro" placeholder="این تقدیرنامه به پاس ...">
-              <label>دلیل تشویق</label>
-              <textarea id="cert-reason" rows="3" class="lb-textarea" placeholder="مثلاً: کسب رتبه‌ی اول در مسابقات علمی کلاس، تلاش و پشتکار در طول سال تحصیلی و ..."></textarea>
-              <label>اعطاکننده (معلم/مدیر/اداره)</label>
-              <input id="cert-issuer" placeholder=".......................">
-              <label>امضای مدیر / اعطاکننده (عکس، اختیاری)</label>
-              <div class="row" style="gap:8px;align-items:center">
-                <input type="file" id="cert-sign-file" accept="image/*" style="flex:1">
-                <button type="button" class="btn sm gray" id="btn-cert-sign-remove">حذف</button>
-              </div>
-              <label>نشان سازمان یا عکس فرد (جایگزین نماد بالای لوح، اختیاری)</label>
-              <div class="row" style="gap:8px;align-items:center">
-                <input type="file" id="cert-logo-file" accept="image/*" style="flex:1">
-                <button type="button" class="btn sm gray" id="btn-cert-logo-remove">حذف</button>
-              </div>
-              <label>فونت متن</label>
-              <select id="cert-font">
-                <option value="shik" selected>🎩 شیک (ترکیبی حرفه‌ای)</option>
-                <option value="titr">بی‌تیتر</option>
-                <option value="nazanin">بی‌نازنین</option>
-                <option value="nastaliq">ایران نستعلیق</option>
-                <option value="vazirmatn">وزیرمتن (مدرن)</option>
-                <option value="koodak">بی‌کودک (گرد و صمیمی)</option>
-                <option value="mitra">بی‌میترا</option>
-              </select>
-              <label>اندازه فونت متن تقدیرنامه (دلیل تشویق)</label>
-              <div class="row" style="align-items:center;gap:8px">
-                <input type="range" id="cert-font-size" min="10" max="26" step="1" value="13" style="flex:1">
-                <span id="cert-font-size-val" style="min-width:34px;font-weight:700">۱۳</span>
-              </div>
-              <label>تصویر پس‌زمینه دلخواه (اختیاری)</label>
-              <div class="row" style="gap:8px;align-items:center">
-                <input type="file" id="cert-bg-file" accept="image/*" style="flex:1">
-                <button type="button" class="btn sm gray" id="btn-cert-bg-remove">حذف</button>
-              </div>
-              <div id="cert-bg-controls" class="hidden" style="display:flex;flex-direction:column;gap:6px;background:#f8fafc;border:1px solid var(--line);border-radius:8px;padding:10px;margin-top:4px">
-                <div class="row" style="align-items:center;gap:8px">
-                  <label style="margin:0;min-width:70px">بزرگ/کوچک</label>
-                  <input type="range" id="cert-bg-zoom" min="50" max="250" step="1" value="100" style="flex:1">
-                  <span id="cert-bg-zoom-val" style="min-width:44px;font-weight:700">۱۰۰٪</span>
-                </div>
-                <div class="row" style="align-items:center;gap:8px">
-                  <label style="margin:0;min-width:70px">شفافیت</label>
-                  <input type="range" id="cert-bg-opacity" min="15" max="100" step="1" value="100" style="flex:1">
-                  <span id="cert-bg-opacity-val" style="min-width:44px;font-weight:700">۱۰۰٪</span>
-                </div>
-                <p class="muted" style="margin:2px 0 0;font-size:11.5px">💡 برای جابه‌جا کردن تصویر، آن را در پیش‌نمایش با موس یا انگشت بکشید (درگ کنید).</p>
-                <button type="button" class="btn sm gray" id="btn-cert-bg-center">وسط‌چین کردن مجدد</button>
-              </div>
-              <label>فاصله قاب تزئینی از لبه کاغذ</label>
-              <div class="row" style="align-items:center;gap:8px">
-                <input type="range" id="cert-frame-pad" min="4" max="40" step="1" value="10" style="flex:1">
-                <span id="cert-frame-pad-val" style="min-width:34px;font-weight:700">۱۰</span>
-              </div>
-              <label>قالب</label>
-              <div class="lb-cert-templates">
-                <button type="button" class="lb-cert-tpl-btn active" data-tpl="gold">🟡 طلایی</button>
-                <button type="button" class="lb-cert-tpl-btn" data-tpl="blue">🔵 آبی</button>
-                <button type="button" class="lb-cert-tpl-btn" data-tpl="green">🟢 سبز</button>
-                <button type="button" class="lb-cert-tpl-btn" data-tpl="purple">🟣 بنفش</button>
-                <button type="button" class="lb-cert-tpl-btn" data-tpl="champion">🕌 قهرمانی (تشریفاتی)</button>
-                <button type="button" class="lb-cert-tpl-btn" data-tpl="white">⚪ ساده سفید</button>
-                <button type="button" class="lb-cert-tpl-btn" data-tpl="royal">👑 سلطنتی</button>
-                <button type="button" class="lb-cert-tpl-btn" data-tpl="lapis">🔷 لاجوردی</button>
-                <button type="button" class="lb-cert-tpl-btn" data-tpl="emerald">💎 زمردی</button>
-              </div>
-            </div>
-            <div class="lb-cert-preview-wrap">
-              <div id="cert-preview" class="lb-cert-sheet lb-cert-gold"></div>
-            </div>
-          </div>
-          <div class="row" style="align-items:center;gap:8px;margin-top:10px">
-            <label style="flex:0 0 auto">جهت چاپ:</label>
-            <select id="cert-print-orientation" style="flex:0 0 auto;min-width:130px">
-              <option value="portrait" selected>عمودی (Portrait)</option>
-              <option value="landscape">افقی (Landscape)</option>
-            </select>
-          </div>
-          <div class="row" style="margin-top:14px">
-            <button class="btn primary" id="btn-cert-save">💾 ذخیره</button>
-            <button class="btn primary" id="btn-cert-word">📄 دانلود Word</button>
-            <button class="btn gray" id="btn-cert-pdf">🖨️ چاپ / دانلود PDF</button>
-            <button class="btn danger" type="button" id="btn-cert-clear">🗑️ پاک کردن فرم</button>
-          </div>
-        </div>
 
       </div>
 
@@ -5655,7 +5604,47 @@ function teacherPage() {
           <button class="color-swatch" data-color="crystal" style="background:linear-gradient(135deg,#5B8DB8,#A5E6FF)" title="کریستالی (شیشه‌ای و مدرن)"></button>
         </div>
         <h3>🤖 موتور هوش مصنوعی</h3>
-        <p class="muted" style="margin-bottom:20px">تمام قابلیت‌های هوش مصنوعی (ترجمه، استخراج متن از عکس/PDF، چت دستیار و ...) با موتور ✨ Gemini انجام می‌شود.</p>
+        <p class="muted" style="margin-bottom:12px">تمام قابلیت‌های هوش مصنوعی (ترجمه، استخراج متن از عکس/PDF، چت دستیار، پیشنهاد سوال و ...) با یکی از این موتورها انجام می‌شود. کلید API هرکدام باید از قبل توسط مدیر سیستم تنظیم شده باشد.</p>
+        <div class="row" style="gap:16px;flex-wrap:wrap;margin-bottom:10px">
+          <label style="display:flex;align-items:center;gap:6px;font-weight:700;cursor:pointer"><input type="radio" name="ai-provider" value="gemini" id="ai-provider-gemini"> ✨ Gemini (گوگل)</label>
+          <label style="display:flex;align-items:center;gap:6px;font-weight:700;cursor:pointer"><input type="radio" name="ai-provider" value="opencode" id="ai-provider-opencode"> 🧠 OpenCode</label>
+          <label style="display:flex;align-items:center;gap:6px;font-weight:700;cursor:pointer"><input type="radio" name="ai-provider" value="groq" id="ai-provider-groq"> ⚡ Groq</label>
+          <label style="display:flex;align-items:center;gap:6px;font-weight:700;cursor:pointer"><input type="radio" name="ai-provider" value="cloudflare" id="ai-provider-cloudflare"> ☁️ Cloudflare Workers AI</label>
+        </div>
+        <div id="ai-opencode-model-wrap" class="hidden" style="margin-bottom:18px">
+          <label>مدل OpenCode</label>
+          <select id="ai-opencode-model">
+            <option value="kimi-k2.5-free">Kimi K2.5 (رایگان)</option>
+            <option value="glm-4.7-free">GLM-4.7 (رایگان)</option>
+            <option value="minimax-m2.5-free">MiniMax M2.5 (رایگان)</option>
+            <option value="nemotron-3-super-free">Nemotron 3 Super (رایگان)</option>
+            <option value="big-pickle">Big Pickle (رایگان)</option>
+            <option value="deepseek-v4-flash-free">DeepSeek V4 Flash (رایگان)</option>
+          </select>
+          <p class="muted" style="font-size:12px;margin-top:6px">💡 مدل‌های بالا رایگان‌اند. توجه: استخراج متن از عکس (OCR) و ترجمه‌ی تصویر فقط با مدل‌هایی کار می‌کند که از ورودی تصویر پشتیبانی کنند؛ اگر با خطا مواجه شدید، موقتاً موتور را روی Gemini بگذارید.</p>
+        </div>
+        <div id="ai-groq-model-wrap" class="hidden" style="margin-bottom:18px">
+          <label>مدل Groq</label>
+          <select id="ai-groq-model">
+            <option value="llama-3.1-8b-instant">Llama 3.1 8B Instant (سریع‌ترین)</option>
+            <option value="llama-3.3-70b-versatile">Llama 3.3 70B (قوی‌تر و دقیق‌تر)</option>
+            <option value="mixtral-8x7b-32768">Mixtral 8x7B</option>
+            <option value="gemma2-9b-it">Gemma2 9B</option>
+            <option value="llama-3.2-90b-vision-preview">Llama 3.2 90B Vision (پشتیبانی از عکس)</option>
+          </select>
+          <p class="muted" style="font-size:12px;margin-top:6px">⚡ Groq روی سخت‌افزار مخصوص (LPU) اجرا می‌شود و معمولاً چند برابر سریع‌تر از موتورهای دیگر جواب می‌دهد. برای استخراج متن از عکس (OCR) و ترجمه‌ی تصویر، مدل «Vision» را انتخاب کنید؛ بقیه‌ی مدل‌های بالا فقط متنی هستند.</p>
+        </div>
+        <div id="ai-cloudflare-model-wrap" class="hidden" style="margin-bottom:18px">
+          <label>مدل Cloudflare Workers AI</label>
+          <select id="ai-cloudflare-model">
+            <option value="@cf/meta/llama-3.1-8b-instruct">Llama 3.1 8B (پیش‌فرض، متعادل)</option>
+            <option value="@cf/meta/llama-3.2-3b-instruct">Llama 3.2 3B (سبک‌تر و سریع‌تر)</option>
+            <option value="@cf/zai-org/glm-4.7-flash">GLM-4.7 Flash (سریع، چندزبانه)</option>
+            <option value="@cf/google/gemma-4-26b-a4b-it">Gemma 4 26B (پشتیبانی از عکس)</option>
+            <option value="@cf/moonshotai/kimi-k2.6">Kimi K2.6 (قوی‌تر — نیاز به پلن Paid کلادفلر)</option>
+          </select>
+          <p class="muted" style="font-size:12px;margin-top:6px">☁️ این موتور نیازی به API key ندارد؛ فقط کافی است مدیر سیستم یک AI binding به تنظیمات Worker اضافه کند. پلن رایگان Cloudflare هر روز سهمیه‌ی رایگان محدودی دارد. برای OCR/ترجمه‌ی تصویر از مدل Gemma استفاده کنید.</p>
+        </div>
         <h3>🔐 تغییر رمز عبور</h3>
         <label>رمز عبور جدید</label><input id="new-pass" type="password" autocomplete="new-password">
         <p class="muted" id="pass-msg"></p>
@@ -5788,8 +5777,67 @@ function teacherScript() {
     applyColorTheme(b.dataset.color);
   });});
 
-  // ===== موتور هوش مصنوعی: فقط Gemini =====
-  window.getAiProvider=function(){return 'gemini';};
+  // ===== موتور هوش مصنوعی: قابل انتخاب بین Gemini، OpenCode، Groq و Cloudflare Workers AI =====
+  var AI_PROVIDER_KEY='ai-provider-choice';
+  var AI_MODEL_KEY_OPENCODE='ai-opencode-model-choice';
+  var AI_MODEL_KEY_GROQ='ai-groq-model-choice';
+  var AI_MODEL_KEY_CLOUDFLARE='ai-cloudflare-model-choice';
+  window.getAiProvider=function(){return localStorage.getItem(AI_PROVIDER_KEY)||'gemini';};
+  window.getAiModel=function(){
+    var p=getAiProvider();
+    if(p==='opencode')return localStorage.getItem(AI_MODEL_KEY_OPENCODE)||'kimi-k2.5-free';
+    if(p==='groq')return localStorage.getItem(AI_MODEL_KEY_GROQ)||'llama-3.1-8b-instant';
+    if(p==='cloudflare')return localStorage.getItem(AI_MODEL_KEY_CLOUDFLARE)||'@cf/meta/llama-3.1-8b-instruct';
+    return '';
+  };
+  (function initAiProviderUI(){
+    var radios=document.querySelectorAll('input[name="ai-provider"]');
+    var opencodeWrap=document.getElementById('ai-opencode-model-wrap');
+    var opencodeSel=document.getElementById('ai-opencode-model');
+    var groqWrap=document.getElementById('ai-groq-model-wrap');
+    var groqSel=document.getElementById('ai-groq-model');
+    var cfWrap=document.getElementById('ai-cloudflare-model-wrap');
+    var cfSel=document.getElementById('ai-cloudflare-model');
+    if(!radios.length)return;
+    function applyVisibility(p){
+      if(opencodeWrap)opencodeWrap.classList.toggle('hidden',p!=='opencode');
+      if(groqWrap)groqWrap.classList.toggle('hidden',p!=='groq');
+      if(cfWrap)cfWrap.classList.toggle('hidden',p!=='cloudflare');
+    }
+    var current=getAiProvider();
+    radios.forEach(function(r){r.checked=(r.value===current);});
+    applyVisibility(current);
+    if(opencodeSel)opencodeSel.value=localStorage.getItem(AI_MODEL_KEY_OPENCODE)||'kimi-k2.5-free';
+    if(groqSel)groqSel.value=localStorage.getItem(AI_MODEL_KEY_GROQ)||'llama-3.1-8b-instant';
+    if(cfSel)cfSel.value=localStorage.getItem(AI_MODEL_KEY_CLOUDFLARE)||'@cf/meta/llama-3.1-8b-instruct';
+    var AI_PROVIDER_LABELS={gemini:'Gemini',opencode:'OpenCode',groq:'Groq',cloudflare:'Cloudflare Workers AI'};
+    radios.forEach(function(r){
+      r.addEventListener('change',function(){
+        if(!this.checked)return;
+        localStorage.setItem(AI_PROVIDER_KEY,this.value);
+        applyVisibility(this.value);
+        toast('موتور هوش مصنوعی به «'+(AI_PROVIDER_LABELS[this.value]||this.value)+'» تغییر کرد ✅');
+      });
+    });
+    if(opencodeSel){
+      opencodeSel.addEventListener('change',function(){
+        localStorage.setItem(AI_MODEL_KEY_OPENCODE,this.value);
+        toast('مدل OpenCode ذخیره شد ✅');
+      });
+    }
+    if(groqSel){
+      groqSel.addEventListener('change',function(){
+        localStorage.setItem(AI_MODEL_KEY_GROQ,this.value);
+        toast('مدل Groq ذخیره شد ✅');
+      });
+    }
+    if(cfSel){
+      cfSel.addEventListener('change',function(){
+        localStorage.setItem(AI_MODEL_KEY_CLOUDFLARE,this.value);
+        toast('مدل Cloudflare Workers AI ذخیره شد ✅');
+      });
+    }
+  })();
 
   // ===== ورود =====
   async function checkAuth(){
@@ -6516,7 +6564,7 @@ function teacherScript() {
       const res=await fetch('/api/teacher/ai/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
         messages:[{role:'system',content:sys},{role:'user',content:'موضوع/محتوای سوالات: '+topic}],
         max_tokens: Math.min(8192, 1200 + count*650),
-        provider:getAiProvider()
+        provider:getAiProvider(),model:getAiModel()
       })});
       const data=await res.json();
       if(!res.ok||data.error)throw new Error(data.error||'خطا در ارتباط با هوش مصنوعی');
@@ -8311,7 +8359,7 @@ function teacherScript() {
       const res=await fetch('/api/teacher/ai/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
         messages:[{role:'system',content:sys},{role:'user',content:'موضوع/محتوای سوالات: '+topic}],
         max_tokens: Math.min(8192, 1000 + count*450),
-        provider:getAiProvider()
+        provider:getAiProvider(),model:getAiModel()
       })});
       const data=await res.json();
       if(!res.ok||data.error)throw new Error(data.error||'خطا در ارتباط با هوش مصنوعی');
@@ -9320,6 +9368,111 @@ function teacherScript() {
 
   document.getElementById('btn-clear-resize').onclick=()=>{RESIZE_IMAGES=[];renderResizePreview();document.getElementById('resize-controls').classList.add('hidden');};
 
+  // ===== تبدیل عکس به PDF (ادغام چند عکس در یک فایل PDF) =====
+  let IMG2PDF_IMAGES=[];
+  const img2pdfDropZone=document.getElementById('img2pdf-drop-zone');
+  const img2pdfFileInput=document.getElementById('img2pdf-file');
+  img2pdfDropZone.onclick=()=>img2pdfFileInput.click();
+  img2pdfDropZone.addEventListener('dragover',e=>{e.preventDefault();img2pdfDropZone.classList.add('dragover');});
+  img2pdfDropZone.addEventListener('dragleave',()=>img2pdfDropZone.classList.remove('dragover'));
+  img2pdfDropZone.addEventListener('drop',e=>{e.preventDefault();img2pdfDropZone.classList.remove('dragover');handleImg2pdfFiles(e.dataTransfer.files);});
+  img2pdfFileInput.addEventListener('change',function(){handleImg2pdfFiles(this.files);this.value='';});
+  document.getElementById('btn-img2pdf-add-more').onclick=()=>img2pdfFileInput.click();
+
+  function handleImg2pdfFiles(files){
+    let addedAny=false;
+    Array.from(files).forEach(file=>{
+      if(!file.type.startsWith('image/')){toast('فایل «'+file.name+'» عکس نیست و نادیده گرفته شد');return;}
+      const rd=new FileReader();
+      rd.onload=ev=>{
+        const img=new Image();
+        img.onload=()=>{
+          IMG2PDF_IMAGES.push({file,img,dataUrl:ev.target.result});
+          document.getElementById('img2pdf-controls').classList.remove('hidden');
+          renderImg2pdfPreview();
+        };
+        img.onerror=()=>{toast('فایل «'+file.name+'» قابل بازکردن نیست');};
+        img.src=ev.target.result;
+      };
+      rd.onerror=()=>{toast('خطا در خواندن فایل «'+file.name+'»');};
+      rd.readAsDataURL(file);
+      addedAny=true;
+    });
+    if(!addedAny)return;
+  }
+
+  function renderImg2pdfPreview(){
+    const box=document.getElementById('img2pdf-preview');
+    document.getElementById('img2pdf-count').textContent=toFaDigits(IMG2PDF_IMAGES.length);
+    if(!IMG2PDF_IMAGES.length){box.innerHTML='';return;}
+    box.innerHTML=IMG2PDF_IMAGES.map((r,i)=>{
+      const sizeKb=(r.file.size/1024).toFixed(1);
+      return '<div class="resize-item">'
+        +'<button class="remove-btn" onclick="removeImg2pdfImg('+i+')" title="حذف عکس">×</button>'
+        +'<img src="'+r.dataUrl+'" alt="">'
+        +'<div class="size-info">صفحه '+toFaDigits(i+1)+' — '+sizeKb+' KB<br>'+r.img.width+'×'+r.img.height+'</div>'
+        +'<div style="display:flex;justify-content:center;gap:6px;margin-top:6px">'
+        +'<button type="button" class="btn sm gray" onclick="moveImg2pdfImg('+i+',-1)" '+(i===0?'disabled':'')+'>⬆</button>'
+        +'<button type="button" class="btn sm gray" onclick="moveImg2pdfImg('+i+',1)" '+(i===IMG2PDF_IMAGES.length-1?'disabled':'')+'>⬇</button>'
+        +'</div>'
+        +'</div>';
+    }).join('');
+  }
+  window.removeImg2pdfImg=(i)=>{
+    IMG2PDF_IMAGES.splice(i,1);
+    renderImg2pdfPreview();
+    if(!IMG2PDF_IMAGES.length)document.getElementById('img2pdf-controls').classList.add('hidden');
+  };
+  window.moveImg2pdfImg=(i,dir)=>{
+    const j=i+dir;
+    if(j<0||j>=IMG2PDF_IMAGES.length)return;
+    const tmp=IMG2PDF_IMAGES[i];IMG2PDF_IMAGES[i]=IMG2PDF_IMAGES[j];IMG2PDF_IMAGES[j]=tmp;
+    renderImg2pdfPreview();
+  };
+  document.getElementById('btn-img2pdf-clear').onclick=()=>{
+    if(!IMG2PDF_IMAGES.length)return;
+    if(!confirm('همه‌ی '+IMG2PDF_IMAGES.length+' عکس پاک شوند؟'))return;
+    IMG2PDF_IMAGES=[];renderImg2pdfPreview();document.getElementById('img2pdf-controls').classList.add('hidden');
+  };
+  document.getElementById('btn-img2pdf-build').onclick=function(){
+    if(!IMG2PDF_IMAGES.length){toast('ابتدا حداقل یک عکس اضافه کنید');return;}
+    if(!window.jspdf){toast('کتابخانه PDF در دسترس نیست — اتصال اینترنت را بررسی کنید');return;}
+    const btn=this;btn.disabled=true;const origText=btn.textContent;btn.textContent='⏳ در حال ساخت PDF...';
+    try{
+      const margin=parseInt(document.getElementById('img2pdf-margin').value,10)||0;
+      const jsPDF=window.jspdf.jsPDF;
+      let pdf=null;
+      IMG2PDF_IMAGES.forEach((r,i)=>{
+        const orientation=r.img.width>=r.img.height?'l':'p';
+        if(i===0){
+          pdf=new jsPDF({orientation,unit:'pt',format:'a4'});
+        }else{
+          pdf.addPage('a4',orientation);
+        }
+        const pw=pdf.internal.pageSize.getWidth(),ph=pdf.internal.pageSize.getHeight();
+        const aw=pw-2*margin,ah=ph-2*margin;
+        let iw=r.img.naturalWidth||r.img.width,ih=r.img.naturalHeight||r.img.height;
+        const ratio=Math.min(aw/iw,ah/ih);
+        iw*=ratio;ih*=ratio;
+        // تبدیل عکس (با هر فرمتی: PNG/JPG/WEBP/GIF/...) از طریق کنوس به یک فرمت یکسان قابل قبول برای jsPDF
+        const cv=document.createElement('canvas');cv.width=r.img.naturalWidth||r.img.width;cv.height=r.img.naturalHeight||r.img.height;
+        const ctx=cv.getContext('2d');
+        const hasAlpha=r.file.type==='image/png'||r.file.type==='image/gif';
+        if(!hasAlpha){ctx.fillStyle='#ffffff';ctx.fillRect(0,0,cv.width,cv.height);}
+        ctx.drawImage(r.img,0,0,cv.width,cv.height);
+        const outFmt=hasAlpha?'PNG':'JPEG';
+        const outDataUrl=cv.toDataURL(hasAlpha?'image/png':'image/jpeg',0.92);
+        pdf.addImage(outDataUrl,outFmt,(pw-iw)/2,(ph-ih)/2,iw,ih);
+      });
+      pdf.save('عکس‌ها.pdf');
+      toast('فایل PDF با '+IMG2PDF_IMAGES.length+' صفحه ساخته شد ✅');
+    }catch(e){
+      toast('خطا در ساخت فایل PDF');
+    }finally{
+      btn.disabled=false;btn.textContent=origText;
+    }
+  };
+
   // ===== Crop (اصلاح‌شده با پشتیبانی از لمس برای گوشی) =====
   let cropImg = null,
     cropFileName = '',
@@ -10106,7 +10259,7 @@ function teacherScript() {
       'into '+toName+'. '+(toneInstruction||'')+' '+
       'Preserve the original meaning, paragraph breaks, and any numbers/names exactly. '+
       'Respond with ONLY the translation itself — natural, fluent, and idiomatic — no quotes, no explanations, no extra commentary, no original text repeated.';
-    const res=await fetch('/api/teacher/ai/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({messages:[{role:'system',content:sys},{role:'user',content:text}],max_tokens:4096,provider:getAiProvider()})});
+    const res=await fetch('/api/teacher/ai/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({messages:[{role:'system',content:sys},{role:'user',content:text}],max_tokens:4096,provider:getAiProvider(),model:getAiModel()})});
     const data=await res.json();
     if(data.error)throw new Error(data.error);
     return (data.content||'').trim();
@@ -10163,7 +10316,7 @@ function teacherScript() {
         reader.readAsDataURL(file);
       });
       const sys='You are an OCR engine. Extract ALL text visible in the image EXACTLY as written, preserving line breaks and paragraph structure. Do NOT translate it. Do NOT add any commentary, headers, or explanation — output ONLY the extracted text, nothing else.';
-      const res=await fetch('/api/teacher/ai/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({messages:[{role:'system',content:sys},{role:'user',content:[{type:'text',text:'متن این تصویر را استخراج کن.'},{type:'image_url',image_url:{url:dataUrl}}]}],max_tokens:4096,provider:getAiProvider()})});
+      const res=await fetch('/api/teacher/ai/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({messages:[{role:'system',content:sys},{role:'user',content:[{type:'text',text:'متن این تصویر را استخراج کن.'},{type:'image_url',image_url:{url:dataUrl}}]}],max_tokens:4096,provider:getAiProvider(),model:getAiModel()})});
       const data=await res.json();
       if(data.error)throw new Error(data.error);
       const extracted=(data.content||'').trim();
@@ -10329,7 +10482,7 @@ function teacherScript() {
     showTyping();
     try{
       const msgs=aiMessages.slice(-10).map(m=>({role:m.role,content:m.content}));
-      const res=await fetch('/api/teacher/ai/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({messages:msgs,provider:getAiProvider(),max_tokens:4096})});
+      const res=await fetch('/api/teacher/ai/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({messages:msgs,provider:getAiProvider(),model:getAiModel(),max_tokens:4096})});
       const d=await res.json();
       hideTyping();
       if(d.error){addAiMessage('ai','❌ خطا: '+d.error);return;}
@@ -10919,7 +11072,6 @@ function teacherScript() {
       if(b.dataset.lb==='weekly2')lbLoadWeekly2IfNeeded();
       if(b.dataset.lb==='staff')lbLoadStaffIfNeeded();
       if(b.dataset.lb==='minutes')lbLoadMinutesIfNeeded();
-      if(b.dataset.lb==='certificate')lbLoadCertificateIfNeeded();
     };
   });
   document.querySelectorAll('.lb-back-btn').forEach(function(b){
@@ -11320,7 +11472,7 @@ function teacherScript() {
       'برای هر بازه یک متن بسیار کوتاه (حداکثر ۸ تا ۱۰ کلمه) بنویس شامل شماره/نام درس یا فصل کتاب رسمی و در صورت لزوم صفحات تقریبی، طبق روال معمول و متعارف کتاب‌های درسی رسمی ایران برای این پایه. '+
       'خروجی را فقط و فقط به‌صورت یک آرایه‌ی JSON معتبر برگردان که شامل یک زیرآرایه به ازای هر درس (دقیقاً به همان ترتیب دروس بالا) است و هر زیرآرایه دقیقاً ۱۶ رشته دارد، بدون هیچ توضیح اضافه، بدون Markdown و بدون علامت‌های کد (بک‌تیک).';
     try{
-      var res=await fetch('/api/teacher/ai/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({messages:[{role:'system',content:sys},{role:'user',content:'بودجه‌بندی را طبق فرمت JSON خواسته‌شده تولید کن.'}],max_tokens:8192,provider:getAiProvider()})});
+      var res=await fetch('/api/teacher/ai/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({messages:[{role:'system',content:sys},{role:'user',content:'بودجه‌بندی را طبق فرمت JSON خواسته‌شده تولید کن.'}],max_tokens:8192,provider:getAiProvider(),model:getAiModel()})});
       var data=await res.json();
       if(data.error)throw new Error(data.error);
       var raw=(data.content||'').trim();
@@ -13582,364 +13734,6 @@ function teacherScript() {
     }
   }
 
-  /* ---- تقدیرنامه‌ساز ---- */
-  var CERT_TPL='gold';
-  var CERT_BG_IMG='';
-  var CERT_BG_ZOOM=100;
-  var CERT_BG_OFFX=0;
-  var CERT_BG_OFFY=0;
-  var CERT_BG_OPACITY=100;
-  var CERT_BG_DRAGGING=false;
-  var CERT_BG_DRAG_START=null;
-  var CERT_SIGN_IMG='';
-  var CERT_LOGO_IMG='';
-  var CERT_STUDENTS_LOADED=false;
-  async function lbCertLoadStudentsIfNeeded(){
-    if(CERT_STUDENTS_LOADED)return;
-    CERT_STUDENTS_LOADED=true;
-    try{
-      var d=await api('/api/teacher/students');
-      var sel=document.getElementById('cert-student-select');
-      (d.students||[]).forEach(function(s){
-        var opt=document.createElement('option');
-        opt.value=s.uuid;opt.textContent=s.label;
-        opt.dataset.label=s.label;
-        sel.appendChild(opt);
-      });
-    }catch(e){}
-  }
-  document.getElementById('cert-student-select').addEventListener('change',function(){
-    var opt=this.selectedOptions[0];
-    if(opt&&opt.dataset.label)document.getElementById('cert-name').value=opt.dataset.label;
-    lbCertRenderPreview();
-  });
-  document.querySelectorAll('.lb-cert-tpl-btn').forEach(function(b){
-    b.onclick=function(){
-      document.querySelectorAll('.lb-cert-tpl-btn').forEach(function(x){x.classList.remove('active');});
-      b.classList.add('active');
-      CERT_TPL=b.dataset.tpl;
-      lbCertRenderPreview();
-    };
-  });
-  ['cert-kind','cert-num','cert-date','cert-salute','cert-name','cert-intro','cert-reason','cert-issuer','cert-font'].forEach(function(id){
-    var el=document.getElementById(id);
-    el.addEventListener('input',lbCertRenderPreview);
-    el.addEventListener('change',lbCertRenderPreview);
-  });
-  document.getElementById('cert-font-size').addEventListener('input',function(){
-    document.getElementById('cert-font-size-val').textContent=toFaDigits(this.value);
-    lbCertRenderPreview();
-  });
-  document.getElementById('cert-bg-file').addEventListener('change',async function(){
-    var f=this.files&&this.files[0];
-    if(!f)return;
-    try{
-      toast('در حال بارگذاری تصویر...');
-      var dataUrl=await compressWorksheetImage(f);
-      CERT_BG_IMG=dataUrl;
-      CERT_BG_ZOOM=100;CERT_BG_OFFX=0;CERT_BG_OFFY=0;CERT_BG_OPACITY=100;
-      document.getElementById('cert-bg-zoom').value=100;
-      document.getElementById('cert-bg-zoom-val').textContent='۱۰۰٪';
-      document.getElementById('cert-bg-opacity').value=100;
-      document.getElementById('cert-bg-opacity-val').textContent='۱۰۰٪';
-      document.getElementById('cert-bg-controls').classList.remove('hidden');
-      lbCertRenderPreview();
-      toast('تصویر پس‌زمینه اضافه شد ✅');
-    }catch(e){toast(e.message||'خطا در بارگذاری تصویر');}
-    this.value='';
-  });
-  document.getElementById('btn-cert-bg-remove').onclick=function(){
-    CERT_BG_IMG='';
-    document.getElementById('cert-bg-controls').classList.add('hidden');
-    lbCertRenderPreview();
-  };
-  document.getElementById('btn-cert-bg-center').onclick=function(){
-    CERT_BG_OFFX=0;CERT_BG_OFFY=0;
-    lbCertRenderPreview();
-  };
-  document.getElementById('cert-bg-zoom').addEventListener('input',function(){
-    CERT_BG_ZOOM=parseInt(this.value,10)||100;
-    document.getElementById('cert-bg-zoom-val').textContent=toFaDigits(this.value)+'٪';
-    var fill=document.querySelector('#cert-preview .lb-cert-bg-fill');
-    if(fill)fill.style.transform='scale('+(CERT_BG_ZOOM/100)+') translate('+CERT_BG_OFFX+'%,'+CERT_BG_OFFY+'%)';
-  });
-  document.getElementById('cert-bg-opacity').addEventListener('input',function(){
-    CERT_BG_OPACITY=parseInt(this.value,10)||100;
-    document.getElementById('cert-bg-opacity-val').textContent=toFaDigits(this.value)+'٪';
-    var fill=document.querySelector('#cert-preview .lb-cert-bg-fill');
-    if(fill)fill.style.opacity=(CERT_BG_OPACITY/100);
-  });
-  document.getElementById('cert-frame-pad').addEventListener('input',function(){
-    document.getElementById('cert-frame-pad-val').textContent=toFaDigits(this.value);
-    document.getElementById('cert-preview').style.setProperty('--cert-frame-pad',this.value+'px');
-  });
-  document.getElementById('cert-sign-file').addEventListener('change',async function(){
-    var f=this.files&&this.files[0];
-    if(!f)return;
-    try{
-      toast('در حال بارگذاری امضا...');
-      var dataUrl=await compressWorksheetImage(f);
-      CERT_SIGN_IMG=dataUrl;
-      lbCertRenderPreview();
-      toast('امضا اضافه شد ✅');
-    }catch(e){toast(e.message||'خطا در بارگذاری امضا');}
-    this.value='';
-  });
-  document.getElementById('btn-cert-sign-remove').onclick=function(){
-    CERT_SIGN_IMG='';
-    lbCertRenderPreview();
-  };
-  document.getElementById('cert-logo-file').addEventListener('change',async function(){
-    var f=this.files&&this.files[0];
-    if(!f)return;
-    try{
-      toast('در حال بارگذاری تصویر...');
-      var dataUrl=await compressWorksheetImage(f);
-      CERT_LOGO_IMG=dataUrl;
-      lbCertRenderPreview();
-      toast('نشان/عکس اضافه شد ✅');
-    }catch(e){toast(e.message||'خطا در بارگذاری تصویر');}
-    this.value='';
-  });
-  document.getElementById('btn-cert-logo-remove').onclick=function(){
-    CERT_LOGO_IMG='';
-    lbCertRenderPreview();
-  };
-  var LB_CERT_PRESETS={
-    colleague:{kind:'تقدیرنامه',salute:'جناب آقای',intro:'این تقدیرنامه به پاس',reason:'همکاری صمیمانه، تعهد کاری و تلاش مستمر ایشان در راستای اهداف آموزشی مجموعه، با افتخار اهدا می‌گردد.'},
-    student:{kind:'تقدیرنامه',salute:'دانش‌آموز عزیز',intro:'این تقدیرنامه به پاس',reason:'کسب رتبه برتر، تلاش و پشتکار در طول سال تحصیلی، با افتخار اهدا می‌گردد.'},
-    teacher:{kind:'تقدیرنامه',salute:'جناب آقای',intro:'این تقدیرنامه به پاس',reason:'تلاش ارزشمند، دلسوزی و ارائه آموزش با کیفیت در طول سال تحصیلی، با افتخار اهدا می‌گردد.'}
-  };
-  document.querySelectorAll('.lb-cert-preset-btn').forEach(function(b){
-    b.onclick=function(){
-      var p=LB_CERT_PRESETS[b.dataset.preset];
-      if(!p)return;
-      document.getElementById('cert-kind').value=p.kind;
-      document.getElementById('cert-salute').value=p.salute;
-      document.getElementById('cert-intro').value=p.intro;
-      document.getElementById('cert-reason').value=p.reason;
-      lbCertRenderPreview();
-      toast('متن پیشنهادی اعمال شد — می‌توانید ویرایش کنید ✅');
-    };
-  });
-  function lbCertBadge(tpl){
-    return {gold:'🏆',blue:'🎖️',green:'🌿',purple:'🎗️',champion:'🥇',white:'📜',royal:'👑',lapis:'🔷',emerald:'💎'}[tpl]||'🏆';
-  }
-  function lbCertBadgeHtml(d){
-    if(d.logoImage&&d.logoImage.indexOf('data:image/')===0){
-      return '<img src="'+d.logoImage+'" style="max-height:52px;max-width:130px;object-fit:contain">';
-    }
-    return lbCertBadge(d.tpl);
-  }
-  function lbCertFontFamilyCss(key){
-    var m={titr:'"BTitr","B Titr",tahoma,Arial',nazanin:'"BNazanin","B Nazanin",tahoma,Arial',nastaliq:'"Noto Nastaliq Urdu",tahoma,Arial',vazirmatn:'"Vazirmatn",tahoma,Arial',koodak:'"BKoodak","B Koodak",tahoma,Arial',mitra:'"BMitra","B Mitra",tahoma,Arial'};
-    return m[key]||m.nastaliq;
-  }
-  function lbCertBgLayerHtml(d){
-    if(!d.bgImage||d.bgImage.indexOf('data:image/')!==0)return '';
-    var zoom=parseInt(d.bgZoom,10)||100;
-    var ox=parseFloat(d.bgOffX)||0,oy=parseFloat(d.bgOffY)||0;
-    var op=(parseInt(d.bgOpacity,10)||100)/100;
-    return '<div class="lb-cert-bg-layer"><div class="lb-cert-bg-fill" style="background-image:url('+d.bgImage+');opacity:'+op+';transform:scale('+(zoom/100)+') translate('+ox+'%,'+oy+'%)"></div></div>';
-  }
-  function lbCertSignHtml(d){
-    if(!d.signImage&&!d.issuer)return '';
-    var parts='';
-    if(d.signImage&&d.signImage.indexOf('data:image/')===0)parts+='<img src="'+d.signImage+'" alt="امضا">';
-    if(d.issuer)parts+='<span>'+esc(d.issuer)+'</span>';
-    return parts?'<div class="cert-sign">'+parts+'</div>':'';
-  }
-  function lbCertData(){
-    return {
-      kind:document.getElementById('cert-kind').value,
-      num:document.getElementById('cert-num').value,
-      date:document.getElementById('cert-date').value,
-      salute:document.getElementById('cert-salute').value,
-      name:document.getElementById('cert-name').value,
-      intro:document.getElementById('cert-intro').value,
-      reason:document.getElementById('cert-reason').value,
-      issuer:document.getElementById('cert-issuer').value,
-      font:document.getElementById('cert-font').value,
-      fontSize:document.getElementById('cert-font-size').value,
-      tpl:CERT_TPL,
-      bgImage:CERT_BG_IMG,
-      bgZoom:CERT_BG_ZOOM,
-      bgOffX:CERT_BG_OFFX,
-      bgOffY:CERT_BG_OFFY,
-      bgOpacity:CERT_BG_OPACITY,
-      signImage:CERT_SIGN_IMG,
-      logoImage:CERT_LOGO_IMG,
-      framePad:document.getElementById('cert-frame-pad').value
-    };
-  }
-  function lbCertFullName(d){
-    var salute=d.salute||'';
-    var name=d.name||'.......................';
-    return (salute?salute+' ':'')+name;
-  }
-  function lbCertInnerHtml(d){
-    var badge=lbCertBadgeHtml(d);
-    var fs=parseInt(d.fontSize,10)||13;
-    var h='';
-    h+=lbCertBgLayerHtml(d);
-    h+='<div class="cert-numbox">شماره: '+esc(d.num||'.......')+'<br>تاریخ: '+esc(d.date||'.......')+'</div>';
-    if(d.tpl==='champion')h+='<p class="cert-bismillah">بسم الله الرحمن الرحیم</p>';
-    h+='<div class="cert-badge">'+badge+'</div>';
-    h+='<p class="cert-kind">'+esc(d.kind||'تقدیرنامه')+'</p>';
-    h+='<p class="cert-intro">'+esc(d.intro||'این سند به پاس تلاش و شایستگی به')+'</p>';
-    h+='<div class="cert-name">'+esc(lbCertFullName(d))+'</div>';
-    h+='<p class="cert-reason" style="font-size:'+fs+'px">'+esc(d.reason||'')+'</p>';
-    h+=lbCertSignHtml(d);
-    return h;
-  }
-  function lbCertRenderPreview(){
-    var d=lbCertData();
-    var el=document.getElementById('cert-preview');
-    el.className='lb-cert-sheet lb-cert-'+d.tpl+' lb-cert-font-'+d.font;
-    el.style.setProperty('--cert-frame-pad',(parseInt(d.framePad,10)||10)+'px');
-    el.innerHTML=lbCertInnerHtml(d);
-    lbCertBindBgDrag();
-  }
-  function lbCertBindBgDrag(){
-    var fill=document.querySelector('#cert-preview .lb-cert-bg-fill');
-    if(!fill)return;
-    var sheet=document.getElementById('cert-preview');
-    fill.addEventListener('pointerdown',function(e){
-      e.preventDefault();
-      CERT_BG_DRAGGING=true;
-      try{fill.setPointerCapture(e.pointerId);}catch(err){}
-      CERT_BG_DRAG_START={x:e.clientX,y:e.clientY,ox:CERT_BG_OFFX,oy:CERT_BG_OFFY,w:sheet.offsetWidth||1,h:sheet.offsetHeight||1};
-    });
-    fill.addEventListener('pointermove',function(e){
-      if(!CERT_BG_DRAGGING||!CERT_BG_DRAG_START)return;
-      var dx=e.clientX-CERT_BG_DRAG_START.x,dy=e.clientY-CERT_BG_DRAG_START.y;
-      var dxPct=(dx/CERT_BG_DRAG_START.w)*100,dyPct=(dy/CERT_BG_DRAG_START.h)*100;
-      CERT_BG_OFFX=Math.max(-60,Math.min(60,CERT_BG_DRAG_START.ox+dxPct));
-      CERT_BG_OFFY=Math.max(-60,Math.min(60,CERT_BG_DRAG_START.oy+dyPct));
-      fill.style.transform='scale('+(CERT_BG_ZOOM/100)+') translate('+CERT_BG_OFFX+'%,'+CERT_BG_OFFY+'%)';
-    });
-    function endDrag(){CERT_BG_DRAGGING=false;}
-    fill.addEventListener('pointerup',endDrag);
-    fill.addEventListener('pointercancel',endDrag);
-  }
-  function lbCertExportHtml(){
-    var d=lbCertData();
-    var accents={gold:'#b8860b',blue:'#1d4ed8',green:'#15803d',purple:'#7e22ce',champion:'#1d4ed8',white:'#334155',royal:'#5b21b6',lapis:'#1e3a8a',emerald:'#065f46'};
-    var bgs={gold:'#fdf6e3',blue:'#e6f0ff',green:'#e5f9ec',purple:'#f1e6ff',champion:'#fdfdfb',white:'#ffffff',royal:'#fdfaf5',lapis:'#fdfaf5',emerald:'#fdfaf5'};
-    var accent=accents[d.tpl]||accents.gold;
-    var bg=bgs[d.tpl]||bgs.gold;
-    var badge=(d.logoImage&&d.logoImage.indexOf('data:image/')===0)?'<img src="'+d.logoImage+'" style="max-height:52px;max-width:130px;object-fit:contain">':lbCertBadge(d.tpl);
-    var titleFont=lbCertFontFamilyCss(d.font);
-    var nameFont=titleFont;
-    var bodyFont=(d.font==='nastaliq'||d.font==='shik')?lbCertFontFamilyCss('nazanin'):titleFont;
-    var metaFont=titleFont;
-    if(d.font==='shik'){
-      titleFont=lbCertFontFamilyCss('titr');
-      nameFont=lbCertFontFamilyCss('nastaliq');
-      metaFont=lbCertFontFamilyCss('mitra');
-    }
-    var fs=parseInt(d.fontSize,10)||13;
-    var pad=parseInt(d.framePad,10)||10;
-    var h='<div style="position:relative;width:100%;box-sizing:border-box;padding:26px;border:3px solid '+accent+';border-radius:6px;text-align:center;background:'+bg+';font-family:tahoma,Arial;overflow:visible">';
-    h+='<div style="position:relative;padding:'+(16+pad)+'px 16px;border:1.5px solid '+accent+';border-radius:4px;overflow:visible">';
-    if(d.bgImage&&d.bgImage.indexOf('data:image/')===0){
-      var zoom=parseInt(d.bgZoom,10)||100;
-      var ox=parseFloat(d.bgOffX)||0,oy=parseFloat(d.bgOffY)||0;
-      var op=(parseInt(d.bgOpacity,10)||100)/100;
-      h+='<div style="position:absolute;inset:0;overflow:hidden;border-radius:4px;z-index:0"><div style="position:absolute;inset:0;background-image:url('+d.bgImage+');background-size:cover;background-position:center;background-repeat:no-repeat;opacity:'+op+';transform:scale('+(zoom/100)+') translate('+ox+'%,'+oy+'%)"></div></div>';
-    }
-    h+='<div style="position:relative;z-index:1">';
-    h+='<div style="position:absolute;top:6px;right:10px;text-align:right;font-size:11px;font-weight:700;color:#334155;line-height:1.8;font-family:'+metaFont+'">شماره: '+esc(d.num||'.......')+'<br>تاریخ: '+esc(d.date||'.......')+'</div>';
-    if(d.tpl==='champion')h+='<p style="font-size:15px;font-weight:700;color:'+accent+';margin:2px 0 10px">بسم الله الرحمن الرحیم</p>';
-    h+='<div style="font-size:40px;margin-top:'+(d.tpl==='champion'?'0':'6px')+'">'+badge+'</div>';
-    h+='<p style="font-size:28px;font-weight:800;color:'+accent+';margin:8px auto;max-width:92%;overflow-wrap:break-word;word-break:break-word;font-family:'+titleFont+'">'+esc(d.kind||'تقدیرنامه')+'</p>';
-    h+='<p style="font-size:13px;color:#334155;margin:6px auto 0;max-width:88%;overflow-wrap:break-word;word-break:break-word;font-family:'+bodyFont+'">'+esc(d.intro||'این سند به پاس تلاش و شایستگی به')+'</p>';
-    h+='<div style="font-size:26px;font-weight:800;color:#1e293b;margin:10px auto;border-bottom:2px solid '+accent+';display:inline-block;padding-bottom:6px;max-width:92%;overflow-wrap:break-word;word-break:break-word;font-family:'+nameFont+'">'+esc(lbCertFullName(d))+'</div>';
-    h+='<p style="font-size:'+fs+'px;color:#334155;max-width:88%;line-height:1.9;margin:6px auto;overflow-wrap:break-word;word-break:break-word;white-space:pre-line;font-family:'+bodyFont+'">'+esc(d.reason||'')+'</p>';
-    if(d.signImage||d.issuer){
-      h+='<div style="margin:22px auto 0;display:flex;flex-direction:column;align-items:center;gap:4px">';
-      if(d.signImage&&d.signImage.indexOf('data:image/')===0)h+='<img src="'+d.signImage+'" style="max-height:70px;max-width:160px;object-fit:contain">';
-      if(d.issuer)h+='<span style="font-size:12px;color:#475569;font-weight:700;font-family:'+metaFont+'">'+esc(d.issuer)+'</span>';
-      h+='</div>';
-    }
-    h+='</div>';
-    h+='</div></div>';
-    return h;
-  }
-  document.getElementById('btn-cert-word').onclick=function(){
-    var d=lbCertData();
-    var landscape=document.getElementById('cert-print-orientation').value==='landscape';
-    lbWordExport(d.kind||'تقدیرنامه',lbCertExportHtml(),'تقدیرنامه',landscape,lbCertFontFamilyCss(d.font));
-  };
-  document.getElementById('btn-cert-pdf').onclick=function(){
-    var d=lbCertData();
-    var landscape=document.getElementById('cert-print-orientation').value==='landscape';
-    lbPrintExport(d.kind||'تقدیرنامه',lbCertExportHtml(),landscape,lbCertFontFamilyCss(d.font));
-  };
-  document.getElementById('btn-cert-save').onclick=function(){
-    lbSave('certificate',lbCertData());
-  };
-  document.getElementById('btn-cert-clear').onclick=function(){
-    if(!confirm('آیا از پاک‌کردن تمام اطلاعات تقدیرنامه مطمئن هستید؟ این کار قابل بازگشت نیست.'))return;
-    ['cert-num','cert-date','cert-name','cert-intro','cert-reason','cert-issuer'].forEach(function(id){document.getElementById(id).value='';});
-    document.getElementById('cert-kind').value='تقدیرنامه';
-    document.getElementById('cert-salute').value='جناب آقای';
-    document.getElementById('cert-font').value='shik';
-    document.getElementById('cert-font-size').value='13';
-    document.getElementById('cert-font-size-val').textContent='۱۳';
-    document.getElementById('cert-student-select').value='';
-    CERT_TPL='gold';
-    CERT_BG_IMG='';CERT_BG_ZOOM=100;CERT_BG_OFFX=0;CERT_BG_OFFY=0;CERT_BG_OPACITY=100;CERT_SIGN_IMG='';CERT_LOGO_IMG='';
-    document.getElementById('cert-bg-controls').classList.add('hidden');
-    document.getElementById('cert-bg-zoom').value=100;
-    document.getElementById('cert-bg-zoom-val').textContent='۱۰۰٪';
-    document.getElementById('cert-bg-opacity').value=100;
-    document.getElementById('cert-bg-opacity-val').textContent='۱۰۰٪';
-    document.getElementById('cert-frame-pad').value=10;
-    document.getElementById('cert-frame-pad-val').textContent='۱۰';
-    document.getElementById('cert-print-orientation').value='portrait';
-    document.querySelectorAll('.lb-cert-tpl-btn').forEach(function(x){x.classList.remove('active');});
-    document.querySelector('.lb-cert-tpl-btn[data-tpl="gold"]').classList.add('active');
-    lbCertRenderPreview();
-    toast('فرم تقدیرنامه پاک شد ✅');
-  };
-  var LB_CERT_LOADED=false;
-  async function lbLoadCertificateIfNeeded(){
-    await lbCertLoadStudentsIfNeeded();
-    if(LB_CERT_LOADED){lbCertRenderPreview();return;}
-    LB_CERT_LOADED=true;
-    var saved=await lbLoad('certificate');
-    if(saved){
-      document.getElementById('cert-kind').value=saved.kind||'تقدیرنامه';
-      document.getElementById('cert-num').value=saved.num||'';
-      document.getElementById('cert-date').value=saved.date||'';
-      document.getElementById('cert-salute').value=saved.salute||'جناب آقای';
-      document.getElementById('cert-name').value=saved.name||'';
-      document.getElementById('cert-intro').value=saved.intro||'';
-      document.getElementById('cert-reason').value=saved.reason||'';
-      document.getElementById('cert-issuer').value=saved.issuer||'';
-      document.getElementById('cert-font').value=saved.font||'shik';
-      document.getElementById('cert-font-size').value=saved.fontSize||'13';
-      document.getElementById('cert-font-size-val').textContent=toFaDigits(saved.fontSize||'13');
-      CERT_TPL=saved.tpl||'gold';
-      CERT_BG_IMG=saved.bgImage||'';
-      CERT_BG_ZOOM=saved.bgZoom||100;
-      CERT_BG_OFFX=saved.bgOffX||0;
-      CERT_BG_OFFY=saved.bgOffY||0;
-      CERT_BG_OPACITY=saved.bgOpacity||100;
-      CERT_SIGN_IMG=saved.signImage||'';
-      CERT_LOGO_IMG=saved.logoImage||'';
-      document.getElementById('cert-bg-zoom').value=CERT_BG_ZOOM;
-      document.getElementById('cert-bg-zoom-val').textContent=toFaDigits(String(CERT_BG_ZOOM))+'٪';
-      document.getElementById('cert-bg-opacity').value=CERT_BG_OPACITY;
-      document.getElementById('cert-bg-opacity-val').textContent=toFaDigits(String(CERT_BG_OPACITY))+'٪';
-      document.getElementById('cert-bg-controls').classList.toggle('hidden',!CERT_BG_IMG);
-      document.getElementById('cert-frame-pad').value=saved.framePad||10;
-      document.getElementById('cert-frame-pad-val').textContent=toFaDigits(String(saved.framePad||10));
-      document.querySelectorAll('.lb-cert-tpl-btn').forEach(function(x){x.classList.toggle('active',x.dataset.tpl===CERT_TPL);});
-    }
-    lbCertRenderPreview();
-  }
 
   // ===================== پایان دفتر مدیریت کلاسی =====================
 
@@ -13986,7 +13780,7 @@ function teacherScript() {
     if(!INFOEX_LINKS.length){wrap.innerHTML='<p class="muted">هنوز لینکی نساخته‌اید.</p>';return;}
     wrap.innerHTML=INFOEX_LINKS.map(function(l){
       var link=location.origin+'/info/'+l.uuid;
-      return '<div class="lb-cert-templates" style="justify-content:space-between;align-items:center;border:1px solid var(--line);border-radius:10px;padding:10px;margin-top:8px">'
+      return '<div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:space-between;align-items:center;border:1px solid var(--line);border-radius:10px;padding:10px;margin-top:8px">'
         +'<div><b>'+esc(l.ownerName)+'</b> <span class="muted">('+esc(l.ownerRole)+')</span><br><span class="muted" style="font-size:12px">'+esc(link)+'</span></div>'
         +'<div style="display:flex;gap:6px;flex-wrap:wrap">'
         +'<button class="btn sm sec" data-copy="'+esc(link)+'">📋 کپی لینک</button>'
