@@ -3849,6 +3849,8 @@ function teacherPage() {
           <div class="tab-children" id="tab-children-translateai">
             <a class="tab-child" href="/teacher?tab=translateai&subtab=translate">🌐 ترجمه</a>
             <a class="tab-child" href="/teacher?tab=translateai&subtab=ai">🤖 هوش مصنوعی</a>
+            <a class="tab-child" href="/teacher?tab=translateai&subtab=exceltable">📊 جدول‌ساز اکسل</a>
+            <a class="tab-child" href="/teacher?tab=translateai&subtab=wordtable">📝 ساخت ورد</a>
           </div>
         </div>
 
@@ -3943,6 +3945,8 @@ function teacherPage() {
             <ul>
               <li>🌐 ترجمه</li>
               <li>🤖 هوش مصنوعی</li>
+              <li>📊 جدول‌ساز اکسل</li>
+              <li>📝 ساخت ورد</li>
             </ul>
           </a>
           <a class="home-card" href="/teacher?tab=classroom">
@@ -5876,6 +5880,7 @@ function teacherPage() {
         <h3>🎨 رنگ تم</h3>
         <div style="display:flex;gap:14px;margin-bottom:20px;flex-wrap:wrap;align-items:center" id="color-theme-row">
           <button class="color-swatch active" data-color="academy" style="background:linear-gradient(135deg,#123A5C,#B8922E)" title="حرفه‌ای (سرمه‌ای و طلایی)"></button>
+          <button class="color-swatch" data-color="petal" style="background:linear-gradient(135deg,#D6336C,#4F7D5D)" title="گلبرگی (رز و برگ سبز)"></button>
           <button class="color-swatch" data-color="tea" style="background:linear-gradient(135deg,#AE4E28,#C08A2E)" title="چایخانه (آجری و زعفرانی)"></button>
           <button class="color-swatch" data-color="ocean" style="background:linear-gradient(135deg,#1d4ed8,#0d9488)" title="اقیانوسی (آبی)"></button>
           <button class="color-swatch" data-color="emerald" style="background:linear-gradient(135deg,#059669,#10b981)" title="زمردی (سبز)"></button>
@@ -6077,6 +6082,8 @@ function teacherScript() {
   const COLOR_THEMES={
     academy:{light:{bg:'#F3F6F9',card:'#FFFFFF',primary:'#123A5C','primary-2':'#1F6E8C',accent:'#B8922E',muted:'#5B6B7C',line:'#DEE5EC',text:'#16212E',danger:'#B3261E',soft:'#EBF0F5','soft-2':'#DCE4EC'},
              dark:{bg:'#0B141E',card:'#101C29',primary:'#1E5A78',   'primary-2':'#2A7495',accent:'#D4AF37',muted:'#93A6B8',line:'#1E2E3F',text:'#E8EEF3',danger:'#DC2626',soft:'#152232','soft-2':'#1C2C3F'}},
+    petal:{light:{bg:'#FBF1F4',card:'#FFFAFB',primary:'#D6336C','primary-2':'#A61E4D',accent:'#4F7D5D',muted:'#8A5B6C',line:'#F0D3DD',text:'#33111F',danger:'#B3261E',soft:'#F7E2E9','soft-2':'#F2A9C2'},
+           dark:{bg:'#2B0F18',card:'#3A1420',primary:'#D6336C',   'primary-2':'#A61E4D',accent:'#6FA37D',muted:'#C9A0AC',line:'#4A1F2C',text:'#FBEAEF',danger:'#DC2626',soft:'#3A1420','soft-2':'#4A1F2C'}},
     tea:{light:{bg:'#F4EDDD',card:'#FAF3E4',primary:'#AE4E28','primary-2':'#C08A2E',accent:'#3E7C4F',muted:'#6b6455',line:'#E4D8B8',text:'#1C3327',danger:'#C0392B',soft:'#F3E4C8','soft-2':'#E4D8B8'},
          dark:{bg:'#15271E',card:'#1C3327',primary:'#AE4E28',   'primary-2':'#C08A2E',accent:'#4F9464',muted:'#A9B7A9',line:'#33473A',text:'#F4EDDD',danger:'#DC2626',soft:'#26392c','soft-2':'#33473A'}},
     ocean:{light:{bg:'#f1f5f9',card:'#e9f0fb',primary:'#1d4ed8','primary-2':'#2563eb',accent:'#0d9488',muted:'#64748b',line:'#e2e8f0',text:'#0f172a',danger:'#dc2626',soft:'#e0e7ff','soft-2':'#c7d2fe'},
