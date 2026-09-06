@@ -4925,7 +4925,7 @@ function teacherPage() {
 
       <div class="subtab-content hidden" id="tab-wordtable">
         <h3>📝 ساخت ورد</h3>
-        <p class="muted">یک عکس یا PDF از سوال/جدول/فرم بفرستید تا هوش مصنوعی اطلاعات آن را دقیقاً همان‌طور که هست در قالب جدول استخراج کند؛ بعد از بازبینی و ویرایش، می‌توانید آن را به‌صورت فایل Word یا PDF دانلود کنید.</p>
+        <p class="muted">یک عکس یا PDF از سند/فرم بفرستید — اگر داخل آن چند جدول جداگانه باشد، هوش مصنوعی خودش تعداد جدول‌ها و ساختار هرکدام را دقیقاً همان‌طور که در سند هست تشخیص می‌دهد و استخراج می‌کند؛ بعد از بازبینی و ویرایش، همه‌ی جدول‌ها را یک‌جا به‌صورت فایل Word یا PDF دانلود کنید.</p>
         <div class="row" style="align-items:center;flex-wrap:wrap;gap:10px">
           <input type="file" id="wt-file" accept="image/*,application/pdf" class="hidden">
           <label class="btn sec" for="wt-file" style="cursor:pointer;flex:0 0 auto">📷 انتخاب عکس یا PDF</label>
@@ -4941,7 +4941,6 @@ function teacherPage() {
         <p class="muted" id="wt-status" style="margin-top:8px"></p>
         <div id="wt-table-wrap" class="hidden" style="margin-top:16px">
           <div class="row" style="flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:10px">
-            <input type="text" id="wt-title" placeholder="عنوان جدول (اختیاری)" style="flex:1;min-width:160px">
             <select id="wt-font" style="flex:0 0 auto;width:auto">
               <option value="default">فونت پیش‌فرض</option>
               <option value="titr">فونت تیتر (درشت)</option>
@@ -4956,18 +4955,15 @@ function teacherPage() {
               <option value="teal">فیروزه‌ای</option>
               <option value="gold">طلایی</option>
             </select>
-            <label style="display:flex;align-items:center;gap:6px;font-size:13px;flex:0 0 auto;width:auto"><input type="checkbox" id="wt-avg-check" style="width:auto">میانگین ستون‌های عددی</label>
+            <label style="display:flex;align-items:center;gap:6px;font-size:13px;flex:0 0 auto;width:auto"><input type="checkbox" id="wt-avg-check" style="width:auto">میانگین ستون‌های عددی هر جدول</label>
           </div>
-          <div class="row" style="flex-wrap:wrap;gap:8px">
-            <button class="btn sm sec" id="btn-wt-add-row">➕ ردیف</button>
-            <button class="btn sm sec" id="btn-wt-add-col">➕ ستون</button>
-            <button class="btn sm primary" id="btn-wt-word">📄 دانلود Word</button>
-            <button class="btn sm sec" id="btn-wt-pdf">🖨️ دانلود PDF</button>
+          <div class="row" style="flex-wrap:wrap;gap:8px;margin-bottom:14px">
+            <button class="btn sm sec" id="btn-wt-add-table">➕ جدول جدید</button>
+            <button class="btn sm primary" id="btn-wt-word">📄 دانلود Word (همه‌ی جدول‌ها)</button>
+            <button class="btn sm sec" id="btn-wt-pdf">🖨️ دانلود PDF (همه‌ی جدول‌ها)</button>
           </div>
-          <div style="overflow:auto;margin-top:10px;max-height:60vh;border:1px solid var(--line);border-radius:8px">
-            <table id="wt-table" style="width:100%;border-collapse:collapse"></table>
-          </div>
-          <p class="muted" style="font-size:12px;margin-top:6px">قبل از دانلود، سلول‌ها را در صورت نیاز ویرایش کنید (روی هر خانه کلیک کنید). برای حذف یک ردیف یا ستون، از دکمه‌ی 🗑 کنار آن استفاده کنید.</p>
+          <div id="wt-tables-container"></div>
+          <p class="muted" style="font-size:12px;margin-top:6px">قبل از دانلود، سلول‌ها را در صورت نیاز ویرایش کنید (روی هر خانه کلیک کنید). برای حذف یک ردیف یا ستون، از دکمه‌ی 🗑 کنار آن و برای حذف کل یک جدول، از دکمه‌ی «حذف این جدول» بالای همان جدول استفاده کنید.</p>
         </div>
       </div>
 
@@ -11264,51 +11260,57 @@ function teacherScript() {
     };
   })();
 
-  // ===== ساخت ورد (استخراج جدول از عکس/PDF با هوش مصنوعی — فقط خروجی Word/PDF) =====
+  // ===== ساخت ورد (استخراج جدول از عکس/PDF با هوش مصنوعی — چند جدول به‌صورت خودکار، فقط خروجی Word/PDF) =====
   (function(){
-    let wtDataUrl=null, wtRows=null; // wtRows: آرایه‌ای از آرایه‌ها (سطر اول = هدر)
+    let wtDataUrl=null, wtTables=null; // wtTables: [{title:'', rows:[[...],...]}, ...] — هر جدول سطر اول = هدر
     const wtFileInput=document.getElementById('wt-file');
     const wtFileName=document.getElementById('wt-file-name');
     const wtPreviewBox=document.getElementById('wt-img-preview');
     const wtPreviewImg=document.getElementById('wt-img-preview-img');
     const wtStatus=document.getElementById('wt-status');
     const wtTableWrap=document.getElementById('wt-table-wrap');
-    const wtTable=document.getElementById('wt-table');
-    const wtTitleInp=document.getElementById('wt-title');
+    const wtTablesContainer=document.getElementById('wt-tables-container');
     const wtFontSel=document.getElementById('wt-font');
     const wtColorSel=document.getElementById('wt-color');
     const wtAvgCheck=document.getElementById('wt-avg-check');
 
-    function wtApplyStyle(){
-      wtTable.style.fontFamily=XLS_FONTS[wtFontSel.value]||'';
-      var theme=XLS_TABLE_COLORS[wtColorSel.value]||XLS_TABLE_COLORS.default;
-      if(theme.bg){wtTable.style.setProperty('--exl-color',theme.bg);wtTable.style.setProperty('--exl-color-text',theme.text);}
-      else{wtTable.style.removeProperty('--exl-color');wtTable.style.removeProperty('--exl-color-text');}
+    function wtApplyStyleAll(){
+      wtTablesContainer.querySelectorAll('.wt-table').forEach(function(tbl){
+        tbl.style.fontFamily=XLS_FONTS[wtFontSel.value]||'';
+        var theme=XLS_TABLE_COLORS[wtColorSel.value]||XLS_TABLE_COLORS.default;
+        if(theme.bg){tbl.style.setProperty('--exl-color',theme.bg);tbl.style.setProperty('--exl-color-text',theme.text);}
+        else{tbl.style.removeProperty('--exl-color');tbl.style.removeProperty('--exl-color-text');}
+      });
     }
-    wtFontSel.addEventListener('change',wtApplyStyle);
-    wtColorSel.addEventListener('change',wtApplyStyle);
+    wtFontSel.addEventListener('change',wtApplyStyleAll);
+    wtColorSel.addEventListener('change',wtApplyStyleAll);
 
-    function wtAvgRowHtml(){
-      if(!wtAvgCheck.checked||!wtRows||wtRows.length<2)return '';
-      var cols=wtRows[0].length;
+    function wtAvgRowHtml(rows){
+      if(!wtAvgCheck.checked||!rows||rows.length<2)return '';
+      var cols=rows[0].length;
       var f='<tr class="exl-avgrow">';
       for(var c=0;c<cols;c++){
         var vals=[];
-        for(var r=1;r<wtRows.length;r++){var v=parseFloat(wtRows[r][c]);if(!isNaN(v))vals.push(v);}
+        for(var r=1;r<rows.length;r++){var v=parseFloat(rows[r][c]);if(!isNaN(v))vals.push(v);}
         var avg=vals.length?(vals.reduce(function(a,b){return a+b;},0)/vals.length).toFixed(2):'—';
         f+='<td style="padding:6px 8px">'+(c===0?'📈 ':'')+avg+'</td>';
       }
       f+='<td></td></tr>';
       return f;
     }
-    function wtRefreshAvgRow(){
-      var tfoot=wtTable.querySelector('tfoot');
-      var html=wtAvgRowHtml();
+    function wtRefreshAvgRow(ti){
+      const tbl=wtTablesContainer.querySelector('.wt-table[data-tbl="'+ti+'"]');
+      if(!tbl)return;
+      let tfoot=tbl.querySelector('tfoot');
+      const html=wtAvgRowHtml(wtTables[ti].rows);
       if(!html){if(tfoot)tfoot.remove();return;}
-      if(!tfoot){tfoot=document.createElement('tfoot');wtTable.appendChild(tfoot);}
+      if(!tfoot){tfoot=document.createElement('tfoot');tbl.appendChild(tfoot);}
       tfoot.innerHTML=html;
     }
-    wtAvgCheck.addEventListener('change',wtRefreshAvgRow);
+    wtAvgCheck.addEventListener('change',function(){
+      if(!wtTables)return;
+      wtTables.forEach(function(_,ti){wtRefreshAvgRow(ti);});
+    });
 
     wtFileInput.addEventListener('change',async function(e){
       const file=e.target.files[0];
@@ -11341,60 +11343,133 @@ function teacherScript() {
       }catch(err){toast('خطا در خواندن فایل: '+err.message);}
     });
 
-    function wtRenderTable(){
-      if(!wtRows||!wtRows.length){wtTableWrap.classList.add('hidden');return;}
-      let h='<thead><tr>';
-      wtRows[0].forEach(function(_,ci){
-        h+='<th class="exl-th"><button type="button" data-col-del="'+ci+'" title="حذف ستون" style="position:absolute;top:2px;left:2px;border:none;background:transparent;cursor:pointer;font-size:11px">🗑</button></th>';
+    // رندر یک بلوک جدول (عنوان + جدول قابل‌ویرایش) داخل کانتینر
+    function wtRenderOne(ti){
+      const tbl=wtTables[ti];
+      let h='<div class="wt-table-block" data-tbl="'+ti+'" style="margin-bottom:22px;border:1px solid var(--line);border-radius:8px;padding:10px">';
+      h+='<div class="row" style="align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap">';
+      h+='<input type="text" class="wt-tbl-title" data-tbl="'+ti+'" placeholder="عنوان این جدول (اختیاری)" value="'+esc(tbl.title||'')+'" style="flex:1;min-width:140px">';
+      h+='<button type="button" class="btn sm sec" data-add-row="'+ti+'">➕ ردیف</button>';
+      h+='<button type="button" class="btn sm sec" data-add-col="'+ti+'">➕ ستون</button>';
+      h+='<button type="button" class="btn sm gray" data-del-table="'+ti+'">🗑 حذف این جدول</button>';
+      h+='</div>';
+      h+='<div style="overflow:auto;max-height:50vh;border:1px solid var(--line);border-radius:8px">';
+      h+='<table class="wt-table" data-tbl="'+ti+'" style="width:100%;border-collapse:collapse"><thead><tr>';
+      tbl.rows[0].forEach(function(_,ci){
+        h+='<th class="exl-th"><button type="button" data-col-del="'+ti+':'+ci+'" title="حذف ستون" style="position:absolute;top:2px;left:2px;border:none;background:transparent;cursor:pointer;font-size:11px">🗑</button></th>';
       });
       h+='</tr></thead><tbody>';
-      wtRows.forEach(function(row,ri){
+      tbl.rows.forEach(function(row,ri){
         h+='<tr'+(ri===0?' class="exl-header-row"':'')+'>';
         row.forEach(function(cell,ci){
           h+='<td style="border:1px solid var(--line);padding:0">'+
-            '<div contenteditable="true" data-r="'+ri+'" data-c="'+ci+'" style="padding:6px 8px;min-width:90px;outline:none">'+esc(cell==null?'':cell)+'</div></td>';
+            '<div contenteditable="true" data-tr="'+ti+':'+ri+':'+ci+'" style="padding:6px 8px;min-width:90px;outline:none">'+esc(cell==null?'':cell)+'</div></td>';
         });
-        h+='<td style="border:none;padding:0 4px"><button type="button" data-row-del="'+ri+'" title="حذف ردیف" style="border:none;background:transparent;cursor:pointer">🗑</button></td>';
+        h+='<td style="border:none;padding:0 4px"><button type="button" data-row-del="'+ti+':'+ri+'" title="حذف ردیف" style="border:none;background:transparent;cursor:pointer">🗑</button></td>';
         h+='</tr>';
       });
-      h+='</tbody>';
-      wtTable.innerHTML=h;
-      wtTableWrap.classList.remove('hidden');
-      wtApplyStyle();
-      wtRefreshAvgRow();
+      h+='</tbody></table></div></div>';
+      return h;
+    }
 
-      wtTable.querySelectorAll('[contenteditable]').forEach(function(cellEl){
+    // رندر کامل همه‌ی جدول‌ها و اتصال رویدادها
+    function wtRenderAll(){
+      if(!wtTables||!wtTables.length){wtTableWrap.classList.add('hidden');return;}
+      let h='';
+      wtTables.forEach(function(_,ti){h+=wtRenderOne(ti);});
+      wtTablesContainer.innerHTML=h;
+      wtTableWrap.classList.remove('hidden');
+      wtApplyStyleAll();
+      wtTables.forEach(function(_,ti){wtRefreshAvgRow(ti);});
+
+      wtTablesContainer.querySelectorAll('.wt-tbl-title').forEach(function(inp){
+        inp.addEventListener('input',function(){
+          wtTables[parseInt(this.dataset.tbl,10)].title=this.value;
+        });
+      });
+      wtTablesContainer.querySelectorAll('[contenteditable]').forEach(function(cellEl){
         cellEl.addEventListener('input',function(){
-          const r=parseInt(this.dataset.r,10), c=parseInt(this.dataset.c,10);
-          if(wtRows[r])wtRows[r][c]=this.textContent;
-          if(wtAvgCheck.checked)wtRefreshAvgRow();
+          const parts=this.dataset.tr.split(':').map(function(n){return parseInt(n,10);});
+          const ti=parts[0],ri=parts[1],ci=parts[2];
+          if(wtTables[ti]&&wtTables[ti].rows[ri])wtTables[ti].rows[ri][ci]=this.textContent;
+          if(wtAvgCheck.checked)wtRefreshAvgRow(ti);
         });
       });
-      wtTable.querySelectorAll('[data-row-del]').forEach(function(btn){
+      wtTablesContainer.querySelectorAll('[data-row-del]').forEach(function(btn){
         btn.addEventListener('click',function(){
-          const r=parseInt(this.dataset.rowDel,10);
-          if(wtRows.length<=1){toast('حداقل یک ردیف باید باقی بماند');return;}
-          wtRows.splice(r,1);
-          wtRenderTable();
+          const parts=this.dataset.rowDel.split(':').map(function(n){return parseInt(n,10);});
+          const ti=parts[0],ri=parts[1];
+          if(wtTables[ti].rows.length<=1){toast('حداقل یک ردیف باید باقی بماند');return;}
+          wtTables[ti].rows.splice(ri,1);
+          wtRenderAll();
         });
       });
-      wtTable.querySelectorAll('[data-col-del]').forEach(function(btn){
+      wtTablesContainer.querySelectorAll('[data-col-del]').forEach(function(btn){
         btn.addEventListener('click',function(){
-          const c=parseInt(this.dataset.colDel,10);
-          if(wtRows[0].length<=1){toast('حداقل یک ستون باید باقی بماند');return;}
-          wtRows.forEach(function(row){row.splice(c,1);});
-          wtRenderTable();
+          const parts=this.dataset.colDel.split(':').map(function(n){return parseInt(n,10);});
+          const ti=parts[0],ci=parts[1];
+          if(wtTables[ti].rows[0].length<=1){toast('حداقل یک ستون باید باقی بماند');return;}
+          wtTables[ti].rows.forEach(function(row){row.splice(ci,1);});
+          wtRenderAll();
         });
       });
+      wtTablesContainer.querySelectorAll('[data-add-row]').forEach(function(btn){
+        btn.addEventListener('click',function(){
+          const ti=parseInt(this.dataset.addRow,10);
+          wtTables[ti].rows.push(wtTables[ti].rows[0].map(function(){return '';}));
+          wtRenderAll();
+        });
+      });
+      wtTablesContainer.querySelectorAll('[data-add-col]').forEach(function(btn){
+        btn.addEventListener('click',function(){
+          const ti=parseInt(this.dataset.addCol,10);
+          wtTables[ti].rows.forEach(function(row,ri){row.push(ri===0?('ستون '+row.length):'');});
+          wtRenderAll();
+        });
+      });
+      wtTablesContainer.querySelectorAll('[data-del-table]').forEach(function(btn){
+        btn.addEventListener('click',function(){
+          if(wtTables.length<=1){toast('حداقل یک جدول باید باقی بماند');return;}
+          const ti=parseInt(this.dataset.delTable,10);
+          wtTables.splice(ti,1);
+          wtRenderAll();
+        });
+      });
+    }
+
+    // تبدیل خروجی خام هوش مصنوعی (هر شکلی که برگردانده باشد) به آرایه‌ای یکدست از جدول‌ها
+    function wtNormalizeParsed(parsed){
+      if(!Array.isArray(parsed)||!parsed.length)throw new Error('هوش مصنوعی جدولی برنگرداند، دوباره تلاش کنید');
+      let tables;
+      if(Array.isArray(parsed[0])){
+        // خروجی، آرایه‌ای از سطرها یا آرایه‌ای از جدول‌هاست (بدون شیء عنوان)
+        if(Array.isArray(parsed[0][0])){
+          tables=parsed.map(function(t){return {title:'',rows:t};});
+        }else{
+          tables=[{title:'',rows:parsed}];
+        }
+      }else{
+        tables=parsed.map(function(t){
+          return {title:(t&&t.title)?String(t.title):'',rows:Array.isArray(t&&t.rows)?t.rows:[]};
+        });
+      }
+      tables=tables.filter(function(t){return Array.isArray(t.rows)&&t.rows.length;});
+      if(!tables.length)throw new Error('هوش مصنوعی جدولی برنگرداند، دوباره تلاش کنید');
+      tables.forEach(function(t){
+        t.rows=t.rows.map(function(row){return Array.isArray(row)?row.map(function(c){return c==null?'':String(c);}):[String(row)];});
+        const maxCols=Math.max.apply(null,t.rows.map(function(r){return r.length;}));
+        t.rows=t.rows.map(function(row){while(row.length<maxCols)row.push('');return row;});
+      });
+      return tables;
     }
 
     document.getElementById('btn-wt-extract').onclick=async function(){
       if(!wtDataUrl){toast('لطفاً ابتدا یک عکس یا PDF انتخاب کنید');return;}
       const btn=this;btn.disabled=true;
-      wtStatus.textContent='⏳ در حال استخراج جدول با هوش مصنوعی... (ممکن است چند ثانیه طول بکشد)';
+      wtStatus.textContent='⏳ در حال تشخیص و استخراج جدول‌ها با هوش مصنوعی... (ممکن است چند ثانیه طول بکشد)';
       try{
-        const sys='شما یک دستیار استخراج داده‌ی جدولی هستید. در تصویر ارسالی یک فرم، جدول یا لیست وجود دارد. تمام اطلاعات آن را دقیقاً به‌صورت یک آرایه‌ی JSON از آرایه‌ها (آرایه‌ی دوبعدی) استخراج کن. سطر اول باید عنوان ستون‌ها (هدر) باشد و سطرهای بعدی مقادیر واقعی. اگر ستون یا سطری خالی بود، رشته‌ی خالی "" بگذار. خروجی را فقط و فقط به‌صورت JSON خالص برگردان — بدون هیچ توضیح، بدون قالب‌بندی مارک‌داون یا نشانه‌ی کد، فقط خودِ آرایه.';
-        const res=await fetch('/api/teacher/ai/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({messages:[{role:'system',content:sys},{role:'user',content:[{type:'text',text:'اطلاعات جدول این تصویر را استخراج کن.'},{type:'image_url',image_url:{url:wtDataUrl}}]}],max_tokens:4096,provider:getAiProvider(),model:getAiModel()})});
+        const sys='شما یک دستیار استخراج داده‌ی جدولی هستید. در سند/تصویر ارسالی ممکن است یک یا چند جدول جداگانه وجود داشته باشد. خودت تشخیص بده دقیقاً چند جدول در سند هست و هرکدام را جداگانه و دقیقاً همان‌طور که در سند آمده (بدون تغییر یا ادغام) استخراج کن. خروجی را فقط و فقط به‌صورت یک آرایه‌ی JSON خالص برگردان که هر عضوش یک شیء با دو فیلد است: title (عنوان یا زیرنویسی که در سند بالای همان جدول نوشته شده؛ اگر نبود رشته‌ی خالی "") و rows (آرایه‌ای از آرایه‌ها که سطر اول آن سرستون‌های همان جدول و سطرهای بعدی مقادیر واقعی است؛ خانه‌ی خالی را با رشته‌ی خالی "" نشان بده). اگر سند فقط یک جدول داشت، آرایه‌ی خروجی فقط یک عضو خواهد داشت. بدون هیچ توضیح، بدون قالب‌بندی مارک‌داون یا نشانه‌ی کد، فقط خودِ آرایه‌ی JSON.';
+        const res=await fetch('/api/teacher/ai/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({messages:[{role:'system',content:sys},{role:'user',content:[{type:'text',text:'همه‌ی جدول‌های این سند را همان‌طور که هست تشخیص بده و استخراج کن.'},{type:'image_url',image_url:{url:wtDataUrl}}]}],max_tokens:4096,provider:getAiProvider(),model:getAiModel()})});
         const data=await res.json();
         if(data.error)throw new Error(data.error);
         let raw=(data.content||'').trim();
@@ -11407,13 +11482,10 @@ function teacherScript() {
         const end=raw.lastIndexOf(']');
         if(start===-1||end===-1)throw new Error('پاسخ هوش مصنوعی قابل پردازش نبود، دوباره تلاش کنید');
         const parsed=JSON.parse(raw.slice(start,end+1));
-        if(!Array.isArray(parsed)||!parsed.length)throw new Error('هوش مصنوعی جدولی برنگرداند، دوباره تلاش کنید');
-        wtRows=parsed.map(function(row){return Array.isArray(row)?row.map(function(c){return c==null?'':String(c);}):[String(row)];});
-        const maxCols=Math.max.apply(null,wtRows.map(function(r){return r.length;}));
-        wtRows=wtRows.map(function(row){while(row.length<maxCols)row.push('');return row;});
-        wtRenderTable();
-        wtStatus.textContent='✅ جدول استخراج شد. قبل از دانلود، سلول‌ها را بازبینی کنید.';
-        toast('جدول با موفقیت استخراج شد ✅');
+        wtTables=wtNormalizeParsed(parsed);
+        wtRenderAll();
+        wtStatus.textContent='✅ '+wtTables.length+' جدول استخراج شد. قبل از دانلود، سلول‌ها را بازبینی کنید.';
+        toast('جدول‌ها با موفقیت استخراج شد ✅ ('+wtTables.length+' عدد)');
       }catch(err){
         wtStatus.textContent='';
         toast('خطا: '+err.message);
@@ -11421,31 +11493,25 @@ function teacherScript() {
       btn.disabled=false;
     };
 
-    document.getElementById('btn-wt-add-row').onclick=function(){
-      if(!wtRows){wtRows=[['ستون ۱']];}
-      wtRows.push(wtRows[0].map(function(){return '';}));
-      wtRenderTable();
-    };
-    document.getElementById('btn-wt-add-col').onclick=function(){
-      if(!wtRows){wtRows=[['ستون ۱']];}
-      wtRows.forEach(function(row,ri){row.push(ri===0?('ستون '+row.length):'');});
-      wtRenderTable();
+    document.getElementById('btn-wt-add-table').onclick=function(){
+      if(!wtTables)wtTables=[];
+      wtTables.push({title:'',rows:[['ستون ۱']]});
+      wtRenderAll();
     };
     document.getElementById('btn-wt-reset').onclick=function(){
-      wtDataUrl=null;wtRows=null;
+      wtDataUrl=null;wtTables=null;
       wtFileInput.value='';wtFileName.textContent='';
       wtPreviewBox.classList.add('hidden');
       wtTableWrap.classList.add('hidden');
+      wtTablesContainer.innerHTML='';
       wtStatus.textContent='';
-      wtTitleInp.value='';
       wtFontSel.value='default';
       wtColorSel.value='default';
       wtAvgCheck.checked=false;
     };
 
-    // ساخت خروجی HTML جدول (استایل + بدنه)، مشترک بین دانلود Word و دانلود PDF
+    // ساخت خروجی HTML همه‌ی جدول‌ها پشت سرهم (استایل + بدنه)، مشترک بین دانلود Word و دانلود PDF
     function wtBuildExportHtml(){
-      const title=(wtTitleInp.value||'جدول').trim();
       const fontKey=wtFontSel.value;
       const fontFamily=fontKey==='titr'?"'B Titr','BTitr',Tahoma,Arial":'tahoma,Arial';
       const colorTheme=XLS_TABLE_COLORS[wtColorSel.value]||XLS_TABLE_COLORS.default;
@@ -11453,39 +11519,43 @@ function teacherScript() {
       const headerText=colorTheme.bg?colorTheme.text:'#fff';
       let style='<style>';
       if(fontKey==='titr')style+='@font-face{font-family:"BTitr";src:url(https://cdn.jsdelivr.net/gh/intuxicated/css-persian@master/fonts/BTitrBold.ttf)}';
-      style+='body{direction:rtl;font-family:'+fontFamily+';padding:20px}table{width:100%;border-collapse:collapse;margin-top:15px}th,td{border:1px solid #333;padding:8px;text-align:center;font-family:'+fontFamily+'}th{background:'+headerBg+';color:'+headerText+'}</style>';
-      const header=wtRows[0]||[];
-      const body=wtRows.slice(1);
-      let h='<h2 style="text-align:center">'+esc(title)+'</h2><table><tr>';
-      header.forEach(function(cellV){h+='<th>'+esc(cellV)+'</th>';});
-      h+='</tr>';
-      body.forEach(function(row){
-        h+='<tr>';
-        row.forEach(function(cellV){h+='<td>'+esc(cellV)+'</td>';});
+      style+='body{direction:rtl;font-family:'+fontFamily+';padding:20px}table{width:100%;border-collapse:collapse;margin-top:10px;margin-bottom:25px}th,td{border:1px solid #333;padding:8px;text-align:center;font-family:'+fontFamily+'}th{background:'+headerBg+';color:'+headerText+'}</style>';
+      let h='';
+      wtTables.forEach(function(tbl,ti){
+        const header=tbl.rows[0]||[];
+        const body=tbl.rows.slice(1);
+        h+='<h2 style="text-align:center">'+esc(tbl.title||('جدول '+(ti+1)))+'</h2><table><tr>';
+        header.forEach(function(cellV){h+='<th>'+esc(cellV)+'</th>';});
         h+='</tr>';
-      });
-      if(wtAvgCheck.checked&&body.length){
-        h+='<tr style="background:#e2efda;font-weight:bold">';
-        header.forEach(function(_,c){
-          if(c===0){h+='<td>📈 میانگین</td>';return;}
-          const vals=[];body.forEach(function(row){const v=parseFloat(row[c]);if(!isNaN(v))vals.push(v);});
-          h+='<td>'+(vals.length?(vals.reduce(function(a,b){return a+b;},0)/vals.length).toFixed(2):'—')+'</td>';
+        body.forEach(function(row){
+          h+='<tr>';
+          row.forEach(function(cellV){h+='<td>'+esc(cellV)+'</td>';});
+          h+='</tr>';
         });
-        h+='</tr>';
-      }
-      h+='</table>';
-      return {style:style,body:h,title:title};
+        if(wtAvgCheck.checked&&body.length){
+          h+='<tr style="background:#e2efda;font-weight:bold">';
+          header.forEach(function(_,c){
+            if(c===0){h+='<td>📈 میانگین</td>';return;}
+            const vals=[];body.forEach(function(row){const v=parseFloat(row[c]);if(!isNaN(v))vals.push(v);});
+            h+='<td>'+(vals.length?(vals.reduce(function(a,b){return a+b;},0)/vals.length).toFixed(2):'—')+'</td>';
+          });
+          h+='</tr>';
+        }
+        h+='</table>';
+      });
+      const docTitle=wtTables.length===1?(wtTables[0].title||'جدول'):'جدول‌های استخراج‌شده';
+      return {style:style,body:h,title:docTitle};
     }
 
     document.getElementById('btn-wt-word').onclick=function(){
-      if(!wtRows||!wtRows.length){toast('ابتدا یک جدول استخراج کنید');return;}
+      if(!wtTables||!wtTables.length){toast('ابتدا جدول‌ها را استخراج کنید');return;}
       const ex=wtBuildExportHtml();
       const blob=new Blob(['<html><head><meta charset="utf-8">'+ex.style+'</head><body>'+ex.body+'</body></html>'],{type:'application/msword'});
       const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=ex.title+'.doc';document.body.appendChild(a);a.click();a.remove();
     };
 
     document.getElementById('btn-wt-pdf').onclick=function(){
-      if(!wtRows||!wtRows.length){toast('ابتدا یک جدول استخراج کنید');return;}
+      if(!wtTables||!wtTables.length){toast('ابتدا جدول‌ها را استخراج کنید');return;}
       const ex=wtBuildExportHtml();
       const pageStyle='<style>@page{size:A4 landscape;margin:10mm}</style>';
       const w=window.open('','_blank');
