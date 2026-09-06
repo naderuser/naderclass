@@ -2109,6 +2109,12 @@ const SHARED_CSS = `
   .xls-avgrow td{background:#e2efda !important;font-weight:700;color:#375623;text-align:center}
   [data-theme="dark"] .xls-avgrow td{background:#22381f !important;color:#c8e6c9}
   .xls-avgrow td:first-child{text-align:center}
+  .exl-th{background:#f1f5f9;color:#1e293b;text-align:center;font-weight:600;font-size:12px;position:relative;border:1px solid var(--line);padding:4px}
+  [data-theme="dark"] .exl-th{background:#1e293b;color:#e2e8f0}
+  .exl-header-row td{background:var(--exl-color,#eff6ff)!important;color:var(--exl-color-text,#1e293b)!important;font-weight:600}
+  [data-theme="dark"] .exl-header-row td{background:var(--exl-color,#1e3a5f)!important;color:var(--exl-color-text,#e2e8f0)!important}
+  .exl-avgrow td{background:#e2efda!important;font-weight:700;color:#375623!important;text-align:center}
+  [data-theme="dark"] .exl-avgrow td{background:#22381f!important;color:#c8e6c9!important}
   
   .ai-chat-container{background:#fff;border-radius:16px;border:1px solid #e5e7eb;overflow:hidden;display:flex;flex-direction:column;height:min(78vh,900px)}
   [data-theme="dark"] .ai-chat-container{background:#212121;border-color:#333}
@@ -4743,6 +4749,7 @@ function teacherPage() {
           <div class="subtab active" data-subtab="translate">🌐 ترجمه</div>
           <div class="subtab" data-subtab="ai">🤖 هوش مصنوعی</div>
           <div class="subtab" data-subtab="exceltable">📊 جدول‌ساز اکسل</div>
+          <div class="subtab" data-subtab="wordtable">📝 ساخت ورد</div>
         </div>
 
       <div class="subtab-content" id="tab-translate">
@@ -4869,7 +4876,7 @@ function teacherPage() {
 
       <div class="subtab-content hidden" id="tab-exceltable">
         <h3>📊 جدول‌ساز اکسل</h3>
-        <p class="muted">یک عکس یا اسکن از فرم/جدول/لیست (مثلاً لیست اسامی دانش‌آموزان، نمرات یا هر فرم دیگری) بفرستید تا هوش مصنوعی اطلاعاتش را در قالب جدول استخراج کند؛ بعد از بازبینی و ویرایش، می‌توانید آن را دانلود یا ذخیره کنید.</p>
+        <p class="muted">یک عکس یا اسکن از فرم/جدول/لیست (مثلاً لیست اسامی دانش‌آموزان، نمرات یا هر فرم دیگری) بفرستید تا هوش مصنوعی اطلاعاتش را در قالب جدول استخراج کند؛ بعد از بازبینی و ویرایش، می‌توانید آن را به‌صورت فایل اکسل دانلود کنید.</p>
         <div class="row" style="align-items:center;flex-wrap:wrap;gap:10px">
           <input type="file" id="exl-file" accept="image/*,application/pdf" class="hidden">
           <label class="btn sec" for="exl-file" style="cursor:pointer;flex:0 0 auto">📷 انتخاب عکس یا PDF فرم</label>
@@ -4884,30 +4891,83 @@ function teacherPage() {
         </div>
         <p class="muted" id="exl-status" style="margin-top:8px"></p>
         <div id="exl-table-wrap" class="hidden" style="margin-top:16px">
-          <div class="row" style="margin-bottom:12px">
-            <div><label style="display:block;margin-bottom:4px">عنوان جدول:</label><input type="text" id="exl-title" placeholder="مثال: لیست نمرات" style="width:200px;padding:8px;border:1px solid #ddd;border-radius:6px"></div>
-            <div><label style="display:block;margin-bottom:4px">فونت جدول:</label><select id="exl-font" style="padding:8px;border:1px solid #ddd;border-radius:6px"><option value="default">پیش‌فرض</option><option value="titr">B Titr</option></select></div>
-            <div><label style="display:block;margin-bottom:4px">🎨 رنگ جدول:</label><select id="exl-color" style="padding:8px;border:1px solid #ddd;border-radius:6px"><option value="default">پیش‌فرض (بنفش کم‌رنگ)</option><option value="blue">آبی</option><option value="green">سبز</option><option value="orange">نارنجی</option><option value="purple">بنفش</option><option value="red">قرمز</option><option value="teal">فیروزه‌ای</option><option value="gold">طلایی</option></select></div>
+          <div class="row" style="flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:10px">
+            <input type="text" id="exl-title" placeholder="عنوان جدول (اختیاری)" style="flex:1;min-width:160px">
+            <select id="exl-font" style="flex:0 0 auto;width:auto">
+              <option value="default">فونت پیش‌فرض</option>
+              <option value="titr">فونت تیتر (درشت)</option>
+            </select>
+            <select id="exl-color" style="flex:0 0 auto;width:auto">
+              <option value="default">رنگ پیش‌فرض</option>
+              <option value="blue">آبی</option>
+              <option value="green">سبز</option>
+              <option value="orange">نارنجی</option>
+              <option value="purple">بنفش</option>
+              <option value="red">قرمز</option>
+              <option value="teal">فیروزه‌ای</option>
+              <option value="gold">طلایی</option>
+            </select>
+            <label style="display:flex;align-items:center;gap:6px;font-size:13px;flex:0 0 auto;width:auto"><input type="checkbox" id="exl-avg-check" style="width:auto">میانگین ستون‌های عددی</label>
           </div>
-          <label style="display:flex;align-items:center;gap:8px;margin-bottom:12px;cursor:pointer">
-            <input type="checkbox" id="exl-avg-check" checked>
-            <span>📈 محاسبه خودکار میانگین (ستون‌های عددی)</span>
-          </label>
           <div class="row" style="flex-wrap:wrap;gap:8px">
             <button class="btn sm sec" id="btn-exl-add-row">➕ ردیف</button>
             <button class="btn sm sec" id="btn-exl-add-col">➕ ستون</button>
-            <button class="btn sm success" id="btn-exl-save">💾 ذخیره</button>
+            <button class="btn sm primary" id="btn-exl-download">📥 دانلود اکسل</button>
             <button class="btn sm sec" id="btn-exl-word">📄 دانلود Word</button>
-            <select id="exl-pdf-orientation" title="جهت کاغذ PDF" style="padding:8px;border:1px solid #ddd;border-radius:6px"><option value="portrait">📄 عمودی</option><option value="landscape">📃 افقی</option></select>
-            <button class="btn sm danger" id="btn-exl-pdf">📕 دانلود PDF</button>
-            <button class="btn sm primary" id="btn-exl-download">📥 دانلود Excel واقعی (xlsx)</button>
+            <button class="btn sm sec" id="btn-exl-pdf">🖨️ دانلود PDF</button>
           </div>
-          <div class="xls-wrap" style="margin-top:10px">
-            <div class="xls-scroll">
-              <table class="xls-grid" id="exl-table"></table>
-            </div>
+          <div style="overflow:auto;margin-top:10px;max-height:60vh;border:1px solid var(--line);border-radius:8px">
+            <table id="exl-table" style="width:100%;border-collapse:collapse"></table>
           </div>
-          <p class="muted" style="font-size:12px;margin-top:6px">قبل از دانلود، سلول‌ها را در صورت نیاز ویرایش کنید. برای حذف یک ستون، روی دکمه‌ی ✖ کنار عنوان همان ستون بزنید؛ برای حذف یک ردیف، روی دکمه‌ی ✖ کنار همان ردیف بزنید. برای رنگی‌کردن یک ردیف خاص، روی دایره‌های رنگی کنار شماره‌ی همان ردیف بزنید؛ این رنگ در دانلود Word، PDF و Excel هم اعمال می‌شود.</p>
+          <p class="muted" style="font-size:12px;margin-top:6px">قبل از دانلود، سلول‌ها را در صورت نیاز ویرایش کنید (روی هر خانه کلیک کنید). برای حذف یک ردیف یا ستون، از دکمه‌ی 🗑 کنار آن استفاده کنید.</p>
+        </div>
+      </div>
+
+      <div class="subtab-content hidden" id="tab-wordtable">
+        <h3>📝 ساخت ورد</h3>
+        <p class="muted">یک عکس یا PDF از سوال/جدول/فرم بفرستید تا هوش مصنوعی اطلاعات آن را دقیقاً همان‌طور که هست در قالب جدول استخراج کند؛ بعد از بازبینی و ویرایش، می‌توانید آن را به‌صورت فایل Word یا PDF دانلود کنید.</p>
+        <div class="row" style="align-items:center;flex-wrap:wrap;gap:10px">
+          <input type="file" id="wt-file" accept="image/*,application/pdf" class="hidden">
+          <label class="btn sec" for="wt-file" style="cursor:pointer;flex:0 0 auto">📷 انتخاب عکس یا PDF</label>
+          <span class="muted" id="wt-file-name" style="font-size:13px"></span>
+        </div>
+        <div id="wt-img-preview" class="hidden" style="margin-top:10px">
+          <img id="wt-img-preview-img" style="max-width:260px;max-height:200px;border:1px solid var(--line);border-radius:8px">
+        </div>
+        <div class="row" style="margin-top:12px">
+          <button class="btn primary" id="btn-wt-extract">🔎 استخراج با هوش مصنوعی</button>
+          <button class="btn gray" id="btn-wt-reset">🗑️ شروع دوباره</button>
+        </div>
+        <p class="muted" id="wt-status" style="margin-top:8px"></p>
+        <div id="wt-table-wrap" class="hidden" style="margin-top:16px">
+          <div class="row" style="flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:10px">
+            <input type="text" id="wt-title" placeholder="عنوان جدول (اختیاری)" style="flex:1;min-width:160px">
+            <select id="wt-font" style="flex:0 0 auto;width:auto">
+              <option value="default">فونت پیش‌فرض</option>
+              <option value="titr">فونت تیتر (درشت)</option>
+            </select>
+            <select id="wt-color" style="flex:0 0 auto;width:auto">
+              <option value="default">رنگ پیش‌فرض</option>
+              <option value="blue">آبی</option>
+              <option value="green">سبز</option>
+              <option value="orange">نارنجی</option>
+              <option value="purple">بنفش</option>
+              <option value="red">قرمز</option>
+              <option value="teal">فیروزه‌ای</option>
+              <option value="gold">طلایی</option>
+            </select>
+            <label style="display:flex;align-items:center;gap:6px;font-size:13px;flex:0 0 auto;width:auto"><input type="checkbox" id="wt-avg-check" style="width:auto">میانگین ستون‌های عددی</label>
+          </div>
+          <div class="row" style="flex-wrap:wrap;gap:8px">
+            <button class="btn sm sec" id="btn-wt-add-row">➕ ردیف</button>
+            <button class="btn sm sec" id="btn-wt-add-col">➕ ستون</button>
+            <button class="btn sm primary" id="btn-wt-word">📄 دانلود Word</button>
+            <button class="btn sm sec" id="btn-wt-pdf">🖨️ دانلود PDF</button>
+          </div>
+          <div style="overflow:auto;margin-top:10px;max-height:60vh;border:1px solid var(--line);border-radius:8px">
+            <table id="wt-table" style="width:100%;border-collapse:collapse"></table>
+          </div>
+          <p class="muted" style="font-size:12px;margin-top:6px">قبل از دانلود، سلول‌ها را در صورت نیاز ویرایش کنید (روی هر خانه کلیک کنید). برای حذف یک ردیف یا ستون، از دکمه‌ی 🗑 کنار آن استفاده کنید.</p>
         </div>
       </div>
 
@@ -6260,7 +6320,6 @@ function teacherScript() {
     if(tabName==='classroom'){renderClassLinks();setTimeout(function(){if(typeof clsResizeBoard==='function')clsResizeBoard();},50);}
     if(tabName==='examsheet'){if(typeof loadExamSheetIfNeeded==='function')loadExamSheetIfNeeded();}
     if(tabName==='infoexchange'){if(typeof loadInfoExchangeIfNeeded==='function')loadInfoExchangeIfNeeded();}
-    if(tabName==='translateai'){if(typeof loadExlTableIfNeeded==='function')loadExlTableIfNeeded();}
   }
 
   document.querySelectorAll('.subtab[data-subtab]').forEach(t=>t.onclick=()=>{
@@ -10901,10 +10960,8 @@ function teacherScript() {
   aiInput.onkeydown=e=>{ if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();document.getElementById('btn-ai-send').click();} };
 
   // ===== جدول‌ساز اکسل (استخراج جدول از عکس/PDF با هوش مصنوعی) =====
-  var loadExlTableIfNeeded;
   (function(){
     let exlDataUrl=null, exlRows=null; // exlRows: آرایه‌ای از آرایه‌ها (سطر اول = هدر)
-    let exlRowColors={};
     const exlFileInput=document.getElementById('exl-file');
     const exlFileName=document.getElementById('exl-file-name');
     const exlPreviewBox=document.getElementById('exl-img-preview');
@@ -10912,6 +10969,43 @@ function teacherScript() {
     const exlStatus=document.getElementById('exl-status');
     const exlTableWrap=document.getElementById('exl-table-wrap');
     const exlTable=document.getElementById('exl-table');
+    const exlTitleInp=document.getElementById('exl-title');
+    const exlFontSel=document.getElementById('exl-font');
+    const exlColorSel=document.getElementById('exl-color');
+    const exlAvgCheck=document.getElementById('exl-avg-check');
+
+    // فونت و رنگ جدول (مشابه جدول‌ساز حرفه‌ای) — روی خودِ جدول اعمال می‌شود
+    function exlApplyStyle(){
+      exlTable.style.fontFamily=XLS_FONTS[exlFontSel.value]||'';
+      var theme=XLS_TABLE_COLORS[exlColorSel.value]||XLS_TABLE_COLORS.default;
+      if(theme.bg){exlTable.style.setProperty('--exl-color',theme.bg);exlTable.style.setProperty('--exl-color-text',theme.text);}
+      else{exlTable.style.removeProperty('--exl-color');exlTable.style.removeProperty('--exl-color-text');}
+    }
+    exlFontSel.addEventListener('change',exlApplyStyle);
+    exlColorSel.addEventListener('change',exlApplyStyle);
+
+    // ردیف میانگین ستون‌های عددی (از سطر دوم به بعد؛ سطر اول هدر است)
+    function exlAvgRowHtml(){
+      if(!exlAvgCheck.checked||!exlRows||exlRows.length<2)return '';
+      var cols=exlRows[0].length;
+      var f='<tr class="exl-avgrow">';
+      for(var c=0;c<cols;c++){
+        var vals=[];
+        for(var r=1;r<exlRows.length;r++){var v=parseFloat(exlRows[r][c]);if(!isNaN(v))vals.push(v);}
+        var avg=vals.length?(vals.reduce(function(a,b){return a+b;},0)/vals.length).toFixed(2):'—';
+        f+='<td style="padding:6px 8px">'+(c===0?'📈 ':'')+avg+'</td>';
+      }
+      f+='<td></td></tr>';
+      return f;
+    }
+    function exlRefreshAvgRow(){
+      var tfoot=exlTable.querySelector('tfoot');
+      var html=exlAvgRowHtml();
+      if(!html){if(tfoot)tfoot.remove();return;}
+      if(!tfoot){tfoot=document.createElement('tfoot');exlTable.appendChild(tfoot);}
+      tfoot.innerHTML=html;
+    }
+    exlAvgCheck.addEventListener('change',exlRefreshAvgRow);
 
     exlFileInput.addEventListener('change',async function(e){
       const file=e.target.files[0];
@@ -10944,103 +11038,51 @@ function teacherScript() {
       }catch(err){toast('خطا در خواندن فایل: '+err.message);}
     });
 
-    // فونت جدول (مشابه جدول‌ساز حرفه‌ای)
-    function exlApplyTableFont(){
-      var key=document.getElementById('exl-font').value;
-      exlTable.style.fontFamily=XLS_FONTS[key]||'';
-    }
-    document.getElementById('exl-font').addEventListener('change',exlApplyTableFont);
-
-    // رنگ کلی جدول (مشابه جدول‌ساز حرفه‌ای)
-    function exlApplyTableColor(){
-      var key=document.getElementById('exl-color').value;
-      var theme=XLS_TABLE_COLORS[key]||XLS_TABLE_COLORS.default;
-      if(theme.bg){exlTable.style.setProperty('--tbl-color',theme.bg);exlTable.style.setProperty('--tbl-color-text',theme.text);}
-      else{exlTable.style.removeProperty('--tbl-color');exlTable.style.removeProperty('--tbl-color-text');}
-    }
-    document.getElementById('exl-color').addEventListener('change',exlApplyTableColor);
-
-    function exlCalcAndShowAvg(){
-      var tfoot=exlTable.querySelector('tfoot');
-      if(!tfoot)return;
-      if(!exlRows||exlRows.length<2){tfoot.innerHTML='';return;}
-      var cols=exlRows[0].length;
-      var f='<tr class="xls-avgrow"><td>📈</td>';
-      for(var c=0;c<cols;c++){
-        var vals=[];
-        for(var r=1;r<exlRows.length;r++){var v=parseFloat(exlRows[r][c]);if(!isNaN(v))vals.push(v);}
-        f+='<td>'+(vals.length>0?(vals.reduce(function(a,b){return a+b;},0)/vals.length).toFixed(2):'—')+'</td>';
-      }
-      f+='</tr>';
-      tfoot.innerHTML=f;
-    }
-    document.getElementById('exl-avg-check').addEventListener('change',function(){
-      if(this.checked)exlCalcAndShowAvg();else{var tfoot=exlTable.querySelector('tfoot');if(tfoot)tfoot.innerHTML='';}
-    });
-
-    // کلیک روی دایره‌های رنگ ردیف (تفویض‌شده روی خودِ جدول، چون بدنه‌ی جدول هر بار از نو ساخته می‌شود)
-    exlTable.addEventListener('click',function(e){
-      var dot=e.target.closest('.row-color-dot');
-      if(!dot)return;
-      exlRowColors[dot.dataset.key]=dot.dataset.color;
-      refreshRowColorPickers(exlTable,exlRowColors);
-      lbSave('exltable-row-colors',exlRowColors,true);
-    });
-
     function exlRenderTable(){
       if(!exlRows||!exlRows.length){exlTableWrap.classList.add('hidden');return;}
-      let h='<thead><tr class="xls-titlerow"><th class="xls-corner">#</th>';
+      let h='<thead><tr>';
       exlRows[0].forEach(function(_,ci){
-        h+='<th><div style="display:flex;align-items:center;gap:4px">'+
-          '<input type="text" data-title-c="'+ci+'" placeholder="عنوان ستون '+(ci+1)+'" style="flex:1;min-width:0">'+
-          '<button type="button" class="btn sm danger xls-col-del" data-col="'+ci+'" title="حذف این ستون" style="padding:2px 6px;flex:0 0 auto">✖</button>'+
-          '</div></th>';
+        h+='<th class="exl-th"><button type="button" data-col-del="'+ci+'" title="حذف ستون" style="position:absolute;top:2px;left:2px;border:none;background:transparent;cursor:pointer;font-size:11px">🗑</button></th>';
       });
-      h+='<th class="xls-corner">حذف</th></tr></thead><tbody>';
-      for(let r=1;r<exlRows.length;r++){
-        h+='<tr><td class="xls-rowhead">'+r+rowColorDotsHtml('e'+r)+'</td>';
-        exlRows[r].forEach(function(_,ci){
-          h+='<td><input type="text" data-r="'+r+'" data-c="'+ci+'"></td>';
+      h+='</tr></thead><tbody>';
+      exlRows.forEach(function(row,ri){
+        h+='<tr'+(ri===0?' class="exl-header-row"':'')+'>';
+        row.forEach(function(cell,ci){
+          h+='<td style="border:1px solid var(--line);padding:0">'+
+            '<div contenteditable="true" data-r="'+ri+'" data-c="'+ci+'" style="padding:6px 8px;min-width:90px;outline:none">'+esc(cell==null?'':cell)+'</div></td>';
         });
-        h+='<td class="org-row-del-cell"><button type="button" class="btn sm danger xls-row-del" data-row="'+r+'">✖</button></td></tr>';
-      }
-      h+='</tbody><tfoot></tfoot>';
+        h+='<td style="border:none;padding:0 4px"><button type="button" data-row-del="'+ri+'" title="حذف ردیف" style="border:none;background:transparent;cursor:pointer">🗑</button></td>';
+        h+='</tr>';
+      });
+      h+='</tbody>';
       exlTable.innerHTML=h;
       exlTableWrap.classList.remove('hidden');
+      exlApplyStyle();
+      exlRefreshAvgRow();
 
-      exlTable.querySelectorAll('[data-title-c]').forEach(function(inp){
-        const c=parseInt(inp.dataset.titleC,10);
-        inp.value=exlRows[0][c]==null?'':exlRows[0][c];
-        inp.addEventListener('input',function(){exlRows[0][c]=this.value;});
-      });
-      exlTable.querySelectorAll('[data-r]').forEach(function(inp){
-        const rr=parseInt(inp.dataset.r,10), cc=parseInt(inp.dataset.c,10);
-        inp.value=(exlRows[rr]&&exlRows[rr][cc]!=null)?exlRows[rr][cc]:'';
-        inp.addEventListener('input',function(){
-          if(exlRows[rr])exlRows[rr][cc]=this.value;
-          if(document.getElementById('exl-avg-check').checked)exlCalcAndShowAvg();
+      exlTable.querySelectorAll('[contenteditable]').forEach(function(cellEl){
+        cellEl.addEventListener('input',function(){
+          const r=parseInt(this.dataset.r,10), c=parseInt(this.dataset.c,10);
+          if(exlRows[r])exlRows[r][c]=this.textContent;
+          if(exlAvgCheck.checked)exlRefreshAvgRow();
         });
       });
-      exlTable.querySelectorAll('.xls-row-del').forEach(function(btn){
+      exlTable.querySelectorAll('[data-row-del]').forEach(function(btn){
         btn.addEventListener('click',function(){
-          if(exlRows.length<=2){toast('حداقل یک ردیف باید باقی بماند');return;}
-          const r=parseInt(this.dataset.row,10);
+          const r=parseInt(this.dataset.rowDel,10);
+          if(exlRows.length<=1){toast('حداقل یک ردیف باید باقی بماند');return;}
           exlRows.splice(r,1);
           exlRenderTable();
         });
       });
-      exlTable.querySelectorAll('.xls-col-del').forEach(function(btn){
+      exlTable.querySelectorAll('[data-col-del]').forEach(function(btn){
         btn.addEventListener('click',function(){
+          const c=parseInt(this.dataset.colDel,10);
           if(exlRows[0].length<=1){toast('حداقل یک ستون باید باقی بماند');return;}
-          const c=parseInt(this.dataset.col,10);
           exlRows.forEach(function(row){row.splice(c,1);});
           exlRenderTable();
         });
       });
-      refreshRowColorPickers(exlTable,exlRowColors);
-      exlApplyTableFont();
-      exlApplyTableColor();
-      if(document.getElementById('exl-avg-check').checked)exlCalcAndShowAvg();
     }
 
     document.getElementById('btn-exl-extract').onclick=async function(){
@@ -11092,113 +11134,34 @@ function teacherScript() {
       exlPreviewBox.classList.add('hidden');
       exlTableWrap.classList.add('hidden');
       exlStatus.textContent='';
-      document.getElementById('exl-title').value='';
+      exlTitleInp.value='';
+      exlFontSel.value='default';
+      exlColorSel.value='default';
+      exlAvgCheck.checked=false;
     };
-
-    // ===== ذخیره در سرور =====
-    document.getElementById('btn-exl-save').onclick=async function(){
-      if(!exlRows||!exlRows.length){toast('ابتدا جدولی بسازید یا استخراج کنید');return;}
-      await lbSave('exltable',{rows:exlRows,title:document.getElementById('exl-title').value,avgCheck:document.getElementById('exl-avg-check').checked,font:document.getElementById('exl-font').value,tableColor:document.getElementById('exl-color').value});
-    };
-    loadExlTableIfNeeded=async function(){
-      if(loadExlTableIfNeeded.done)return;
-      loadExlTableIfNeeded.done=true;
-      const savedColors=await lbLoad('exltable-row-colors');
-      if(savedColors&&typeof savedColors==='object')exlRowColors=savedColors;
-      const saved=await lbLoad('exltable');
-      if(!saved||!saved.rows||!saved.rows.length)return;
-      exlRows=saved.rows;
-      document.getElementById('exl-title').value=saved.title||'';
-      document.getElementById('exl-avg-check').checked=saved.avgCheck!==false;
-      document.getElementById('exl-font').value=saved.font||'default';
-      document.getElementById('exl-color').value=saved.tableColor||'default';
-      exlRenderTable();
-    };
-
-    // ===== خروجی مشترک HTML جدول، برای دانلود Word و PDF =====
-    function exlBuildTableExportHtml(title){
-      const showAvg=document.getElementById('exl-avg-check').checked;
-      const titles=exlRows[0];
-      const cols=titles.length;
-      const dataRows=exlRows.slice(1);
-      const fontKey=document.getElementById('exl-font').value;
-      const fontFamily=fontKey==='titr'?"'B Titr','BTitr',Tahoma,Arial":'tahoma,Arial';
-      const colorKey=document.getElementById('exl-color').value;
-      const colorTheme=XLS_TABLE_COLORS[colorKey]||XLS_TABLE_COLORS.default;
-      const headerBg=colorTheme.bg||'#667eea';
-      const headerText=colorTheme.bg?colorTheme.text:'#fff';
-      let style='<style>';
-      if(fontKey==='titr')style+='@font-face{font-family:"BTitr";src:url(https://cdn.jsdelivr.net/gh/intuxicated/css-persian@master/fonts/BTitrBold.ttf)}';
-      style+='body{direction:rtl;font-family:'+fontFamily+';padding:20px}table{width:100%;border-collapse:collapse;margin-top:15px}th,td{border:1px solid #333;padding:8px;text-align:center;font-family:'+fontFamily+'}th{background:'+headerBg+';color:'+headerText+'}td:first-child{background:#eee;font-weight:bold}</style>';
-      let h='<h2 style="text-align:center">'+esc(title)+'</h2><table><tr><th>#</th>';
-      for(let c=0;c<cols;c++){h+='<th>'+esc(titles[c])+'</th>';}h+='</tr>';
-      for(let r=0;r<dataRows.length;r++){
-        const rowColorKey=exlRowColors['e'+(r+1)];
-        const rowHex=(rowColorKey&&rowColorKey!=='none')?ROW_COLOR_HEX[rowColorKey]:'';
-        const cellStyleAttr=rowHex?' style="background:'+rowHex+'"':'';
-        h+='<tr>'+'<td'+cellStyleAttr+'>'+(r+1)+'</td>';
-        for(let c=0;c<cols;c++){h+='<td'+cellStyleAttr+'>'+esc(dataRows[r][c])+'</td>';}
-        h+='</tr>';
-      }
-      if(showAvg){
-        const avgCells=[];for(let c=0;c<cols;c++){const vals=[];for(let r=0;r<dataRows.length;r++){const v=parseFloat(dataRows[r][c]);if(!isNaN(v))vals.push(v);}avgCells.push(vals.length>0?(vals.reduce((a,b)=>a+b,0)/vals.length).toFixed(2):'—');}
-        h+='<tr style="background:#e2efda;font-weight:bold"><td>📈 میانگین</td>';
-        for(let c=0;c<cols;c++){h+='<td>'+avgCells[c]+'</td>';}h+='</tr>';
-      }
-      h+='</table>';
-      return {style,body:h};
-    }
-
-    document.getElementById('btn-exl-word').onclick=function(){
-      if(!exlRows||exlRows.length<2){toast('ابتدا جدولی بسازید یا استخراج کنید');return;}
-      const title=document.getElementById('exl-title').value||'جدول';
-      const html=exlBuildTableExportHtml(title);
-      const blob=new Blob(['<html><head><meta charset="utf-8">'+html.style+'</head><body>'+html.body+'</body></html>'],{type:'application/msword'});
-      const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=title+'.doc';document.body.appendChild(a);a.click();a.remove();
-    };
-
-    document.getElementById('btn-exl-pdf').onclick=function(){
-      if(!exlRows||exlRows.length<2){toast('ابتدا جدولی بسازید یا استخراج کنید');return;}
-      const title=document.getElementById('exl-title').value||'جدول';
-      const orientEl=document.getElementById('exl-pdf-orientation');
-      const orientation=(orientEl&&orientEl.value==='landscape')?'landscape':'portrait';
-      const html=exlBuildTableExportHtml(title);
-      const pageStyle='<style>@page{size:A4 '+orientation+';margin:10mm}</style>';
-      const w=window.open('','_blank');
-      if(!w){toast('اجازه‌ی باز کردن پنجره‌ی جدید داده نشد؛ لطفاً مسدودکننده‌ی پاپ‌آپ را غیرفعال کنید');return;}
-      w.document.write('<html><head><meta charset="utf-8"><title>'+esc(title)+'</title>'+html.style+pageStyle+'</head><body>'+html.body+'</body></html>');
-      w.document.close();
-      setTimeout(function(){w.print();},500);
-    };
-
     document.getElementById('btn-exl-download').onclick=async function(){
-      if(!exlRows||exlRows.length<2){toast('جدولی برای دانلود وجود ندارد');return;}
-      const btn=this;const origText=btn.textContent;
-      const title=document.getElementById('exl-title').value||'جدول';
-      const showAvg=document.getElementById('exl-avg-check').checked;
-      const titles=exlRows[0];
-      const cols=titles.length;
-      const dataRows=exlRows.slice(1);
-      btn.disabled=true;btn.textContent='⏳ در حال ساخت فایل...';
+      if(!exlRows||!exlRows.length){toast('جدولی برای دانلود وجود ندارد');return;}
+      const btn=this;btn.disabled=true;const origText=btn.textContent;btn.textContent='⏳ در حال ساخت فایل...';
       try{
         await loadExcelJS();
+        const title=(exlTitleInp.value||'جدول').trim();
+        const header=exlRows[0]||[];
+        const body=exlRows.slice(1);
+        const cols=header.length;
         const wb=new ExcelJS.Workbook();
+        wb.creator=${JSON.stringify(APP_TITLE)};
         const ws=wb.addWorksheet('جدول',{views:[{rightToLeft:true,state:'frozen',ySplit:2}]});
-
-        ws.mergeCells(1,1,1,cols+1);
+        ws.mergeCells(1,1,1,cols);
         const titleCell=ws.getCell(1,1);
         titleCell.value=title;
         titleCell.font={name:'Calibri',size:16,bold:true,color:{argb:'FF1E293B'}};
         titleCell.alignment={horizontal:'center',vertical:'middle'};
         ws.getRow(1).height=28;
-
-        const colorKey=document.getElementById('exl-color').value;
-        const colorTheme=XLS_TABLE_COLORS[colorKey]||XLS_TABLE_COLORS.default;
+        const colorTheme=XLS_TABLE_COLORS[exlColorSel.value]||XLS_TABLE_COLORS.default;
         const headerArgb=hexToArgb(colorTheme.bg)||'FF4472C4';
         const headerTextArgb=colorTheme.bg?(hexToArgb(colorTheme.text)||'FFFFFFFF'):'FFFFFFFF';
         const headerRow=ws.getRow(2);
-        headerRow.getCell(1).value='#';
-        for(let c=0;c<cols;c++)headerRow.getCell(c+2).value=titles[c];
+        header.forEach(function(t,c){headerRow.getCell(c+1).value=t;});
         headerRow.eachCell(function(cell){
           cell.font={name:'Calibri',bold:true,color:{argb:headerTextArgb}};
           cell.fill={type:'pattern',pattern:'solid',fgColor:{argb:headerArgb}};
@@ -11206,34 +11169,28 @@ function teacherScript() {
           cell.border={top:{style:'thin',color:{argb:'FFB7B7B7'}},left:{style:'thin',color:{argb:'FFB7B7B7'}},right:{style:'thin',color:{argb:'FFB7B7B7'}},bottom:{style:'thin',color:{argb:'FFB7B7B7'}}};
         });
         headerRow.height=22;
-
-        for(let r=0;r<dataRows.length;r++){
-          const row=ws.getRow(r+3);
-          row.getCell(1).value=r+1;
-          for(let c=0;c<cols;c++){
-            const raw=dataRows[r][c];
+        body.forEach(function(rowArr,ri){
+          const row=ws.getRow(ri+3);
+          rowArr.forEach(function(raw,c){
             const num=parseFloat(raw);
-            row.getCell(c+2).value=(raw!==''&&raw!=null&&!isNaN(num)&&String(num)===String(raw).trim())?num:(raw||'');
-          }
-          const rowColorKey=exlRowColors['e'+(r+1)];
-          const rowArgb=(rowColorKey&&rowColorKey!=='none')?hexToArgb(ROW_COLOR_HEX[rowColorKey]):null;
+            const rawStr=(raw==null?'':String(raw));
+            row.getCell(c+1).value=(rawStr!==''&&!isNaN(num)&&String(num)===rawStr.trim())?num:rawStr;
+          });
           row.eachCell({includeEmpty:true},function(cell,colNum){
-            if(colNum>cols+1)return;
+            if(colNum>cols)return;
             cell.alignment={horizontal:'center',vertical:'middle'};
             cell.border={top:{style:'thin',color:{argb:'FFD4D4D4'}},left:{style:'thin',color:{argb:'FFD4D4D4'}},right:{style:'thin',color:{argb:'FFD4D4D4'}},bottom:{style:'thin',color:{argb:'FFD4D4D4'}}};
-            if(rowArgb)cell.fill={type:'pattern',pattern:'solid',fgColor:{argb:rowArgb}};
-            else if((r+3)%2===0)cell.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FFFAFBFC'}};
+            if((ri+3)%2===0)cell.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FFFAFBFC'}};
           });
-        }
-
-        if(showAvg){
-          const avgRow=ws.getRow(dataRows.length+3);
-          avgRow.getCell(1).value='📈 میانگین';
+        });
+        if(exlAvgCheck.checked&&body.length){
+          const avgRow=ws.getRow(body.length+3);
           for(let c=0;c<cols;c++){
-            const colL=colLetter(c+2);
-            const range=colL+'3:'+colL+(dataRows.length+2);
-            avgRow.getCell(c+2).value={formula:'IFERROR(AVERAGE('+range+'),"—")'};
-            avgRow.getCell(c+2).numFmt='0.00';
+            if(c===0){avgRow.getCell(1).value='📈 میانگین';continue;}
+            const colL=colLetter(c+1);
+            const range=colL+'3:'+colL+(body.length+2);
+            avgRow.getCell(c+1).value={formula:'IFERROR(AVERAGE('+range+'),"—")'};
+            avgRow.getCell(c+1).numFmt='0.00';
           }
           avgRow.eachCell(function(cell){
             cell.font={bold:true,color:{argb:'FF375623'}};
@@ -11242,10 +11199,7 @@ function teacherScript() {
             cell.border={top:{style:'thin',color:{argb:'FFB7B7B7'}},left:{style:'thin',color:{argb:'FFB7B7B7'}},right:{style:'thin',color:{argb:'FFB7B7B7'}},bottom:{style:'thin',color:{argb:'FFB7B7B7'}}};
           });
         }
-
-        ws.getColumn(1).width=6;
-        for(let c=0;c<cols;c++)ws.getColumn(c+2).width=Math.max(12,(titles[c]||'').length+4);
-
+        for(let c=0;c<cols;c++)ws.getColumn(c+1).width=Math.max(12,String(header[c]||'').length+4);
         const buf=await wb.xlsx.writeBuffer();
         const blob=new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
         const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=title+'.xlsx';document.body.appendChild(a);a.click();a.remove();
@@ -11255,6 +11209,290 @@ function teacherScript() {
       }finally{
         btn.disabled=false;btn.textContent=origText;
       }
+    };
+
+    // ساخت خروجی HTML جدول (استایل + بدنه)، مشترک بین دانلود Word و دانلود PDF — مشابه جدول‌ساز حرفه‌ای
+    function exlBuildExportHtml(){
+      const title=(exlTitleInp.value||'جدول').trim();
+      const fontKey=exlFontSel.value;
+      const fontFamily=fontKey==='titr'?"'B Titr','BTitr',Tahoma,Arial":'tahoma,Arial';
+      const colorTheme=XLS_TABLE_COLORS[exlColorSel.value]||XLS_TABLE_COLORS.default;
+      const headerBg=colorTheme.bg||'#667eea';
+      const headerText=colorTheme.bg?colorTheme.text:'#fff';
+      let style='<style>';
+      if(fontKey==='titr')style+='@font-face{font-family:"BTitr";src:url(https://cdn.jsdelivr.net/gh/intuxicated/css-persian@master/fonts/BTitrBold.ttf)}';
+      style+='body{direction:rtl;font-family:'+fontFamily+';padding:20px}table{width:100%;border-collapse:collapse;margin-top:15px}th,td{border:1px solid #333;padding:8px;text-align:center;font-family:'+fontFamily+'}th{background:'+headerBg+';color:'+headerText+'}</style>';
+      const header=exlRows[0]||[];
+      const body=exlRows.slice(1);
+      let h='<h2 style="text-align:center">'+esc(title)+'</h2><table><tr>';
+      header.forEach(function(cellV){h+='<th>'+esc(cellV)+'</th>';});
+      h+='</tr>';
+      body.forEach(function(row){
+        h+='<tr>';
+        row.forEach(function(cellV){h+='<td>'+esc(cellV)+'</td>';});
+        h+='</tr>';
+      });
+      if(exlAvgCheck.checked&&body.length){
+        h+='<tr style="background:#e2efda;font-weight:bold">';
+        header.forEach(function(_,c){
+          if(c===0){h+='<td>📈 میانگین</td>';return;}
+          const vals=[];body.forEach(function(row){const v=parseFloat(row[c]);if(!isNaN(v))vals.push(v);});
+          h+='<td>'+(vals.length?(vals.reduce(function(a,b){return a+b;},0)/vals.length).toFixed(2):'—')+'</td>';
+        });
+        h+='</tr>';
+      }
+      h+='</table>';
+      return {style:style,body:h,title:title};
+    }
+
+    document.getElementById('btn-exl-word').onclick=function(){
+      if(!exlRows||!exlRows.length){toast('ابتدا یک جدول استخراج کنید');return;}
+      const ex=exlBuildExportHtml();
+      const blob=new Blob(['<html><head><meta charset="utf-8">'+ex.style+'</head><body>'+ex.body+'</body></html>'],{type:'application/msword'});
+      const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=ex.title+'.doc';document.body.appendChild(a);a.click();a.remove();
+    };
+
+    document.getElementById('btn-exl-pdf').onclick=function(){
+      if(!exlRows||!exlRows.length){toast('ابتدا یک جدول استخراج کنید');return;}
+      const ex=exlBuildExportHtml();
+      const pageStyle='<style>@page{size:A4 landscape;margin:10mm}</style>';
+      const w=window.open('','_blank');
+      if(!w){toast('اجازه‌ی باز کردن پنجره‌ی جدید داده نشد؛ لطفاً مسدودکننده‌ی پاپ‌آپ را غیرفعال کنید');return;}
+      w.document.write('<html><head><meta charset="utf-8"><title>'+esc(ex.title)+'</title>'+ex.style+pageStyle+'</head><body>'+ex.body+'</body></html>');
+      w.document.close();
+      setTimeout(function(){w.print();},500);
+    };
+  })();
+
+  // ===== ساخت ورد (استخراج جدول از عکس/PDF با هوش مصنوعی — فقط خروجی Word/PDF) =====
+  (function(){
+    let wtDataUrl=null, wtRows=null; // wtRows: آرایه‌ای از آرایه‌ها (سطر اول = هدر)
+    const wtFileInput=document.getElementById('wt-file');
+    const wtFileName=document.getElementById('wt-file-name');
+    const wtPreviewBox=document.getElementById('wt-img-preview');
+    const wtPreviewImg=document.getElementById('wt-img-preview-img');
+    const wtStatus=document.getElementById('wt-status');
+    const wtTableWrap=document.getElementById('wt-table-wrap');
+    const wtTable=document.getElementById('wt-table');
+    const wtTitleInp=document.getElementById('wt-title');
+    const wtFontSel=document.getElementById('wt-font');
+    const wtColorSel=document.getElementById('wt-color');
+    const wtAvgCheck=document.getElementById('wt-avg-check');
+
+    function wtApplyStyle(){
+      wtTable.style.fontFamily=XLS_FONTS[wtFontSel.value]||'';
+      var theme=XLS_TABLE_COLORS[wtColorSel.value]||XLS_TABLE_COLORS.default;
+      if(theme.bg){wtTable.style.setProperty('--exl-color',theme.bg);wtTable.style.setProperty('--exl-color-text',theme.text);}
+      else{wtTable.style.removeProperty('--exl-color');wtTable.style.removeProperty('--exl-color-text');}
+    }
+    wtFontSel.addEventListener('change',wtApplyStyle);
+    wtColorSel.addEventListener('change',wtApplyStyle);
+
+    function wtAvgRowHtml(){
+      if(!wtAvgCheck.checked||!wtRows||wtRows.length<2)return '';
+      var cols=wtRows[0].length;
+      var f='<tr class="exl-avgrow">';
+      for(var c=0;c<cols;c++){
+        var vals=[];
+        for(var r=1;r<wtRows.length;r++){var v=parseFloat(wtRows[r][c]);if(!isNaN(v))vals.push(v);}
+        var avg=vals.length?(vals.reduce(function(a,b){return a+b;},0)/vals.length).toFixed(2):'—';
+        f+='<td style="padding:6px 8px">'+(c===0?'📈 ':'')+avg+'</td>';
+      }
+      f+='<td></td></tr>';
+      return f;
+    }
+    function wtRefreshAvgRow(){
+      var tfoot=wtTable.querySelector('tfoot');
+      var html=wtAvgRowHtml();
+      if(!html){if(tfoot)tfoot.remove();return;}
+      if(!tfoot){tfoot=document.createElement('tfoot');wtTable.appendChild(tfoot);}
+      tfoot.innerHTML=html;
+    }
+    wtAvgCheck.addEventListener('change',wtRefreshAvgRow);
+
+    wtFileInput.addEventListener('change',async function(e){
+      const file=e.target.files[0];
+      if(!file)return;
+      wtFileName.textContent=file.name;
+      try{
+        if(file.type==='application/pdf'){
+          wtStatus.textContent='⏳ در حال تبدیل صفحه‌ی اول PDF به تصویر...';
+          const buf=await file.arrayBuffer();
+          const doc=await pdfjsLib.getDocument({data:buf}).promise;
+          const page=await doc.getPage(1);
+          const viewport=page.getViewport({scale:2});
+          const canvas=document.createElement('canvas');
+          canvas.width=viewport.width;canvas.height=viewport.height;
+          await page.render({canvasContext:canvas.getContext('2d'),viewport}).promise;
+          wtDataUrl=canvas.toDataURL('image/png');
+          wtStatus.textContent='';
+        }else if(file.type.startsWith('image/')){
+          wtDataUrl=await new Promise((resolve,reject)=>{
+            const rd=new FileReader();
+            rd.onload=()=>resolve(rd.result);
+            rd.onerror=reject;
+            rd.readAsDataURL(file);
+          });
+        }else{
+          toast('فقط عکس یا PDF مجاز است');return;
+        }
+        wtPreviewImg.src=wtDataUrl;
+        wtPreviewBox.classList.remove('hidden');
+      }catch(err){toast('خطا در خواندن فایل: '+err.message);}
+    });
+
+    function wtRenderTable(){
+      if(!wtRows||!wtRows.length){wtTableWrap.classList.add('hidden');return;}
+      let h='<thead><tr>';
+      wtRows[0].forEach(function(_,ci){
+        h+='<th class="exl-th"><button type="button" data-col-del="'+ci+'" title="حذف ستون" style="position:absolute;top:2px;left:2px;border:none;background:transparent;cursor:pointer;font-size:11px">🗑</button></th>';
+      });
+      h+='</tr></thead><tbody>';
+      wtRows.forEach(function(row,ri){
+        h+='<tr'+(ri===0?' class="exl-header-row"':'')+'>';
+        row.forEach(function(cell,ci){
+          h+='<td style="border:1px solid var(--line);padding:0">'+
+            '<div contenteditable="true" data-r="'+ri+'" data-c="'+ci+'" style="padding:6px 8px;min-width:90px;outline:none">'+esc(cell==null?'':cell)+'</div></td>';
+        });
+        h+='<td style="border:none;padding:0 4px"><button type="button" data-row-del="'+ri+'" title="حذف ردیف" style="border:none;background:transparent;cursor:pointer">🗑</button></td>';
+        h+='</tr>';
+      });
+      h+='</tbody>';
+      wtTable.innerHTML=h;
+      wtTableWrap.classList.remove('hidden');
+      wtApplyStyle();
+      wtRefreshAvgRow();
+
+      wtTable.querySelectorAll('[contenteditable]').forEach(function(cellEl){
+        cellEl.addEventListener('input',function(){
+          const r=parseInt(this.dataset.r,10), c=parseInt(this.dataset.c,10);
+          if(wtRows[r])wtRows[r][c]=this.textContent;
+          if(wtAvgCheck.checked)wtRefreshAvgRow();
+        });
+      });
+      wtTable.querySelectorAll('[data-row-del]').forEach(function(btn){
+        btn.addEventListener('click',function(){
+          const r=parseInt(this.dataset.rowDel,10);
+          if(wtRows.length<=1){toast('حداقل یک ردیف باید باقی بماند');return;}
+          wtRows.splice(r,1);
+          wtRenderTable();
+        });
+      });
+      wtTable.querySelectorAll('[data-col-del]').forEach(function(btn){
+        btn.addEventListener('click',function(){
+          const c=parseInt(this.dataset.colDel,10);
+          if(wtRows[0].length<=1){toast('حداقل یک ستون باید باقی بماند');return;}
+          wtRows.forEach(function(row){row.splice(c,1);});
+          wtRenderTable();
+        });
+      });
+    }
+
+    document.getElementById('btn-wt-extract').onclick=async function(){
+      if(!wtDataUrl){toast('لطفاً ابتدا یک عکس یا PDF انتخاب کنید');return;}
+      const btn=this;btn.disabled=true;
+      wtStatus.textContent='⏳ در حال استخراج جدول با هوش مصنوعی... (ممکن است چند ثانیه طول بکشد)';
+      try{
+        const sys='شما یک دستیار استخراج داده‌ی جدولی هستید. در تصویر ارسالی یک فرم، جدول یا لیست وجود دارد. تمام اطلاعات آن را دقیقاً به‌صورت یک آرایه‌ی JSON از آرایه‌ها (آرایه‌ی دوبعدی) استخراج کن. سطر اول باید عنوان ستون‌ها (هدر) باشد و سطرهای بعدی مقادیر واقعی. اگر ستون یا سطری خالی بود، رشته‌ی خالی "" بگذار. خروجی را فقط و فقط به‌صورت JSON خالص برگردان — بدون هیچ توضیح، بدون قالب‌بندی مارک‌داون یا نشانه‌ی کد، فقط خودِ آرایه.';
+        const res=await fetch('/api/teacher/ai/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({messages:[{role:'system',content:sys},{role:'user',content:[{type:'text',text:'اطلاعات جدول این تصویر را استخراج کن.'},{type:'image_url',image_url:{url:wtDataUrl}}]}],max_tokens:4096,provider:getAiProvider(),model:getAiModel()})});
+        const data=await res.json();
+        if(data.error)throw new Error(data.error);
+        let raw=(data.content||'').trim();
+        var FENCE=String.fromCharCode(96,96,96);
+        if(raw.slice(0,FENCE.length+4).toLowerCase()===(FENCE+'json').toLowerCase())raw=raw.slice(FENCE.length+4);
+        else if(raw.slice(0,FENCE.length)===FENCE)raw=raw.slice(FENCE.length);
+        if(raw.slice(-FENCE.length)===FENCE)raw=raw.slice(0,-FENCE.length);
+        raw=raw.trim();
+        const start=raw.indexOf('[');
+        const end=raw.lastIndexOf(']');
+        if(start===-1||end===-1)throw new Error('پاسخ هوش مصنوعی قابل پردازش نبود، دوباره تلاش کنید');
+        const parsed=JSON.parse(raw.slice(start,end+1));
+        if(!Array.isArray(parsed)||!parsed.length)throw new Error('هوش مصنوعی جدولی برنگرداند، دوباره تلاش کنید');
+        wtRows=parsed.map(function(row){return Array.isArray(row)?row.map(function(c){return c==null?'':String(c);}):[String(row)];});
+        const maxCols=Math.max.apply(null,wtRows.map(function(r){return r.length;}));
+        wtRows=wtRows.map(function(row){while(row.length<maxCols)row.push('');return row;});
+        wtRenderTable();
+        wtStatus.textContent='✅ جدول استخراج شد. قبل از دانلود، سلول‌ها را بازبینی کنید.';
+        toast('جدول با موفقیت استخراج شد ✅');
+      }catch(err){
+        wtStatus.textContent='';
+        toast('خطا: '+err.message);
+      }
+      btn.disabled=false;
+    };
+
+    document.getElementById('btn-wt-add-row').onclick=function(){
+      if(!wtRows){wtRows=[['ستون ۱']];}
+      wtRows.push(wtRows[0].map(function(){return '';}));
+      wtRenderTable();
+    };
+    document.getElementById('btn-wt-add-col').onclick=function(){
+      if(!wtRows){wtRows=[['ستون ۱']];}
+      wtRows.forEach(function(row,ri){row.push(ri===0?('ستون '+row.length):'');});
+      wtRenderTable();
+    };
+    document.getElementById('btn-wt-reset').onclick=function(){
+      wtDataUrl=null;wtRows=null;
+      wtFileInput.value='';wtFileName.textContent='';
+      wtPreviewBox.classList.add('hidden');
+      wtTableWrap.classList.add('hidden');
+      wtStatus.textContent='';
+      wtTitleInp.value='';
+      wtFontSel.value='default';
+      wtColorSel.value='default';
+      wtAvgCheck.checked=false;
+    };
+
+    // ساخت خروجی HTML جدول (استایل + بدنه)، مشترک بین دانلود Word و دانلود PDF
+    function wtBuildExportHtml(){
+      const title=(wtTitleInp.value||'جدول').trim();
+      const fontKey=wtFontSel.value;
+      const fontFamily=fontKey==='titr'?"'B Titr','BTitr',Tahoma,Arial":'tahoma,Arial';
+      const colorTheme=XLS_TABLE_COLORS[wtColorSel.value]||XLS_TABLE_COLORS.default;
+      const headerBg=colorTheme.bg||'#667eea';
+      const headerText=colorTheme.bg?colorTheme.text:'#fff';
+      let style='<style>';
+      if(fontKey==='titr')style+='@font-face{font-family:"BTitr";src:url(https://cdn.jsdelivr.net/gh/intuxicated/css-persian@master/fonts/BTitrBold.ttf)}';
+      style+='body{direction:rtl;font-family:'+fontFamily+';padding:20px}table{width:100%;border-collapse:collapse;margin-top:15px}th,td{border:1px solid #333;padding:8px;text-align:center;font-family:'+fontFamily+'}th{background:'+headerBg+';color:'+headerText+'}</style>';
+      const header=wtRows[0]||[];
+      const body=wtRows.slice(1);
+      let h='<h2 style="text-align:center">'+esc(title)+'</h2><table><tr>';
+      header.forEach(function(cellV){h+='<th>'+esc(cellV)+'</th>';});
+      h+='</tr>';
+      body.forEach(function(row){
+        h+='<tr>';
+        row.forEach(function(cellV){h+='<td>'+esc(cellV)+'</td>';});
+        h+='</tr>';
+      });
+      if(wtAvgCheck.checked&&body.length){
+        h+='<tr style="background:#e2efda;font-weight:bold">';
+        header.forEach(function(_,c){
+          if(c===0){h+='<td>📈 میانگین</td>';return;}
+          const vals=[];body.forEach(function(row){const v=parseFloat(row[c]);if(!isNaN(v))vals.push(v);});
+          h+='<td>'+(vals.length?(vals.reduce(function(a,b){return a+b;},0)/vals.length).toFixed(2):'—')+'</td>';
+        });
+        h+='</tr>';
+      }
+      h+='</table>';
+      return {style:style,body:h,title:title};
+    }
+
+    document.getElementById('btn-wt-word').onclick=function(){
+      if(!wtRows||!wtRows.length){toast('ابتدا یک جدول استخراج کنید');return;}
+      const ex=wtBuildExportHtml();
+      const blob=new Blob(['<html><head><meta charset="utf-8">'+ex.style+'</head><body>'+ex.body+'</body></html>'],{type:'application/msword'});
+      const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=ex.title+'.doc';document.body.appendChild(a);a.click();a.remove();
+    };
+
+    document.getElementById('btn-wt-pdf').onclick=function(){
+      if(!wtRows||!wtRows.length){toast('ابتدا یک جدول استخراج کنید');return;}
+      const ex=wtBuildExportHtml();
+      const pageStyle='<style>@page{size:A4 landscape;margin:10mm}</style>';
+      const w=window.open('','_blank');
+      if(!w){toast('اجازه‌ی باز کردن پنجره‌ی جدید داده نشد؛ لطفاً مسدودکننده‌ی پاپ‌آپ را غیرفعال کنید');return;}
+      w.document.write('<html><head><meta charset="utf-8"><title>'+esc(ex.title)+'</title>'+ex.style+pageStyle+'</head><body>'+ex.body+'</body></html>');
+      w.document.close();
+      setTimeout(function(){w.print();},500);
     };
   })();
 
