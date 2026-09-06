@@ -11549,10 +11549,11 @@ function teacherScript() {
       const headerText=colorTheme.bg?colorTheme.text:'#fff';
       let style='<style>';
       if(fontKey==='titr')style+='@font-face{font-family:"BTitr";src:url(https://cdn.jsdelivr.net/gh/intuxicated/css-persian@master/fonts/BTitrBold.ttf)}';
-      style+='body{direction:rtl;font-family:'+fontFamily+';padding:20px}table{width:100%;border-collapse:collapse;margin-top:10px;margin-bottom:25px}th,td{border:1px solid #333;padding:8px;text-align:center;font-family:'+fontFamily+';vertical-align:top}th{background:'+headerBg+';color:'+headerText+'}</style>';
+      style+='body{direction:rtl;font-family:'+fontFamily+';padding:20px}table{width:100%;border-collapse:collapse;margin:0}th,td{border:1px solid #333;padding:8px;text-align:center;font-family:'+fontFamily+';vertical-align:top}th{background:'+headerBg+';color:'+headerText+'}</style>';
       let h='';
       wtTables.forEach(function(tbl,ti){
-        h+='<h2 style="text-align:center">'+esc(tbl.title||('جدول '+(ti+1)))+'</h2><table>';
+        if((tbl.title||'').trim())h+='<h2 style="text-align:center;margin:14px 0 4px">'+esc(tbl.title.trim())+'</h2>';
+        h+='<table>';
         tbl.rows.forEach(function(row,ri){
           const isHeader=tbl.hasHeader&&ri===0;
           h+='<tr>';
