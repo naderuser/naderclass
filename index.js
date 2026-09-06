@@ -11260,9 +11260,9 @@ function teacherScript() {
     };
   })();
 
-  // ===== ساخت ورد (استخراج جدول از عکس/PDF با هوش مصنوعی — چند جدول به‌صورت خودکار، فقط خروجی Word/PDF) =====
+  // ===== ساخت ورد (استخراج دقیق جدول از عکس/PDF با هوش مصنوعی — چند جدول، سلول‌های ادغام‌شده و متن چندخطی، فقط خروجی Word/PDF) =====
   (function(){
-    let wtDataUrl=null, wtTables=null; // wtTables: [{title:'', rows:[[...],...]}, ...] — هر جدول سطر اول = هدر
+    let wtDataUrl=null, wtTables=null; // wtTables: [{title:'', hasHeader:false, rows:[[{text,colspan,rowspan},...],...]}, ...]
     const wtFileInput=document.getElementById('wt-file');
     const wtFileName=document.getElementById('wt-file-name');
     const wtPreviewBox=document.getElementById('wt-img-preview');
@@ -11273,6 +11273,13 @@ function teacherScript() {
     const wtFontSel=document.getElementById('wt-font');
     const wtColorSel=document.getElementById('wt-color');
     const wtAvgCheck=document.getElementById('wt-avg-check');
+
+    function wtNormCell(c){
+      if(c==null)return {text:'',colspan:1,rowspan:1};
+      if(typeof c!=='object')return {text:String(c),colspan:1,rowspan:1};
+      const cs=parseInt(c.colspan,10),rs=parseInt(c.rowspan,10);
+      return {text:c.text==null?'':String(c.text),colspan:(cs>0?cs:1),rowspan:(rs>0?rs:1)};
+    }
 
     function wtApplyStyleAll(){
       wtTablesContainer.querySelectorAll('.wt-table').forEach(function(tbl){
@@ -11285,26 +11292,33 @@ function teacherScript() {
     wtFontSel.addEventListener('change',wtApplyStyleAll);
     wtColorSel.addEventListener('change',wtApplyStyleAll);
 
-    function wtAvgRowHtml(rows){
-      if(!wtAvgCheck.checked||!rows||rows.length<2)return '';
-      var cols=rows[0].length;
-      var f='<tr class="exl-avgrow">';
-      for(var c=0;c<cols;c++){
-        var vals=[];
-        for(var r=1;r<rows.length;r++){var v=parseFloat(rows[r][c]);if(!isNaN(v))vals.push(v);}
-        var avg=vals.length?(vals.reduce(function(a,b){return a+b;},0)/vals.length).toFixed(2):'—';
+    function wtAvgRowHtml(tbl){
+      if(!wtAvgCheck.checked||!tbl||tbl.rows.length<2)return '';
+      const startR=tbl.hasHeader?1:0;
+      if(tbl.rows.length-startR<1)return '';
+      const cols=Math.max.apply(null,tbl.rows.map(function(r){return r.length;}));
+      let f='<tr class="exl-avgrow">';
+      for(let c=0;c<cols;c++){
+        const vals=[];
+        for(let r=startR;r<tbl.rows.length;r++){
+          const cell=tbl.rows[r][c];
+          if(!cell)continue;
+          const v=parseFloat(cell.text);
+          if(!isNaN(v))vals.push(v);
+        }
+        const avg=vals.length?(vals.reduce(function(a,b){return a+b;},0)/vals.length).toFixed(2):'—';
         f+='<td style="padding:6px 8px">'+(c===0?'📈 ':'')+avg+'</td>';
       }
       f+='<td></td></tr>';
       return f;
     }
     function wtRefreshAvgRow(ti){
-      const tbl=wtTablesContainer.querySelector('.wt-table[data-tbl="'+ti+'"]');
-      if(!tbl)return;
-      let tfoot=tbl.querySelector('tfoot');
-      const html=wtAvgRowHtml(wtTables[ti].rows);
+      const tblEl=wtTablesContainer.querySelector('.wt-table[data-tbl="'+ti+'"]');
+      if(!tblEl)return;
+      let tfoot=tblEl.querySelector('tfoot');
+      const html=wtAvgRowHtml(wtTables[ti]);
       if(!html){if(tfoot)tfoot.remove();return;}
-      if(!tfoot){tfoot=document.createElement('tfoot');tbl.appendChild(tfoot);}
+      if(!tfoot){tfoot=document.createElement('tfoot');tblEl.appendChild(tfoot);}
       tfoot.innerHTML=html;
     }
     wtAvgCheck.addEventListener('change',function(){
@@ -11343,36 +11357,37 @@ function teacherScript() {
       }catch(err){toast('خطا در خواندن فایل: '+err.message);}
     });
 
-    // رندر یک بلوک جدول (عنوان + جدول قابل‌ویرایش) داخل کانتینر
+    // رندر یک بلوک جدول با پشتیبانی از سلول‌های ادغام‌شده (rowspan/colspan) و متن چندخطی
     function wtRenderOne(ti){
       const tbl=wtTables[ti];
       let h='<div class="wt-table-block" data-tbl="'+ti+'" style="margin-bottom:22px;border:1px solid var(--line);border-radius:8px;padding:10px">';
       h+='<div class="row" style="align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap">';
       h+='<input type="text" class="wt-tbl-title" data-tbl="'+ti+'" placeholder="عنوان این جدول (اختیاری)" value="'+esc(tbl.title||'')+'" style="flex:1;min-width:140px">';
+      h+='<label style="display:flex;align-items:center;gap:4px;font-size:12px;flex:0 0 auto;width:auto"><input type="checkbox" class="wt-tbl-header" data-tbl="'+ti+'"'+(tbl.hasHeader?' checked':'')+' style="width:auto">سطر اول عنوان است</label>';
       h+='<button type="button" class="btn sm sec" data-add-row="'+ti+'">➕ ردیف</button>';
       h+='<button type="button" class="btn sm sec" data-add-col="'+ti+'">➕ ستون</button>';
       h+='<button type="button" class="btn sm gray" data-del-table="'+ti+'">🗑 حذف این جدول</button>';
       h+='</div>';
-      h+='<div style="overflow:auto;max-height:50vh;border:1px solid var(--line);border-radius:8px">';
-      h+='<table class="wt-table" data-tbl="'+ti+'" style="width:100%;border-collapse:collapse"><thead><tr>';
-      tbl.rows[0].forEach(function(_,ci){
-        h+='<th class="exl-th"><button type="button" data-col-del="'+ti+':'+ci+'" title="حذف ستون" style="position:absolute;top:2px;left:2px;border:none;background:transparent;cursor:pointer;font-size:11px">🗑</button></th>';
-      });
-      h+='</tr></thead><tbody>';
+      h+='<div style="overflow:auto;max-height:60vh;border:1px solid var(--line);border-radius:8px">';
+      h+='<table class="wt-table" data-tbl="'+ti+'" style="width:100%;border-collapse:collapse"><tbody>';
       tbl.rows.forEach(function(row,ri){
-        h+='<tr'+(ri===0?' class="exl-header-row"':'')+'>';
+        const isHeader=tbl.hasHeader&&ri===0;
+        h+='<tr'+(isHeader?' class="exl-header-row"':'')+'>';
         row.forEach(function(cell,ci){
-          h+='<td style="border:1px solid var(--line);padding:0">'+
-            '<div contenteditable="true" data-tr="'+ti+':'+ri+':'+ci+'" style="padding:6px 8px;min-width:90px;outline:none">'+esc(cell==null?'':cell)+'</div></td>';
+          const spanAttrs=(cell.colspan>1?' colspan="'+cell.colspan+'"':'')+(cell.rowspan>1?' rowspan="'+cell.rowspan+'"':'');
+          const cellClass=isHeader?' class="exl-th"':'';
+          h+='<td'+spanAttrs+cellClass+' style="border:1px solid var(--line);padding:0;position:relative;vertical-align:top">';
+          h+='<div contenteditable="true" data-tr="'+ti+':'+ri+':'+ci+'" style="padding:6px 8px;min-width:70px;outline:none;white-space:pre-wrap">'+esc(cell.text)+'</div>';
+          h+='<button type="button" data-col-del="'+ti+':'+ci+'" title="حذف این ستون" style="position:absolute;top:1px;left:1px;border:none;background:transparent;cursor:pointer;font-size:10px;opacity:.55">✕</button>';
+          h+='</td>';
         });
-        h+='<td style="border:none;padding:0 4px"><button type="button" data-row-del="'+ti+':'+ri+'" title="حذف ردیف" style="border:none;background:transparent;cursor:pointer">🗑</button></td>';
+        h+='<td style="border:none;padding:0 4px;vertical-align:top"><button type="button" data-row-del="'+ti+':'+ri+'" title="حذف ردیف" style="border:none;background:transparent;cursor:pointer">🗑</button></td>';
         h+='</tr>';
       });
       h+='</tbody></table></div></div>';
       return h;
     }
 
-    // رندر کامل همه‌ی جدول‌ها و اتصال رویدادها
     function wtRenderAll(){
       if(!wtTables||!wtTables.length){wtTableWrap.classList.add('hidden');return;}
       let h='';
@@ -11387,11 +11402,18 @@ function teacherScript() {
           wtTables[parseInt(this.dataset.tbl,10)].title=this.value;
         });
       });
+      wtTablesContainer.querySelectorAll('.wt-tbl-header').forEach(function(chk){
+        chk.addEventListener('change',function(){
+          const ti=parseInt(this.dataset.tbl,10);
+          wtTables[ti].hasHeader=this.checked;
+          wtRenderAll();
+        });
+      });
       wtTablesContainer.querySelectorAll('[contenteditable]').forEach(function(cellEl){
         cellEl.addEventListener('input',function(){
           const parts=this.dataset.tr.split(':').map(function(n){return parseInt(n,10);});
           const ti=parts[0],ri=parts[1],ci=parts[2];
-          if(wtTables[ti]&&wtTables[ti].rows[ri])wtTables[ti].rows[ri][ci]=this.textContent;
+          if(wtTables[ti]&&wtTables[ti].rows[ri]&&wtTables[ti].rows[ri][ci])wtTables[ti].rows[ri][ci].text=this.innerText;
           if(wtAvgCheck.checked)wtRefreshAvgRow(ti);
         });
       });
@@ -11409,21 +11431,23 @@ function teacherScript() {
           const parts=this.dataset.colDel.split(':').map(function(n){return parseInt(n,10);});
           const ti=parts[0],ci=parts[1];
           if(wtTables[ti].rows[0].length<=1){toast('حداقل یک ستون باید باقی بماند');return;}
-          wtTables[ti].rows.forEach(function(row){row.splice(ci,1);});
+          wtTables[ti].rows.forEach(function(row){if(row.length>ci)row.splice(ci,1);});
           wtRenderAll();
         });
       });
       wtTablesContainer.querySelectorAll('[data-add-row]').forEach(function(btn){
         btn.addEventListener('click',function(){
           const ti=parseInt(this.dataset.addRow,10);
-          wtTables[ti].rows.push(wtTables[ti].rows[0].map(function(){return '';}));
+          const colCount=wtTables[ti].rows[0].length;
+          const blank=[];for(let c=0;c<colCount;c++)blank.push({text:'',colspan:1,rowspan:1});
+          wtTables[ti].rows.push(blank);
           wtRenderAll();
         });
       });
       wtTablesContainer.querySelectorAll('[data-add-col]').forEach(function(btn){
         btn.addEventListener('click',function(){
           const ti=parseInt(this.dataset.addCol,10);
-          wtTables[ti].rows.forEach(function(row,ri){row.push(ri===0?('ستون '+row.length):'');});
+          wtTables[ti].rows.forEach(function(row){row.push({text:'',colspan:1,rowspan:1});});
           wtRenderAll();
         });
       });
@@ -11442,23 +11466,26 @@ function teacherScript() {
       if(!Array.isArray(parsed)||!parsed.length)throw new Error('هوش مصنوعی جدولی برنگرداند، دوباره تلاش کنید');
       let tables;
       if(Array.isArray(parsed[0])){
-        // خروجی، آرایه‌ای از سطرها یا آرایه‌ای از جدول‌هاست (بدون شیء عنوان)
         if(Array.isArray(parsed[0][0])){
-          tables=parsed.map(function(t){return {title:'',rows:t};});
+          tables=parsed.map(function(rows){return {title:'',hasHeader:false,rows:rows};});
         }else{
-          tables=[{title:'',rows:parsed}];
+          tables=[{title:'',hasHeader:false,rows:parsed}];
         }
       }else{
         tables=parsed.map(function(t){
-          return {title:(t&&t.title)?String(t.title):'',rows:Array.isArray(t&&t.rows)?t.rows:[]};
+          return {
+            title:(t&&t.title)?String(t.title):'',
+            hasHeader:!!(t&&t.hasHeader),
+            rows:Array.isArray(t&&t.rows)?t.rows:[]
+          };
         });
       }
       tables=tables.filter(function(t){return Array.isArray(t.rows)&&t.rows.length;});
       if(!tables.length)throw new Error('هوش مصنوعی جدولی برنگرداند، دوباره تلاش کنید');
       tables.forEach(function(t){
-        t.rows=t.rows.map(function(row){return Array.isArray(row)?row.map(function(c){return c==null?'':String(c);}):[String(row)];});
-        const maxCols=Math.max.apply(null,t.rows.map(function(r){return r.length;}));
-        t.rows=t.rows.map(function(row){while(row.length<maxCols)row.push('');return row;});
+        t.rows=t.rows.map(function(row){
+          return Array.isArray(row)?row.map(wtNormCell):[wtNormCell(row)];
+        });
       });
       return tables;
     }
@@ -11468,8 +11495,8 @@ function teacherScript() {
       const btn=this;btn.disabled=true;
       wtStatus.textContent='⏳ در حال تشخیص و استخراج جدول‌ها با هوش مصنوعی... (ممکن است چند ثانیه طول بکشد)';
       try{
-        const sys='شما یک دستیار استخراج داده‌ی جدولی هستید. در سند/تصویر ارسالی ممکن است یک یا چند جدول جداگانه وجود داشته باشد. خودت تشخیص بده دقیقاً چند جدول در سند هست و هرکدام را جداگانه و دقیقاً همان‌طور که در سند آمده (بدون تغییر یا ادغام) استخراج کن. خروجی را فقط و فقط به‌صورت یک آرایه‌ی JSON خالص برگردان که هر عضوش یک شیء با دو فیلد است: title (عنوان یا زیرنویسی که در سند بالای همان جدول نوشته شده؛ اگر نبود رشته‌ی خالی "") و rows (آرایه‌ای از آرایه‌ها که سطر اول آن سرستون‌های همان جدول و سطرهای بعدی مقادیر واقعی است؛ خانه‌ی خالی را با رشته‌ی خالی "" نشان بده). اگر سند فقط یک جدول داشت، آرایه‌ی خروجی فقط یک عضو خواهد داشت. بدون هیچ توضیح، بدون قالب‌بندی مارک‌داون یا نشانه‌ی کد، فقط خودِ آرایه‌ی JSON.';
-        const res=await fetch('/api/teacher/ai/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({messages:[{role:'system',content:sys},{role:'user',content:[{type:'text',text:'همه‌ی جدول‌های این سند را همان‌طور که هست تشخیص بده و استخراج کن.'},{type:'image_url',image_url:{url:wtDataUrl}}]}],max_tokens:4096,provider:getAiProvider(),model:getAiModel()})});
+        const sys='شما یک دستیار استخراج دقیق جدول از سند هستید. در سند/تصویر ارسالی ممکن است یک یا چند جدول جداگانه وجود داشته باشد، و هر جدول ممکن است سلول‌های ادغام‌شده (که چند سطر یا چند ستون را با هم اشغال می‌کنند) و خانه‌هایی با متن چندخطی داشته باشد. باید ساختار را دقیقاً همان‌طور که در سند دیده می‌شود بازسازی کنی، بدون هیچ تغییر، ساده‌سازی یا حدس اضافه. خروجی را فقط و فقط به‌صورت یک آرایه‌ی JSON خالص برگردان (بدون توضیح، بدون Markdown، بدون نشانه‌ی کد) که هر عضو آن یک جدول است با این ساختار: {"title": رشته (عنوان/زیرنویس همان جدول در سند، اگر نبود ""), "hasHeader": بولین (فقط اگر سطر اول واقعاً یک سطر عنوان ستون‌هاست true، در غیر این صورت false — مثلاً در برگه‌ی سؤالات هیچ سطر عنوانی وجود ندارد و باید false باشد), "rows": آرایه‌ای از سطرها}. هر سطر یک آرایه از خانه‌هاست به ترتیب دقیق راست‌به‌چپ همان‌طور که در سند دیده می‌شود (سند راست‌به‌چپ/فارسی است). هر خانه یک شیء است: {"text": متن کامل خانه (اگر خانه چند خط یا چند بخش دارد، همه را با کاراکتر خط جدید \\n داخل همین یک رشته نگه دار، هرگز آن را به چند سطر جدول تبدیل نکن)، "colspan": تعداد ستون‌هایی که این خانه اشغال کرده (پیش‌فرض 1)، "rowspan": تعداد سطرهایی که این خانه اشغال کرده (پیش‌فرض 1)}. دقیقاً مثل نحوه‌ی نوشتن ردیف‌های جدول HTML عمل کن: اگر خانه‌ای در سطر بالا با rowspan چند سطر را اشغال کرده، آن خانه را در سطرهای بعدی دوباره تکرار نکن (کاملاً حذفش کن از آن سطر)؛ فقط رنج واقعی dro هر سطر را بنویس. مثال ساختاری برای یک جدول سرستون که یک ستون در سطر اول دو ستون را اشغال کرده: [{"text":"عنوان دوستونی","colspan":2,"rowspan":1},{"text":"ستون سوم"}] برای سطر اول، و [{"text":"الف"},{"text":"ب"},{"text":"ج"}] برای سطر دوم.';
+        const res=await fetch('/api/teacher/ai/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({messages:[{role:'system',content:sys},{role:'user',content:[{type:'text',text:'همه‌ی جدول‌های این سند را دقیقاً همان‌طور که هست (با سلول‌های ادغام‌شده و متن‌های چندخطی) تشخیص بده و استخراج کن.'},{type:'image_url',image_url:{url:wtDataUrl}}]}],max_tokens:4096,provider:getAiProvider(),model:getAiModel()})});
         const data=await res.json();
         if(data.error)throw new Error(data.error);
         let raw=(data.content||'').trim();
@@ -11495,7 +11522,7 @@ function teacherScript() {
 
     document.getElementById('btn-wt-add-table').onclick=function(){
       if(!wtTables)wtTables=[];
-      wtTables.push({title:'',rows:[['ستون ۱']]});
+      wtTables.push({title:'',hasHeader:false,rows:[[{text:'ستون ۱',colspan:1,rowspan:1}]]});
       wtRenderAll();
     };
     document.getElementById('btn-wt-reset').onclick=function(){
@@ -11510,7 +11537,10 @@ function teacherScript() {
       wtAvgCheck.checked=false;
     };
 
-    // ساخت خروجی HTML همه‌ی جدول‌ها پشت سرهم (استایل + بدنه)، مشترک بین دانلود Word و دانلود PDF
+    // ساخت خروجی HTML همه‌ی جدول‌ها پشت سرهم (استایل + بدنه، با حفظ سلول‌های ادغام‌شده و متن چندخطی) — مشترک بین دانلود Word و PDF
+    function wtTextToHtml(text){
+      return esc(text).split('\\n').join('<br>');
+    }
     function wtBuildExportHtml(){
       const fontKey=wtFontSel.value;
       const fontFamily=fontKey==='titr'?"'B Titr','BTitr',Tahoma,Arial":'tahoma,Arial';
@@ -11519,26 +11549,35 @@ function teacherScript() {
       const headerText=colorTheme.bg?colorTheme.text:'#fff';
       let style='<style>';
       if(fontKey==='titr')style+='@font-face{font-family:"BTitr";src:url(https://cdn.jsdelivr.net/gh/intuxicated/css-persian@master/fonts/BTitrBold.ttf)}';
-      style+='body{direction:rtl;font-family:'+fontFamily+';padding:20px}table{width:100%;border-collapse:collapse;margin-top:10px;margin-bottom:25px}th,td{border:1px solid #333;padding:8px;text-align:center;font-family:'+fontFamily+'}th{background:'+headerBg+';color:'+headerText+'}</style>';
+      style+='body{direction:rtl;font-family:'+fontFamily+';padding:20px}table{width:100%;border-collapse:collapse;margin-top:10px;margin-bottom:25px}th,td{border:1px solid #333;padding:8px;text-align:center;font-family:'+fontFamily+';vertical-align:top}th{background:'+headerBg+';color:'+headerText+'}</style>';
       let h='';
       wtTables.forEach(function(tbl,ti){
-        const header=tbl.rows[0]||[];
-        const body=tbl.rows.slice(1);
-        h+='<h2 style="text-align:center">'+esc(tbl.title||('جدول '+(ti+1)))+'</h2><table><tr>';
-        header.forEach(function(cellV){h+='<th>'+esc(cellV)+'</th>';});
-        h+='</tr>';
-        body.forEach(function(row){
+        h+='<h2 style="text-align:center">'+esc(tbl.title||('جدول '+(ti+1)))+'</h2><table>';
+        tbl.rows.forEach(function(row,ri){
+          const isHeader=tbl.hasHeader&&ri===0;
           h+='<tr>';
-          row.forEach(function(cellV){h+='<td>'+esc(cellV)+'</td>';});
+          row.forEach(function(cell){
+            const tag=isHeader?'th':'td';
+            const spanAttrs=(cell.colspan>1?' colspan="'+cell.colspan+'"':'')+(cell.rowspan>1?' rowspan="'+cell.rowspan+'"':'');
+            h+='<'+tag+spanAttrs+'>'+wtTextToHtml(cell.text)+'</'+tag+'>';
+          });
           h+='</tr>';
         });
-        if(wtAvgCheck.checked&&body.length){
+        if(wtAvgCheck.checked&&tbl.rows.length>(tbl.hasHeader?2:1)){
+          const startR=tbl.hasHeader?1:0;
+          const cols=Math.max.apply(null,tbl.rows.map(function(r){return r.length;}));
           h+='<tr style="background:#e2efda;font-weight:bold">';
-          header.forEach(function(_,c){
-            if(c===0){h+='<td>📈 میانگین</td>';return;}
-            const vals=[];body.forEach(function(row){const v=parseFloat(row[c]);if(!isNaN(v))vals.push(v);});
+          for(let c=0;c<cols;c++){
+            if(c===0){h+='<td>📈 میانگین</td>';continue;}
+            const vals=[];
+            for(let r=startR;r<tbl.rows.length;r++){
+              const cell=tbl.rows[r][c];
+              if(!cell)continue;
+              const v=parseFloat(cell.text);
+              if(!isNaN(v))vals.push(v);
+            }
             h+='<td>'+(vals.length?(vals.reduce(function(a,b){return a+b;},0)/vals.length).toFixed(2):'—')+'</td>';
-          });
+          }
           h+='</tr>';
         }
         h+='</table>';
