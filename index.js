@@ -299,6 +299,11 @@ export default {
         return await studentClassPage(env, id);
       }
 
+      if (path.startsWith("/g/")) {
+        const id = decodeURIComponent(path.slice(3));
+        return await htmlContentPage(env, id);
+      }
+
       if (path === "/teacher" || path === "/teacher/") return html(teacherPage(), 200, { "cache-control": "no-store" });
 
       if (path === "/") return html(landingPage());
@@ -757,6 +762,13 @@ async function handleApi(req, env, url, path) {
     }
   }
 
+  /* --- بازی و محتوای درسی HTML (عمومی، فقط لیست عنوان‌ها؛ فقط خواندنی) --- */
+  if (path === "/api/htmlcontent" && method === "GET") {
+    const raw = await env.EXAM_KV.get("htmlcontent-index");
+    const list = raw ? JSON.parse(raw) : [];
+    return json({ ok: true, items: list.map((it) => ({ id: it.id, title: it.title })) });
+  }
+
   /* --- از این به بعد فقط معلم --- */
   if (path.startsWith("/api/teacher/")) {
     if (!(await isTeacher(req, env))) return json({ ok: false, error: "دسترسی غیرمجاز" }, 401);
@@ -873,6 +885,36 @@ async function handleApi(req, env, url, path) {
     if (path === "/api/teacher/schedule" && method === "POST") {
       const body = await req.json().catch(() => ({}));
       await env.EXAM_KV.put("schedule_data", JSON.stringify(body.data || {}));
+      return json({ ok: true });
+    }
+
+    /* --- بازی و محتوای درسی HTML: آپلود/فهرست/حذف --- */
+    if (path === "/api/teacher/html-content" && method === "GET") {
+      const raw = await env.EXAM_KV.get("htmlcontent-index");
+      return json({ ok: true, items: raw ? JSON.parse(raw) : [] });
+    }
+    if (path === "/api/teacher/html-content" && method === "POST") {
+      const body = await req.json().catch(() => ({}));
+      const title = String(body.title || "").slice(0, 120) || "بدون عنوان";
+      const contentHtml = String(body.html || "");
+      if (!contentHtml.trim()) return json({ ok: false, error: "فایل HTML خالی است" }, 400);
+      const byteLen = new TextEncoder().encode(contentHtml).length;
+      if (byteLen > 4 * 1024 * 1024) return json({ ok: false, error: "حجم فایل نباید بیشتر از ۴ مگابایت باشد" }, 400);
+      const id = uuid();
+      await env.EXAM_KV.put("htmlcontent:" + id, contentHtml);
+      const idxRaw = await env.EXAM_KV.get("htmlcontent-index");
+      const idx = idxRaw ? JSON.parse(idxRaw) : [];
+      const rec = { id, title, size: byteLen, uploadedAt: Date.now() };
+      idx.unshift(rec);
+      await env.EXAM_KV.put("htmlcontent-index", JSON.stringify(idx));
+      return json({ ok: true, item: rec });
+    }
+    if (path.startsWith("/api/teacher/html-content/") && method === "DELETE") {
+      const id = decodeURIComponent(path.slice("/api/teacher/html-content/".length));
+      await env.EXAM_KV.delete("htmlcontent:" + id);
+      const idxRaw = await env.EXAM_KV.get("htmlcontent-index");
+      const idx = idxRaw ? JSON.parse(idxRaw) : [];
+      await env.EXAM_KV.put("htmlcontent-index", JSON.stringify(idx.filter((it) => it.id !== id)));
       return json({ ok: true });
     }
 
@@ -2416,7 +2458,15 @@ async function studentPage(env, id) {
         <button class="btn sec" id="btn-choice-worksheet" style="flex:1;min-width:200px;padding:22px 16px;font-size:16px">📓 ورود به کاربرگ</button>
         <button class="btn sec" id="btn-choice-reportcard" style="flex:1;min-width:200px;padding:22px 16px;font-size:16px">🗓️ مشاهده کارنامه ماهیانه</button>
         <button class="btn sec" id="btn-choice-classroom" style="flex:1;min-width:200px;padding:22px 16px;font-size:16px">🖥️ ورود به کلاس آنلاین</button>
+        <button class="btn sec" id="btn-choice-htmlgames" style="flex:1;min-width:200px;padding:22px 16px;font-size:16px">🎮 بازی و محتوای درسی HTML</button>
       </div>
+    </div>
+
+    <!-- بازی و محتوای درسی HTML -->
+    <div class="card hidden" id="step-htmlgames">
+      <h3>🎮 بازی و محتوای درسی HTML</h3>
+      <div id="hg-view-list"></div>
+      <button class="btn sec" id="btn-hg-view-back" style="margin-top:14px">↩️ بازگشت</button>
     </div>
 
     <!-- کارنامه ماهیانه -->
@@ -2570,6 +2620,27 @@ async function studentPage(env, id) {
         document.getElementById('step-choice').classList.add('hidden');
         document.getElementById('step-reportcard').classList.remove('hidden');
         await loadReportCardMonths();
+      };
+      document.getElementById('btn-choice-htmlgames').onclick=async function(){
+        document.getElementById('step-choice').classList.add('hidden');
+        document.getElementById('step-htmlgames').classList.remove('hidden');
+        const box=document.getElementById('hg-view-list');
+        box.innerHTML='<p class="muted">در حال بارگذاری...</p>';
+        try{
+          const r=await fetch('/api/htmlcontent').then(function(x){return x.json();});
+          const items=(r.ok&&r.items)||[];
+          if(!items.length){box.innerHTML='<p class="muted">فعلاً هیچ بازی یا محتوایی توسط معلم آپلود نشده است.</p>';return;}
+          box.innerHTML=items.map(function(it){
+            return '<button type="button" class="btn sec" data-hg-open="'+it.id.replace(/"/g,'&quot;')+'" style="width:100%;text-align:right;margin-bottom:8px;padding:16px">🎮 '+(it.title||'').replace(/</g,'&lt;')+'</button>';
+          }).join('');
+          box.querySelectorAll('[data-hg-open]').forEach(function(b){
+            b.onclick=function(){window.open('/g/'+encodeURIComponent(b.dataset.hgOpen),'_blank');};
+          });
+        }catch(e){box.innerHTML='<p class="muted">خطا در دریافت لیست</p>';}
+      };
+      document.getElementById('btn-hg-view-back').onclick=function(){
+        document.getElementById('step-htmlgames').classList.add('hidden');
+        document.getElementById('step-choice').classList.remove('hidden');
       };
       document.getElementById('btn-rc-view-back').onclick=function(){
         document.getElementById('step-reportcard').classList.add('hidden');
@@ -3209,6 +3280,20 @@ async function infoLinkPage(env, linkId) {
 }
 
 /* ------------------------- کاربرگ - صفحه دانش‌آموز ------------------------- */
+
+/* --- صفحه‌ی عمومی نمایش یک بازی/محتوای درسی HTML آپلودشده توسط معلم --- */
+async function htmlContentPage(env, id) {
+  const raw = await env.EXAM_KV.get("htmlcontent:" + id);
+  if (!raw) {
+    return html(
+      `<!doctype html><html lang="fa" dir="rtl"><head><meta charset="utf-8">${FONT_LINK}<style>${SHARED_CSS}</style></head>
+      <body><div class="wrap">${pageHeader()}<div class="card"><h2>این محتوا پیدا نشد</h2>
+      <p class="muted">ممکن است حذف شده باشد. لطفاً با معلم خود تماس بگیرید.</p></div></div></body></html>`,
+      404
+    );
+  }
+  return new Response(raw, { status: 200, headers: { "content-type": "text/html; charset=utf-8" } });
+}
 
 async function workSheetPage(env, id) {
   const student = await env.EXAM_KV.get("student:" + id);
@@ -3925,6 +4010,7 @@ function teacherPage() {
         </div>
 
         <a class="tab" data-tab="classroom" href="/teacher?tab=classroom"><span class="tab-ico">🖥️</span><span class="tab-label">کلاس آنلاین</span></a>
+        <a class="tab" data-tab="htmlgames" href="/teacher?tab=htmlgames"><span class="tab-ico">🎮</span><span class="tab-label">بازی و محتوای درسی HTML</span></a>
 
         <div class="tab-group">
           <div class="tab-parent" data-tab="logbook"><span class="tab-ico">📖</span><span class="tab-label">دفتر مدیریت کلاسی</span><span class="tab-arrow">▾</span></div>
@@ -5106,6 +5192,18 @@ function teacherPage() {
         </div>
       </div>
 
+      <div class="card tab-content hidden" id="tab-htmlgames">
+        <h3>🎮 بازی و محتوای درسی HTML</h3>
+        <p class="muted">یک فایل HTML (بازی آموزشی یا هر محتوای دیگر) آپلود کنید تا دانش‌آموزان از صفحه‌ی خودشان بتوانند آن را باز کنند. حداکثر حجم هر فایل: ۴ مگابایت.</p>
+        <div class="row" style="align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:14px">
+          <input id="hg-title" placeholder="عنوان (مثلاً: بازی جمع و تفریق)" style="flex:1;min-width:200px">
+          <label class="btn sec" style="cursor:pointer;flex:0 0 auto">📁 انتخاب فایل HTML<input type="file" id="hg-file" accept=".html,.htm,text/html" style="display:none"></label>
+          <span id="hg-filename" class="muted" style="font-size:12px"></span>
+          <button class="btn primary" id="btn-hg-upload" style="flex:0 0 auto">⬆️ آپلود</button>
+        </div>
+        <div id="hg-list"></div>
+      </div>
+
       <div class="card tab-content hidden" id="tab-logbook">
         <div id="lb-menu">
           <h3>📖 دفتر مدیریت کلاسی</h3>
@@ -6280,7 +6378,7 @@ function teacherScript() {
   function showDash(){
     document.getElementById('login').classList.add('hidden');
     document.getElementById('dash').classList.remove('hidden');
-    loadStudents();loadQuestions();loadSchedule();
+    loadStudents();loadQuestions();loadSchedule();loadHtmlGames();
     try{
       var qs=new URLSearchParams(location.search);
       var wantTab=qs.get('tab');
@@ -7518,6 +7616,70 @@ function teacherScript() {
       }
     }
   }
+
+  // ===== بازی و محتوای درسی HTML =====
+  function hgFormatSize(bytes){
+    if(!bytes)return '';
+    if(bytes<1024*1024)return Math.round(bytes/1024)+' KB';
+    return (bytes/(1024*1024)).toFixed(1)+' MB';
+  }
+  async function loadHtmlGames(){
+    const list=document.getElementById('hg-list');
+    if(!list)return;
+    const r=await api('/api/teacher/html-content');
+    const items=(r.ok&&r.items)||[];
+    if(!items.length){list.innerHTML='<p class="muted">هنوز هیچ فایلی آپلود نشده است.</p>';return;}
+    list.innerHTML=items.map(function(it){
+      var link=location.origin+'/g/'+encodeURIComponent(it.id);
+      return '<div class="row" style="align-items:center;flex-wrap:wrap;gap:8px;border:1px solid var(--line);border-radius:8px;padding:10px;margin-bottom:8px">'
+        +'<span style="flex:1;min-width:160px;font-weight:700">🎮 '+esc(it.title)+'</span>'
+        +'<span class="muted" style="font-size:12px;flex:0 0 auto">'+hgFormatSize(it.size)+'</span>'
+        +'<button type="button" class="btn sm sec" data-hg-open="'+esc(it.id)+'" style="flex:0 0 auto">👁️ باز کردن</button>'
+        +'<button type="button" class="btn sm gray" data-hg-copy="'+esc(link)+'" style="flex:0 0 auto">🔗 کپی لینک</button>'
+        +'<button type="button" class="btn sm danger" data-hg-del="'+esc(it.id)+'" style="flex:0 0 auto">🗑️ حذف</button>'
+        +'</div>';
+    }).join('');
+    list.querySelectorAll('[data-hg-open]').forEach(function(b){
+      b.onclick=function(){window.open('/g/'+encodeURIComponent(b.dataset.hgOpen),'_blank');};
+    });
+    list.querySelectorAll('[data-hg-copy]').forEach(function(b){
+      b.onclick=function(){
+        navigator.clipboard.writeText(b.dataset.hgCopy).then(function(){toast('لینک کپی شد ✅');}).catch(function(){toast('کپی نشد');});
+      };
+    });
+    list.querySelectorAll('[data-hg-del]').forEach(function(b){
+      b.onclick=async function(){
+        if(!confirm('این فایل حذف شود؟'))return;
+        await api('/api/teacher/html-content/'+encodeURIComponent(b.dataset.hgDel),{method:'DELETE'});
+        loadHtmlGames();
+      };
+    });
+  }
+  document.getElementById('hg-file').addEventListener('change',function(){
+    var f=this.files&&this.files[0];
+    document.getElementById('hg-filename').textContent=f?(f.name+' — '+hgFormatSize(f.size)):'';
+  });
+  document.getElementById('btn-hg-upload').onclick=function(){
+    var fileInput=document.getElementById('hg-file');
+    var f=fileInput.files&&fileInput.files[0];
+    var title=document.getElementById('hg-title').value.trim();
+    if(!f){toast('لطفاً یک فایل HTML انتخاب کنید');return;}
+    if(!title){toast('لطفاً یک عنوان وارد کنید');return;}
+    if(f.size>4*1024*1024){toast('حجم فایل نباید بیشتر از ۴ مگابایت باشد');return;}
+    var reader=new FileReader();
+    reader.onload=async function(){
+      const r=await api('/api/teacher/html-content',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({title:title,html:reader.result})});
+      if(r.ok){
+        toast('فایل با موفقیت آپلود شد ✅');
+        document.getElementById('hg-title').value='';
+        fileInput.value='';
+        document.getElementById('hg-filename').textContent='';
+        loadHtmlGames();
+      }else toast(r.error||'خطا در آپلود');
+    };
+    reader.onerror=function(){toast('خطا در خواندن فایل');};
+    reader.readAsText(f);
+  };
 
   // ===== سوییچ تم رنگی برنامهٔ هفتگی (پسرانه/دخترانه/پیش‌فرض) =====
   document.querySelectorAll('.sch-theme-btn').forEach(btn=>{
