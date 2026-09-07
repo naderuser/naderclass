@@ -4461,6 +4461,14 @@ function teacherPage() {
           <input type="number" id="sch-font-size" min="8" max="40" step="1" value="14" style="width:70px;padding:8px;border:1px solid #ddd;border-radius:6px">
           <span class="muted">با زدن اینتر داخل هر خانه، متن به خط بعد می‌رود و ارتفاع خانه بزرگ‌تر می‌شود.</span>
         </div>
+        <div class="row" style="margin-bottom:16px;align-items:center;gap:10px;flex-wrap:wrap">
+          <span style="font-weight:700">🖨️ جهت چاپ:</span>
+          <select id="sch-print-orientation" style="padding:8px;border:1px solid #ddd;border-radius:6px">
+            <option value="portrait" selected>عمودی (Portrait)</option>
+            <option value="landscape">افقی (Landscape)</option>
+          </select>
+          <span class="muted">می‌توانید با چسباندن متن کپی‌شده از اکسل/ورد داخل خانه‌ها، چند خانه را همزمان پر کنید.</span>
+        </div>
         <div class="row" style="margin-bottom:16px">
           <input id="sch-school" placeholder="نام مدرسه" style="flex:1">
           <input id="sch-year" placeholder="سال تحصیلی" style="flex:1">
@@ -4478,7 +4486,7 @@ function teacherPage() {
             <thead><tr><th class="sch-corner">روز / زنگ</th><th class="sch-period">🔔 زنگ اول</th><th class="sch-period">🔔 زنگ دوم</th><th class="sch-period">🔔 زنگ سوم</th><th class="sch-period">🔔 زنگ چهارم</th><th class="sch-period">🔔 زنگ پنجم</th></tr></thead>
             <tbody id="schedule-body"></tbody>
           </table>
-          <div class="sch-decor-corner sch-decor-left hidden">🪴📚</div>
+          <div class="sch-decor-corner sch-decor-left hidden">🪴</div>
           <div class="sch-decor-corner sch-decor-right hidden">✏️🖍️</div>
         </div>
         <button class="btn primary" id="btn-gen-schedule">🔄 ساخت جدول</button>
@@ -7668,7 +7676,9 @@ function teacherScript() {
     const fontKeyEl=document.getElementById('sch-font');
     const fontKey=fontKeyEl?fontKeyEl.value:'default';
     const exportFontFamily=fontKey==='nazanin'?'"B Nazanin","BNazanin",tahoma,Arial':(fontKey==='titr'?'"B Titr","BTitr",tahoma,Arial':'tahoma,Arial');
-    let style='<style>@font-face{font-family:"BNazanin";src:url(https://cdn.jsdelivr.net/gh/intuxicated/css-persian@master/fonts/BNazanin.ttf)}';
+    const orientEl=document.getElementById('sch-print-orientation');
+    const orientation=(orientEl&&orientEl.value==='landscape')?'landscape':'portrait';
+    let style='<style>@page{size:A4 '+orientation+';margin:10mm}@font-face{font-family:"BNazanin";src:url(https://cdn.jsdelivr.net/gh/intuxicated/css-persian@master/fonts/BNazanin.ttf)}';
     style+='@font-face{font-family:"BTitr";src:url(https://cdn.jsdelivr.net/gh/intuxicated/css-persian@master/fonts/BTitrBold.ttf)}';
     style+='body{direction:rtl;font-family:'+exportFontFamily+';padding:30px;background:#f8fafc}';
     style+='.header{text-align:center;padding:20px;background:#fff;color:#1e293b;border-radius:20px;margin-bottom:20px;border:1.5px solid #e2e8f0}';
@@ -7697,7 +7707,7 @@ function teacherScript() {
       table+='</tr>';
     }
     table+='</table>';
-    const footer=T.kids?'<div style="display:flex;justify-content:space-between;align-items:flex-end;margin-top:14px;font-size:30px"><span>🪴📚</span><span>✏️🖍️</span></div>':'';
+    const footer=T.kids?'<div style="display:flex;justify-content:space-between;align-items:flex-end;margin-top:14px;font-size:30px"><span>🪴</span><span>✏️🖍️</span></div>':'';
     return '<html><head><meta charset="utf-8">'+style+'</head><body>'+header+table+footer+'</body></html>';
   }
 
@@ -12717,6 +12727,7 @@ function teacherScript() {
   lbEnablePaste('lbr-table');
   lbEnablePaste('lb-weekly-preview',false);
   lbEnablePaste('lb-weekly2-preview',false);
+  lbEnablePaste('schedule-table',false);
   function lbRosterExportHtml(){
     var meta=lbMetaBlock([['نام مدرسه','lbr-school'],['نام آموزگار','lbr-teacher'],['پایه تحصیلی','lbr-grade'],['سال تحصیلی','lbr-year']]);
     var rows=lbTableToRows(document.getElementById('lbr-table'));
