@@ -2353,6 +2353,7 @@ async function studentPage(env, id) {
         <button class="btn" id="btn-choice-exam" style="flex:1;min-width:200px;padding:22px 16px;font-size:16px">📝 ورود به آزمون</button>
         <button class="btn sec" id="btn-choice-worksheet" style="flex:1;min-width:200px;padding:22px 16px;font-size:16px">📓 ورود به کاربرگ</button>
         <button class="btn sec" id="btn-choice-reportcard" style="flex:1;min-width:200px;padding:22px 16px;font-size:16px">🗓️ مشاهده کارنامه ماهیانه</button>
+        <button class="btn sec" id="btn-choice-classroom" style="flex:1;min-width:200px;padding:22px 16px;font-size:16px">🖥️ ورود به کلاس آنلاین</button>
       </div>
     </div>
 
@@ -2499,6 +2500,9 @@ async function studentPage(env, id) {
       };
       document.getElementById('btn-choice-worksheet').onclick=function(){
         location.href = '/w/' + encodeURIComponent(ID);
+      };
+      document.getElementById('btn-choice-classroom').onclick=function(){
+        location.href = '/class/' + encodeURIComponent(ID);
       };
       document.getElementById('btn-choice-reportcard').onclick=async function(){
         document.getElementById('step-choice').classList.add('hidden');
