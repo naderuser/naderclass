@@ -1437,7 +1437,7 @@ const SHARED_CSS = `
   @font-face{font-family:"BTitr";src:url(https://cdn.jsdelivr.net/gh/intuxicated/css-persian@master/fonts/BTitrBold.ttf);font-weight:bold}
   @font-face{font-family:"BKoodak";src:url(https://cdn.jsdelivr.net/gh/intuxicated/css-persian@master/fonts/BKoodakBold.ttf);font-weight:bold}
   :root{--bg:#EEF1FB;--card:#FFFFFF;--primary:#4338CA;--primary-2:#0EA5B7;--accent:#D4A027;--muted:#5B6478;--line:#DEE2F1;--danger:#D9376E;--text:#171B2E;--soft:#EEF0FB;--soft-2:#E2E6FA;--success:#12946B;--warning:#B4650F;--info:#0E6FA8;--shadow:0 10px 32px rgba(35,30,90,.12);
-    --glass-bg:rgba(255,255,255,.58);--glass-bg-2:rgba(255,255,255,.38);--glass-border:rgba(255,255,255,.65);--glass-blur:18px;--ring:rgba(67,56,202,.22);}
+    --glass-bg:rgba(255,255,255,.58);--glass-bg-2:rgba(255,255,255,.38);--glass-border:rgba(255,255,255,.65);--glass-blur:8px;--ring:rgba(67,56,202,.22);}
   [data-theme="light"]{--bg:#EEF1FB;--card:#FFFFFF;--primary:#4338CA;--primary-2:#0EA5B7;--muted:#5B6478;--line:#DEE2F1;--text:#171B2E;--soft:#EEF0FB;--soft-2:#E2E6FA;
     --glass-bg:rgba(255,255,255,.58);--glass-bg-2:rgba(255,255,255,.38);--glass-border:rgba(255,255,255,.65);--ring:rgba(67,56,202,.22);}
   [data-theme="dark"]{--bg:#0A0E1C;--card:#131A2C;--primary:#8B85F4;--primary-2:#2DD4C8;--muted:#95A0BE;--line:#232C46;--text:#EAEDFB;--soft:#111830;--soft-2:#182144;--shadow:0 16px 40px rgba(0,0,0,.55);
@@ -1458,9 +1458,8 @@ const SHARED_CSS = `
       radial-gradient(900px 560px at 105% 8%, var(--soft) 0%, transparent 58%),
       radial-gradient(1200px 720px at 50% 120%, var(--soft-2) 0%, transparent 60%),
       var(--bg);
-    background-attachment:fixed;
   }
-  body::before,body::after{content:'';position:fixed;z-index:-1;border-radius:50%;filter:blur(60px);opacity:.5;pointer-events:none;animation:blobFloat 16s ease-in-out infinite}
+  body::before,body::after{content:'';position:fixed;z-index:-1;border-radius:50%;filter:blur(28px);opacity:.5;pointer-events:none;animation:blobFloat 16s ease-in-out infinite}
   body::before{width:420px;height:420px;top:-120px;inset-inline-start:-100px;background:radial-gradient(circle,var(--primary) 0%,transparent 70%)}
   body::after{width:460px;height:460px;bottom:-140px;inset-inline-end:-120px;background:radial-gradient(circle,var(--primary-2) 0%,transparent 70%);animation-delay:-8s}
   .wrap{max-width:1180px;margin:0 auto;padding:18px;position:relative;overflow-x:auto}
@@ -1483,7 +1482,7 @@ const SHARED_CSS = `
   .home-card:hover{transform:translateY(-4px);box-shadow:0 10px 26px rgba(35,30,90,.16);border-color:var(--primary)}
   .home-card h4{margin:0 0 6px;font-size:15px}
   .home-card ul{margin:8px 0 0;padding-inline-start:18px;font-size:12.5px;color:var(--muted);line-height:1.9}
-  .card{background:var(--glass-bg);border:1px solid var(--glass-border);border-radius:20px;padding:20px;margin-top:16px;box-shadow:var(--shadow);backdrop-filter:blur(var(--glass-blur));-webkit-backdrop-filter:blur(var(--glass-blur));transition:transform .15s ease,box-shadow .15s ease;animation:fadeInUp .45s ease both}
+  .card{background:var(--card);border:1px solid var(--glass-border);border-radius:20px;padding:20px;margin-top:16px;box-shadow:var(--shadow);transition:transform .15s ease,box-shadow .15s ease;animation:fadeInUp .45s ease both}
   label{display:block;font-size:14px;margin:10px 0 6px;font-weight:600}
   input,textarea,select{width:100%;padding:11px 12px;border:2px solid var(--line);border-radius:12px;font-family:inherit;font-size:15px;background:var(--card);color:var(--text);transition:border-color .15s ease,box-shadow .15s ease}
   input:focus,textarea:focus,select:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 4px var(--ring)}
