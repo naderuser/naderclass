@@ -5032,11 +5032,6 @@ function teacherPage() {
             </div>
           </div>
         </div>
-
-        <hr style="border:none;border-top:1px solid var(--line);margin:16px 0">
-        <h4>🔗 لینک‌های اختصاصی ورود دانش‌آموزان به کلاس</h4>
-        <p class="muted">برای هر دانش‌آموزی که در تب «دانش‌آموزان» ساخته‌اید، یک لینک اختصاصی کلاس آنلاین وجود دارد؛ کافیست دانش‌آموز روی لینک بزند تا مستقیم وارد کلاس شود.</p>
-        <div id="cls-links-list"></div>
       </div>
 
       <div class="card tab-content hidden" id="tab-logbook">
@@ -6320,7 +6315,7 @@ function teacherScript() {
     if(cEl)cEl.classList.remove('hidden');
     if(tabName==='tablesorg'){if(typeof loadTableIfNeeded==='function')loadTableIfNeeded();if(typeof loadOrgFormIfNeeded==='function')loadOrgFormIfNeeded();}
     if(tabName==='schedule'){document.getElementById('btn-gen-schedule').click();if(typeof loadScheduleThemeIfNeeded==='function')loadScheduleThemeIfNeeded();if(typeof loadScheduleFontIfNeeded==='function')loadScheduleFontIfNeeded();if(typeof loadScheduleRowColorsIfNeeded==='function')loadScheduleRowColorsIfNeeded();}
-    if(tabName==='classroom'){renderClassLinks();setTimeout(function(){if(typeof clsResizeBoard==='function')clsResizeBoard();},50);}
+    if(tabName==='classroom'){setTimeout(function(){if(typeof clsResizeBoard==='function')clsResizeBoard();},50);}
     if(tabName==='examsheet'){if(typeof loadExamSheetIfNeeded==='function')loadExamSheetIfNeeded();}
     if(tabName==='infoexchange'){if(typeof loadInfoExchangeIfNeeded==='function')loadInfoExchangeIfNeeded();}
   }
@@ -6351,6 +6346,7 @@ function teacherScript() {
     box.innerHTML='<table><tr><th>عکس</th><th>#</th><th>نام</th><th>پایه</th><th>لینک اختصاصی</th><th>وضعیت</th><th></th></tr>'+
       students.map((s,i)=>{
         const link=location.origin+'/s/'+s.uuid;
+        const classLink=location.origin+'/class/'+s.uuid;
         let st='<span class="pill no">در انتظار</span>';
         if(s.status==='submitted')st='<span class="pill gr">ثبت‌شده (تصحیح‌نشده)</span>';
         if(s.status==='graded')st='<span class="pill ok">تصحیح‌شده</span>';
@@ -6364,6 +6360,7 @@ function teacherScript() {
           '<td><div class="link-box">'+link+'</div></td>'+
           '<td>'+st+'</td>'+
           '<td><button class="btn sm" onclick="copyLink(\\''+link+'\\')">کپی</button> '+
+          '<button class="btn sm sec" onclick="copyLink(\\''+classLink+'\\')" title="'+classLink+'">🖥️ لینک کلاس آنلاین</button> '+
           '<label class="btn sm sec" style="cursor:pointer">📷 عکس<input type="file" accept="image/*" style="display:none" onchange="changeStudentPhoto(\\''+s.uuid+'\\',this)"></label> '+
           '<button class="btn sm danger" onclick="delStudent(\\''+s.uuid+'\\')">حذف</button></td></tr>';
       }).join('')+'</table>';
@@ -11623,19 +11620,6 @@ function teacherScript() {
   };
 
   // ===== کلاس آنلاین (تخته هوشمند + چت + صدای زنده معلم) =====
-  async function renderClassLinks(){
-    const d=await api('/api/teacher/students');
-    const box=document.getElementById('cls-links-list');
-    if(!d.students.length){box.innerHTML='<p class="muted">ابتدا از تب «دانش‌آموزان» برای هر نفر یک لینک بسازید.</p>';return;}
-    box.innerHTML='<table><tr><th>#</th><th>نام</th><th>لینک ورود به کلاس آنلاین</th><th></th></tr>'+
-      d.students.map((s,i)=>{
-        const link=location.origin+'/class/'+s.uuid;
-        return '<tr><td>'+(i+1)+'</td><td>'+esc(s.label||'-')+'</td>'+
-          '<td><div class="link-box">'+link+'</div></td>'+
-          '<td><button class="btn sm" onclick="copyLink(\\''+link+'\\')">کپی</button></td></tr>';
-      }).join('')+'</table>';
-  }
-
   let clsWs=null, clsMicStream=null, clsRecorder=null, clsDrawing=false, clsLastPoint=null, clsCurrentStroke=null, clsAudioActive=false, clsAudioGen=0;
   let clsCamStream=null, clsCamInterval=null, clsAudioFromCam=false, clsCamFacing='user';
   const tBoard=document.getElementById('t-board');
