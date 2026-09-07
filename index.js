@@ -1436,9 +1436,15 @@ const SHARED_CSS = `
   @font-face{font-family:"BMitra";src:url(https://cdn.jsdelivr.net/gh/intuxicated/css-persian@master/fonts/BMitra.ttf);font-weight:bold}
   @font-face{font-family:"BTitr";src:url(https://cdn.jsdelivr.net/gh/intuxicated/css-persian@master/fonts/BTitrBold.ttf);font-weight:bold}
   @font-face{font-family:"BKoodak";src:url(https://cdn.jsdelivr.net/gh/intuxicated/css-persian@master/fonts/BKoodakBold.ttf);font-weight:bold}
-  :root{--bg:#F3F6F9;--card:#FFFFFF;--primary:#123A5C;--primary-2:#1F6E8C;--accent:#B8922E;--muted:#5B6B7C;--line:#DEE5EC;--danger:#B3261E;--text:#16212E;--soft:#EBF0F5;--soft-2:#DCE4EC;--success:#1B7A4B;--warning:#A0611A;--info:#1B5E82;--shadow:0 10px 28px rgba(18,32,48,.10);}
-  [data-theme="light"]{--bg:#F3F6F9;--card:#FFFFFF;--primary:#123A5C;--primary-2:#1F6E8C;--muted:#5B6B7C;--line:#DEE5EC;--text:#16212E;--soft:#EBF0F5;--soft-2:#DCE4EC;}
-  [data-theme="dark"]{--bg:#0B141E;--card:#101C29;--primary:#2E7A9E;--primary-2:#3C8CB0;--muted:#93A6B8;--line:#1E2E3F;--text:#E8EEF3;--soft:#152232;--soft-2:#1C2C3F;--shadow:0 14px 34px rgba(0,0,0,.45);}
+  :root{--bg:#EEF1FB;--card:#FFFFFF;--primary:#4338CA;--primary-2:#0EA5B7;--accent:#D4A027;--muted:#5B6478;--line:#DEE2F1;--danger:#D9376E;--text:#171B2E;--soft:#EEF0FB;--soft-2:#E2E6FA;--success:#12946B;--warning:#B4650F;--info:#0E6FA8;--shadow:0 10px 32px rgba(35,30,90,.12);
+    --glass-bg:rgba(255,255,255,.58);--glass-bg-2:rgba(255,255,255,.38);--glass-border:rgba(255,255,255,.65);--glass-blur:18px;--ring:rgba(67,56,202,.22);}
+  [data-theme="light"]{--bg:#EEF1FB;--card:#FFFFFF;--primary:#4338CA;--primary-2:#0EA5B7;--muted:#5B6478;--line:#DEE2F1;--text:#171B2E;--soft:#EEF0FB;--soft-2:#E2E6FA;
+    --glass-bg:rgba(255,255,255,.58);--glass-bg-2:rgba(255,255,255,.38);--glass-border:rgba(255,255,255,.65);--ring:rgba(67,56,202,.22);}
+  [data-theme="dark"]{--bg:#0A0E1C;--card:#131A2C;--primary:#8B85F4;--primary-2:#2DD4C8;--muted:#95A0BE;--line:#232C46;--text:#EAEDFB;--soft:#111830;--soft-2:#182144;--shadow:0 16px 40px rgba(0,0,0,.55);
+    --glass-bg:rgba(24,29,55,.55);--glass-bg-2:rgba(24,29,55,.35);--glass-border:rgba(255,255,255,.10);--ring:rgba(139,133,244,.30);}
+  @keyframes fadeInUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
+  @keyframes blobFloat{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(3%,-4%) scale(1.06)}}
+  @keyframes shine{0%{background-position:200% 0}100%{background-position:-200% 0}}
   .theme-btn{padding:10px 20px;border:1px solid var(--line);border-radius:10px;background:var(--card);color:var(--text);font-size:14px;cursor:pointer;transition:all .15s ease}
   .theme-btn:hover,.theme-btn.active{background:var(--primary);color:#fff;border-color:var(--primary)}
   .color-swatch{width:42px;height:42px;border-radius:10px;border:1.5px solid var(--line);box-shadow:0 2px 8px rgba(18,32,48,.14);cursor:pointer;transition:transform .15s,box-shadow .15s;padding:0}
@@ -1446,7 +1452,7 @@ const SHARED_CSS = `
   .color-swatch.active{box-shadow:0 2px 8px rgba(18,32,48,.14),0 0 0 3px var(--primary)}
   *{box-sizing:border-box}
   html{scroll-behavior:smooth;overflow-x:hidden;max-width:100vw}
-  body{margin:0;min-height:100vh;font-family:'Vazirmatn',Tahoma,system-ui,sans-serif;color:var(--text);direction:rtl;transition:background .3s,color .3s;-webkit-font-smoothing:antialiased;overflow-x:hidden;max-width:100vw;
+  body{margin:0;min-height:100vh;font-family:'Vazirmatn',Tahoma,system-ui,sans-serif;color:var(--text);direction:rtl;transition:background .3s,color .3s;-webkit-font-smoothing:antialiased;overflow-x:hidden;max-width:100vw;position:relative;
     background:
       radial-gradient(1100px 620px at 18% -12%, var(--soft-2) 0%, transparent 62%),
       radial-gradient(900px 560px at 105% 8%, var(--soft) 0%, transparent 58%),
@@ -1454,11 +1460,14 @@ const SHARED_CSS = `
       var(--bg);
     background-attachment:fixed;
   }
+  body::before,body::after{content:'';position:fixed;z-index:-1;border-radius:50%;filter:blur(60px);opacity:.5;pointer-events:none;animation:blobFloat 16s ease-in-out infinite}
+  body::before{width:420px;height:420px;top:-120px;inset-inline-start:-100px;background:radial-gradient(circle,var(--primary) 0%,transparent 70%)}
+  body::after{width:460px;height:460px;bottom:-140px;inset-inline-end:-120px;background:radial-gradient(circle,var(--primary-2) 0%,transparent 70%);animation-delay:-8s}
   .wrap{max-width:1180px;margin:0 auto;padding:18px;position:relative;overflow-x:auto}
-  .header{position:relative;background:linear-gradient(rgba(0,0,0,.22),rgba(0,0,0,.22)),linear-gradient(120deg,var(--primary),var(--primary-2));color:#fff;border:1px solid rgba(255,255,255,.14);border-radius:16px;padding:28px 22px;text-align:center;box-shadow:var(--shadow);}
-  .header::before{content:'';position:absolute;right:0;left:0;bottom:0;height:3px;background:linear-gradient(90deg,transparent,var(--accent),transparent);border-radius:0 0 16px 16px;pointer-events:none}
+  .header{position:relative;background:linear-gradient(135deg,rgba(255,255,255,.16),rgba(255,255,255,0)),linear-gradient(120deg,var(--primary),var(--primary-2));color:#fff;border:1px solid var(--glass-border);border-radius:22px;padding:30px 22px;text-align:center;box-shadow:var(--shadow);backdrop-filter:blur(var(--glass-blur));-webkit-backdrop-filter:blur(var(--glass-blur));animation:fadeInUp .5s ease both;overflow:hidden}
+  .header::before{content:'';position:absolute;right:0;left:0;bottom:0;height:3px;background:linear-gradient(90deg,transparent,var(--accent),transparent);border-radius:0 0 22px 22px;pointer-events:none}
   .header::after{content:'';position:absolute;right:8%;left:8%;top:-26px;height:60px;background:radial-gradient(60% 100% at 50% 100%, color-mix(in srgb, var(--primary-2) 55%, transparent) 0%, transparent 75%);filter:blur(6px);pointer-events:none;z-index:-1}
-  .header h1{position:relative;margin:4px 0;font-size:22px;font-weight:800;color:#fff;letter-spacing:.2px;text-shadow:0 1px 3px rgba(0,0,0,.4)}
+  .header h1{position:relative;margin:4px 0;font-size:23px;font-weight:800;color:#fff;letter-spacing:.2px;text-shadow:0 1px 3px rgba(0,0,0,.4)}
   .header h2{position:relative;margin:4px 0;font-size:15px;font-weight:500;color:rgba(255,255,255,.92);text-shadow:0 1px 3px rgba(0,0,0,.4)}
   .header h3{position:relative;margin:4px 0;font-size:13px;font-weight:400;color:rgba(255,255,255,.88);text-shadow:0 1px 3px rgba(0,0,0,.4)}
   .teacher-header{position:relative;padding:20px 18px}
@@ -1470,18 +1479,26 @@ const SHARED_CSS = `
   .th-designer .en{opacity:.85;font-weight:400}
   @media (max-width:600px){.th-topbar{justify-content:center}}
   .home-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px;margin-top:14px}
-  .home-card{border:1px solid var(--line);border-radius:18px;padding:16px;cursor:pointer;background:var(--card);transition:transform .15s,box-shadow .15s;text-align:right;text-decoration:none;color:var(--text);display:block;box-shadow:0 4px 14px rgba(18,32,48,.10)}
-  .home-card:hover{transform:translateY(-3px);box-shadow:0 6px 18px rgba(18,32,48,.10);border-color:var(--primary)}
+  .home-card{border:1px solid var(--glass-border);border-radius:18px;padding:16px;cursor:pointer;background:var(--glass-bg);backdrop-filter:blur(var(--glass-blur));-webkit-backdrop-filter:blur(var(--glass-blur));transition:transform .2s ease,box-shadow .2s ease,border-color .2s ease;text-align:right;text-decoration:none;color:var(--text);display:block;box-shadow:0 4px 18px rgba(35,30,90,.08);animation:fadeInUp .5s ease both}
+  .home-card:hover{transform:translateY(-4px);box-shadow:0 10px 26px rgba(35,30,90,.16);border-color:var(--primary)}
   .home-card h4{margin:0 0 6px;font-size:15px}
   .home-card ul{margin:8px 0 0;padding-inline-start:18px;font-size:12.5px;color:var(--muted);line-height:1.9}
-  .card{background:linear-gradient(165deg, var(--card) 0%, var(--soft) 100%);border:1px solid var(--line);border-radius:20px;padding:20px;margin-top:16px;box-shadow:var(--shadow);transition:transform .15s ease}
+  .card{background:var(--glass-bg);border:1px solid var(--glass-border);border-radius:20px;padding:20px;margin-top:16px;box-shadow:var(--shadow);backdrop-filter:blur(var(--glass-blur));-webkit-backdrop-filter:blur(var(--glass-blur));transition:transform .15s ease,box-shadow .15s ease;animation:fadeInUp .45s ease both}
   label{display:block;font-size:14px;margin:10px 0 6px;font-weight:600}
-  input,textarea,select{width:100%;padding:11px 12px;border:2px solid var(--line);border-radius:12px;font-family:inherit;font-size:15px;background:var(--card);color:var(--text);transition:border-color .15s ease}
-  input:focus,textarea:focus,select:focus{outline:none;border-color:var(--primary)}
+  input,textarea,select{width:100%;padding:11px 12px;border:2px solid var(--line);border-radius:12px;font-family:inherit;font-size:15px;background:var(--card);color:var(--text);transition:border-color .15s ease,box-shadow .15s ease}
+  input:focus,textarea:focus,select:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 4px var(--ring)}
   textarea{min-height:90px;resize:vertical}
-  .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;background:var(--primary);color:#fff;border:none;padding:11px 22px;border-radius:14px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;text-decoration:none;transition:all .12s ease;box-shadow:0 4px 14px rgba(18,32,48,.16)}
-  .btn:hover{transform:translateY(-2px)}
-  .btn:active{transform:translateY(4px);box-shadow:0 1px 4px rgba(18,32,48,.14)}
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;background:linear-gradient(120deg,var(--primary),var(--primary-2));background-size:220% 100%;color:#fff;border:none;padding:11px 22px;border-radius:14px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;text-decoration:none;transition:all .18s ease;box-shadow:0 6px 18px rgba(67,56,202,.28)}
+  .btn:hover{transform:translateY(-2px);background-position:100% 0;box-shadow:0 10px 24px rgba(67,56,202,.36)}
+  .btn:active{transform:translateY(1px);box-shadow:0 2px 8px rgba(67,56,202,.24)}
+  .auth-shell{display:flex;justify-content:center;padding:26px 0 10px}
+  .auth-card{max-width:400px;width:100%;text-align:center;padding:32px 26px 26px;position:relative;overflow:hidden}
+  .auth-card::before{content:'';position:absolute;inset-inline-start:-40%;top:-60%;width:180%;height:180%;background:radial-gradient(circle at 30% 20%, color-mix(in srgb, var(--primary) 18%, transparent) 0%, transparent 55%);pointer-events:none;z-index:-1}
+  .auth-logo{width:64px;height:64px;margin:0 auto 12px;border-radius:20px;display:flex;align-items:center;justify-content:center;font-size:28px;background:linear-gradient(135deg,var(--primary),var(--primary-2));color:#fff;box-shadow:0 10px 24px rgba(67,56,202,.35)}
+  .auth-card h3{margin:4px 0 4px;font-size:19px;font-weight:800}
+  .auth-card label{text-align:right}
+  .auth-btn{width:100%;margin-top:14px;padding:13px 22px}
+  .auth-foot{margin-top:18px;font-size:11.5px;color:var(--muted);border-top:1px dashed var(--line);padding-top:12px}
   .btn.sec{background:var(--info)}
   .btn.gray{background:var(--card);border:1px solid var(--line);box-shadow:none;color:var(--text)}
   .btn.gray:hover{background:var(--soft);transform:none}
@@ -2306,17 +2323,63 @@ function teacherHeader() {
 /* ------------------------- صفحه اصلی ------------------------- */
 
 function landingPage() {
+  const features = [
+    { ico: "📝", title: "آزمون‌ساز هوشمند", desc: "طراحی آزمون با انواع سوال، سربرگ کامل و تصحیح خودکار یا نمره‌ای" },
+    { ico: "📅", title: "برنامه و دفتر کلاسی", desc: "برنامه هفتگی، حضور و غیاب، ارزشیابی و کارنامه‌ساز" },
+    { ico: "📊", title: "جدول‌ساز حرفه‌ای", desc: "خروجی اکسل راست‌به‌چپ با میانگین‌گیری خودکار" },
+    { ico: "🖼️", title: "ابزار عکس و اسکنر", desc: "اسکن، برش، کاهش حجم و تبدیل عکس/PDF" },
+    { ico: "🖥️", title: "کلاس آنلاین", desc: "برگزاری کلاس آنلاین و تعامل با دانش‌آموزان" },
+    { ico: "🤖", title: "ترجمه و هوش مصنوعی", desc: "دستیار هوشمند برای تولید محتوا و ترجمه متن" },
+  ];
   return `<!doctype html><html lang="fa" dir="rtl"><head><meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>${esc(APP_TITLE)}</title>
-  ${FONT_LINK}<style>${SHARED_CSS}</style></head><body><div class="wrap">
-  ${pageHeader()}
-  <div class="card">
-    <p>دانش‌آموز گرامی، برای شرکت در آزمون از <b>لینک اختصاصی</b> که معلم برای شما ارسال کرده استفاده کنید.</p>
-    <p class="muted">هر دانش‌آموز یک لینک منحصربه‌فرد دارد.</p>
-    <hr style="border:none;border-top:1px solid var(--line);margin:14px 0">
-    <a class="btn" href="/teacher">ورود معلم</a>
-  </div></div></body></html>`;
+  <meta name="description" content="پنل آموزشی جامع برای معلمان: آزمون‌سازی، برنامه هفتگی، جدول‌ساز، ابزار عکس و کلاس آنلاین">
+  ${FONT_LINK}<style>${SHARED_CSS}
+    .hero{position:relative;background:linear-gradient(135deg,rgba(255,255,255,.14),rgba(255,255,255,0)),linear-gradient(125deg,var(--primary),var(--primary-2));color:#fff;border:1px solid var(--glass-border);border-radius:26px;padding:52px 26px;text-align:center;box-shadow:var(--shadow);backdrop-filter:blur(var(--glass-blur));overflow:hidden;animation:fadeInUp .5s ease both}
+    .hero::after{content:'';position:absolute;inset-inline-end:6%;top:-30px;width:260px;height:260px;background:radial-gradient(circle,color-mix(in srgb, var(--accent) 60%, transparent) 0%,transparent 70%);filter:blur(14px);pointer-events:none}
+    .hero-badge{display:inline-flex;align-items:center;gap:6px;background:rgba(0,0,0,.28);border:1px solid rgba(255,255,255,.35);color:#fff;border-radius:999px;padding:5px 16px;font-size:12px;margin-bottom:14px}
+    .hero h1{position:relative;margin:6px 0;font-size:28px;font-weight:800;text-shadow:0 1px 4px rgba(0,0,0,.35)}
+    .hero p{position:relative;margin:10px auto 0;max-width:560px;font-size:14.5px;color:rgba(255,255,255,.92);line-height:2}
+    .hero-actions{position:relative;display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:24px}
+    .hero-actions .btn.ghost{background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.5);box-shadow:none}
+    .hero-actions .btn.ghost:hover{background:rgba(255,255,255,.24)}
+    .feat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px;margin-top:22px}
+    .feat-card{background:var(--glass-bg);border:1px solid var(--glass-border);border-radius:18px;padding:18px;backdrop-filter:blur(var(--glass-blur));box-shadow:0 4px 18px rgba(35,30,90,.08);transition:transform .2s ease,box-shadow .2s ease;animation:fadeInUp .5s ease both}
+    .feat-card:hover{transform:translateY(-4px);box-shadow:0 10px 26px rgba(35,30,90,.16)}
+    .feat-ico{width:46px;height:46px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:21px;background:linear-gradient(135deg,var(--primary),var(--primary-2));color:#fff;margin-bottom:10px}
+    .feat-card h4{margin:0 0 6px;font-size:14.5px}
+    .feat-card p{margin:0;font-size:12.5px;color:var(--muted);line-height:1.9}
+    .section-title{margin:26px 4px 0;font-size:16px;font-weight:800;display:flex;align-items:center;gap:8px}
+    .student-note{display:flex;align-items:center;gap:12px}
+    .student-note .n-ico{width:44px;height:44px;flex:none;border-radius:12px;background:var(--soft);display:flex;align-items:center;justify-content:center;font-size:20px}
+    .land-foot{text-align:center;margin:26px 0 8px;font-size:12px;color:var(--muted)}
+  </style></head><body><div class="wrap">
+  <div class="hero">
+    <span class="hero-badge">✨ نسخه‌ی جامع مدیریت کلاس</span>
+    <h1>${esc(APP_TITLE)}</h1>
+    <p>یک پنل یکپارچه برای معلمان: طراحی و برگزاری آزمون، مدیریت دانش‌آموزان، برنامه‌ریزی هفتگی، جدول‌سازی حرفه‌ای و ابزارهای هوشمند — همه در یک‌جا.</p>
+    <div class="hero-actions">
+      <a class="btn" href="/teacher">🔐 ورود معلم</a>
+      <a class="btn ghost" href="#student-guide">👨‍🎓 راهنمای دانش‌آموز</a>
+    </div>
+  </div>
+
+  <div class="section-title">🧩 امکانات پنل</div>
+  <div class="feat-grid">
+    ${features.map((f) => `<div class="feat-card"><div class="feat-ico">${f.ico}</div><h4>${esc(f.title)}</h4><p>${esc(f.desc)}</p></div>`).join("")}
+  </div>
+
+  <div class="card student-note" id="student-guide">
+    <div class="n-ico">👨‍🎓</div>
+    <div>
+      <p style="margin:0">دانش‌آموز گرامی، برای شرکت در آزمون از <b>لینک اختصاصی</b> که معلم برای شما ارسال کرده استفاده کنید.</p>
+      <p class="muted" style="margin:4px 0 0">هر دانش‌آموز یک لینک منحصربه‌فرد دارد؛ نیازی به ورود از این صفحه نیست.</p>
+    </div>
+  </div>
+
+  <div class="land-foot">${esc(APP_DESIGNER)}</div>
+  </div></body></html>`;
 }
 
 function notFoundPage() {
@@ -3794,18 +3857,22 @@ function teacherPage() {
   <body><div class="wrap">
     ${teacherHeader()}
 
-    <div class="card" id="login">
-      <h3 id="login-head">🔐 ورود معلم</h3>
-      <p class="muted" id="login-hint"></p>
-      <label>ورود به عنوان</label>
-      <select id="login-role">
-        <option value="معلم">👩‍🏫 معلم</option>
-        <option value="راهبر آموزشی">🧭 راهبر آموزشی</option>
-        <option value="مدیر مدرسه">🏫 مدیر مدرسه</option>
-      </select>
-      <label>رمز عبور</label><input id="pass" type="password" autocomplete="current-password">
-      <p class="muted" id="login-err" style="color:var(--danger)"></p>
-      <button class="btn" id="btn-login">ورود</button>
+    <div class="auth-shell">
+      <div class="card auth-card" id="login">
+        <div class="auth-logo">🎓</div>
+        <h3 id="login-head">ورود به پنل</h3>
+        <p class="muted" id="login-hint">برای ادامه، نقش خود را انتخاب و رمز عبور را وارد کنید.</p>
+        <label>ورود به عنوان</label>
+        <select id="login-role">
+          <option value="معلم">👩‍🏫 معلم</option>
+          <option value="راهبر آموزشی">🧭 راهبر آموزشی</option>
+          <option value="مدیر مدرسه">🏫 مدیر مدرسه</option>
+        </select>
+        <label>رمز عبور</label><input id="pass" type="password" autocomplete="current-password" placeholder="••••••••">
+        <p class="muted" id="login-err" style="color:var(--danger)"></p>
+        <button class="btn auth-btn" id="btn-login">🔓 ورود</button>
+        <div class="auth-foot">${esc(APP_DESIGNER)}</div>
+      </div>
     </div>
 
     <div id="dash" class="hidden">
