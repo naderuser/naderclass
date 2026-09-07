@@ -5790,6 +5790,7 @@ function teacherPage() {
           <button class="btn sm gray lb-back-btn">← بازگشت به دفتر</button>
           <h3>🪪 اطلاعات پرسنلی همکاران مدرسه</h3>
           <div class="lb-meta-form">
+            <div><label>نام مدرسه</label><input id="lbs-school" placeholder="......................."></div>
             <div><label>سال تحصیلی</label><input id="lbs-year" placeholder="......................."></div>
           </div>
           <div class="row">
@@ -5818,7 +5819,19 @@ function teacherPage() {
             <button class="btn primary" id="btn-lb-staff-word">📄 دانلود Word</button>
             <button class="btn sec" id="btn-lb-staff-excel">📊 دانلود Excel</button>
             <button class="btn gray" id="btn-lb-staff-pdf">🖨️ چاپ / دانلود PDF</button>
+            <button type="button" class="btn sm sec" id="btn-lbs-print-opts-toggle" title="تنظیمات چاپ" style="flex:0 0 auto">🔧</button>
             <button class="btn danger" type="button" onclick="lbClearContainer('lbs-table')">🗑️ پاک کردن جدول</button>
+          </div>
+          <div id="lbs-print-opts-drawer" class="cls-options-drawer hidden">
+            <div class="row" style="align-items:center;flex-wrap:wrap;gap:8px">
+              <label style="flex:0 0 auto">جهت صفحه:</label>
+              <select id="lbs-print-orientation" style="flex:0 0 auto;min-width:130px">
+                <option value="landscape" selected>افقی (Landscape)</option>
+                <option value="portrait">عمودی (Portrait)</option>
+              </select>
+              <button class="btn sm primary" id="btn-lbs-print-custom" style="flex:0 0 auto">🖨️ چاپ با این تنظیمات</button>
+              <button class="btn sm sec" id="btn-lbs-word-custom" style="flex:0 0 auto">📄 دانلود Word با این تنظیمات</button>
+            </div>
           </div>
         </div>
 
@@ -14441,11 +14454,11 @@ function teacherScript() {
   // ===================== ۹. اطلاعات پرسنلی همکاران مدرسه =====================
   var LB_STAFF_HEADERS=['ردیف','کد پرسنلی','نام و نام خانوادگی','سمت','سابقه','مدرک','نوع استخدام','پایه تدریس'];
   var LB_STAFF_COL_WIDTHS=['5%','10%','20%','12%','8%','10%','12%','23%'];
-  function lbBuildStaffTableHtml(rowCount){
+  function lbBuildStaffTableHtml(rowCount,forExport){
     var h='<colgroup>'+LB_STAFF_COL_WIDTHS.map(function(w){return '<col style="width:'+w+'">';}).join('')+'</colgroup>';
     h+='<thead><tr>'+LB_STAFF_HEADERS.map(function(hd){return '<th>'+esc(hd)+'</th>';}).join('')+'</tr></thead><tbody>';
     for(var r=1;r<=rowCount;r++){
-      h+='<tr><td>'+toFaDigits(r)+rowColorDotsHtml('r'+r)+'</td>';
+      h+='<tr><td>'+toFaDigits(r)+(forExport?'':rowColorDotsHtml('r'+r))+'</td>';
       for(var c=1;c<LB_STAFF_HEADERS.length;c++)h+='<td><textarea class="lbs-cell-ta" rows="1"></textarea></td>';
       h+='</tr>';
     }
@@ -14582,6 +14595,7 @@ function teacherScript() {
     var savedColors=await lbLoad('staff-row-colors');
     if(savedColors&&typeof savedColors==='object')lbStaffRowColors=savedColors;
     if(!saved){refreshRowColorPickers(document.getElementById('lbs-table'),lbStaffRowColors);return;}
+    document.getElementById('lbs-school').value=saved.school||'';
     document.getElementById('lbs-year').value=saved.year||'';
     if(saved.rowCount){document.getElementById('lbs-rows').value=saved.rowCount;document.getElementById('btn-lbs-build').click();}
     if(saved.rows)lbFillTableRows('lbs-table',saved.rows);
@@ -14592,6 +14606,7 @@ function teacherScript() {
   }
   document.getElementById('btn-lbs-save').onclick=function(){
     lbSave('staff',{
+      school:document.getElementById('lbs-school').value,
       year:document.getElementById('lbs-year').value,
       rowCount:parseInt(document.getElementById('lbs-rows').value,10)||15,
       rows:lbTableToRows(document.getElementById('lbs-table')).slice(1),
@@ -14600,6 +14615,7 @@ function teacherScript() {
     });
   };
   function lbStaffExportHtml(){
+    var school=document.getElementById('lbs-school').value;
     var year=document.getElementById('lbs-year').value;
     var fontKey=document.getElementById('lbs-font').value;
     var fontFamily=lbStaffFontCss(fontKey);
@@ -14612,10 +14628,10 @@ function teacherScript() {
       +'</style>';
     head+='<table style="width:100%;border:none;margin-bottom:10px"><tr>'
       +'<td style="border:none;text-align:right;font-weight:700;font-size:15px">اطلاعات پرسنلی همکاران مدرسه</td>'
-      +'<td style="border:none;text-align:left;font-weight:700">سال تحصیلی: '+esc(year)+'</td>'
+      +'<td style="border:none;text-align:left;font-weight:700">نام مدرسه: '+esc(school)+' &nbsp;&nbsp;&nbsp; سال تحصیلی: '+esc(year)+'</td>'
       +'</tr></table>';
     var rows=lbTableToRows(document.getElementById('lbs-table'));
-    var table='<table class="lb-table-zebra">'+lbBuildStaffTableHtml(rows.length-1)+'</table>';
+    var table='<table class="lb-table-zebra">'+lbBuildStaffTableHtml(rows.length-1,true)+'</table>';
     // مقداردهی سلول‌های خروجی از روی جدول زنده (چون lbBuildStaffTableHtml فقط ساختار خالی می‌سازد)
     var tmp=document.createElement('div');
     tmp.innerHTML=table;
@@ -14630,8 +14646,25 @@ function teacherScript() {
     });
     return head+'<div class="lbs-export-wrap">'+tmp.innerHTML+'</div>';
   }
-  document.getElementById('btn-lb-staff-word').onclick=function(){lbWordExport('اطلاعات پرسنلی همکاران مدرسه',lbStaffExportHtml(),'اطلاعات-پرسنلی-همکاران',true);};
-  document.getElementById('btn-lb-staff-pdf').onclick=function(){lbPrintExport('اطلاعات پرسنلی همکاران مدرسه',lbStaffExportHtml(),true);};
+  document.getElementById('btn-lb-staff-word').onclick=function(){
+    var landscape=document.getElementById('lbs-print-orientation').value!=='portrait';
+    lbWordExport('اطلاعات پرسنلی همکاران مدرسه',lbStaffExportHtml(),'اطلاعات-پرسنلی-همکاران',landscape);
+  };
+  document.getElementById('btn-lb-staff-pdf').onclick=function(){
+    var landscape=document.getElementById('lbs-print-orientation').value!=='portrait';
+    lbPrintExport('اطلاعات پرسنلی همکاران مدرسه',lbStaffExportHtml(),landscape);
+  };
+  document.getElementById('btn-lbs-print-opts-toggle').onclick=function(){
+    document.getElementById('lbs-print-opts-drawer').classList.toggle('hidden');
+  };
+  document.getElementById('btn-lbs-print-custom').onclick=function(){
+    var landscape=document.getElementById('lbs-print-orientation').value!=='portrait';
+    lbPrintExport('اطلاعات پرسنلی همکاران مدرسه',lbStaffExportHtml(),landscape);
+  };
+  document.getElementById('btn-lbs-word-custom').onclick=function(){
+    var landscape=document.getElementById('lbs-print-orientation').value!=='portrait';
+    lbWordExport('اطلاعات پرسنلی همکاران مدرسه',lbStaffExportHtml(),'اطلاعات-پرسنلی-همکاران',landscape);
+  };
   document.getElementById('btn-lb-staff-excel').onclick=function(){
     lbExcelExport('اطلاعات-پرسنلی-همکاران',function(wb){
       lbAddExcelSheet(wb,'پرسنل',lbTableToRows(document.getElementById('lbs-table')));
