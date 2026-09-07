@@ -4468,17 +4468,11 @@ function teacherPage() {
           </select>
           <span class="muted">می‌توانید با چسباندن متن کپی‌شده از اکسل/ورد داخل خانه‌ها، چند خانه را همزمان پر کنید.</span>
         </div>
-        <div class="row" style="margin-bottom:16px">
-          <input id="sch-school" placeholder="نام مدرسه" style="flex:1">
-          <input id="sch-year" placeholder="سال تحصیلی" style="flex:1">
-        </div>
-        <div class="row" style="margin-bottom:16px">
-          <input id="sch-topic" placeholder="موضوع" style="flex:1">
-          <input id="sch-principal" placeholder="نام مدیر" style="flex:1">
-        </div>
-        <div class="row" style="margin-bottom:16px">
-          <input id="sch-class" placeholder="نام کلاس" style="flex:1">
-          <input id="sch-teacher" placeholder="نام آموزگار" style="flex:1">
+        <div class="lb-meta-form">
+          <div><label>نام مدرسه</label><input id="sch-school" placeholder="......................."></div>
+          <div><label>نام آموزگار</label><input id="sch-teacher" placeholder="......................."></div>
+          <div><label>پایه</label><input id="sch-grade" placeholder="......................."></div>
+          <div><label>کلاس</label><input id="sch-class" placeholder="......................."></div>
         </div>
         <div class="schedule-table-wrap" id="schedule-table-wrap">
           <table class="schedule-table" id="schedule-table">
@@ -7503,11 +7497,9 @@ function teacherScript() {
     if(r.ok && r.data){
       scheduleData=r.data;
       document.getElementById('sch-school').value=scheduleData.school||'';
-      document.getElementById('sch-year').value=scheduleData.year||'';
-      document.getElementById('sch-topic').value=scheduleData.topic||'';
-      document.getElementById('sch-principal').value=scheduleData.principal||'';
-      document.getElementById('sch-class').value=scheduleData.cls||'';
       document.getElementById('sch-teacher').value=scheduleData.teacher||'';
+      document.getElementById('sch-grade').value=scheduleData.grade||'';
+      document.getElementById('sch-class').value=scheduleData.cls||'';
       if(scheduleData.cells){
         for(let d=0;d<5;d++){for(let i=1;i<=5;i++){const el=document.getElementById('c'+d+i);if(el)el.value=scheduleData.cells['c'+d+i]||'';}}
       }
@@ -7656,9 +7648,9 @@ function teacherScript() {
 
   function getScheduleHtmlForExport(){
     const school=document.getElementById('sch-school').value||'مدرسه';
-    const year=document.getElementById('sch-year').value||'';
-    const cls=document.getElementById('sch-class').value||'';
     const teacher=document.getElementById('sch-teacher').value||'';
+    const grade=document.getElementById('sch-grade').value||'';
+    const cls=document.getElementById('sch-class').value||'';
     const days=['شنبه','یکشنبه','دوشنبه','سه‌شنبه','چهارشنبه'];
     const zang=['زنگ اول','زنگ دوم','زنگ سوم','زنگ چهارم','زنگ پنجم'];
     const activeThemeBtn=document.querySelector('.sch-theme-btn.active');
@@ -7687,7 +7679,7 @@ function teacherScript() {
     style+='td{padding:14px 10px;text-align:center;font-size:13px;min-height:50px;font-weight:600;color:'+T.text+';border:1px solid #1e293b}';
     style+='.daylabel{border-right:5px solid;font-weight:800}';
     style+='.footer{text-align:center;margin-top:30px;padding:20px;border-top:2px dashed #ddd}</style>';
-    let header='<div class="header"><h1>'+(T.kids?'⏰ برنامه هفتگی کلاس 📓':'⭐ برنامه هفتگی کلاس ⭐')+'</h1><p>🏫 '+esc(school)+' | سال تحصیلی: '+esc(year)+'</p><p>کلاس: '+esc(cls)+' | آموزگار: '+esc(teacher)+'</p></div>';
+    let header='<div class="header"><h1>'+(T.kids?'⏰ برنامه هفتگی کلاس 📓':'⭐ برنامه هفتگی کلاس ⭐')+'</h1><p><b>نام مدرسه:</b> '+esc(school)+' &nbsp;&nbsp;&nbsp; <b>نام آموزگار:</b> '+esc(teacher)+'</p><p><b>پایه:</b> '+esc(grade)+' &nbsp;&nbsp;&nbsp; <b>کلاس:</b> '+esc(cls)+'</p></div>';
     let table='<table><tr><th style="background:linear-gradient(135deg,'+T.corner[0]+','+T.corner[1]+');color:'+(T.cornerText||'#fff')+';border-bottom:none">روز / زنگ</th>';
     for(let z=0;z<5;z++){
       const pBg=(T.periodBgs&&T.periodBgs[z])||T.periodBg;
@@ -7715,7 +7707,7 @@ function teacherScript() {
   document.getElementById('btn-pdf-schedule').onclick=function(){const w=window.open('','_blank');w.document.write(getScheduleHtmlForExport());w.document.close();setTimeout(function(){w.print();},500);};
   
   document.getElementById('btn-save-schedule').onclick=async function(){
-    const data={school:document.getElementById('sch-school').value,year:document.getElementById('sch-year').value,topic:document.getElementById('sch-topic').value,principal:document.getElementById('sch-principal').value,cls:document.getElementById('sch-class').value,teacher:document.getElementById('sch-teacher').value,cells:{}};
+    const data={school:document.getElementById('sch-school').value,teacher:document.getElementById('sch-teacher').value,grade:document.getElementById('sch-grade').value,cls:document.getElementById('sch-class').value,cells:{}};
     for(let d=0;d<5;d++){for(let i=1;i<=5;i++){const el=document.getElementById('c'+d+i);if(el)data.cells['c'+d+i]=el.value;}}
     const r=await api('/api/teacher/schedule',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({data})});
     if(r.ok)toast('برنامه هفتگی ذخیره شد ✅');else toast('خطا در ذخیره');
