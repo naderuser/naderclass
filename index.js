@@ -6023,6 +6023,7 @@ function teacherPage() {
         </div>
       </div>
 
+      <div class="card tab-content hidden" id="tab-htmlgames">
         <h3>🎬 لینک فیلم و محتوای تعاملی</h3>
 
         <h4 style="margin-top:0">🎬 لینک فیلم درس</h4>
