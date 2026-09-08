@@ -274,6 +274,7 @@ export default {
 
     try {
       if (path === "/api/classroom/ws") return await handleClassroomSocket(req, env, url);
+      if (path === "/api/webinar/ws") return await handleWebinarSocket(req, env, url);
 
       if (path === "/sw.js") return new Response(teacherServiceWorkerScript(), { headers: { "content-type": "application/javascript; charset=utf-8", "cache-control": "no-cache" } });
 
@@ -297,6 +298,11 @@ export default {
       if (path.startsWith("/class/")) {
         const id = decodeURIComponent(path.slice(7));
         return await studentClassPage(env, id);
+      }
+
+      if (path.startsWith("/webinar/")) {
+        const id = decodeURIComponent(path.slice(9));
+        return await studentWebinarPage(env, id);
       }
 
       if (path.startsWith("/g/")) {
@@ -332,20 +338,28 @@ export default {
  * -------------------------------------------------------------------------------- */
 
 async function handleClassroomSocket(req, env, url) {
+  return await handleRoomSocket(req, env, url, "main", "کلاس آنلاین");
+}
+
+async function handleWebinarSocket(req, env, url) {
+  return await handleRoomSocket(req, env, url, "webinar", "وبینار");
+}
+
+async function handleRoomSocket(req, env, url, roomName, label) {
   const role = url.searchParams.get("role") === "teacher" ? "teacher" : "student";
 
   // مسیر تشخیصی: بدون WebSocket، فقط بررسی می‌کند که آیا اتصال باید موفق باشد یا نه
   // و در صورت خطا، دلیل دقیق را برمی‌گرداند (برای نمایش پیام مشخص به‌جای «قطع شد»).
   if (url.searchParams.get("check") === "1") {
     if (role === "teacher") {
-      if (!(await isTeacher(req, env))) return json({ ok: false, error: "برای کلاس آنلاین باید ابتدا در پنل معلم وارد شوید." }, 401);
+      if (!(await isTeacher(req, env))) return json({ ok: false, error: "برای " + label + " باید ابتدا در پنل معلم وارد شوید." }, 401);
     } else {
       const id = url.searchParams.get("id") || "";
       const rec = id ? await env.EXAM_KV.get("student:" + id) : null;
-      if (!rec) return json({ ok: false, error: "این لینک کلاس آنلاین معتبر نیست. لینک را از پنل معلم دوباره کپی کنید." }, 404);
+      if (!rec) return json({ ok: false, error: "این لینک " + label + " معتبر نیست. لینک را از پنل معلم دوباره کپی کنید." }, 404);
     }
     if (!env.CLASSROOM) {
-      return json({ ok: false, error: "کلاس آنلاین روی این ورکر فعال نشده است. باید در wrangler.toml بخش durable_objects و migrations برای ClassRoom اضافه و دوباره deploy شود." }, 500);
+      return json({ ok: false, error: label + " روی این ورکر فعال نشده است. باید در wrangler.toml بخش durable_objects و migrations برای ClassRoom اضافه و دوباره deploy شود." }, 500);
     }
     return json({ ok: true });
   }
@@ -363,10 +377,10 @@ async function handleClassroomSocket(req, env, url) {
   }
 
   if (!env.CLASSROOM) {
-    return json({ ok: false, error: "کلاس آنلاین روی این ورکر فعال نشده (Durable Object تنظیم نشده)" }, 500);
+    return json({ ok: false, error: label + " روی این ورکر فعال نشده (Durable Object تنظیم نشده)" }, 500);
   }
 
-  const roomId = env.CLASSROOM.idFromName("main");
+  const roomId = env.CLASSROOM.idFromName(roomName);
   const stub = env.CLASSROOM.get(roomId);
   return stub.fetch(req);
 }
@@ -381,6 +395,7 @@ export class ClassRoom {
     this.boardBg = null; // صفحه‌ی PDF فعلی روی تخته (data URL) یا null
     this.boardBgW = 900;
     this.boardBgH = 560;
+    this.spotlight = false; // حالت سخنرانی وبینار: فقط تصویر معلم بزرگ نمایش داده می‌شود
   }
 
   async fetch(req) {
@@ -388,9 +403,27 @@ export class ClassRoom {
     if (req.headers.get("upgrade") !== "websocket") {
       return new Response("Expected WebSocket", { status: 400 });
     }
+    const kind = url.pathname === "/api/webinar/ws" ? "webinar" : "classroom";
+    this.kind = kind;
     const role = url.searchParams.get("role") === "teacher" ? "teacher" : "student";
     const id = url.searchParams.get("id") || "";
     const name = (url.searchParams.get("name") || (role === "teacher" ? "معلم" : "دانش‌آموز")).slice(0, 60);
+
+    // ظرفیت وبینار حداکثر ۲۰ دانش‌آموز هم‌زمان است؛ اگر پر بود، اتصال را با یک پیام روشن می‌بندیم
+    // (به‌جای رد کردن خام درخواست) تا کلاینت بتواند پیام را به کاربر نشان دهد.
+    if (kind === "webinar" && role === "student") {
+      const studentCount = Array.from(this.sessions.values()).filter((s) => s.role === "student").length;
+      if (studentCount >= 20) {
+        const fullPair = new WebSocketPair();
+        const [fullClient, fullServer] = Object.values(fullPair);
+        fullServer.accept();
+        try {
+          fullServer.send(JSON.stringify({ type: "error", message: "ظرفیت وبینار تکمیل شده است (حداکثر ۲۰ نفر). لطفاً بعداً تلاش کنید." }));
+        } catch {}
+        try { fullServer.close(1000, "capacity-full"); } catch {}
+        return new Response(null, { status: 101, webSocket: fullClient });
+      }
+    }
 
     const pair = new WebSocketPair();
     const [client, server] = Object.values(pair);
@@ -408,6 +441,7 @@ export class ClassRoom {
       boardBgH: this.boardBgH,
       chat: this.chat.slice(-50),
       participants: this.participantList(),
+      spotlight: this.spotlight,
     }));
 
     this.broadcast({ type: "presence", event: "join", role, name, participants: this.participantList() }, server);
@@ -435,6 +469,9 @@ export class ClassRoom {
 
   handleMessage(sender, session, msg) {
     if (!msg || typeof msg !== "object") return;
+
+    // وبینار تخته آنلاین ندارد؛ این پیام‌ها فقط برای اتاق کلاس آنلاین معتبرند (محافظتی، چون رابط کاربری وبینار اصلاً این دکمه‌ها را ندارد)
+    if (this.kind === "webinar" && (msg.type === "draw" || msg.type === "clear" || msg.type === "board-bg")) return;
 
     // فقط معلم اجازه‌ی رسم روی تخته هوشمند و پخش صدا را دارد
     if (msg.type === "draw" && session.role === "teacher") {
@@ -508,6 +545,13 @@ export class ClassRoom {
 
     if (msg.type === "raise-hand" && session.role === "student") {
       this.broadcast({ type: "raise-hand", name: session.name });
+      return;
+    }
+
+    // حالت سخنرانی وبینار: فقط معلم می‌تواند فعال/غیرفعال کند؛ با یک کلیک همه فقط تصویر معلم را می‌بینند
+    if (msg.type === "spotlight" && session.role === "teacher") {
+      this.spotlight = !!msg.active;
+      this.broadcast({ type: "spotlight", active: this.spotlight });
       return;
     }
   }
@@ -4177,6 +4221,436 @@ async function studentClassPage(env, id) {
   </script></body></html>`);
 }
 
+async function studentWebinarPage(env, id) {
+  const raw = await env.EXAM_KV.get("student:" + id);
+  if (!raw) {
+    return html(
+      `<!doctype html><html lang="fa" dir="rtl"><head><meta charset="utf-8">${FONT_LINK}<style>${SHARED_CSS}</style></head>
+      <body><div class="wrap">${pageHeader()}<div class="card"><h2>لینک نامعتبر است</h2>
+      <p class="muted">این لینک وبینار معتبر نیست یا حذف شده است. لطفاً با معلم خود تماس بگیرید.</p></div></div></body></html>`,
+      404
+    );
+  }
+  const student = JSON.parse(raw);
+
+  return html(`<!doctype html><html lang="fa" dir="rtl"><head><meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>وبینار</title>${FONT_LINK}<style>${SHARED_CSS}
+    .cls-status{display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap}
+    .dot{width:10px;height:10px;border-radius:50%;background:#dc2626;display:inline-block}
+    .dot.on{background:#16a34a}
+    #chatBox{height:280px;overflow:auto;border:1px solid var(--line);border-radius:10px;padding:10px;background:#fafafa;display:flex;flex-direction:column;gap:6px}
+    .msg{padding:6px 10px;border-radius:10px;max-width:90%;font-size:14px}
+    .msg.teacher{background:#eef2ff;align-self:flex-start}
+    .msg.student{background:#dcfce7;align-self:flex-end}
+    .msg .who{font-size:11px;color:#666;margin-bottom:2px}
+    #web-teacher-tile{position:relative;width:100%;max-width:420px;aspect-ratio:4/3;background:#000;border-radius:12px;overflow:hidden;margin:0 auto;transition:max-width .2s,max-height .2s}
+    #web-teacher-tile.spotlight{max-width:100%;aspect-ratio:16/9;max-height:74vh}
+    #web-teacher-video{width:100%;height:100%;object-fit:cover;display:block}
+    #web-teacher-placeholder{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#e5e7eb;font-size:13px;text-align:center;padding:8px}
+  </style></head>
+  <body><div class="wrap">
+    ${pageHeader()}
+    <div class="card">
+      <h3>🎙️ وبینار${student.label ? " — " + esc(student.label) : ""}</h3>
+      <div class="cls-status">
+        <a class="btn sm sec" href="/s/${encodeURIComponent(id)}">↩️ بازگشت</a>
+        <span class="dot" id="cls-dot"></span>
+        <span id="cls-status-text" class="muted">در حال اتصال به وبینار...</span>
+        <span style="flex:1"></span>
+        <button class="btn sm sec" id="btn-raise-hand">✋ بلند کردن دست</button>
+        <button class="btn sm" id="btn-enable-sound">🔊 فعال‌سازی صدای وبینار</button>
+      </div>
+      <div class="cls-stack">
+        <div class="cls-sec">
+          <div class="cls-sec-head">🎤 سخنران (معلم)</div>
+          <div style="padding:10px 14px">
+            <div id="web-teacher-tile">
+              <img id="web-teacher-video" class="hidden">
+              <div id="web-teacher-placeholder">🎥 دوربین معلم خاموش است</div>
+            </div>
+            <p id="web-spotlight-banner" class="hidden" style="text-align:center;color:#2563eb;font-weight:700;margin-top:8px">🔦 معلم در حال سخنرانی است</p>
+          </div>
+        </div>
+
+        <div class="cls-sec">
+          <div class="cls-sec-head">🎙️ دوربین و میکروفن من</div>
+          <div style="padding:10px 14px">
+            <div class="row" style="flex-wrap:wrap;gap:8px">
+              <button type="button" class="btn sm sec" id="btn-my-mic-toggle">🎙️ روشن کردن میکروفون</button>
+              <button type="button" class="btn sm sec" id="btn-my-cam-toggle">📷 روشن کردن تصویر</button>
+              <button type="button" class="btn sm sec hidden" id="btn-my-cam-flip">🔄 چرخش دوربین</button>
+            </div>
+            <video id="my-cam-preview" autoplay muted playsinline class="hidden" style="width:140px;height:105px;object-fit:cover;border-radius:10px;margin-top:10px;background:#000"></video>
+            <p class="muted" style="font-size:12px;margin-top:8px">با روشن کردن دوربین یا میکروفون، تصویر/صدای شما برای معلم و بقیه‌ی شرکت‌کنندگان پخش می‌شود.</p>
+          </div>
+        </div>
+
+        <div class="cls-sec" id="web-peer-section">
+          <div class="cls-sec-head">🎥 دوربین دیگر شرکت‌کنندگان</div>
+          <div id="cls-peer-cams" class="cls-cam-grid" style="padding:10px 14px"><span class="muted" style="font-size:12px">دوربینی روشن نیست</span></div>
+        </div>
+
+        <div class="cls-sec">
+          <div class="cls-sec-head tap" id="cls-users-toggle">👥 شرکت‌کنندگان <span id="cls-users-count" class="cls-badge-count">۰</span><span class="cls-chevron">▾</span></div>
+          <div id="cls-users-list" class="cls-users-list hidden"><span class="muted">کسی متصل نیست</span></div>
+        </div>
+
+        <div class="cls-sec">
+          <div class="cls-sec-head tap open" id="cls-chat-toggle">💬 گفتگوی وبینار<span class="cls-chevron">▾</span></div>
+          <div id="cls-chat-wrap" class="cls-chat-wrap">
+            <div id="chatBox"></div>
+            <div class="row" style="margin-top:8px">
+              <input id="chatInput" placeholder="پیام خود را بنویسید...">
+              <button class="btn sm" id="btnSend" style="flex:0 0 auto">ارسال</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="toast" id="toast"></div>
+  <script>
+    const ID = ${JSON.stringify(id)};
+    const NAME = ${JSON.stringify(student.label || "دانش‌آموز")};
+    function toast(m){const t=document.getElementById('toast');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2500);}
+    function esc(s){const d=document.createElement('div');d.textContent=s==null?'':s;return d.innerHTML;}
+
+    function setSpotlight(active){
+      document.getElementById('web-teacher-tile').classList.toggle('spotlight', !!active);
+      document.getElementById('web-spotlight-banner').classList.toggle('hidden', !active);
+      document.getElementById('web-peer-section').classList.toggle('hidden', !!active);
+    }
+
+    // ===== پخش زنده‌ی صدا (صف پخش برای هر فرستنده جداگانه، تا صداها روی هم نیفتند) =====
+    const audioQueues={};
+    let audioUnlocked=false, audioWarned=false;
+    (function(){
+      const btn=document.getElementById('btn-enable-sound');
+      btn.onclick=function(){
+        audioUnlocked=true;
+        btn.textContent='🔊 صدا فعال است';
+        btn.disabled=true;
+        const a=new Audio('data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAA=');
+        const unlock=()=>{ Object.keys(audioQueues).forEach(pumpAudioQueue); };
+        a.play().then(unlock).catch(unlock);
+      };
+    })();
+    function playAudioChunk(id, b64, mime){
+      let st=audioQueues[id];
+      if(!st) st=audioQueues[id]={queue:[],playing:false};
+      st.queue.push({b64, mime: mime||'audio/webm'});
+      if(st.queue.length>2) st.queue.splice(0, st.queue.length-2);
+      pumpAudioQueue(id);
+    }
+    function pumpAudioQueue(id){
+      const st=audioQueues[id];
+      if(!st || !audioUnlocked || st.playing || st.queue.length===0) return;
+      const item=st.queue.shift();
+      const a=new Audio('data:'+item.mime+';base64,'+item.b64);
+      st.playing=true;
+      a.onended=()=>{ st.playing=false; pumpAudioQueue(id); };
+      a.onerror=()=>{
+        st.playing=false;
+        if(!audioWarned){
+          audioWarned=true;
+          toast('مرورگر شما امکان پخش صدا را ندارد؛ لطفاً Chrome را امتحان کنید');
+        }
+        pumpAudioQueue(id);
+      };
+      a.play().catch(()=>{ st.playing=false; pumpAudioQueue(id); });
+    }
+
+    // ===== دوربین/صدای زنده‌ی دیگر شرکت‌کنندگان (نمایش برای این شرکت‌کننده) =====
+    const peerCamTiles={};
+    function peerCamGridEmptyCheck(){
+      const grid=document.getElementById('cls-peer-cams');
+      if(!Object.keys(peerCamTiles).length){
+        grid.innerHTML='<span class="muted" style="font-size:12px">دوربینی روشن نیست</span>';
+      }
+    }
+    function ensurePeerCamTile(id,name){
+      const grid=document.getElementById('cls-peer-cams');
+      if(peerCamTiles[id]){
+        if(name)peerCamTiles[id].nameEl.textContent=name;
+        return peerCamTiles[id];
+      }
+      const emptyMsg=grid.querySelector('.muted');
+      if(emptyMsg)emptyMsg.remove();
+      const tile=document.createElement('div');
+      tile.className='cls-cam-tile';
+      tile.innerHTML='<img class="hidden"><div class="cls-cam-tile-off">🎥 خاموش</div><div class="cls-cam-tile-name"></div>';
+      grid.appendChild(tile);
+      const obj={tile, img:tile.querySelector('img'), off:tile.querySelector('.cls-cam-tile-off'), nameEl:tile.querySelector('.cls-cam-tile-name')};
+      obj.nameEl.textContent=name||'شرکت‌کننده';
+      peerCamTiles[id]=obj;
+      return obj;
+    }
+    function prunePeerMedia(list){
+      const activeIds=new Set(list.filter(p=>p.role==='student' && p.id!==ID).map(p=>p.id));
+      Object.keys(peerCamTiles).forEach(id=>{
+        if(!activeIds.has(id)){ peerCamTiles[id].tile.remove(); delete peerCamTiles[id]; }
+      });
+      Object.keys(audioQueues).forEach(id=>{ if(id!=='teacher' && !activeIds.has(id)) delete audioQueues[id]; });
+      peerCamGridEmptyCheck();
+    }
+
+    function updateParticipants(list){
+      const box=document.getElementById('cls-users-list');
+      const countEl=document.getElementById('cls-users-count');
+      countEl.textContent=toFaDigitsCls(list.length);
+      if(!list.length){box.innerHTML='<span class="muted">کسی متصل نیست</span>';prunePeerMedia(list);return;}
+      box.innerHTML=list.map(function(p){
+        const roleCls=p.role==='teacher'?'role-teacher':'';
+        const icon=p.role==='teacher'?'👨‍🏫':'👤';
+        return '<div class="cls-user-row '+roleCls+'"><span class="u-dot"></span>'+icon+' '+esc(p.name||'')+'</div>';
+      }).join('');
+      prunePeerMedia(list);
+    }
+    const FA_DIGITS_CLS=['۰','۱','۲','۳','۴','۵','۶','۷','۸','۹'];
+    function toFaDigitsCls(n){return String(n).replace(/[0-9]/g,d=>FA_DIGITS_CLS[+d]);}
+
+    (function setupCollapsibleSections(){
+      const usersToggle=document.getElementById('cls-users-toggle');
+      const usersList=document.getElementById('cls-users-list');
+      usersToggle.addEventListener('click',function(){
+        usersList.classList.toggle('hidden');
+        usersToggle.classList.toggle('open');
+      });
+      const chatToggle=document.getElementById('cls-chat-toggle');
+      const chatWrap=document.getElementById('cls-chat-wrap');
+      chatToggle.addEventListener('click',function(){
+        chatWrap.classList.toggle('hidden');
+        chatToggle.classList.toggle('open');
+      });
+    })();
+
+    function addChatMsg(entry){
+      const box=document.getElementById('chatBox');
+      const cls=entry.role==='teacher'?'teacher':'student';
+      box.insertAdjacentHTML('beforeend','<div class="msg '+cls+'"><div class="who">'+esc(entry.from)+'</div>'+esc(entry.text)+'</div>');
+      box.scrollTop=box.scrollHeight;
+    }
+
+    let ws=null, checkFailCount=0;
+    async function connect(){
+      const proto=location.protocol==='https:'?'wss:':'ws:';
+      try{
+        const chk=await fetch('/api/webinar/ws?check=1&role=student&id='+encodeURIComponent(ID));
+        const chkData=await chk.json().catch(()=>({ok:false,error:'پاسخ نامعتبر از سرور'}));
+        if(!chkData.ok){
+          document.getElementById('cls-status-text').textContent='خطا: '+chkData.error;
+          return;
+        }
+      }catch(e){
+        checkFailCount++;
+        document.getElementById('cls-status-text').textContent='اتصال به سرور برقرار نشد، در حال تلاش مجدد...';
+        setTimeout(connect,2000);
+        return;
+      }
+      ws=new WebSocket(proto+'//'+location.host+'/api/webinar/ws?role=student&id='+encodeURIComponent(ID)+'&name='+encodeURIComponent(NAME));
+      ws.onopen=()=>{document.getElementById('cls-dot').classList.add('on');document.getElementById('cls-status-text').textContent='متصل به وبینار ✅';};
+      ws.onclose=()=>{document.getElementById('cls-dot').classList.remove('on');document.getElementById('cls-status-text').textContent='اتصال قطع شد، در حال تلاش مجدد...';setTimeout(connect,2000);};
+      ws.onerror=()=>{try{ws.close();}catch(e){}};
+      ws.onmessage=(evt)=>{
+        let m;try{m=JSON.parse(evt.data);}catch(e){return;}
+        if(m.type==='init'){
+          (m.chat||[]).forEach(addChatMsg);
+          updateParticipants(m.participants||[]);
+          setSpotlight(!!m.spotlight);
+        }
+        else if(m.type==='spotlight'){ setSpotlight(!!m.active); }
+        else if(m.type==='audio'){playAudioChunk(m.role==='teacher'?'teacher':m.id, m.data, m.mime);}
+        else if(m.type==='video-frame'){
+          if(m.role==='teacher'){
+            const img=document.getElementById('web-teacher-video');
+            img.src=m.data;
+            img.classList.remove('hidden');
+            document.getElementById('web-teacher-placeholder').classList.add('hidden');
+          } else if(m.id!==ID){
+            const t=ensurePeerCamTile(m.id, m.from);
+            t.img.src=m.data;
+            t.img.classList.remove('hidden');
+            t.off.classList.add('hidden');
+          }
+        }
+        else if(m.type==='video-stop'){
+          if(m.role==='teacher'){
+            const img=document.getElementById('web-teacher-video');
+            img.classList.add('hidden');
+            img.src='';
+            document.getElementById('web-teacher-placeholder').classList.remove('hidden');
+          } else {
+            const t=peerCamTiles[m.id];
+            if(t){ t.img.classList.add('hidden'); t.img.src=''; t.off.classList.remove('hidden'); }
+          }
+        }
+        else if(m.type==='chat'){addChatMsg(m.entry);}
+        else if(m.type==='error'){document.getElementById('cls-status-text').textContent=m.message||'خطا';toast(m.message||'خطا');}
+        else if(m.type==='presence'){
+          updateParticipants(m.participants||[]);
+          if(m.event==='join'&&m.role==='teacher')toast('معلم وارد وبینار شد');
+        }
+      };
+    }
+    connect();
+
+    document.getElementById('btnSend').onclick=()=>{
+      const inp=document.getElementById('chatInput');
+      const text=inp.value.trim();
+      if(!text||!ws||ws.readyState!==1)return;
+      ws.send(JSON.stringify({type:'chat',text}));
+      inp.value='';
+    };
+    document.getElementById('chatInput').addEventListener('keydown',e=>{if(e.key==='Enter')document.getElementById('btnSend').click();});
+    document.getElementById('btn-raise-hand').onclick=()=>{if(ws&&ws.readyState===1){ws.send(JSON.stringify({type:'raise-hand'}));toast('دستت بلند شد ✋');}};
+
+    // ===== دوربین/میکروفن من (پخش زنده برای معلم و بقیه‌ی شرکت‌کنندگان) =====
+    let myMicStream=null, myRecorder=null, myAudioActive=false, myAudioGen=0;
+    let myCamStream=null, myCamInterval=null, myAudioFromCam=false, myCamFacing='user';
+
+    function myStartMicRecorder(stream){
+      if(myAudioActive) return;
+      myMicStream=stream;
+      myAudioActive=true;
+      myAudioGen++;
+      const myGen=myAudioGen;
+      const preferredMimes=['audio/webm;codecs=opus','audio/webm','audio/mp4'];
+      const mime=preferredMimes.find(m=>window.MediaRecorder && MediaRecorder.isTypeSupported(m)) || '';
+      function recordOneChunk(){
+        if(myGen!==myAudioGen || !myAudioActive || !myMicStream) return;
+        let chunks=[];
+        let rec;
+        try{ rec=new MediaRecorder(myMicStream, mime?{mimeType:mime}:undefined); }
+        catch(e){ myAudioActive=false; toast('امکان ضبط صدا در این مرورگر نیست'); return; }
+        rec.ondataavailable=(e)=>{ if(e.data && e.data.size>0) chunks.push(e.data); };
+        rec.onstop=async()=>{
+          if(myGen!==myAudioGen) return;
+          if(chunks.length){
+            const blob=new Blob(chunks, {type: mime||'audio/webm'});
+            const buf=await blob.arrayBuffer();
+            let binary='';const bytes=new Uint8Array(buf);
+            for(let i=0;i<bytes.length;i++)binary+=String.fromCharCode(bytes[i]);
+            if(ws&&ws.readyState===1)ws.send(JSON.stringify({type:'audio', data: btoa(binary), mime: mime||'audio/webm'}));
+          }
+          if(myAudioActive && myGen===myAudioGen) setTimeout(recordOneChunk, 15);
+        };
+        rec.start();
+        myRecorder=rec;
+        setTimeout(()=>{ if(rec.state==='recording') rec.stop(); }, 260);
+      }
+      recordOneChunk();
+    }
+    function myStopMicRecorder(){
+      myAudioActive=false;
+      myAudioGen++;
+      if(myRecorder && myRecorder.state==='recording')myRecorder.stop();
+      if(myMicStream)myMicStream.getTracks().forEach(t=>t.stop());
+      myMicStream=null;
+      document.getElementById('btn-my-mic-toggle').textContent='🎙️ روشن کردن میکروفون';
+    }
+
+    document.getElementById('btn-my-mic-toggle').onclick=async function(){
+      if(!ws||ws.readyState!==1){toast('ابتدا باید به وبینار متصل باشید');return;}
+      if(myRecorder && myRecorder.state==='recording'){
+        myStopMicRecorder();
+        myAudioFromCam=false;
+        return;
+      }
+      try{
+        const stream=await navigator.mediaDevices.getUserMedia({audio:true});
+        myStartMicRecorder(stream);
+        myAudioFromCam=false;
+        this.textContent='🔴 خاموش کردن میکروفون';
+        toast('میکروفون شما فعال شد');
+      }catch(e){ toast('دسترسی به میکروفون داده نشد'); }
+    };
+
+    document.getElementById('btn-my-cam-toggle').onclick=async function(){
+      const preview=document.getElementById('my-cam-preview');
+      if(myCamStream){
+        myCamStream.getVideoTracks().forEach(t=>t.stop());
+        myCamStream=null;
+        if(myCamInterval){clearInterval(myCamInterval);myCamInterval=null;}
+        preview.classList.add('hidden');
+        preview.srcObject=null;
+        this.textContent='📷 روشن کردن تصویر';
+        document.getElementById('btn-my-cam-flip').classList.add('hidden');
+        myCamFacing='user';
+        if(ws&&ws.readyState===1)ws.send(JSON.stringify({type:'video-stop'}));
+        if(myAudioFromCam){ myStopMicRecorder(); myAudioFromCam=false; }
+        return;
+      }
+      if(!ws||ws.readyState!==1){toast('ابتدا باید به وبینار متصل باشید');return;}
+      try{
+        myCamStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:myCamFacing,width:{ideal:480}}, audio:true});
+        preview.srcObject=myCamStream;
+        preview.classList.remove('hidden');
+        this.textContent='🔴 خاموش کردن تصویر';
+        document.getElementById('btn-my-cam-flip').classList.remove('hidden');
+        if(!(myRecorder && myRecorder.state==='recording') && myCamStream.getAudioTracks().length){
+          myStartMicRecorder(new MediaStream(myCamStream.getAudioTracks()));
+          myAudioFromCam=true;
+          document.getElementById('btn-my-mic-toggle').textContent='🔴 خاموش کردن میکروفون';
+        }
+        toast('تماس تصویری (با صدا) شما فعال شد');
+        const cap=document.createElement('canvas');
+        const capCtx=cap.getContext('2d');
+        myCamInterval=setInterval(function(){
+          if(!myCamStream)return;
+          try{
+            const vw=preview.videoWidth||480, vh=preview.videoHeight||360;
+            if(cap.width!==vw||cap.height!==vh){cap.width=vw;cap.height=vh;}
+            capCtx.drawImage(preview,0,0,cap.width,cap.height);
+            const dataUrl=cap.toDataURL('image/jpeg',0.7);
+            if(ws&&ws.readyState===1)ws.send(JSON.stringify({type:'video-frame', data: dataUrl}));
+          }catch(e){}
+        },150);
+      }catch(e){ toast('دسترسی به دوربین یا میکروفون داده نشد'); }
+    };
+
+    document.getElementById('btn-my-cam-flip').onclick=async function(){
+      if(!myCamStream){toast('ابتدا دوربین را روشن کنید');return;}
+      const preview=document.getElementById('my-cam-preview');
+      const prevFacing=myCamFacing;
+      const nextFacing=myCamFacing==='user'?'environment':'user';
+      const wasAudioFromCam=myAudioFromCam;
+      if(wasAudioFromCam){ myStopMicRecorder(); myAudioFromCam=false; }
+      myCamStream.getTracks().forEach(t=>t.stop());
+      myCamStream=null;
+      preview.srcObject=null;
+      try{
+        const newStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{exact:nextFacing},width:{ideal:480}}, audio:true});
+        myCamStream=newStream;
+        myCamFacing=nextFacing;
+        preview.srcObject=myCamStream;
+        if(wasAudioFromCam && myCamStream.getAudioTracks().length){
+          myStartMicRecorder(new MediaStream(myCamStream.getAudioTracks()));
+          myAudioFromCam=true;
+          document.getElementById('btn-my-mic-toggle').textContent='🔴 خاموش کردن میکروفون';
+        }
+        toast('دوربین عوض شد 🔄');
+      }catch(e){
+        toast('این دستگاه دوربین دومی ندارد یا اجازه دسترسی به آن را نمی‌دهد');
+        try{
+          myCamStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:prevFacing,width:{ideal:480}}, audio:true});
+          myCamFacing=prevFacing;
+          preview.srcObject=myCamStream;
+          if(wasAudioFromCam && myCamStream.getAudioTracks().length){
+            myStartMicRecorder(new MediaStream(myCamStream.getAudioTracks()));
+            myAudioFromCam=true;
+            document.getElementById('btn-my-mic-toggle').textContent='🔴 خاموش کردن میکروفون';
+          }
+        }catch(e2){
+          toast('دسترسی به دوربین قطع شد؛ لطفاً دوباره روی «روشن کردن تصویر» بزنید');
+          document.getElementById('btn-my-cam-toggle').textContent='📷 روشن کردن تصویر';
+          document.getElementById('btn-my-cam-flip').classList.add('hidden');
+        }
+      }
+    };
+  </script></body></html>`);
+}
+
 /* ------------------------- پنل معلم (کامل) ------------------------- */
 
 /* ------------------------- Service Worker حالت آفلاین (فقط پنل معلم) ------------------------- */
@@ -4324,6 +4798,7 @@ function teacherPage() {
         </div>
 
         <a class="tab" data-tab="classroom" href="/teacher?tab=classroom"><span class="tab-ico">🖥️</span><span class="tab-label">کلاس آنلاین</span></a>
+        <a class="tab" data-tab="webinar" href="/teacher?tab=webinar"><span class="tab-ico">🎙️</span><span class="tab-label">وبینار</span></a>
         <a class="tab" data-tab="htmlgames" href="/teacher?tab=htmlgames"><span class="tab-ico">🎬</span><span class="tab-label">لینک فیلم و محتوای تعاملی</span></a>
 
         <div class="tab-group">
@@ -5508,7 +5983,46 @@ function teacherPage() {
         </div>
       </div>
 
-      <div class="card tab-content hidden" id="tab-htmlgames">
+      <div class="card tab-content hidden" id="tab-webinar">
+        <h3>🎙️ وبینار</h3>
+        <p class="muted" style="margin-top:-6px">اتاقی جدا از کلاس آنلاین، مخصوص تماس تصویری چندنفره (حداکثر ۲۰ شرکت‌کننده) بدون تخته هوشمند — یک نفر (شما) سخنران اصلی است و با «حالت سخنرانی» می‌توانید با یک کلیک تصویر خودتان را برای همه بزرگ کنید.</p>
+        <div class="cls-status" style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+          <span class="dot" id="webdot" style="width:10px;height:10px;border-radius:50%;background:#dc2626;display:inline-block;flex:0 0 auto"></span>
+          <span id="t-web-status" class="muted" style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">وبینار شروع نشده</span>
+          <button type="button" class="btn sm sec" id="btn-web-options-toggle" style="flex:0 0 auto">⚙️ گزینه‌ها</button>
+        </div>
+        <div id="web-options-drawer" class="cls-options-drawer hidden">
+          <button class="btn sm cls-opt-btn" id="btn-web-start">▶️ شروع وبینار</button>
+          <button class="btn sm gray hidden cls-opt-btn" id="btn-web-stop">⏹️ پایان وبینار</button>
+          <button class="btn sm sec hidden cls-opt-btn" id="btn-web-mic-toggle">🎙️ روشن کردن میکروفون</button>
+          <button class="btn sm sec hidden cls-opt-btn" id="btn-web-cam-toggle">📷 روشن کردن تصویر</button>
+          <button class="btn sm sec hidden cls-opt-btn" id="btn-web-cam-flip">🔄 چرخش دوربین</button>
+          <button class="btn sm primary hidden cls-opt-btn" id="btn-web-spotlight">🔦 شروع حالت سخنرانی</button>
+        </div>
+
+        <div class="cls-wrap">
+          <div class="cls-board-col">
+            <div style="position:relative;max-width:480px">
+              <video id="web-t-cam-preview" autoplay muted playsinline class="hidden" style="width:100%;aspect-ratio:4/3;object-fit:cover;background:#000;border-radius:12px;display:block"></video>
+              <div id="web-t-cam-placeholder" style="width:100%;aspect-ratio:4/3;background:#0f172a;border-radius:12px;display:flex;align-items:center;justify-content:center;color:#e5e7eb;font-size:13px">🎥 دوربین شما (سخنران) خاموش است</div>
+            </div>
+            <p id="web-spotlight-status" class="muted" style="font-size:13px;margin-top:8px">حالت سخنرانی غیرفعال است — همه‌ی شرکت‌کنندگان همدیگر را می‌بینند.</p>
+            <p class="muted" style="font-size:12px;margin-top:6px">در حالت سخنرانی، شبکه‌ی دوربین دیگر شرکت‌کنندگان برای همه پنهان و فقط تصویر شما بزرگ نمایش داده می‌شود.</p>
+          </div>
+          <div class="cls-chat-col">
+            <h4 style="margin:0 0 6px">👥 حاضرین (<span id="web-online-count">0</span> / ۲۰)</h4>
+            <div id="web-participants" class="muted" style="font-size:13px;max-height:110px;overflow:auto;margin-bottom:10px"></div>
+            <h4 style="margin:0 0 6px">🎥 دوربین شرکت‌کنندگان</h4>
+            <div id="web-student-cams" class="cls-cam-grid" style="margin-bottom:12px"><span class="muted" style="font-size:12px">دوربینی روشن نیست</span></div>
+            <div id="web-chatBox" style="height:220px;overflow:auto;border:1px solid var(--line);border-radius:10px;padding:10px;background:#fafafa;display:flex;flex-direction:column;gap:6px"></div>
+            <div class="row" style="margin-top:8px">
+              <input id="web-chatInput" placeholder="پیام به وبینار...">
+              <button class="btn sm" id="web-btnSend" style="flex:0 0 auto">ارسال</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
         <h3>🎬 لینک فیلم و محتوای تعاملی</h3>
 
         <h4 style="margin-top:0">🎬 لینک فیلم درس</h4>
@@ -6862,6 +7376,7 @@ function teacherScript() {
       students.map((s,i)=>{
         const link=location.origin+'/s/'+s.uuid;
         const classLink=location.origin+'/class/'+s.uuid;
+        const webinarLink=location.origin+'/webinar/'+s.uuid;
         let st='<span class="pill no">در انتظار</span>';
         if(s.status==='submitted')st='<span class="pill gr">ثبت‌شده (تصحیح‌نشده)</span>';
         if(s.status==='graded')st='<span class="pill ok">تصحیح‌شده</span>';
@@ -6876,6 +7391,7 @@ function teacherScript() {
           '<td>'+st+'</td>'+
           '<td><button class="btn sm" onclick="copyLink(\\''+link+'\\')">کپی</button> '+
           '<button class="btn sm sec" onclick="copyLink(\\''+classLink+'\\')" title="'+classLink+'">🖥️ لینک کلاس آنلاین</button> '+
+          '<button class="btn sm sec" onclick="copyLink(\\''+webinarLink+'\\')" title="'+webinarLink+'">🎙️ لینک وبینار</button> '+
           '<label class="btn sm sec" style="cursor:pointer">📷 عکس<input type="file" accept="image/*" style="display:none" onchange="changeStudentPhoto(\\''+s.uuid+'\\',this)"></label> '+
           '<button class="btn sm danger" onclick="delStudent(\\''+s.uuid+'\\')">حذف</button></td></tr>';
       }).join('')+'</table>';
@@ -12870,6 +13386,315 @@ function teacherScript() {
         toast('دسترسی به دوربین قطع شد؛ لطفاً دوباره روی «روشن کردن تصویر» بزنید');
         document.getElementById('btn-cam-toggle').textContent='📷 روشن کردن تصویر';
         document.getElementById('btn-cam-flip').classList.add('hidden');
+      }
+    }
+  };
+
+  // ===================== وبینار (اتاق جدا از کلاس آنلاین) =====================
+  document.getElementById('btn-web-options-toggle').onclick=()=>{document.getElementById('web-options-drawer').classList.toggle('hidden');};
+
+  let webWs=null;
+  let webMicStream=null, webRecorder=null, webAudioActive=false, webAudioGen=0;
+  let webCamStream=null, webCamInterval=null, webAudioFromCam=false, webCamFacing='user';
+  let webSpotlightActive=false;
+  const webAudioQueues={};
+  const webStudentCamTiles={};
+
+  function webPlayAudioChunk(id, b64, mime){
+    let st=webAudioQueues[id];
+    if(!st) st=webAudioQueues[id]={queue:[],playing:false};
+    st.queue.push({b64, mime: mime||'audio/webm'});
+    if(st.queue.length>2) st.queue.splice(0, st.queue.length-2);
+    webPumpAudioQueue(id);
+  }
+  function webPumpAudioQueue(id){
+    const st=webAudioQueues[id];
+    if(!st || st.playing || st.queue.length===0) return;
+    const item=st.queue.shift();
+    const a=new Audio('data:'+item.mime+';base64,'+item.b64);
+    st.playing=true;
+    a.onended=()=>{ st.playing=false; webPumpAudioQueue(id); };
+    a.onerror=()=>{ st.playing=false; webPumpAudioQueue(id); };
+    a.play().catch(()=>{ st.playing=false; webPumpAudioQueue(id); });
+  }
+
+  function webStudentCamGridEmptyCheck(){
+    const grid=document.getElementById('web-student-cams');
+    if(!Object.keys(webStudentCamTiles).length){
+      grid.innerHTML='<span class="muted" style="font-size:12px">دوربینی روشن نیست</span>';
+    }
+  }
+  function webEnsureStudentCamTile(id,name){
+    const grid=document.getElementById('web-student-cams');
+    if(webStudentCamTiles[id]){
+      if(name)webStudentCamTiles[id].nameEl.textContent=name;
+      return webStudentCamTiles[id];
+    }
+    const emptyMsg=grid.querySelector('.muted');
+    if(emptyMsg)emptyMsg.remove();
+    const tile=document.createElement('div');
+    tile.className='cls-cam-tile';
+    tile.innerHTML='<img class="hidden"><div class="cls-cam-tile-off">🎥 خاموش</div><div class="cls-cam-tile-name"></div>';
+    grid.appendChild(tile);
+    const obj={tile, img:tile.querySelector('img'), off:tile.querySelector('.cls-cam-tile-off'), nameEl:tile.querySelector('.cls-cam-tile-name')};
+    obj.nameEl.textContent=name||'شرکت‌کننده';
+    webStudentCamTiles[id]=obj;
+    return obj;
+  }
+  function webPruneStudentMedia(list){
+    const activeIds=new Set(list.filter(p=>p.role==='student').map(p=>p.id));
+    Object.keys(webStudentCamTiles).forEach(id=>{
+      if(!activeIds.has(id)){ webStudentCamTiles[id].tile.remove(); delete webStudentCamTiles[id]; }
+    });
+    Object.keys(webAudioQueues).forEach(id=>{ if(!activeIds.has(id)) delete webAudioQueues[id]; });
+    webStudentCamGridEmptyCheck();
+  }
+  function webUpdateParticipants(list){
+    document.getElementById('web-online-count').textContent=list.length;
+    const box=document.getElementById('web-participants');
+    if(!list.length){box.innerHTML='<span class="muted">کسی متصل نیست</span>';webPruneStudentMedia(list);return;}
+    box.innerHTML=list.map(p=>{
+      const icon=p.role==='teacher'?'👨‍🏫':'👤';
+      return '<div>'+icon+' '+esc(p.name||'')+'</div>';
+    }).join('');
+    webPruneStudentMedia(list);
+  }
+  function webAddChat(entry){
+    const box=document.getElementById('web-chatBox');
+    const cls=entry.role==='teacher'?'teacher':'student';
+    box.insertAdjacentHTML('beforeend','<div class="msg '+cls+'"><div class="who">'+esc(entry.from)+'</div>'+esc(entry.text)+'</div>');
+    box.scrollTop=box.scrollHeight;
+  }
+  function webSend(obj){ if(webWs && webWs.readyState===1) webWs.send(JSON.stringify(obj)); }
+  function webSetSpotlightUI(active){
+    webSpotlightActive=!!active;
+    document.getElementById('btn-web-spotlight').textContent=webSpotlightActive?'🔦 پایان حالت سخنرانی':'🔦 شروع حالت سخنرانی';
+    document.getElementById('web-spotlight-status').textContent=webSpotlightActive
+      ?'حالت سخنرانی فعال است — فقط تصویر شما برای همه بزرگ نمایش داده می‌شود.'
+      :'حالت سخنرانی غیرفعال است — همه‌ی شرکت‌کنندگان همدیگر را می‌بینند.';
+  }
+
+  document.getElementById('btn-web-start').onclick=async function(){
+    document.getElementById('t-web-status').textContent='در حال اتصال به وبینار...';
+    try{
+      const chk=await fetch('/api/webinar/ws?check=1&role=teacher');
+      const chkData=await chk.json().catch(()=>({ok:false,error:'پاسخ نامعتبر از سرور'}));
+      if(!chkData.ok){document.getElementById('t-web-status').textContent='خطا: '+chkData.error;toast(chkData.error);return;}
+    }catch(e){document.getElementById('t-web-status').textContent='اتصال به سرور برقرار نشد';return;}
+    const proto=location.protocol==='https:'?'wss:':'ws:';
+    webWs=new WebSocket(proto+'//'+location.host+'/api/webinar/ws?role=teacher&name='+encodeURIComponent('معلم'));
+    webWs.onopen=()=>{
+      document.getElementById('webdot').classList.add('on');
+      document.getElementById('t-web-status').textContent='وبینار فعال است ✅';
+      document.getElementById('btn-web-start').classList.add('hidden');
+      document.getElementById('btn-web-stop').classList.remove('hidden');
+      document.getElementById('btn-web-mic-toggle').classList.remove('hidden');
+      document.getElementById('btn-web-cam-toggle').classList.remove('hidden');
+      document.getElementById('btn-web-spotlight').classList.remove('hidden');
+    };
+    webWs.onclose=()=>{
+      document.getElementById('webdot').classList.remove('on');
+      document.getElementById('t-web-status').textContent='وبینار پایان یافت';
+      document.getElementById('btn-web-start').classList.remove('hidden');
+      document.getElementById('btn-web-stop').classList.add('hidden');
+      document.getElementById('btn-web-mic-toggle').classList.add('hidden');
+      document.getElementById('btn-web-cam-toggle').classList.add('hidden');
+      document.getElementById('btn-web-cam-flip').classList.add('hidden');
+      document.getElementById('btn-web-spotlight').classList.add('hidden');
+    };
+    webWs.onerror=()=>{try{webWs.close();}catch(e){}};
+    webWs.onmessage=(evt)=>{
+      let m;try{m=JSON.parse(evt.data);}catch(e){return;}
+      if(m.type==='init'){
+        (m.chat||[]).forEach(webAddChat);
+        webUpdateParticipants(m.participants||[]);
+        webSetSpotlightUI(!!m.spotlight);
+      }
+      else if(m.type==='spotlight'){ webSetSpotlightUI(!!m.active); }
+      else if(m.type==='chat'){ webAddChat(m.entry); }
+      else if(m.type==='presence'){
+        webUpdateParticipants(m.participants||[]);
+        if(m.event==='join'&&m.role==='student')toast(m.name+' به وبینار پیوست');
+      }
+      else if(m.type==='raise-hand'){ toast('✋ '+m.name+' دستش را بلند کرد'); }
+      else if(m.type==='audio'){ if(m.role==='student') webPlayAudioChunk(m.id, m.data, m.mime); }
+      else if(m.type==='video-frame'){
+        if(m.role==='student'){
+          const t=webEnsureStudentCamTile(m.id, m.from);
+          t.img.src=m.data; t.img.classList.remove('hidden'); t.off.classList.add('hidden');
+        }
+      }
+      else if(m.type==='video-stop'){
+        if(m.role==='student'){
+          const t=webStudentCamTiles[m.id];
+          if(t){ t.img.classList.add('hidden'); t.img.src=''; t.off.classList.remove('hidden'); }
+        }
+      }
+    };
+  };
+
+  document.getElementById('btn-web-stop').onclick=function(){
+    if(webWs){ try{webWs.close();}catch(e){} webWs=null; }
+    if(webMicStream){ webMicStream.getTracks().forEach(t=>t.stop()); webMicStream=null; }
+    webAudioActive=false; webAudioGen++;
+    if(webCamStream){ webCamStream.getTracks().forEach(t=>t.stop()); webCamStream=null; }
+    if(webCamInterval){ clearInterval(webCamInterval); webCamInterval=null; }
+    document.getElementById('web-t-cam-preview').classList.add('hidden');
+    document.getElementById('web-t-cam-placeholder').classList.remove('hidden');
+    webSetSpotlightUI(false);
+    Object.keys(webStudentCamTiles).forEach(id=>webStudentCamTiles[id].tile.remove());
+    for(const k in webStudentCamTiles) delete webStudentCamTiles[k];
+    webStudentCamGridEmptyCheck();
+  };
+
+  document.getElementById('btn-web-spotlight').onclick=function(){
+    webSend({type:'spotlight', active: !webSpotlightActive});
+  };
+
+  document.getElementById('web-btnSend').onclick=()=>{
+    const inp=document.getElementById('web-chatInput');
+    const text=inp.value.trim();
+    if(!text)return;
+    webSend({type:'chat', text});
+    inp.value='';
+  };
+  document.getElementById('web-chatInput').addEventListener('keydown',e=>{if(e.key==='Enter')document.getElementById('web-btnSend').click();});
+
+  function webStartMicRecorder(stream){
+    if(webAudioActive) return;
+    webMicStream=stream;
+    webAudioActive=true;
+    webAudioGen++;
+    const webGen=webAudioGen;
+    const preferredMimes=['audio/webm;codecs=opus','audio/webm','audio/mp4'];
+    const mime=preferredMimes.find(m=>window.MediaRecorder && MediaRecorder.isTypeSupported(m)) || '';
+    function recordOneChunk(){
+      if(webGen!==webAudioGen || !webAudioActive || !webMicStream) return;
+      let chunks=[];
+      let rec;
+      try{ rec=new MediaRecorder(webMicStream, mime?{mimeType:mime}:undefined); }
+      catch(e){ webAudioActive=false; toast('امکان ضبط صدا در این مرورگر نیست'); return; }
+      rec.ondataavailable=(e)=>{ if(e.data && e.data.size>0) chunks.push(e.data); };
+      rec.onstop=async()=>{
+        if(webGen!==webAudioGen) return;
+        if(chunks.length){
+          const blob=new Blob(chunks, {type: mime||'audio/webm'});
+          const buf=await blob.arrayBuffer();
+          let binary='';const bytes=new Uint8Array(buf);
+          for(let i=0;i<bytes.length;i++)binary+=String.fromCharCode(bytes[i]);
+          webSend({type:'audio', data: btoa(binary), mime: mime||'audio/webm'});
+        }
+        if(webAudioActive && webGen===webAudioGen) setTimeout(recordOneChunk, 15);
+      };
+      rec.start();
+      webRecorder=rec;
+      setTimeout(()=>{ if(rec.state==='recording') rec.stop(); }, 260);
+    }
+    recordOneChunk();
+  }
+  function webStopMicRecorder(){
+    webAudioActive=false;
+    webAudioGen++;
+    if(webRecorder && webRecorder.state==='recording')webRecorder.stop();
+    if(webMicStream)webMicStream.getTracks().forEach(t=>t.stop());
+    webMicStream=null;
+    document.getElementById('btn-web-mic-toggle').textContent='🎙️ روشن کردن میکروفون';
+  }
+
+  document.getElementById('btn-web-mic-toggle').onclick=async function(){
+    if(!webWs||webWs.readyState!==1){toast('ابتدا وبینار را شروع کنید');return;}
+    if(webRecorder && webRecorder.state==='recording'){
+      webStopMicRecorder();
+      webAudioFromCam=false;
+      return;
+    }
+    try{
+      const stream=await navigator.mediaDevices.getUserMedia({audio:true});
+      webStartMicRecorder(stream);
+      webAudioFromCam=false;
+      this.textContent='🔴 خاموش کردن میکروفون';
+    }catch(e){ toast('دسترسی به میکروفون داده نشد'); }
+  };
+
+  document.getElementById('btn-web-cam-toggle').onclick=async function(){
+    const preview=document.getElementById('web-t-cam-preview');
+    const placeholder=document.getElementById('web-t-cam-placeholder');
+    if(webCamStream){
+      webCamStream.getTracks().forEach(t=>t.stop());
+      webCamStream=null;
+      if(webCamInterval){clearInterval(webCamInterval);webCamInterval=null;}
+      preview.classList.add('hidden'); preview.srcObject=null;
+      placeholder.classList.remove('hidden');
+      this.textContent='📷 روشن کردن تصویر';
+      document.getElementById('btn-web-cam-flip').classList.add('hidden');
+      webCamFacing='user';
+      webSend({type:'video-stop'});
+      if(webAudioFromCam){ webStopMicRecorder(); webAudioFromCam=false; }
+      return;
+    }
+    if(!webWs||webWs.readyState!==1){toast('ابتدا وبینار را شروع کنید');return;}
+    try{
+      webCamStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:webCamFacing,width:{ideal:480}}, audio:true});
+      preview.srcObject=webCamStream;
+      preview.classList.remove('hidden');
+      placeholder.classList.add('hidden');
+      this.textContent='🔴 خاموش کردن تصویر';
+      document.getElementById('btn-web-cam-flip').classList.remove('hidden');
+      if(!(webRecorder && webRecorder.state==='recording') && webCamStream.getAudioTracks().length){
+        webStartMicRecorder(new MediaStream(webCamStream.getAudioTracks()));
+        webAudioFromCam=true;
+        document.getElementById('btn-web-mic-toggle').textContent='🔴 خاموش کردن میکروفون';
+      }
+      const cap=document.createElement('canvas');
+      const capCtx=cap.getContext('2d');
+      webCamInterval=setInterval(function(){
+        if(!webCamStream)return;
+        try{
+          const vw=preview.videoWidth||480, vh=preview.videoHeight||360;
+          if(cap.width!==vw||cap.height!==vh){cap.width=vw;cap.height=vh;}
+          capCtx.drawImage(preview,0,0,cap.width,cap.height);
+          const dataUrl=cap.toDataURL('image/jpeg',0.7);
+          webSend({type:'video-frame', data: dataUrl});
+        }catch(e){}
+      },150);
+    }catch(e){ toast('دسترسی به دوربین یا میکروفون داده نشد'); }
+  };
+
+  document.getElementById('btn-web-cam-flip').onclick=async function(){
+    if(!webCamStream){toast('ابتدا دوربین را روشن کنید');return;}
+    const preview=document.getElementById('web-t-cam-preview');
+    const prevFacing=webCamFacing;
+    const nextFacing=webCamFacing==='user'?'environment':'user';
+    const wasAudioFromCam=webAudioFromCam;
+    if(wasAudioFromCam){ webStopMicRecorder(); webAudioFromCam=false; }
+    webCamStream.getTracks().forEach(t=>t.stop());
+    webCamStream=null;
+    preview.srcObject=null;
+    try{
+      const newStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{exact:nextFacing},width:{ideal:480}}, audio:true});
+      webCamStream=newStream;
+      webCamFacing=nextFacing;
+      preview.srcObject=webCamStream;
+      if(wasAudioFromCam && webCamStream.getAudioTracks().length){
+        webStartMicRecorder(new MediaStream(webCamStream.getAudioTracks()));
+        webAudioFromCam=true;
+        document.getElementById('btn-web-mic-toggle').textContent='🔴 خاموش کردن میکروفون';
+      }
+    }catch(e){
+      toast('این دستگاه دوربین دومی ندارد یا اجازه دسترسی به آن را نمی‌دهد');
+      try{
+        webCamStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:prevFacing,width:{ideal:480}}, audio:true});
+        webCamFacing=prevFacing;
+        preview.srcObject=webCamStream;
+        if(wasAudioFromCam && webCamStream.getAudioTracks().length){
+          webStartMicRecorder(new MediaStream(webCamStream.getAudioTracks()));
+          webAudioFromCam=true;
+          document.getElementById('btn-web-mic-toggle').textContent='🔴 خاموش کردن میکروفون';
+        }
+      }catch(e2){
+        toast('دسترسی به دوربین قطع شد؛ لطفاً دوباره روی «روشن کردن تصویر» بزنید');
+        document.getElementById('btn-web-cam-toggle').textContent='📷 روشن کردن تصویر';
+        document.getElementById('btn-web-cam-flip').classList.add('hidden');
       }
     }
   };
