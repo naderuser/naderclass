@@ -300,9 +300,12 @@ export default {
         return await studentClassPage(env, id);
       }
 
-      if (path.startsWith("/webinar/")) {
-        const id = decodeURIComponent(path.slice(9));
-        return await studentWebinarPage(env, id);
+      if (path === "/webinar") {
+        return await webinarJoinPage(env);
+      }
+
+      if (path === "/attendance") {
+        return await attendancePage(env);
       }
 
       if (path.startsWith("/g/")) {
@@ -338,14 +341,15 @@ export default {
  * -------------------------------------------------------------------------------- */
 
 async function handleClassroomSocket(req, env, url) {
-  return await handleRoomSocket(req, env, url, "main", "کلاس آنلاین");
+  return await handleRoomSocket(req, env, url, "main", "کلاس آنلاین", false);
 }
 
 async function handleWebinarSocket(req, env, url) {
-  return await handleRoomSocket(req, env, url, "webinar", "وبینار");
+  return await handleRoomSocket(req, env, url, "webinar", "وبینار", true);
 }
 
-async function handleRoomSocket(req, env, url, roomName, label) {
+// openParticipation=true یعنی هر کسی با لینک واحد و فقط با وارد کردن نام می‌تواند وارد شود (بدون نیاز به فهرست دانش‌آموزان)
+async function handleRoomSocket(req, env, url, roomName, label, openParticipation) {
   const role = url.searchParams.get("role") === "teacher" ? "teacher" : "student";
 
   // مسیر تشخیصی: بدون WebSocket، فقط بررسی می‌کند که آیا اتصال باید موفق باشد یا نه
@@ -353,6 +357,9 @@ async function handleRoomSocket(req, env, url, roomName, label) {
   if (url.searchParams.get("check") === "1") {
     if (role === "teacher") {
       if (!(await isTeacher(req, env))) return json({ ok: false, error: "برای " + label + " باید ابتدا در پنل معلم وارد شوید." }, 401);
+    } else if (openParticipation) {
+      const name = (url.searchParams.get("name") || "").trim();
+      if (!name) return json({ ok: false, error: "لطفاً نام و نام خانوادگی را وارد کنید." }, 400);
     } else {
       const id = url.searchParams.get("id") || "";
       const rec = id ? await env.EXAM_KV.get("student:" + id) : null;
@@ -370,6 +377,9 @@ async function handleRoomSocket(req, env, url, roomName, label) {
 
   if (role === "teacher") {
     if (!(await isTeacher(req, env))) return json({ ok: false, error: "دسترسی غیرمجاز" }, 401);
+  } else if (openParticipation) {
+    const name = (url.searchParams.get("name") || "").trim();
+    if (!name) return json({ ok: false, error: "نام و نام خانوادگی الزامی است" }, 400);
   } else {
     const id = url.searchParams.get("id") || "";
     const rec = await env.EXAM_KV.get("student:" + id);
@@ -395,7 +405,6 @@ export class ClassRoom {
     this.boardBg = null; // صفحه‌ی PDF فعلی روی تخته (data URL) یا null
     this.boardBgW = 900;
     this.boardBgH = 560;
-    this.spotlight = false; // حالت سخنرانی وبینار: فقط تصویر معلم بزرگ نمایش داده می‌شود
   }
 
   async fetch(req) {
@@ -408,22 +417,6 @@ export class ClassRoom {
     const role = url.searchParams.get("role") === "teacher" ? "teacher" : "student";
     const id = url.searchParams.get("id") || "";
     const name = (url.searchParams.get("name") || (role === "teacher" ? "معلم" : "دانش‌آموز")).slice(0, 60);
-
-    // ظرفیت وبینار حداکثر ۲۰ دانش‌آموز هم‌زمان است؛ اگر پر بود، اتصال را با یک پیام روشن می‌بندیم
-    // (به‌جای رد کردن خام درخواست) تا کلاینت بتواند پیام را به کاربر نشان دهد.
-    if (kind === "webinar" && role === "student") {
-      const studentCount = Array.from(this.sessions.values()).filter((s) => s.role === "student").length;
-      if (studentCount >= 20) {
-        const fullPair = new WebSocketPair();
-        const [fullClient, fullServer] = Object.values(fullPair);
-        fullServer.accept();
-        try {
-          fullServer.send(JSON.stringify({ type: "error", message: "ظرفیت وبینار تکمیل شده است (حداکثر ۲۰ نفر). لطفاً بعداً تلاش کنید." }));
-        } catch {}
-        try { fullServer.close(1000, "capacity-full"); } catch {}
-        return new Response(null, { status: 101, webSocket: fullClient });
-      }
-    }
 
     const pair = new WebSocketPair();
     const [client, server] = Object.values(pair);
@@ -441,7 +434,6 @@ export class ClassRoom {
       boardBgH: this.boardBgH,
       chat: this.chat.slice(-50),
       participants: this.participantList(),
-      spotlight: this.spotlight,
     }));
 
     this.broadcast({ type: "presence", event: "join", role, name, participants: this.participantList() }, server);
@@ -472,6 +464,9 @@ export class ClassRoom {
 
     // وبینار تخته آنلاین ندارد؛ این پیام‌ها فقط برای اتاق کلاس آنلاین معتبرند (محافظتی، چون رابط کاربری وبینار اصلاً این دکمه‌ها را ندارد)
     if (this.kind === "webinar" && (msg.type === "draw" || msg.type === "clear" || msg.type === "board-bg")) return;
+
+    // در وبینار فقط معلم تصویر می‌فرستد؛ شرکت‌کنندگان فقط صدا/چت/بلندکردن دست دارند (محافظتی سمت سرور)
+    if (this.kind === "webinar" && session.role === "student" && (msg.type === "video-frame" || msg.type === "video-stop")) return;
 
     // فقط معلم اجازه‌ی رسم روی تخته هوشمند و پخش صدا را دارد
     if (msg.type === "draw" && session.role === "teacher") {
@@ -545,13 +540,6 @@ export class ClassRoom {
 
     if (msg.type === "raise-hand" && session.role === "student") {
       this.broadcast({ type: "raise-hand", name: session.name });
-      return;
-    }
-
-    // حالت سخنرانی وبینار: فقط معلم می‌تواند فعال/غیرفعال کند؛ با یک کلیک همه فقط تصویر معلم را می‌بینند
-    if (msg.type === "spotlight" && session.role === "teacher") {
-      this.spotlight = !!msg.active;
-      this.broadcast({ type: "spotlight", active: this.spotlight });
       return;
     }
   }
@@ -1142,6 +1130,57 @@ async function handleApi(req, env, url, path) {
       const id = decodeURIComponent(path.slice("/api/teacher/students/".length));
       await env.EXAM_KV.delete("student:" + id);
       await env.EXAM_KV.delete("submission:" + id);
+      return json({ ok: true });
+    }
+
+    /* --- وبینار: موضوع/عنوان (لینک ثابت و واحد است، فقط موضوع قابل تنظیم است) --- */
+    if (path === "/api/webinar/topic" && method === "GET") {
+      const topic = (await env.EXAM_KV.get("webinar:topic")) || "";
+      return json({ ok: true, topic });
+    }
+    if (path === "/api/webinar/topic" && method === "POST") {
+      if (!(await isTeacher(req, env))) return json({ ok: false, error: "دسترسی غیرمجاز" }, 401);
+      const body = await req.json().catch(() => ({}));
+      const topic = String(body.topic || "").slice(0, 200);
+      await env.EXAM_KV.put("webinar:topic", topic);
+      return json({ ok: true, topic });
+    }
+
+    /* --- فرم حضور و غیاب: یک لینک عمومی واحد؛ ثبت‌شده‌ها برای معلم قابل مشاهده است --- */
+    if (path === "/api/attendance/submit" && method === "POST") {
+      const body = await req.json().catch(() => ({}));
+      const name = String(body.name || "").trim().slice(0, 80);
+      const family = String(body.family || "").trim().slice(0, 80);
+      const nationalCode = String(body.nationalCode || "").trim().slice(0, 20);
+      const school = String(body.school || "").trim().slice(0, 150);
+      const region = String(body.region || "").trim().slice(0, 100);
+      if (!name || !family) return json({ ok: false, error: "نام و نام خانوادگی الزامی است" }, 400);
+      const id = uuid();
+      const rec = { id, name, family, nationalCode, school, region, ts: Date.now() };
+      await env.EXAM_KV.put("attendance:" + id, JSON.stringify(rec));
+      return json({ ok: true });
+    }
+    if (path === "/api/teacher/attendance" && method === "GET") {
+      if (!(await isTeacher(req, env))) return json({ ok: false, error: "دسترسی غیرمجاز" }, 401);
+      const out = [];
+      let cursor;
+      do {
+        const res = await env.EXAM_KV.list({ prefix: "attendance:", cursor });
+        const values = await Promise.all(res.keys.map((k) => env.EXAM_KV.get(k.name)));
+        for (const v of values) { if (v) out.push(JSON.parse(v)); }
+        cursor = res.list_complete ? null : res.cursor;
+      } while (cursor);
+      out.sort((a, b) => (b.ts || 0) - (a.ts || 0));
+      return json({ ok: true, records: out.slice(0, 500) });
+    }
+    if (path === "/api/teacher/attendance" && method === "DELETE") {
+      if (!(await isTeacher(req, env))) return json({ ok: false, error: "دسترسی غیرمجاز" }, 401);
+      let cursor;
+      do {
+        const res = await env.EXAM_KV.list({ prefix: "attendance:", cursor });
+        await Promise.all(res.keys.map((k) => env.EXAM_KV.delete(k.name)));
+        cursor = res.list_complete ? null : res.cursor;
+      } while (cursor);
       return json({ ok: true });
     }
 
@@ -4221,21 +4260,12 @@ async function studentClassPage(env, id) {
   </script></body></html>`);
 }
 
-async function studentWebinarPage(env, id) {
-  const raw = await env.EXAM_KV.get("student:" + id);
-  if (!raw) {
-    return html(
-      `<!doctype html><html lang="fa" dir="rtl"><head><meta charset="utf-8">${FONT_LINK}<style>${SHARED_CSS}</style></head>
-      <body><div class="wrap">${pageHeader()}<div class="card"><h2>لینک نامعتبر است</h2>
-      <p class="muted">این لینک وبینار معتبر نیست یا حذف شده است. لطفاً با معلم خود تماس بگیرید.</p></div></div></body></html>`,
-      404
-    );
-  }
-  const student = JSON.parse(raw);
+async function webinarJoinPage(env) {
+  const topic = (await env.EXAM_KV.get("webinar:topic")) || "";
 
   return html(`<!doctype html><html lang="fa" dir="rtl"><head><meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>وبینار</title>${FONT_LINK}<style>${SHARED_CSS}
+  <title>وبینار${topic ? " — " + topic.replace(/</g, "&lt;") : ""}</title>${FONT_LINK}<style>${SHARED_CSS}
     .cls-status{display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap}
     .dot{width:10px;height:10px;border-radius:50%;background:#dc2626;display:inline-block}
     .dot.on{background:#16a34a}
@@ -4244,17 +4274,28 @@ async function studentWebinarPage(env, id) {
     .msg.teacher{background:#eef2ff;align-self:flex-start}
     .msg.student{background:#dcfce7;align-self:flex-end}
     .msg .who{font-size:11px;color:#666;margin-bottom:2px}
-    #web-teacher-tile{position:relative;width:100%;max-width:420px;aspect-ratio:4/3;background:#000;border-radius:12px;overflow:hidden;margin:0 auto;transition:max-width .2s,max-height .2s}
-    #web-teacher-tile.spotlight{max-width:100%;aspect-ratio:16/9;max-height:74vh}
+    #web-teacher-tile{position:relative;width:100%;max-width:640px;aspect-ratio:16/9;background:#000;border-radius:12px;overflow:hidden;margin:0 auto}
     #web-teacher-video{width:100%;height:100%;object-fit:cover;display:block}
     #web-teacher-placeholder{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#e5e7eb;font-size:13px;text-align:center;padding:8px}
   </style></head>
   <body><div class="wrap">
     ${pageHeader()}
-    <div class="card">
-      <h3>🎙️ وبینار${student.label ? " — " + esc(student.label) : ""}</h3>
+
+    <div class="card" id="web-join-card">
+      <h3>🎙️ ورود به وبینار</h3>
+      ${topic ? '<p class="muted" style="font-size:15px;font-weight:700">موضوع: ' + esc(topic) + '</p>' : ""}
+      <p class="muted">برای ورود به وبینار، نام و نام خانوادگی خود را وارد کنید.</p>
+      <div class="row" style="flex-wrap:wrap;gap:10px;margin-top:10px">
+        <input id="web-join-name" placeholder="نام" style="flex:1;min-width:140px">
+        <input id="web-join-family" placeholder="نام خانوادگی" style="flex:1;min-width:140px">
+      </div>
+      <button class="btn primary" id="btn-web-join" style="margin-top:12px">ورود به وبینار</button>
+      <p id="web-join-error" class="muted hidden" style="color:#dc2626;margin-top:8px"></p>
+    </div>
+
+    <div class="card hidden" id="web-main-card">
+      <h3>🎙️ وبینار${topic ? " — " + esc(topic) : ""}</h3>
       <div class="cls-status">
-        <a class="btn sm sec" href="/s/${encodeURIComponent(id)}">↩️ بازگشت</a>
         <span class="dot" id="cls-dot"></span>
         <span id="cls-status-text" class="muted">در حال اتصال به وبینار...</span>
         <span style="flex:1"></span>
@@ -4269,26 +4310,15 @@ async function studentWebinarPage(env, id) {
               <img id="web-teacher-video" class="hidden">
               <div id="web-teacher-placeholder">🎥 دوربین معلم خاموش است</div>
             </div>
-            <p id="web-spotlight-banner" class="hidden" style="text-align:center;color:#2563eb;font-weight:700;margin-top:8px">🔦 معلم در حال سخنرانی است</p>
           </div>
         </div>
 
         <div class="cls-sec">
-          <div class="cls-sec-head">🎙️ دوربین و میکروفن من</div>
+          <div class="cls-sec-head">🎙️ میکروفن من</div>
           <div style="padding:10px 14px">
-            <div class="row" style="flex-wrap:wrap;gap:8px">
-              <button type="button" class="btn sm sec" id="btn-my-mic-toggle">🎙️ روشن کردن میکروفون</button>
-              <button type="button" class="btn sm sec" id="btn-my-cam-toggle">📷 روشن کردن تصویر</button>
-              <button type="button" class="btn sm sec hidden" id="btn-my-cam-flip">🔄 چرخش دوربین</button>
-            </div>
-            <video id="my-cam-preview" autoplay muted playsinline class="hidden" style="width:140px;height:105px;object-fit:cover;border-radius:10px;margin-top:10px;background:#000"></video>
-            <p class="muted" style="font-size:12px;margin-top:8px">با روشن کردن دوربین یا میکروفون، تصویر/صدای شما برای معلم و بقیه‌ی شرکت‌کنندگان پخش می‌شود.</p>
+            <button type="button" class="btn sm sec" id="btn-my-mic-toggle">🎙️ روشن کردن میکروفون</button>
+            <p class="muted" style="font-size:12px;margin-top:8px">با روشن کردن میکروفون، صدای شما برای معلم و بقیه‌ی شرکت‌کنندگان پخش می‌شود. این وبینار تماس تصویری برای شرکت‌کنندگان ندارد؛ فقط تصویر معلم نمایش داده می‌شود.</p>
           </div>
-        </div>
-
-        <div class="cls-sec" id="web-peer-section">
-          <div class="cls-sec-head">🎥 دوربین دیگر شرکت‌کنندگان</div>
-          <div id="cls-peer-cams" class="cls-cam-grid" style="padding:10px 14px"><span class="muted" style="font-size:12px">دوربینی روشن نیست</span></div>
         </div>
 
         <div class="cls-sec">
@@ -4311,16 +4341,9 @@ async function studentWebinarPage(env, id) {
   </div>
   <div class="toast" id="toast"></div>
   <script>
-    const ID = ${JSON.stringify(id)};
-    const NAME = ${JSON.stringify(student.label || "دانش‌آموز")};
+    let NAME = '';
     function toast(m){const t=document.getElementById('toast');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2500);}
     function esc(s){const d=document.createElement('div');d.textContent=s==null?'':s;return d.innerHTML;}
-
-    function setSpotlight(active){
-      document.getElementById('web-teacher-tile').classList.toggle('spotlight', !!active);
-      document.getElementById('web-spotlight-banner').classList.toggle('hidden', !active);
-      document.getElementById('web-peer-section').classList.toggle('hidden', !!active);
-    }
 
     // ===== پخش زنده‌ی صدا (صف پخش برای هر فرستنده جداگانه، تا صداها روی هم نیفتند) =====
     const audioQueues={};
@@ -4361,51 +4384,21 @@ async function studentWebinarPage(env, id) {
       a.play().catch(()=>{ st.playing=false; pumpAudioQueue(id); });
     }
 
-    // ===== دوربین/صدای زنده‌ی دیگر شرکت‌کنندگان (نمایش برای این شرکت‌کننده) =====
-    const peerCamTiles={};
-    function peerCamGridEmptyCheck(){
-      const grid=document.getElementById('cls-peer-cams');
-      if(!Object.keys(peerCamTiles).length){
-        grid.innerHTML='<span class="muted" style="font-size:12px">دوربینی روشن نیست</span>';
-      }
-    }
-    function ensurePeerCamTile(id,name){
-      const grid=document.getElementById('cls-peer-cams');
-      if(peerCamTiles[id]){
-        if(name)peerCamTiles[id].nameEl.textContent=name;
-        return peerCamTiles[id];
-      }
-      const emptyMsg=grid.querySelector('.muted');
-      if(emptyMsg)emptyMsg.remove();
-      const tile=document.createElement('div');
-      tile.className='cls-cam-tile';
-      tile.innerHTML='<img class="hidden"><div class="cls-cam-tile-off">🎥 خاموش</div><div class="cls-cam-tile-name"></div>';
-      grid.appendChild(tile);
-      const obj={tile, img:tile.querySelector('img'), off:tile.querySelector('.cls-cam-tile-off'), nameEl:tile.querySelector('.cls-cam-tile-name')};
-      obj.nameEl.textContent=name||'شرکت‌کننده';
-      peerCamTiles[id]=obj;
-      return obj;
-    }
-    function prunePeerMedia(list){
-      const activeIds=new Set(list.filter(p=>p.role==='student' && p.id!==ID).map(p=>p.id));
-      Object.keys(peerCamTiles).forEach(id=>{
-        if(!activeIds.has(id)){ peerCamTiles[id].tile.remove(); delete peerCamTiles[id]; }
-      });
-      Object.keys(audioQueues).forEach(id=>{ if(id!=='teacher' && !activeIds.has(id)) delete audioQueues[id]; });
-      peerCamGridEmptyCheck();
-    }
-
     function updateParticipants(list){
       const box=document.getElementById('cls-users-list');
       const countEl=document.getElementById('cls-users-count');
       countEl.textContent=toFaDigitsCls(list.length);
-      if(!list.length){box.innerHTML='<span class="muted">کسی متصل نیست</span>';prunePeerMedia(list);return;}
+      if(!list.length){box.innerHTML='<span class="muted">کسی متصل نیست</span>';
+        Object.keys(audioQueues).forEach(id=>delete audioQueues[id]);
+        return;
+      }
       box.innerHTML=list.map(function(p){
         const roleCls=p.role==='teacher'?'role-teacher':'';
         const icon=p.role==='teacher'?'👨‍🏫':'👤';
         return '<div class="cls-user-row '+roleCls+'"><span class="u-dot"></span>'+icon+' '+esc(p.name||'')+'</div>';
       }).join('');
-      prunePeerMedia(list);
+      const activeIds=new Set(list.map(p=>p.id));
+      Object.keys(audioQueues).forEach(id=>{ if(id!=='teacher' && !activeIds.has(id)) delete audioQueues[id]; });
     }
     const FA_DIGITS_CLS=['۰','۱','۲','۳','۴','۵','۶','۷','۸','۹'];
     function toFaDigitsCls(n){return String(n).replace(/[0-9]/g,d=>FA_DIGITS_CLS[+d]);}
@@ -4432,23 +4425,22 @@ async function studentWebinarPage(env, id) {
       box.scrollTop=box.scrollHeight;
     }
 
-    let ws=null, checkFailCount=0;
+    let ws=null;
     async function connect(){
       const proto=location.protocol==='https:'?'wss:':'ws:';
       try{
-        const chk=await fetch('/api/webinar/ws?check=1&role=student&id='+encodeURIComponent(ID));
+        const chk=await fetch('/api/webinar/ws?check=1&role=student&name='+encodeURIComponent(NAME));
         const chkData=await chk.json().catch(()=>({ok:false,error:'پاسخ نامعتبر از سرور'}));
         if(!chkData.ok){
           document.getElementById('cls-status-text').textContent='خطا: '+chkData.error;
           return;
         }
       }catch(e){
-        checkFailCount++;
         document.getElementById('cls-status-text').textContent='اتصال به سرور برقرار نشد، در حال تلاش مجدد...';
         setTimeout(connect,2000);
         return;
       }
-      ws=new WebSocket(proto+'//'+location.host+'/api/webinar/ws?role=student&id='+encodeURIComponent(ID)+'&name='+encodeURIComponent(NAME));
+      ws=new WebSocket(proto+'//'+location.host+'/api/webinar/ws?role=student&name='+encodeURIComponent(NAME));
       ws.onopen=()=>{document.getElementById('cls-dot').classList.add('on');document.getElementById('cls-status-text').textContent='متصل به وبینار ✅';};
       ws.onclose=()=>{document.getElementById('cls-dot').classList.remove('on');document.getElementById('cls-status-text').textContent='اتصال قطع شد، در حال تلاش مجدد...';setTimeout(connect,2000);};
       ws.onerror=()=>{try{ws.close();}catch(e){}};
@@ -4457,21 +4449,14 @@ async function studentWebinarPage(env, id) {
         if(m.type==='init'){
           (m.chat||[]).forEach(addChatMsg);
           updateParticipants(m.participants||[]);
-          setSpotlight(!!m.spotlight);
         }
-        else if(m.type==='spotlight'){ setSpotlight(!!m.active); }
-        else if(m.type==='audio'){playAudioChunk(m.role==='teacher'?'teacher':m.id, m.data, m.mime);}
+        else if(m.type==='audio'){ if(m.role==='teacher') playAudioChunk('teacher', m.data, m.mime); }
         else if(m.type==='video-frame'){
           if(m.role==='teacher'){
             const img=document.getElementById('web-teacher-video');
             img.src=m.data;
             img.classList.remove('hidden');
             document.getElementById('web-teacher-placeholder').classList.add('hidden');
-          } else if(m.id!==ID){
-            const t=ensurePeerCamTile(m.id, m.from);
-            t.img.src=m.data;
-            t.img.classList.remove('hidden');
-            t.off.classList.add('hidden');
           }
         }
         else if(m.type==='video-stop'){
@@ -4480,9 +4465,6 @@ async function studentWebinarPage(env, id) {
             img.classList.add('hidden');
             img.src='';
             document.getElementById('web-teacher-placeholder').classList.remove('hidden');
-          } else {
-            const t=peerCamTiles[m.id];
-            if(t){ t.img.classList.add('hidden'); t.img.src=''; t.off.classList.remove('hidden'); }
           }
         }
         else if(m.type==='chat'){addChatMsg(m.entry);}
@@ -4493,7 +4475,18 @@ async function studentWebinarPage(env, id) {
         }
       };
     }
-    connect();
+
+    document.getElementById('btn-web-join').onclick=function(){
+      const name=document.getElementById('web-join-name').value.trim();
+      const family=document.getElementById('web-join-family').value.trim();
+      const errEl=document.getElementById('web-join-error');
+      if(!name||!family){errEl.textContent='لطفاً نام و نام خانوادگی را وارد کنید';errEl.classList.remove('hidden');return;}
+      errEl.classList.add('hidden');
+      NAME=(name+' '+family).slice(0,60);
+      document.getElementById('web-join-card').classList.add('hidden');
+      document.getElementById('web-main-card').classList.remove('hidden');
+      connect();
+    };
 
     document.getElementById('btnSend').onclick=()=>{
       const inp=document.getElementById('chatInput');
@@ -4505,9 +4498,8 @@ async function studentWebinarPage(env, id) {
     document.getElementById('chatInput').addEventListener('keydown',e=>{if(e.key==='Enter')document.getElementById('btnSend').click();});
     document.getElementById('btn-raise-hand').onclick=()=>{if(ws&&ws.readyState===1){ws.send(JSON.stringify({type:'raise-hand'}));toast('دستت بلند شد ✋');}};
 
-    // ===== دوربین/میکروفن من (پخش زنده برای معلم و بقیه‌ی شرکت‌کنندگان) =====
+    // ===== میکروفن من (پخش زنده برای معلم و بقیه‌ی شرکت‌کنندگان) =====
     let myMicStream=null, myRecorder=null, myAudioActive=false, myAudioGen=0;
-    let myCamStream=null, myCamInterval=null, myAudioFromCam=false, myCamFacing='user';
 
     function myStartMicRecorder(stream){
       if(myAudioActive) return;
@@ -4554,98 +4546,70 @@ async function studentWebinarPage(env, id) {
       if(!ws||ws.readyState!==1){toast('ابتدا باید به وبینار متصل باشید');return;}
       if(myRecorder && myRecorder.state==='recording'){
         myStopMicRecorder();
-        myAudioFromCam=false;
         return;
       }
       try{
         const stream=await navigator.mediaDevices.getUserMedia({audio:true});
         myStartMicRecorder(stream);
-        myAudioFromCam=false;
         this.textContent='🔴 خاموش کردن میکروفون';
         toast('میکروفون شما فعال شد');
       }catch(e){ toast('دسترسی به میکروفون داده نشد'); }
     };
-
-    document.getElementById('btn-my-cam-toggle').onclick=async function(){
-      const preview=document.getElementById('my-cam-preview');
-      if(myCamStream){
-        myCamStream.getVideoTracks().forEach(t=>t.stop());
-        myCamStream=null;
-        if(myCamInterval){clearInterval(myCamInterval);myCamInterval=null;}
-        preview.classList.add('hidden');
-        preview.srcObject=null;
-        this.textContent='📷 روشن کردن تصویر';
-        document.getElementById('btn-my-cam-flip').classList.add('hidden');
-        myCamFacing='user';
-        if(ws&&ws.readyState===1)ws.send(JSON.stringify({type:'video-stop'}));
-        if(myAudioFromCam){ myStopMicRecorder(); myAudioFromCam=false; }
-        return;
-      }
-      if(!ws||ws.readyState!==1){toast('ابتدا باید به وبینار متصل باشید');return;}
+  </script></body></html>`);
+}
+async function attendancePage(env) {
+  return html(`<!doctype html><html lang="fa" dir="rtl"><head><meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>فرم حضور و غیاب</title>${FONT_LINK}<style>${SHARED_CSS}</style></head>
+  <body><div class="wrap">
+    ${pageHeader()}
+    <div class="card" id="att-form-card">
+      <h3>📋 فرم حضور و غیاب</h3>
+      <p class="muted">لطفاً مشخصات خود را کامل وارد کنید و روی «ثبت» بزنید.</p>
+      <div class="row" style="flex-wrap:wrap;gap:10px;margin-top:10px">
+        <input id="att-name" placeholder="نام" style="flex:1;min-width:140px">
+        <input id="att-family" placeholder="نام خانوادگی" style="flex:1;min-width:140px">
+      </div>
+      <div class="row" style="flex-wrap:wrap;gap:10px;margin-top:10px">
+        <input id="att-national" placeholder="کد ملی" style="flex:1;min-width:140px" inputmode="numeric">
+        <input id="att-school" placeholder="مدرسه" style="flex:1;min-width:140px">
+      </div>
+      <div class="row" style="flex-wrap:wrap;gap:10px;margin-top:10px">
+        <input id="att-region" placeholder="منطقه" style="flex:1;min-width:140px">
+      </div>
+      <button class="btn primary" id="btn-att-submit" style="margin-top:14px">ثبت</button>
+      <p id="att-error" class="muted hidden" style="color:#dc2626;margin-top:8px"></p>
+    </div>
+    <div class="card hidden" id="att-done-card">
+      <h3>✅ ثبت شد</h3>
+      <p class="muted">حضور و غیاب شما با موفقیت ثبت شد.</p>
+    </div>
+  </div>
+  <div class="toast" id="toast"></div>
+  <script>
+    function toast(m){const t=document.getElementById('toast');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2500);}
+    document.getElementById('btn-att-submit').onclick=async function(){
+      const name=document.getElementById('att-name').value.trim();
+      const family=document.getElementById('att-family').value.trim();
+      const nationalCode=document.getElementById('att-national').value.trim();
+      const school=document.getElementById('att-school').value.trim();
+      const region=document.getElementById('att-region').value.trim();
+      const errEl=document.getElementById('att-error');
+      if(!name||!family){errEl.textContent='نام و نام خانوادگی الزامی است';errEl.classList.remove('hidden');return;}
+      errEl.classList.add('hidden');
+      this.disabled=true;
+      this.textContent='در حال ثبت...';
       try{
-        myCamStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:myCamFacing,width:{ideal:480}}, audio:true});
-        preview.srcObject=myCamStream;
-        preview.classList.remove('hidden');
-        this.textContent='🔴 خاموش کردن تصویر';
-        document.getElementById('btn-my-cam-flip').classList.remove('hidden');
-        if(!(myRecorder && myRecorder.state==='recording') && myCamStream.getAudioTracks().length){
-          myStartMicRecorder(new MediaStream(myCamStream.getAudioTracks()));
-          myAudioFromCam=true;
-          document.getElementById('btn-my-mic-toggle').textContent='🔴 خاموش کردن میکروفون';
-        }
-        toast('تماس تصویری (با صدا) شما فعال شد');
-        const cap=document.createElement('canvas');
-        const capCtx=cap.getContext('2d');
-        myCamInterval=setInterval(function(){
-          if(!myCamStream)return;
-          try{
-            const vw=preview.videoWidth||480, vh=preview.videoHeight||360;
-            if(cap.width!==vw||cap.height!==vh){cap.width=vw;cap.height=vh;}
-            capCtx.drawImage(preview,0,0,cap.width,cap.height);
-            const dataUrl=cap.toDataURL('image/jpeg',0.7);
-            if(ws&&ws.readyState===1)ws.send(JSON.stringify({type:'video-frame', data: dataUrl}));
-          }catch(e){}
-        },150);
-      }catch(e){ toast('دسترسی به دوربین یا میکروفون داده نشد'); }
-    };
-
-    document.getElementById('btn-my-cam-flip').onclick=async function(){
-      if(!myCamStream){toast('ابتدا دوربین را روشن کنید');return;}
-      const preview=document.getElementById('my-cam-preview');
-      const prevFacing=myCamFacing;
-      const nextFacing=myCamFacing==='user'?'environment':'user';
-      const wasAudioFromCam=myAudioFromCam;
-      if(wasAudioFromCam){ myStopMicRecorder(); myAudioFromCam=false; }
-      myCamStream.getTracks().forEach(t=>t.stop());
-      myCamStream=null;
-      preview.srcObject=null;
-      try{
-        const newStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{exact:nextFacing},width:{ideal:480}}, audio:true});
-        myCamStream=newStream;
-        myCamFacing=nextFacing;
-        preview.srcObject=myCamStream;
-        if(wasAudioFromCam && myCamStream.getAudioTracks().length){
-          myStartMicRecorder(new MediaStream(myCamStream.getAudioTracks()));
-          myAudioFromCam=true;
-          document.getElementById('btn-my-mic-toggle').textContent='🔴 خاموش کردن میکروفون';
-        }
-        toast('دوربین عوض شد 🔄');
+        const r=await fetch('/api/attendance/submit',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({name,family,nationalCode,school,region})});
+        const d=await r.json().catch(()=>({ok:false,error:'پاسخ نامعتبر از سرور'}));
+        if(!d.ok){ errEl.textContent=d.error||'خطا در ثبت'; errEl.classList.remove('hidden'); this.disabled=false; this.textContent='ثبت'; return; }
+        document.getElementById('att-form-card').classList.add('hidden');
+        document.getElementById('att-done-card').classList.remove('hidden');
       }catch(e){
-        toast('این دستگاه دوربین دومی ندارد یا اجازه دسترسی به آن را نمی‌دهد');
-        try{
-          myCamStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:prevFacing,width:{ideal:480}}, audio:true});
-          myCamFacing=prevFacing;
-          preview.srcObject=myCamStream;
-          if(wasAudioFromCam && myCamStream.getAudioTracks().length){
-            myStartMicRecorder(new MediaStream(myCamStream.getAudioTracks()));
-            myAudioFromCam=true;
-            document.getElementById('btn-my-mic-toggle').textContent='🔴 خاموش کردن میکروفون';
-          }
-        }catch(e2){
-          toast('دسترسی به دوربین قطع شد؛ لطفاً دوباره روی «روشن کردن تصویر» بزنید');
-          document.getElementById('btn-my-cam-toggle').textContent='📷 روشن کردن تصویر';
-          document.getElementById('btn-my-cam-flip').classList.add('hidden');
-        }
+        errEl.textContent='اتصال به سرور برقرار نشد';
+        errEl.classList.remove('hidden');
+        this.disabled=false;
+        this.textContent='ثبت';
       }
     };
   </script></body></html>`);
@@ -5922,6 +5886,20 @@ function teacherPage() {
 
       <div class="card tab-content hidden" id="tab-classroom">
         <h3>🖥️ کلاس آنلاین</h3>
+
+        <div class="cls-sec" style="margin-bottom:16px">
+          <div class="cls-sec-head tap open" id="att-toggle">📋 فرم حضور و غیاب<span class="cls-chevron">▾</span></div>
+          <div id="att-wrap" class="cls-chat-wrap">
+            <p class="muted" style="margin-top:0">یک لینک واحد و عمومی؛ هرکس آن را باز کند فرم را پر و ثبت می‌کند. اطلاعات ثبت‌شده در همین‌جا برای شما قابل مشاهده است.</p>
+            <div class="row" style="align-items:center;gap:8px;margin-bottom:12px">
+              <div class="link-box" id="att-link-box" style="flex:1"></div>
+              <button class="btn sm sec" id="btn-att-link-copy" style="flex:0 0 auto">کپی لینک</button>
+              <button class="btn sm" id="btn-att-refresh" style="flex:0 0 auto">🔄 بروزرسانی</button>
+            </div>
+            <div id="att-records-wrap" style="overflow:auto"><span class="muted">برای مشاهده‌ی فهرست، روی «بروزرسانی» بزنید.</span></div>
+          </div>
+        </div>
+
         <div class="cls-status" style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
           <span class="dot" id="tdot" style="width:10px;height:10px;border-radius:50%;background:#dc2626;display:inline-block;flex:0 0 auto"></span>
           <span id="t-cls-status" class="muted" style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">کلاس آنلاین شروع نشده</span>
@@ -5985,7 +5963,17 @@ function teacherPage() {
 
       <div class="card tab-content hidden" id="tab-webinar">
         <h3>🎙️ وبینار</h3>
-        <p class="muted" style="margin-top:-6px">اتاقی جدا از کلاس آنلاین، مخصوص تماس تصویری چندنفره (حداکثر ۲۰ شرکت‌کننده) بدون تخته هوشمند — یک نفر (شما) سخنران اصلی است و با «حالت سخنرانی» می‌توانید با یک کلیک تصویر خودتان را برای همه بزرگ کنید.</p>
+        <p class="muted" style="margin-top:-6px">اتاقی جدا از کلاس آنلاین، با یک لینک واحد و عمومی — هرکس لینک را باز کند با وارد کردن نام و نام خانوادگی وارد می‌شود، بدون محدودیت تعداد. فقط تصویر شما (معلم) پخش می‌شود؛ شرکت‌کنندگان تماس تصویری ندارند و فقط می‌توانند صدا بفرستند و در چت بنویسند.</p>
+
+        <div class="row" style="flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:10px">
+          <input id="web-topic-input" placeholder="موضوع وبینار (مثلاً: جلسه اولیا و مربیان)" style="flex:1;min-width:200px">
+          <button class="btn sm" id="btn-web-topic-save" style="flex:0 0 auto">ذخیره موضوع</button>
+        </div>
+        <div class="row" style="align-items:center;gap:8px;margin-bottom:14px">
+          <div class="link-box" id="web-link-box" style="flex:1"></div>
+          <button class="btn sm sec" id="btn-web-link-copy" style="flex:0 0 auto">کپی لینک وبینار</button>
+        </div>
+
         <div class="cls-status" style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
           <span class="dot" id="webdot" style="width:10px;height:10px;border-radius:50%;background:#dc2626;display:inline-block;flex:0 0 auto"></span>
           <span id="t-web-status" class="muted" style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">وبینار شروع نشده</span>
@@ -5997,7 +5985,6 @@ function teacherPage() {
           <button class="btn sm sec hidden cls-opt-btn" id="btn-web-mic-toggle">🎙️ روشن کردن میکروفون</button>
           <button class="btn sm sec hidden cls-opt-btn" id="btn-web-cam-toggle">📷 روشن کردن تصویر</button>
           <button class="btn sm sec hidden cls-opt-btn" id="btn-web-cam-flip">🔄 چرخش دوربین</button>
-          <button class="btn sm primary hidden cls-opt-btn" id="btn-web-spotlight">🔦 شروع حالت سخنرانی</button>
         </div>
 
         <div class="cls-wrap">
@@ -6006,14 +5993,11 @@ function teacherPage() {
               <video id="web-t-cam-preview" autoplay muted playsinline class="hidden" style="width:100%;aspect-ratio:4/3;object-fit:cover;background:#000;border-radius:12px;display:block"></video>
               <div id="web-t-cam-placeholder" style="width:100%;aspect-ratio:4/3;background:#0f172a;border-radius:12px;display:flex;align-items:center;justify-content:center;color:#e5e7eb;font-size:13px">🎥 دوربین شما (سخنران) خاموش است</div>
             </div>
-            <p id="web-spotlight-status" class="muted" style="font-size:13px;margin-top:8px">حالت سخنرانی غیرفعال است — همه‌ی شرکت‌کنندگان همدیگر را می‌بینند.</p>
-            <p class="muted" style="font-size:12px;margin-top:6px">در حالت سخنرانی، شبکه‌ی دوربین دیگر شرکت‌کنندگان برای همه پنهان و فقط تصویر شما بزرگ نمایش داده می‌شود.</p>
+            <p class="muted" style="font-size:12px;margin-top:8px">تصویر شما برای همه‌ی شرکت‌کنندگان پخش می‌شود؛ شرکت‌کنندگان دوربین ندارند.</p>
           </div>
           <div class="cls-chat-col">
-            <h4 style="margin:0 0 6px">👥 حاضرین (<span id="web-online-count">0</span> / ۲۰)</h4>
+            <h4 style="margin:0 0 6px">👥 حاضرین (<span id="web-online-count">0</span>)</h4>
             <div id="web-participants" class="muted" style="font-size:13px;max-height:110px;overflow:auto;margin-bottom:10px"></div>
-            <h4 style="margin:0 0 6px">🎥 دوربین شرکت‌کنندگان</h4>
-            <div id="web-student-cams" class="cls-cam-grid" style="margin-bottom:12px"><span class="muted" style="font-size:12px">دوربینی روشن نیست</span></div>
             <div id="web-chatBox" style="height:220px;overflow:auto;border:1px solid var(--line);border-radius:10px;padding:10px;background:#fafafa;display:flex;flex-direction:column;gap:6px"></div>
             <div class="row" style="margin-top:8px">
               <input id="web-chatInput" placeholder="پیام به وبینار...">
@@ -7377,7 +7361,6 @@ function teacherScript() {
       students.map((s,i)=>{
         const link=location.origin+'/s/'+s.uuid;
         const classLink=location.origin+'/class/'+s.uuid;
-        const webinarLink=location.origin+'/webinar/'+s.uuid;
         let st='<span class="pill no">در انتظار</span>';
         if(s.status==='submitted')st='<span class="pill gr">ثبت‌شده (تصحیح‌نشده)</span>';
         if(s.status==='graded')st='<span class="pill ok">تصحیح‌شده</span>';
@@ -7392,7 +7375,6 @@ function teacherScript() {
           '<td>'+st+'</td>'+
           '<td><button class="btn sm" onclick="copyLink(\\''+link+'\\')">کپی</button> '+
           '<button class="btn sm sec" onclick="copyLink(\\''+classLink+'\\')" title="'+classLink+'">🖥️ لینک کلاس آنلاین</button> '+
-          '<button class="btn sm sec" onclick="copyLink(\\''+webinarLink+'\\')" title="'+webinarLink+'">🎙️ لینک وبینار</button> '+
           '<label class="btn sm sec" style="cursor:pointer">📷 عکس<input type="file" accept="image/*" style="display:none" onchange="changeStudentPhoto(\\''+s.uuid+'\\',this)"></label> '+
           '<button class="btn sm danger" onclick="delStudent(\\''+s.uuid+'\\')">حذف</button></td></tr>';
       }).join('')+'</table>';
@@ -13391,15 +13373,59 @@ function teacherScript() {
     }
   };
 
-  // ===================== وبینار (اتاق جدا از کلاس آنلاین) =====================
+  // ===================== فرم حضور و غیاب (لینک واحد و عمومی، داخل تب کلاس آنلاین) =====================
+  document.getElementById('att-link-box').textContent=location.origin+'/attendance';
+  document.getElementById('btn-att-link-copy').onclick=()=>{copyLink(location.origin+'/attendance');};
+  (function setupAttToggle(){
+    const toggle=document.getElementById('att-toggle');
+    const wrap=document.getElementById('att-wrap');
+    toggle.addEventListener('click',function(){
+      wrap.classList.toggle('hidden');
+      toggle.classList.toggle('open');
+    });
+  })();
+  function attFmtTime(ts){
+    try{ return new Date(ts).toLocaleString('fa-IR'); }catch(e){ return ''; }
+  }
+  document.getElementById('btn-att-refresh').onclick=async function(){
+    const wrap=document.getElementById('att-records-wrap');
+    wrap.innerHTML='<span class="muted">در حال بارگذاری...</span>';
+    const d=await api('/api/teacher/attendance');
+    if(!d || !d.ok){ wrap.innerHTML='<span class="muted">'+((d&&d.error)||'خطا در دریافت اطلاعات')+'</span>'; return; }
+    const records=d.records||[];
+    if(!records.length){ wrap.innerHTML='<span class="muted">هنوز کسی فرم را ثبت نکرده است</span>'; return; }
+    wrap.innerHTML='<table><tr><th>نام</th><th>نام خانوادگی</th><th>کد ملی</th><th>مدرسه</th><th>منطقه</th><th>زمان</th></tr>'+
+      records.map(r=>'<tr><td>'+esc(r.name||'')+'</td><td>'+esc(r.family||'')+'</td><td>'+esc(r.nationalCode||'')+'</td><td>'+esc(r.school||'')+'</td><td>'+esc(r.region||'')+'</td><td>'+attFmtTime(r.ts)+'</td></tr>').join('')+
+      '</table>';
+  };
+
+  // ===================== وبینار (اتاق جدا از کلاس آنلاین، لینک واحد و عمومی) =====================
   document.getElementById('btn-web-options-toggle').onclick=()=>{document.getElementById('web-options-drawer').classList.toggle('hidden');};
+
+  document.getElementById('web-link-box').textContent=location.origin+'/webinar';
+  document.getElementById('btn-web-link-copy').onclick=()=>{copyLink(location.origin+'/webinar');};
+
+  (async function loadWebinarTopic(){
+    try{
+      const r=await fetch('/api/webinar/topic');
+      const d=await r.json().catch(()=>({}));
+      if(d && d.ok) document.getElementById('web-topic-input').value=d.topic||'';
+    }catch(e){}
+  })();
+  document.getElementById('btn-web-topic-save').onclick=async()=>{
+    const topic=document.getElementById('web-topic-input').value.trim();
+    try{
+      const r=await fetch('/api/webinar/topic',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({topic})});
+      const d=await r.json().catch(()=>({}));
+      if(d && d.ok) toast('موضوع وبینار ذخیره شد');
+      else toast((d&&d.error)||'خطا در ذخیره موضوع');
+    }catch(e){ toast('اتصال به سرور برقرار نشد'); }
+  };
 
   let webWs=null;
   let webMicStream=null, webRecorder=null, webAudioActive=false, webAudioGen=0;
   let webCamStream=null, webCamInterval=null, webAudioFromCam=false, webCamFacing='user';
-  let webSpotlightActive=false;
   const webAudioQueues={};
-  const webStudentCamTiles={};
 
   function webPlayAudioChunk(id, b64, mime){
     let st=webAudioQueues[id];
@@ -13419,46 +13445,19 @@ function teacherScript() {
     a.play().catch(()=>{ st.playing=false; webPumpAudioQueue(id); });
   }
 
-  function webStudentCamGridEmptyCheck(){
-    const grid=document.getElementById('web-student-cams');
-    if(!Object.keys(webStudentCamTiles).length){
-      grid.innerHTML='<span class="muted" style="font-size:12px">دوربینی روشن نیست</span>';
-    }
-  }
-  function webEnsureStudentCamTile(id,name){
-    const grid=document.getElementById('web-student-cams');
-    if(webStudentCamTiles[id]){
-      if(name)webStudentCamTiles[id].nameEl.textContent=name;
-      return webStudentCamTiles[id];
-    }
-    const emptyMsg=grid.querySelector('.muted');
-    if(emptyMsg)emptyMsg.remove();
-    const tile=document.createElement('div');
-    tile.className='cls-cam-tile';
-    tile.innerHTML='<img class="hidden"><div class="cls-cam-tile-off">🎥 خاموش</div><div class="cls-cam-tile-name"></div>';
-    grid.appendChild(tile);
-    const obj={tile, img:tile.querySelector('img'), off:tile.querySelector('.cls-cam-tile-off'), nameEl:tile.querySelector('.cls-cam-tile-name')};
-    obj.nameEl.textContent=name||'شرکت‌کننده';
-    webStudentCamTiles[id]=obj;
-    return obj;
-  }
-  function webPruneStudentMedia(list){
-    const activeIds=new Set(list.filter(p=>p.role==='student').map(p=>p.id));
-    Object.keys(webStudentCamTiles).forEach(id=>{
-      if(!activeIds.has(id)){ webStudentCamTiles[id].tile.remove(); delete webStudentCamTiles[id]; }
-    });
-    Object.keys(webAudioQueues).forEach(id=>{ if(!activeIds.has(id)) delete webAudioQueues[id]; });
-    webStudentCamGridEmptyCheck();
-  }
   function webUpdateParticipants(list){
     document.getElementById('web-online-count').textContent=list.length;
     const box=document.getElementById('web-participants');
-    if(!list.length){box.innerHTML='<span class="muted">کسی متصل نیست</span>';webPruneStudentMedia(list);return;}
+    if(!list.length){box.innerHTML='<span class="muted">کسی متصل نیست</span>';
+      Object.keys(webAudioQueues).forEach(id=>delete webAudioQueues[id]);
+      return;
+    }
     box.innerHTML=list.map(p=>{
       const icon=p.role==='teacher'?'👨‍🏫':'👤';
       return '<div>'+icon+' '+esc(p.name||'')+'</div>';
     }).join('');
-    webPruneStudentMedia(list);
+    const activeIds=new Set(list.map(p=>p.id));
+    Object.keys(webAudioQueues).forEach(id=>{ if(!activeIds.has(id)) delete webAudioQueues[id]; });
   }
   function webAddChat(entry){
     const box=document.getElementById('web-chatBox');
@@ -13467,13 +13466,6 @@ function teacherScript() {
     box.scrollTop=box.scrollHeight;
   }
   function webSend(obj){ if(webWs && webWs.readyState===1) webWs.send(JSON.stringify(obj)); }
-  function webSetSpotlightUI(active){
-    webSpotlightActive=!!active;
-    document.getElementById('btn-web-spotlight').textContent=webSpotlightActive?'🔦 پایان حالت سخنرانی':'🔦 شروع حالت سخنرانی';
-    document.getElementById('web-spotlight-status').textContent=webSpotlightActive
-      ?'حالت سخنرانی فعال است — فقط تصویر شما برای همه بزرگ نمایش داده می‌شود.'
-      :'حالت سخنرانی غیرفعال است — همه‌ی شرکت‌کنندگان همدیگر را می‌بینند.';
-  }
 
   document.getElementById('btn-web-start').onclick=async function(){
     document.getElementById('t-web-status').textContent='در حال اتصال به وبینار...';
@@ -13491,7 +13483,6 @@ function teacherScript() {
       document.getElementById('btn-web-stop').classList.remove('hidden');
       document.getElementById('btn-web-mic-toggle').classList.remove('hidden');
       document.getElementById('btn-web-cam-toggle').classList.remove('hidden');
-      document.getElementById('btn-web-spotlight').classList.remove('hidden');
     };
     webWs.onclose=()=>{
       document.getElementById('webdot').classList.remove('on');
@@ -13501,7 +13492,6 @@ function teacherScript() {
       document.getElementById('btn-web-mic-toggle').classList.add('hidden');
       document.getElementById('btn-web-cam-toggle').classList.add('hidden');
       document.getElementById('btn-web-cam-flip').classList.add('hidden');
-      document.getElementById('btn-web-spotlight').classList.add('hidden');
     };
     webWs.onerror=()=>{try{webWs.close();}catch(e){}};
     webWs.onmessage=(evt)=>{
@@ -13509,9 +13499,7 @@ function teacherScript() {
       if(m.type==='init'){
         (m.chat||[]).forEach(webAddChat);
         webUpdateParticipants(m.participants||[]);
-        webSetSpotlightUI(!!m.spotlight);
       }
-      else if(m.type==='spotlight'){ webSetSpotlightUI(!!m.active); }
       else if(m.type==='chat'){ webAddChat(m.entry); }
       else if(m.type==='presence'){
         webUpdateParticipants(m.participants||[]);
@@ -13519,18 +13507,6 @@ function teacherScript() {
       }
       else if(m.type==='raise-hand'){ toast('✋ '+m.name+' دستش را بلند کرد'); }
       else if(m.type==='audio'){ if(m.role==='student') webPlayAudioChunk(m.id, m.data, m.mime); }
-      else if(m.type==='video-frame'){
-        if(m.role==='student'){
-          const t=webEnsureStudentCamTile(m.id, m.from);
-          t.img.src=m.data; t.img.classList.remove('hidden'); t.off.classList.add('hidden');
-        }
-      }
-      else if(m.type==='video-stop'){
-        if(m.role==='student'){
-          const t=webStudentCamTiles[m.id];
-          if(t){ t.img.classList.add('hidden'); t.img.src=''; t.off.classList.remove('hidden'); }
-        }
-      }
     };
   };
 
@@ -13542,14 +13518,6 @@ function teacherScript() {
     if(webCamInterval){ clearInterval(webCamInterval); webCamInterval=null; }
     document.getElementById('web-t-cam-preview').classList.add('hidden');
     document.getElementById('web-t-cam-placeholder').classList.remove('hidden');
-    webSetSpotlightUI(false);
-    Object.keys(webStudentCamTiles).forEach(id=>webStudentCamTiles[id].tile.remove());
-    for(const k in webStudentCamTiles) delete webStudentCamTiles[k];
-    webStudentCamGridEmptyCheck();
-  };
-
-  document.getElementById('btn-web-spotlight').onclick=function(){
-    webSend({type:'spotlight', active: !webSpotlightActive});
   };
 
   document.getElementById('web-btnSend').onclick=()=>{
