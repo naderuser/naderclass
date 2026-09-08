@@ -2174,6 +2174,11 @@ const SHARED_CSS = `
   .sch-decor-left{float:right}
   .sch-decor-right{float:left}
   #schedule-table-wrap::after{content:"";display:block;clear:both}
+  .schedule-table-wrap.has-bg{background-size:cover;background-position:center;background-repeat:no-repeat}
+  .schedule-table-wrap.has-bg .schedule-table th,
+  .schedule-table-wrap.has-bg .schedule-table td{background:rgba(255,255,255,.8)!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  [data-theme="dark"] .schedule-table-wrap.has-bg .schedule-table th,
+  [data-theme="dark"] .schedule-table-wrap.has-bg .schedule-table td{background:rgba(15,23,42,.72)!important}
 
   .schedule-table tr.sch-today td{box-shadow:inset 0 0 0 2px var(--primary)}
   .schedule-table tr.sch-today td:first-child .sch-today-badge{position:absolute;top:2px;left:6px;font-size:9px;background:var(--primary);color:#fff;padding:1px 7px;border-radius:8px;font-weight:700}
@@ -3623,6 +3628,7 @@ async function studentClassPage(env, id) {
     <div class="card">
       <h3>🖥️ کلاس آنلاین${student.label ? " — " + esc(student.label) : ""}</h3>
       <div class="cls-status">
+        <a class="btn sm sec" href="/s/${encodeURIComponent(id)}">↩️ بازگشت</a>
         <span class="dot" id="cls-dot"></span>
         <span id="cls-status-text" class="muted">در حال اتصال به کلاس...</span>
         <span style="flex:1"></span>
@@ -4637,6 +4643,12 @@ function teacherPage() {
             <option value="landscape">افقی (Landscape)</option>
           </select>
           <span class="muted">می‌توانید با چسباندن متن کپی‌شده از اکسل/ورد داخل خانه‌ها، چند خانه را همزمان پر کنید.</span>
+        </div>
+        <div class="row" style="margin-bottom:16px;align-items:center;gap:10px;flex-wrap:wrap">
+          <span style="font-weight:700">🖼️ پس‌زمینه جدول:</span>
+          <label class="btn sec sm" style="cursor:pointer;flex:0 0 auto">📁 انتخاب تصویر<input type="file" id="sch-bg-file" accept="image/*" style="display:none"></label>
+          <button type="button" class="btn sm danger" id="btn-sch-bg-remove">🗑️ حذف پس‌زمینه</button>
+          <span class="muted" style="font-size:12px">حداکثر ۴ مگابایت. برای دیدن پس‌زمینه در چاپ/PDF، گزینه‌ی «Background graphics» را در پنجره‌ی چاپ مرورگر فعال کنید.</span>
         </div>
         <div class="lb-meta-form">
           <div><label>نام مدرسه</label><input id="sch-school" placeholder="......................."></div>
@@ -7703,6 +7715,45 @@ function teacherScript() {
   });
 
   // ===== برنامه هفتگی =====
+  let scheduleBg=null;
+  function applyScheduleBg(dataUrl){
+    const wrap=document.getElementById('schedule-table-wrap');
+    if(!wrap)return;
+    if(dataUrl){
+      wrap.style.backgroundImage="url('"+dataUrl+"')";
+      wrap.classList.add('has-bg');
+    }else{
+      wrap.style.backgroundImage='';
+      wrap.classList.remove('has-bg');
+    }
+  }
+  async function saveScheduleData(){
+    const data={school:document.getElementById('sch-school').value,teacher:document.getElementById('sch-teacher').value,grade:document.getElementById('sch-grade').value,cls:document.getElementById('sch-class').value,bg:scheduleBg,cells:{}};
+    for(let d=0;d<5;d++){for(let i=1;i<=5;i++){const el=document.getElementById('c'+d+i);if(el)data.cells['c'+d+i]=el.value;}}
+    return api('/api/teacher/schedule',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({data})});
+  }
+  document.getElementById('sch-bg-file').addEventListener('change',function(){
+    var f=this.files&&this.files[0];
+    if(!f)return;
+    if(f.size>4*1024*1024){toast('حجم تصویر نباید بیشتر از ۴ مگابایت باشد');this.value='';return;}
+    var reader=new FileReader();
+    reader.onload=async function(){
+      scheduleBg=reader.result;
+      applyScheduleBg(scheduleBg);
+      const r=await saveScheduleData();
+      if(r.ok)toast('پس‌زمینه اضافه و ذخیره شد ✅');else toast(r.error||'خطا در ذخیره پس‌زمینه');
+    };
+    reader.onerror=function(){toast('خطا در خواندن تصویر');};
+    reader.readAsDataURL(f);
+  });
+  document.getElementById('btn-sch-bg-remove').onclick=async function(){
+    scheduleBg=null;
+    applyScheduleBg(null);
+    document.getElementById('sch-bg-file').value='';
+    const r=await saveScheduleData();
+    if(r.ok)toast('پس‌زمینه حذف شد ✅');else toast(r.error||'خطا در حذف پس‌زمینه');
+  };
+
   async function loadSchedule(){
     const r=await api('/api/teacher/schedule');
     if(r.ok && r.data){
@@ -7711,6 +7762,8 @@ function teacherScript() {
       document.getElementById('sch-teacher').value=scheduleData.teacher||'';
       document.getElementById('sch-grade').value=scheduleData.grade||'';
       document.getElementById('sch-class').value=scheduleData.cls||'';
+      scheduleBg=scheduleData.bg||null;
+      applyScheduleBg(scheduleBg);
       if(scheduleData.cells){
         for(let d=0;d<5;d++){for(let i=1;i<=5;i++){const el=document.getElementById('c'+d+i);if(el)el.value=scheduleData.cells['c'+d+i]||'';}}
       }
@@ -7832,7 +7885,7 @@ function teacherScript() {
     var grade=document.getElementById('vl-grade').value;
     var vUrl=document.getElementById('vl-url').value.trim();
     if(!title){toast('لطفاً یک عنوان وارد کنید');return;}
-    if(!/^https?:\\/\\//i.test(vUrl)){toast('لینک باید با http:// یا https:// شروع شود');return;}
+    if(!/^https?:\/\//i.test(vUrl)){toast('لینک باید با http:// یا https:// شروع شود');return;}
     const r=await api('/api/teacher/video-links',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({title:title,grade:grade,url:vUrl})});
     if(r.ok){
       toast('لینک اضافه شد ✅');
@@ -8005,10 +8058,15 @@ function teacherScript() {
     const exportFontFamily=fontKey==='nazanin'?'"B Nazanin","BNazanin",tahoma,Arial':(fontKey==='titr'?'"B Titr","BTitr",tahoma,Arial':'tahoma,Arial');
     const orientEl=document.getElementById('sch-print-orientation');
     const orientation=(orientEl&&orientEl.value==='landscape')?'landscape':'portrait';
+    const hasBg=!!scheduleBg;
+    const overlay='rgba(255,255,255,.82)';
     let style='<style>@page{size:A4 '+orientation+';margin:10mm}@font-face{font-family:"BNazanin";src:url(https://cdn.jsdelivr.net/gh/intuxicated/css-persian@master/fonts/BNazanin.ttf)}';
     style+='@font-face{font-family:"BTitr";src:url(https://cdn.jsdelivr.net/gh/intuxicated/css-persian@master/fonts/BTitrBold.ttf)}';
-    style+='body{direction:rtl;font-family:'+exportFontFamily+';padding:30px;background:#f8fafc}';
-    style+='.header{text-align:center;padding:20px;background:#fff;color:#1e293b;border-radius:20px;margin-bottom:20px;border:1.5px solid #e2e8f0}';
+    style+='*{-webkit-print-color-adjust:exact;print-color-adjust:exact}';
+    style+=hasBg
+      ?'body{direction:rtl;font-family:'+exportFontFamily+';padding:30px;background-image:url(\''+scheduleBg+'\');background-size:cover;background-position:center;background-repeat:no-repeat}'
+      :'body{direction:rtl;font-family:'+exportFontFamily+';padding:30px;background:#f8fafc}';
+    style+='.header{text-align:center;padding:20px;background:'+(hasBg?overlay:'#fff')+';color:#1e293b;border-radius:20px;margin-bottom:20px;border:1.5px solid #e2e8f0}';
     style+='.header h1{font-size:24px;margin:0 0 10px;font-weight:800;letter-spacing:.3px}.header p{margin:5px 0;font-size:14px}';
     style+='table{width:100%;border-collapse:collapse;box-shadow:0 8px 24px rgba(15,23,42,.10);border:1.5px solid #1e293b}';
     style+='th{padding:14px 8px;font-size:14px;font-weight:800;text-align:center;border:1px solid #1e293b}';
@@ -8016,10 +8074,10 @@ function teacherScript() {
     style+='.daylabel{border-right:5px solid;font-weight:800}';
     style+='.footer{text-align:center;margin-top:30px;padding:20px;border-top:2px dashed #ddd}</style>';
     let header='<div class="header"><h1>'+(T.kids?'⏰ برنامه هفتگی کلاس 📓':'⭐ برنامه هفتگی کلاس ⭐')+'</h1><p><b>نام مدرسه:</b> '+esc(school)+' &nbsp;&nbsp;&nbsp; <b>نام آموزگار:</b> '+esc(teacher)+'</p><p><b>پایه:</b> '+esc(grade)+' &nbsp;&nbsp;&nbsp; <b>کلاس:</b> '+esc(cls)+'</p></div>';
-    let table='<table><tr><th style="background:linear-gradient(135deg,'+T.corner[0]+','+T.corner[1]+');color:'+(T.cornerText||'#fff')+';border-bottom:none">روز / زنگ</th>';
+    let table='<table><tr><th style="background:'+(hasBg?overlay:('linear-gradient(135deg,'+T.corner[0]+','+T.corner[1]+')'))+';color:'+(hasBg?'#1e293b':(T.cornerText||'#fff'))+';border-bottom:none">روز / زنگ</th>';
     for(let z=0;z<5;z++){
-      const pBg=(T.periodBgs&&T.periodBgs[z])||T.periodBg;
-      const pColor=(T.periodColors&&T.periodColors[z])||T.periodColor;
+      const pBg=hasBg?overlay:((T.periodBgs&&T.periodBgs[z])||T.periodBg);
+      const pColor=hasBg?'#1e293b':((T.periodColors&&T.periodColors[z])||T.periodColor);
       table+='<th style="background:'+pBg+';color:'+pColor+'">🔔 '+zang[z]+'</th>';
     }
     table+='</tr>';
@@ -8027,8 +8085,8 @@ function teacherScript() {
     for(let d=0;d<5;d++){
       const customColorKey=(typeof schRowColors!=='undefined'&&schRowColors[dayKeysExp[d]])||'';
       const customHex=(typeof SCH_ROW_COLOR_HEX!=='undefined'&&SCH_ROW_COLOR_HEX[customColorKey])||'';
-      const dayBg=customHex||T.dayBg||cellColors[d];
-      const rowCellBg=customHex||cellColors[d];
+      const dayBg=hasBg?overlay:(customHex||T.dayBg||cellColors[d]);
+      const rowCellBg=hasBg?overlay:(customHex||cellColors[d]);
       table+='<tr><td class="daylabel" style="background:'+dayBg+';border-right-color:'+accentColors[d]+';color:'+T.dayText+'">'+days[d]+'</td>';
       for(let i=1;i<=5;i++){const el=document.getElementById('c'+d+i);const val=(el?el.value:'')||'&nbsp;';table+='<td style="background:'+rowCellBg+';color:'+T.text+'"><div style="min-height:40px">'+val+'</div></td>';}
       table+='</tr>';
@@ -8043,9 +8101,7 @@ function teacherScript() {
   document.getElementById('btn-pdf-schedule').onclick=function(){const w=window.open('','_blank');w.document.write(getScheduleHtmlForExport());w.document.close();setTimeout(function(){w.print();},500);};
   
   document.getElementById('btn-save-schedule').onclick=async function(){
-    const data={school:document.getElementById('sch-school').value,teacher:document.getElementById('sch-teacher').value,grade:document.getElementById('sch-grade').value,cls:document.getElementById('sch-class').value,cells:{}};
-    for(let d=0;d<5;d++){for(let i=1;i<=5;i++){const el=document.getElementById('c'+d+i);if(el)data.cells['c'+d+i]=el.value;}}
-    const r=await api('/api/teacher/schedule',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({data})});
+    const r=await saveScheduleData();
     if(r.ok)toast('برنامه هفتگی ذخیره شد ✅');else toast('خطا در ذخیره');
   };
 
