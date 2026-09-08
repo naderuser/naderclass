@@ -628,6 +628,7 @@ async function handleApi(req, env, url, path) {
         return json({
           ok: true,
           meta,
+          grade: studentGrade,
           submitted: true,
           timeCheck: true,
           remaining: remaining,
@@ -646,6 +647,7 @@ async function handleApi(req, env, url, path) {
       return json({ 
         ok: true, 
         meta, 
+        grade: studentGrade,
         submitted: false, 
         questions, 
         label: st.label || "", 
@@ -762,11 +764,24 @@ async function handleApi(req, env, url, path) {
     }
   }
 
-  /* --- بازی و محتوای درسی HTML (عمومی، فقط لیست عنوان‌ها؛ فقط خواندنی) --- */
+  /* --- بازی و محتوای درسی HTML (عمومی، فقط لیست عنوان‌ها؛ فقط خواندنی؛ فیلترشده بر اساس پایه) --- */
   if (path === "/api/htmlcontent" && method === "GET") {
     const raw = await env.EXAM_KV.get("htmlcontent-index");
     const list = raw ? JSON.parse(raw) : [];
-    return json({ ok: true, items: list.map((it) => ({ id: it.id, title: it.title })) });
+    const gradeParam = url.searchParams.get("grade");
+    const wantGrade = gradeParam !== null && gradeParam !== "" ? parseInt(gradeParam, 10) : null;
+    const filtered = wantGrade === null ? list : list.filter((it) => it.grade === undefined || it.grade === null || it.grade === wantGrade);
+    return json({ ok: true, items: filtered.map((it) => ({ id: it.id, title: it.title, grade: it.grade })) });
+  }
+
+  /* --- لینک فیلم درس (عمومی، فقط لیست؛ فقط خواندنی؛ فیلترشده بر اساس پایه) --- */
+  if (path === "/api/videolinks" && method === "GET") {
+    const raw = await env.EXAM_KV.get("videolinks-index");
+    const list = raw ? JSON.parse(raw) : [];
+    const gradeParam = url.searchParams.get("grade");
+    const wantGrade = gradeParam !== null && gradeParam !== "" ? parseInt(gradeParam, 10) : null;
+    const filtered = wantGrade === null ? list : list.filter((it) => it.grade === undefined || it.grade === null || it.grade === wantGrade);
+    return json({ ok: true, items: filtered.map((it) => ({ id: it.id, title: it.title, grade: it.grade, url: it.url })) });
   }
 
   /* --- از این به بعد فقط معلم --- */
@@ -900,11 +915,16 @@ async function handleApi(req, env, url, path) {
       if (!contentHtml.trim()) return json({ ok: false, error: "فایل HTML خالی است" }, 400);
       const byteLen = new TextEncoder().encode(contentHtml).length;
       if (byteLen > 4 * 1024 * 1024) return json({ ok: false, error: "حجم فایل نباید بیشتر از ۴ مگابایت باشد" }, 400);
+      let grade = null;
+      if (body.grade !== undefined && body.grade !== null && body.grade !== "") {
+        const g = parseInt(body.grade, 10);
+        if (Number.isInteger(g) && g >= 0 && g <= 11) grade = g;
+      }
       const id = uuid();
       await env.EXAM_KV.put("htmlcontent:" + id, contentHtml);
       const idxRaw = await env.EXAM_KV.get("htmlcontent-index");
       const idx = idxRaw ? JSON.parse(idxRaw) : [];
-      const rec = { id, title, size: byteLen, uploadedAt: Date.now() };
+      const rec = { id, title, grade, size: byteLen, uploadedAt: Date.now() };
       idx.unshift(rec);
       await env.EXAM_KV.put("htmlcontent-index", JSON.stringify(idx));
       return json({ ok: true, item: rec });
@@ -915,6 +935,37 @@ async function handleApi(req, env, url, path) {
       const idxRaw = await env.EXAM_KV.get("htmlcontent-index");
       const idx = idxRaw ? JSON.parse(idxRaw) : [];
       await env.EXAM_KV.put("htmlcontent-index", JSON.stringify(idx.filter((it) => it.id !== id)));
+      return json({ ok: true });
+    }
+
+    /* --- لینک فیلم درس: افزودن/فهرست/حذف --- */
+    if (path === "/api/teacher/video-links" && method === "GET") {
+      const raw = await env.EXAM_KV.get("videolinks-index");
+      return json({ ok: true, items: raw ? JSON.parse(raw) : [] });
+    }
+    if (path === "/api/teacher/video-links" && method === "POST") {
+      const body = await req.json().catch(() => ({}));
+      const title = String(body.title || "").slice(0, 120) || "بدون عنوان";
+      const videoUrl = String(body.url || "").trim();
+      if (!/^https?:\/\//i.test(videoUrl)) return json({ ok: false, error: "لینک باید با http:// یا https:// شروع شود" }, 400);
+      let grade = null;
+      if (body.grade !== undefined && body.grade !== null && body.grade !== "") {
+        const g = parseInt(body.grade, 10);
+        if (Number.isInteger(g) && g >= 0 && g <= 11) grade = g;
+      }
+      const id = uuid();
+      const rec = { id, title, grade, url: videoUrl, uploadedAt: Date.now() };
+      const idxRaw = await env.EXAM_KV.get("videolinks-index");
+      const idx = idxRaw ? JSON.parse(idxRaw) : [];
+      idx.unshift(rec);
+      await env.EXAM_KV.put("videolinks-index", JSON.stringify(idx));
+      return json({ ok: true, item: rec });
+    }
+    if (path.startsWith("/api/teacher/video-links/") && method === "DELETE") {
+      const id = decodeURIComponent(path.slice("/api/teacher/video-links/".length));
+      const idxRaw = await env.EXAM_KV.get("videolinks-index");
+      const idx = idxRaw ? JSON.parse(idxRaw) : [];
+      await env.EXAM_KV.put("videolinks-index", JSON.stringify(idx.filter((it) => it.id !== id)));
       return json({ ok: true });
     }
 
@@ -2459,6 +2510,7 @@ async function studentPage(env, id) {
         <button class="btn sec" id="btn-choice-reportcard" style="flex:1;min-width:200px;padding:22px 16px;font-size:16px">🗓️ مشاهده کارنامه ماهیانه</button>
         <button class="btn sec" id="btn-choice-classroom" style="flex:1;min-width:200px;padding:22px 16px;font-size:16px">🖥️ ورود به کلاس آنلاین</button>
         <button class="btn sec" id="btn-choice-htmlgames" style="flex:1;min-width:200px;padding:22px 16px;font-size:16px">🎮 بازی و محتوای درسی HTML</button>
+        <button class="btn sec" id="btn-choice-videolinks" style="flex:1;min-width:200px;padding:22px 16px;font-size:16px">🎬 فیلم‌های آموزشی درس</button>
       </div>
     </div>
 
@@ -2467,6 +2519,13 @@ async function studentPage(env, id) {
       <h3>🎮 بازی و محتوای درسی HTML</h3>
       <div id="hg-view-list"></div>
       <button class="btn sec" id="btn-hg-view-back" style="margin-top:14px">↩️ بازگشت</button>
+    </div>
+
+    <!-- فیلم‌های آموزشی درس -->
+    <div class="card hidden" id="step-videolinks">
+      <h3>🎬 فیلم‌های آموزشی درس</h3>
+      <div id="vl-view-list"></div>
+      <button class="btn sec" id="btn-vl-view-back" style="margin-top:14px">↩️ بازگشت</button>
     </div>
 
     <!-- کارنامه ماهیانه -->
@@ -2519,6 +2578,7 @@ async function studentPage(env, id) {
   <script>
     const ID = ${JSON.stringify(id)};
     let DATA = null;
+    let STUDENT_GRADE = null;
     let timerInterval = null;
     let remainingSeconds = 0;
     let isTimerExpired = false;
@@ -2584,6 +2644,7 @@ async function studentPage(env, id) {
       }
       
       DATA = d;
+      STUDENT_GRADE = (d.grade!=null) ? d.grade : null;
       document.getElementById('hdr2').innerHTML = '<h3 style="margin:0">'+esc(d.meta.school || '')+'</h3>';
       
       const headerInfo = document.createElement('div');
@@ -2627,7 +2688,8 @@ async function studentPage(env, id) {
         const box=document.getElementById('hg-view-list');
         box.innerHTML='<p class="muted">در حال بارگذاری...</p>';
         try{
-          const r=await fetch('/api/htmlcontent').then(function(x){return x.json();});
+          const q=(STUDENT_GRADE!=null)?('?grade='+encodeURIComponent(STUDENT_GRADE)):'';
+          const r=await fetch('/api/htmlcontent'+q).then(function(x){return x.json();});
           const items=(r.ok&&r.items)||[];
           if(!items.length){box.innerHTML='<p class="muted">فعلاً هیچ بازی یا محتوایی توسط معلم آپلود نشده است.</p>';return;}
           box.innerHTML=items.map(function(it){
@@ -2640,6 +2702,28 @@ async function studentPage(env, id) {
       };
       document.getElementById('btn-hg-view-back').onclick=function(){
         document.getElementById('step-htmlgames').classList.add('hidden');
+        document.getElementById('step-choice').classList.remove('hidden');
+      };
+      document.getElementById('btn-choice-videolinks').onclick=async function(){
+        document.getElementById('step-choice').classList.add('hidden');
+        document.getElementById('step-videolinks').classList.remove('hidden');
+        const box=document.getElementById('vl-view-list');
+        box.innerHTML='<p class="muted">در حال بارگذاری...</p>';
+        try{
+          const q=(STUDENT_GRADE!=null)?('?grade='+encodeURIComponent(STUDENT_GRADE)):'';
+          const r=await fetch('/api/videolinks'+q).then(function(x){return x.json();});
+          const items=(r.ok&&r.items)||[];
+          if(!items.length){box.innerHTML='<p class="muted">فعلاً هیچ فیلمی توسط معلم اضافه نشده است.</p>';return;}
+          box.innerHTML=items.map(function(it){
+            return '<button type="button" class="btn sec" data-vl-open="'+it.url.replace(/"/g,'&quot;')+'" style="width:100%;text-align:right;margin-bottom:8px;padding:16px">🎬 '+(it.title||'').replace(/</g,'&lt;')+'</button>';
+          }).join('');
+          box.querySelectorAll('[data-vl-open]').forEach(function(b){
+            b.onclick=function(){window.open(b.dataset.vlOpen,'_blank');};
+          });
+        }catch(e){box.innerHTML='<p class="muted">خطا در دریافت لیست</p>';}
+      };
+      document.getElementById('btn-vl-view-back').onclick=function(){
+        document.getElementById('step-videolinks').classList.add('hidden');
         document.getElementById('step-choice').classList.remove('hidden');
       };
       document.getElementById('btn-rc-view-back').onclick=function(){
@@ -4010,7 +4094,7 @@ function teacherPage() {
         </div>
 
         <a class="tab" data-tab="classroom" href="/teacher?tab=classroom"><span class="tab-ico">🖥️</span><span class="tab-label">کلاس آنلاین</span></a>
-        <a class="tab" data-tab="htmlgames" href="/teacher?tab=htmlgames"><span class="tab-ico">🎮</span><span class="tab-label">بازی و محتوای درسی HTML</span></a>
+        <a class="tab" data-tab="htmlgames" href="/teacher?tab=htmlgames"><span class="tab-ico">🎬</span><span class="tab-label">لینک فیلم و محتوای تعاملی</span></a>
 
         <div class="tab-group">
           <div class="tab-parent" data-tab="logbook"><span class="tab-ico">📖</span><span class="tab-label">دفتر مدیریت کلاسی</span><span class="tab-arrow">▾</span></div>
@@ -5193,14 +5277,30 @@ function teacherPage() {
       </div>
 
       <div class="card tab-content hidden" id="tab-htmlgames">
-        <h3>🎮 بازی و محتوای درسی HTML</h3>
+        <h3>🎬 لینک فیلم و محتوای تعاملی</h3>
+
+        <h4 style="margin-top:0">🎬 لینک فیلم درس</h4>
+        <p class="muted">لینک فیلم آموزشی (آپارات، یوتیوب و...) را برای پایه‌ی موردنظر اضافه کنید تا دانش‌آموزان همان پایه بتوانند از صفحه‌ی خودشان آن را باز کنند.</p>
+        <div class="row" style="align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:14px">
+          <input id="vl-title" placeholder="عنوان (مثلاً: فیلم آموزش کسر)" style="flex:1;min-width:200px">
+          <select id="vl-grade" style="flex:0 0 auto;min-width:170px"></select>
+          <input id="vl-url" placeholder="لینک فیلم (https://...)" style="flex:1;min-width:220px">
+          <button class="btn primary" id="btn-vl-add" style="flex:0 0 auto">➕ افزودن</button>
+        </div>
+        <div id="vl-list"></div>
+
+        <hr style="margin:24px 0;border:none;border-top:1px solid var(--line)">
+
+        <h4 style="margin-top:0">🎮 بازی و محتوای تعاملی HTML</h4>
         <p class="muted">یک فایل HTML (بازی آموزشی یا هر محتوای دیگر) آپلود کنید تا دانش‌آموزان از صفحه‌ی خودشان بتوانند آن را باز کنند. حداکثر حجم هر فایل: ۴ مگابایت.</p>
         <div class="row" style="align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:14px">
           <input id="hg-title" placeholder="عنوان (مثلاً: بازی جمع و تفریق)" style="flex:1;min-width:200px">
+          <select id="hg-grade" style="flex:0 0 auto;min-width:170px"></select>
           <label class="btn sec" style="cursor:pointer;flex:0 0 auto">📁 انتخاب فایل HTML<input type="file" id="hg-file" accept=".html,.htm,text/html" style="display:none"></label>
           <span id="hg-filename" class="muted" style="font-size:12px"></span>
           <button class="btn primary" id="btn-hg-upload" style="flex:0 0 auto">⬆️ آپلود</button>
         </div>
+        <p class="muted" style="margin:-6px 0 14px">پایه‌ای که انتخاب می‌کنید مشخص می‌کند این محتوا فقط برای دانش‌آموزان همان پایه در صفحه‌شان نمایش داده شود.</p>
         <div id="hg-list"></div>
       </div>
 
@@ -6378,7 +6478,7 @@ function teacherScript() {
   function showDash(){
     document.getElementById('login').classList.add('hidden');
     document.getElementById('dash').classList.remove('hidden');
-    loadStudents();loadQuestions();loadSchedule();loadHtmlGames();
+    loadStudents();loadQuestions();loadSchedule();loadHtmlGames();loadVideoLinks();
     try{
       var qs=new URLSearchParams(location.search);
       var wantTab=qs.get('tab');
@@ -7626,13 +7726,20 @@ function teacherScript() {
   async function loadHtmlGames(){
     const list=document.getElementById('hg-list');
     if(!list)return;
+    const gradeSel=document.getElementById('hg-grade');
+    if(gradeSel && !gradeSel.dataset.filled){
+      gradeSel.innerHTML=GRADE_LABELS.map(function(lbl,gi){return '<option value="'+gi+'">'+lbl+'</option>';}).join('');
+      gradeSel.dataset.filled='1';
+    }
     const r=await api('/api/teacher/html-content');
     const items=(r.ok&&r.items)||[];
     if(!items.length){list.innerHTML='<p class="muted">هنوز هیچ فایلی آپلود نشده است.</p>';return;}
     list.innerHTML=items.map(function(it){
       var link=location.origin+'/g/'+encodeURIComponent(it.id);
+      var gradeLbl=(it.grade!=null&&GRADE_LABELS[it.grade])?GRADE_LABELS[it.grade]:'همه پایه‌ها';
       return '<div class="row" style="align-items:center;flex-wrap:wrap;gap:8px;border:1px solid var(--line);border-radius:8px;padding:10px;margin-bottom:8px">'
         +'<span style="flex:1;min-width:160px;font-weight:700">🎮 '+esc(it.title)+'</span>'
+        +'<span class="muted" style="font-size:12px;flex:0 0 auto">📚 '+esc(gradeLbl)+'</span>'
         +'<span class="muted" style="font-size:12px;flex:0 0 auto">'+hgFormatSize(it.size)+'</span>'
         +'<button type="button" class="btn sm sec" data-hg-open="'+esc(it.id)+'" style="flex:0 0 auto">👁️ باز کردن</button>'
         +'<button type="button" class="btn sm gray" data-hg-copy="'+esc(link)+'" style="flex:0 0 auto">🔗 کپی لینک</button>'
@@ -7663,12 +7770,13 @@ function teacherScript() {
     var fileInput=document.getElementById('hg-file');
     var f=fileInput.files&&fileInput.files[0];
     var title=document.getElementById('hg-title').value.trim();
+    var grade=document.getElementById('hg-grade').value;
     if(!f){toast('لطفاً یک فایل HTML انتخاب کنید');return;}
     if(!title){toast('لطفاً یک عنوان وارد کنید');return;}
     if(f.size>4*1024*1024){toast('حجم فایل نباید بیشتر از ۴ مگابایت باشد');return;}
     var reader=new FileReader();
     reader.onload=async function(){
-      const r=await api('/api/teacher/html-content',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({title:title,html:reader.result})});
+      const r=await api('/api/teacher/html-content',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({title:title,grade:grade,html:reader.result})});
       if(r.ok){
         toast('فایل با موفقیت آپلود شد ✅');
         document.getElementById('hg-title').value='';
@@ -7679,6 +7787,59 @@ function teacherScript() {
     };
     reader.onerror=function(){toast('خطا در خواندن فایل');};
     reader.readAsText(f);
+  };
+
+  // ===== لینک فیلم درس =====
+  async function loadVideoLinks(){
+    const list=document.getElementById('vl-list');
+    if(!list)return;
+    const gradeSel=document.getElementById('vl-grade');
+    if(gradeSel && !gradeSel.dataset.filled){
+      gradeSel.innerHTML=GRADE_LABELS.map(function(lbl,gi){return '<option value="'+gi+'">'+lbl+'</option>';}).join('');
+      gradeSel.dataset.filled='1';
+    }
+    const r=await api('/api/teacher/video-links');
+    const items=(r.ok&&r.items)||[];
+    if(!items.length){list.innerHTML='<p class="muted">هنوز هیچ لینکی اضافه نشده است.</p>';return;}
+    list.innerHTML=items.map(function(it){
+      var gradeLbl=(it.grade!=null&&GRADE_LABELS[it.grade])?GRADE_LABELS[it.grade]:'همه پایه‌ها';
+      return '<div class="row" style="align-items:center;flex-wrap:wrap;gap:8px;border:1px solid var(--line);border-radius:8px;padding:10px;margin-bottom:8px">'
+        +'<span style="flex:1;min-width:160px;font-weight:700">🎬 '+esc(it.title)+'</span>'
+        +'<span class="muted" style="font-size:12px;flex:0 0 auto">📚 '+esc(gradeLbl)+'</span>'
+        +'<button type="button" class="btn sm sec" data-vl-open="'+esc(it.url)+'" style="flex:0 0 auto">👁️ باز کردن</button>'
+        +'<button type="button" class="btn sm gray" data-vl-copy="'+esc(it.url)+'" style="flex:0 0 auto">🔗 کپی لینک</button>'
+        +'<button type="button" class="btn sm danger" data-vl-del="'+esc(it.id)+'" style="flex:0 0 auto">🗑️ حذف</button>'
+        +'</div>';
+    }).join('');
+    list.querySelectorAll('[data-vl-open]').forEach(function(b){
+      b.onclick=function(){window.open(b.dataset.vlOpen,'_blank');};
+    });
+    list.querySelectorAll('[data-vl-copy]').forEach(function(b){
+      b.onclick=function(){
+        navigator.clipboard.writeText(b.dataset.vlCopy).then(function(){toast('لینک کپی شد ✅');}).catch(function(){toast('کپی نشد');});
+      };
+    });
+    list.querySelectorAll('[data-vl-del]').forEach(function(b){
+      b.onclick=async function(){
+        if(!confirm('این لینک حذف شود؟'))return;
+        await api('/api/teacher/video-links/'+encodeURIComponent(b.dataset.vlDel),{method:'DELETE'});
+        loadVideoLinks();
+      };
+    });
+  }
+  document.getElementById('btn-vl-add').onclick=async function(){
+    var title=document.getElementById('vl-title').value.trim();
+    var grade=document.getElementById('vl-grade').value;
+    var vUrl=document.getElementById('vl-url').value.trim();
+    if(!title){toast('لطفاً یک عنوان وارد کنید');return;}
+    if(!/^https?:\/\//i.test(vUrl)){toast('لینک باید با http:// یا https:// شروع شود');return;}
+    const r=await api('/api/teacher/video-links',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({title:title,grade:grade,url:vUrl})});
+    if(r.ok){
+      toast('لینک اضافه شد ✅');
+      document.getElementById('vl-title').value='';
+      document.getElementById('vl-url').value='';
+      loadVideoLinks();
+    }else toast(r.error||'خطا در افزودن لینک');
   };
 
   // ===== سوییچ تم رنگی برنامهٔ هفتگی (پسرانه/دخترانه/پیش‌فرض) =====
