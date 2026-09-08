@@ -7832,7 +7832,7 @@ function teacherScript() {
     var grade=document.getElementById('vl-grade').value;
     var vUrl=document.getElementById('vl-url').value.trim();
     if(!title){toast('لطفاً یک عنوان وارد کنید');return;}
-    if(!/^https?:\/\//i.test(vUrl)){toast('لینک باید با http:// یا https:// شروع شود');return;}
+    if(!/^https?:\\/\\//i.test(vUrl)){toast('لینک باید با http:// یا https:// شروع شود');return;}
     const r=await api('/api/teacher/video-links',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({title:title,grade:grade,url:vUrl})});
     if(r.ok){
       toast('لینک اضافه شد ✅');
