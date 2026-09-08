@@ -7885,7 +7885,7 @@ function teacherScript() {
     var grade=document.getElementById('vl-grade').value;
     var vUrl=document.getElementById('vl-url').value.trim();
     if(!title){toast('لطفاً یک عنوان وارد کنید');return;}
-    if(!/^https?:\/\//i.test(vUrl)){toast('لینک باید با http:// یا https:// شروع شود');return;}
+    if(!/^https?:\\/\\//i.test(vUrl)){toast('لینک باید با http:// یا https:// شروع شود');return;}
     const r=await api('/api/teacher/video-links',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({title:title,grade:grade,url:vUrl})});
     if(r.ok){
       toast('لینک اضافه شد ✅');
@@ -8064,7 +8064,7 @@ function teacherScript() {
     style+='@font-face{font-family:"BTitr";src:url(https://cdn.jsdelivr.net/gh/intuxicated/css-persian@master/fonts/BTitrBold.ttf)}';
     style+='*{-webkit-print-color-adjust:exact;print-color-adjust:exact}';
     style+=hasBg
-      ?'body{direction:rtl;font-family:'+exportFontFamily+';padding:30px;background-image:url(\''+scheduleBg+'\');background-size:cover;background-position:center;background-repeat:no-repeat}'
+      ?'body{direction:rtl;font-family:'+exportFontFamily+';padding:30px;background-image:url(\\''+scheduleBg+'\\');background-size:cover;background-position:center;background-repeat:no-repeat}'
       :'body{direction:rtl;font-family:'+exportFontFamily+';padding:30px;background:#f8fafc}';
     style+='.header{text-align:center;padding:20px;background:'+(hasBg?overlay:'#fff')+';color:#1e293b;border-radius:20px;margin-bottom:20px;border:1.5px solid #e2e8f0}';
     style+='.header h1{font-size:24px;margin:0 0 10px;font-weight:800;letter-spacing:.3px}.header p{margin:5px 0;font-size:14px}';
