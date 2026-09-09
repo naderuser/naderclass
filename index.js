@@ -1191,6 +1191,11 @@ async function handleApi(req, env, url, path) {
       } while (cursor);
       return json({ ok: true });
     }
+    if (path.startsWith("/api/teacher/attendance/") && method === "DELETE") {
+      const id = decodeURIComponent(path.slice("/api/teacher/attendance/".length));
+      await env.EXAM_KV.delete("attendance:" + id);
+      return json({ ok: true });
+    }
 
     if (path === "/api/teacher/questions" && method === "GET") {
       const grade = clampGrade(url.searchParams.get("grade"));
@@ -4771,6 +4776,7 @@ function teacherPage() {
 
         <a class="tab" data-tab="classroom" href="/teacher?tab=classroom"><span class="tab-ico">🖥️</span><span class="tab-label">کلاس آنلاین</span></a>
         <a class="tab" data-tab="webinar" href="/teacher?tab=webinar"><span class="tab-ico">🎙️</span><span class="tab-label">وبینار</span></a>
+        <a class="tab" data-tab="attendance" href="/teacher?tab=attendance"><span class="tab-ico">📋</span><span class="tab-label">فرم حضور و غیاب</span></a>
         <a class="tab" data-tab="htmlgames" href="/teacher?tab=htmlgames"><span class="tab-ico">🎬</span><span class="tab-label">لینک فیلم و محتوای تعاملی</span></a>
 
         <div class="tab-group">
@@ -4869,6 +4875,14 @@ function teacherPage() {
           <a class="home-card" href="/teacher?tab=classroom">
             <h4>🖥️ کلاس آنلاین</h4>
             <ul><li>برگزاری کلاس آنلاین با تخته، چت و وبکم</li></ul>
+          </a>
+          <a class="home-card" href="/teacher?tab=webinar">
+            <h4>🎙️ وبینار</h4>
+            <ul><li>یک لینک عمومی، ورود با نام، بدون محدودیت تعداد</li></ul>
+          </a>
+          <a class="home-card" href="/teacher?tab=attendance">
+            <h4>📋 فرم حضور و غیاب</h4>
+            <ul><li>یک لینک عمومی، ثبت مشخصات، خروجی اکسل و PDF</li></ul>
           </a>
           <a class="home-card" href="/teacher?tab=logbook">
             <h4>📖 دفتر مدیریت کلاسی</h4>
@@ -5067,12 +5081,21 @@ function teacherPage() {
         <p class="muted">برای هر دانش‌آموز یک کاربرگ (عکس یا PDF) بارگذاری کنید. دانش‌آموز پس از انجام کاربرگ، عکس آن را برای شما ارسال می‌کند و شما می‌توانید زیر آن بازخورد بنویسید.</p>
         <div class="row" style="align-items:center;flex-wrap:wrap;gap:10px">
           <div style="flex:1;min-width:220px">
-            <label>👤 انتخاب دانش‌آموز</label>
+            <label>👤 انتخاب دانش‌آموز (ارسال تکی)</label>
             <select id="ws-student-select"><option value="">— یک دانش‌آموز را انتخاب کنید —</option></select>
           </div>
           <button class="btn gray sm" id="btn-refresh-ws" style="flex:0 0 auto;margin-top:20px">🔄 به‌روزرسانی</button>
         </div>
         <div id="worksheet-list" style="margin-top:14px"></div>
+
+        <div class="row" style="align-items:center;flex-wrap:wrap;gap:10px;margin-top:18px;padding-top:14px;border-top:1px solid var(--line)">
+          <div style="flex:1;min-width:220px">
+            <label>📚 ارسال کاربرگ به همه‌ی دانش‌آموزان یک پایه</label>
+            <select id="ws-bulk-grade"></select>
+          </div>
+          <label class="btn sm primary" style="cursor:pointer;flex:0 0 auto;margin-top:20px">📤 انتخاب فایل و ارسال به همه<input type="file" accept="image/*,application/pdf" class="hidden" id="ws-bulk-upload"></label>
+        </div>
+        <p id="ws-bulk-status" class="muted hidden" style="margin-top:8px"></p>
       </div>
 
       </div>
@@ -5288,6 +5311,13 @@ function teacherPage() {
       </div>
 
       <div class="card tab-content hidden" id="tab-schedule">
+        <div class="subtabs" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;border-bottom:2px solid #e2e8f0;padding-bottom:12px">
+          <div class="subtab active" data-subtab="sch-weekly">📅 برنامه هفتگی</div>
+          <div class="subtab" data-subtab="sch-cert">🏅 لوح تقدیر</div>
+          <div class="subtab" data-subtab="sch-webinar">🎓 گواهی حضور در وبینار</div>
+        </div>
+
+        <div class="subtab-content" id="tab-sch-weekly">
         <h3 id="schedule-title">📅 برنامه هفتگی</h3>
         <div class="row" style="margin-bottom:16px;align-items:center;gap:10px;flex-wrap:wrap">
           <span style="font-weight:700">🎨 تم رنگی:</span>
@@ -5334,6 +5364,119 @@ function teacherPage() {
         <button class="btn sec" id="btn-word-schedule">📄 دانلود Word</button>
         <button class="btn gray" id="btn-pdf-schedule">📕 دانلود PDF</button>
         <button class="btn" id="btn-save-schedule">💾 ذخیره در سرور</button>
+        </div>
+
+        <div class="subtab-content hidden" id="tab-sch-cert">
+        <h3>🏅 لوح تقدیر</h3>
+        <p class="muted">برای دانش‌آموزانی که به این پنل وصل شده‌اند لوح تقدیر بسازید؛ متن، شماره، تاریخ، امضا و فونت هر بخش جداگانه قابل تنظیم است.</p>
+        <div class="lb-meta-form">
+          <div><label>شماره</label><input id="cert-number" placeholder="مثال: 1055/213093"></div>
+          <div><label>تاریخ</label><input id="cert-date" placeholder="مثال: 1404/08/02"></div>
+        </div>
+        <div class="row" style="margin-bottom:12px;align-items:center;gap:10px;flex-wrap:wrap">
+          <span style="font-weight:700">عنوان:</span>
+          <input id="cert-title" value="تقدیرنامه" style="flex:1;min-width:180px;padding:8px;border:1px solid #ddd;border-radius:6px">
+          <span class="muted">فونت:</span>
+          <select id="cert-font-title" class="cert-font-select" style="padding:8px;border:1px solid #ddd;border-radius:6px"></select>
+          <input type="number" id="cert-size-title" value="28" min="10" max="60" style="width:70px;padding:8px;border:1px solid #ddd;border-radius:6px">
+        </div>
+        <div class="row" style="margin-bottom:12px;align-items:center;gap:10px;flex-wrap:wrap">
+          <span style="font-weight:700">فونت شماره/تاریخ:</span>
+          <select id="cert-font-number" class="cert-font-select" style="padding:8px;border:1px solid #ddd;border-radius:6px"></select>
+          <input type="number" id="cert-size-number" value="12" min="8" max="30" style="width:70px;padding:8px;border:1px solid #ddd;border-radius:6px">
+        </div>
+
+        <div style="margin-bottom:12px">
+          <label style="display:block;font-weight:700;margin-bottom:6px">متن لوح (به‌جای نام دانش‌آموز از {{نام}} استفاده کنید) — می‌توانید از {{نام}} استفاده کنید:</label>
+          <textarea id="cert-body" rows="8" style="width:100%;padding:10px;border:1px solid #ddd;border-radius:8px;font-size:14px">بسمه‌تعالی
+
+دانش‌آموز گرامی {{نام}}
+
+با سلام و احترام؛ به پاس تلاش مستمر، رعایت نظم و انضباط و کسب موفقیت در فعالیت‌های آموزشی و پرورشی، این لوح تقدیر به شما اهدا می‌گردد. امید است در ادامه مسیر تحصیلی، همواره موفق و سربلند باشید.</textarea>
+          <div class="row" style="margin-top:8px;align-items:center;gap:10px;flex-wrap:wrap">
+            <span style="font-weight:700">فونت متن:</span>
+            <select id="cert-font-body" class="cert-font-select" style="padding:8px;border:1px solid #ddd;border-radius:6px"></select>
+            <input type="number" id="cert-size-body" value="14" min="8" max="30" style="width:70px;padding:8px;border:1px solid #ddd;border-radius:6px">
+          </div>
+        </div>
+        <div class="row" style="margin-bottom:12px;align-items:center;gap:10px;flex-wrap:wrap">
+          <span style="font-weight:700">امضا:</span>
+          <input type="file" id="cert-sig-file" accept="image/*">
+          <img id="cert-sig-preview" style="max-height:60px;display:none;border:1px solid #ddd;border-radius:6px;background:#fff">
+          <button type="button" class="btn sm gray" id="cert-sig-remove">حذف امضا</button>
+          <input id="cert-sig-caption" placeholder="عنوان زیر امضا (مثال: مدیر مدرسه)" style="min-width:200px;padding:8px;border:1px solid #ddd;border-radius:6px">
+          <span class="muted">فونت:</span>
+          <select id="cert-font-sig" class="cert-font-select" style="padding:8px;border:1px solid #ddd;border-radius:6px"></select>
+          <input type="number" id="cert-size-sig" value="13" min="8" max="30" style="width:70px;padding:8px;border:1px solid #ddd;border-radius:6px">
+        </div>
+        <p class="muted">قالب چاپ همیشه عمودی (Portrait) است.</p>
+        <div style="margin-bottom:10px">
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-weight:700">
+            <input type="checkbox" id="cert-select-all"> انتخاب همه دانش‌آموزان
+          </label>
+          <div id="cert-students-list" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:10px"></div>
+        </div>
+        <button class="btn" id="cert-btn-save">💾 ذخیره تنظیمات</button>
+        <button class="btn primary" id="cert-btn-print">🖨️ ساخت PDF برای دانش‌آموزان انتخاب‌شده</button>
+        </div>
+
+        <div class="subtab-content hidden" id="tab-sch-webinar">
+        <h3>🎓 گواهی حضور در وبینار</h3>
+        <p class="muted">برای دانش‌آموزان/افرادی که در وبینار شرکت کرده‌اند گواهی حضور بسازید؛ هر گواهی یک بارکد شناسایی نیز در پایین خود دارد.</p>
+        <div class="lb-meta-form">
+          <div><label>شماره</label><input id="wbc-number" placeholder="مثال: 1055/213093"></div>
+          <div><label>تاریخ</label><input id="wbc-date" placeholder="مثال: 1404/08/02"></div>
+        </div>
+        <div class="row" style="margin-bottom:12px;align-items:center;gap:10px;flex-wrap:wrap">
+          <span style="font-weight:700">عنوان:</span>
+          <input id="wbc-title" value="گواهی حضور" style="flex:1;min-width:180px;padding:8px;border:1px solid #ddd;border-radius:6px">
+          <span class="muted">فونت:</span>
+          <select id="wbc-font-title" class="cert-font-select" style="padding:8px;border:1px solid #ddd;border-radius:6px"></select>
+          <input type="number" id="wbc-size-title" value="28" min="10" max="60" style="width:70px;padding:8px;border:1px solid #ddd;border-radius:6px">
+        </div>
+        <div class="row" style="margin-bottom:12px;align-items:center;gap:10px;flex-wrap:wrap">
+          <span style="font-weight:700">فونت شماره/تاریخ:</span>
+          <select id="wbc-font-number" class="cert-font-select" style="padding:8px;border:1px solid #ddd;border-radius:6px"></select>
+          <input type="number" id="wbc-size-number" value="12" min="8" max="30" style="width:70px;padding:8px;border:1px solid #ddd;border-radius:6px">
+        </div>
+        <div class="row" style="margin-bottom:12px;align-items:center;gap:10px;flex-wrap:wrap">
+          <span style="font-weight:700">عنوان وبینار:</span>
+          <input id="wbc-event" placeholder="مثال: دوره آموزشی سواد دیجیتال" style="flex:1;min-width:200px;padding:8px;border:1px solid #ddd;border-radius:6px">
+        </div>
+
+        <div style="margin-bottom:12px">
+          <label style="display:block;font-weight:700;margin-bottom:6px">متن گواهی (از {{نام}}، {{وبینار}} و {{تاریخ}} استفاده کنید) — می‌توانید از {{نام}}، {{وبینار}}، {{تاریخ}} استفاده کنید:</label>
+          <textarea id="wbc-body" rows="8" style="width:100%;padding:10px;border:1px solid #ddd;border-radius:8px;font-size:14px">بسمه‌تعالی
+
+بدینوسیله گواهی می‌شود {{نام}} در وبینار «{{وبینار}}» که در تاریخ {{تاریخ}} برگزار گردید، شرکت نموده‌اند.
+
+این گواهی صرفاً جهت استفاده از مزایای آموزشی صادر گردیده است.</textarea>
+          <div class="row" style="margin-top:8px;align-items:center;gap:10px;flex-wrap:wrap">
+            <span style="font-weight:700">فونت متن:</span>
+            <select id="wbc-font-body" class="cert-font-select" style="padding:8px;border:1px solid #ddd;border-radius:6px"></select>
+            <input type="number" id="wbc-size-body" value="14" min="8" max="30" style="width:70px;padding:8px;border:1px solid #ddd;border-radius:6px">
+          </div>
+        </div>
+        <div class="row" style="margin-bottom:12px;align-items:center;gap:10px;flex-wrap:wrap">
+          <span style="font-weight:700">امضا:</span>
+          <input type="file" id="wbc-sig-file" accept="image/*">
+          <img id="wbc-sig-preview" style="max-height:60px;display:none;border:1px solid #ddd;border-radius:6px;background:#fff">
+          <button type="button" class="btn sm gray" id="wbc-sig-remove">حذف امضا</button>
+          <input id="wbc-sig-caption" placeholder="عنوان زیر امضا (مثال: مدیر مدرسه)" style="min-width:200px;padding:8px;border:1px solid #ddd;border-radius:6px">
+          <span class="muted">فونت:</span>
+          <select id="wbc-font-sig" class="cert-font-select" style="padding:8px;border:1px solid #ddd;border-radius:6px"></select>
+          <input type="number" id="wbc-size-sig" value="13" min="8" max="30" style="width:70px;padding:8px;border:1px solid #ddd;border-radius:6px">
+        </div>
+        <p class="muted">قالب چاپ همیشه عمودی (Portrait) است. یک بارکد شناسایی نیز پایین هر گواهی به‌صورت خودکار افزوده می‌شود.</p>
+        <div style="margin-bottom:10px">
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-weight:700">
+            <input type="checkbox" id="wbc-select-all"> انتخاب همه دانش‌آموزان
+          </label>
+          <div id="wbc-students-list" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:10px"></div>
+        </div>
+        <button class="btn" id="wbc-btn-save">💾 ذخیره تنظیمات</button>
+        <button class="btn primary" id="wbc-btn-print">🖨️ ساخت PDF برای دانش‌آموزان انتخاب‌شده</button>
+        </div>
       </div>
 
       <div class="card tab-content hidden" id="tab-tablesorg">
@@ -5895,19 +6038,6 @@ function teacherPage() {
       <div class="card tab-content hidden" id="tab-classroom">
         <h3>🖥️ کلاس آنلاین</h3>
 
-        <div class="cls-sec" style="margin-bottom:16px">
-          <div class="cls-sec-head tap open" id="att-toggle">📋 فرم حضور و غیاب<span class="cls-chevron">▾</span></div>
-          <div id="att-wrap" class="cls-chat-wrap">
-            <p class="muted" style="margin-top:0">یک لینک واحد و عمومی؛ هرکس آن را باز کند فرم را پر و ثبت می‌کند. اطلاعات ثبت‌شده در همین‌جا برای شما قابل مشاهده است.</p>
-            <div class="row" style="align-items:center;gap:8px;margin-bottom:12px">
-              <div class="link-box" id="att-link-box" style="flex:1"></div>
-              <button class="btn sm sec" id="btn-att-link-copy" style="flex:0 0 auto">کپی لینک</button>
-              <button class="btn sm" id="btn-att-refresh" style="flex:0 0 auto">🔄 بروزرسانی</button>
-            </div>
-            <div id="att-records-wrap" style="overflow:auto"><span class="muted">برای مشاهده‌ی فهرست، روی «بروزرسانی» بزنید.</span></div>
-          </div>
-        </div>
-
         <div class="cls-status" style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
           <span class="dot" id="tdot" style="width:10px;height:10px;border-radius:50%;background:#dc2626;display:inline-block;flex:0 0 auto"></span>
           <span id="t-cls-status" class="muted" style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">کلاس آنلاین شروع نشده</span>
@@ -6013,6 +6143,21 @@ function teacherPage() {
             </div>
           </div>
         </div>
+      </div>
+
+      <div class="card tab-content hidden" id="tab-attendance">
+        <h3>📋 فرم حضور و غیاب</h3>
+        <p class="muted" style="margin-top:-6px">یک لینک واحد و عمومی؛ هرکس آن را باز کند فرم را پر و ثبت می‌کند. اطلاعات ثبت‌شده در همین‌جا برای شما قابل مشاهده و قابل دانلود است.</p>
+        <div class="row" style="align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap">
+          <div class="link-box" id="att-link-box" style="flex:1;min-width:200px"></div>
+          <button class="btn sm sec" id="btn-att-link-copy" style="flex:0 0 auto">کپی لینک</button>
+          <button class="btn sm" id="btn-att-refresh" style="flex:0 0 auto">🔄 بروزرسانی</button>
+        </div>
+        <div class="row" style="align-items:center;gap:8px;margin-bottom:14px;flex-wrap:wrap">
+          <button class="btn sm sec" id="btn-att-excel" style="flex:0 0 auto">📊 دانلود Excel</button>
+          <button class="btn sm sec" id="btn-att-pdf" style="flex:0 0 auto">🖨️ چاپ / دانلود PDF</button>
+        </div>
+        <div id="att-records-wrap" style="overflow:auto"><span class="muted">برای مشاهده‌ی فهرست، روی «بروزرسانی» بزنید.</span></div>
       </div>
 
       <div class="card tab-content hidden" id="tab-htmlgames">
@@ -7350,6 +7495,8 @@ function teacherScript() {
     if(t.dataset.subtab==='answers')loadAnswers();
     if(t.dataset.subtab==='worksheet')loadWorksheetList();
     if(t.dataset.subtab==='questions'){updateDurationDisplay();}
+    if(t.dataset.subtab==='sch-cert'){certInit();certRenderStudentsList('cert');certLoadSettingsIfNeeded('cert');}
+    if(t.dataset.subtab==='sch-webinar'){certInit();certRenderStudentsList('wbc');certLoadSettingsIfNeeded('wbc');}
   });
 
   // ===== دانش‌آموزان =====
@@ -8441,6 +8588,53 @@ function teacherScript() {
     if(d.ok){toast('کاربرگ حذف شد ✅');renderWorksheetDetail(uuid);}else toast(d.error||'خطا در حذف');
   });
 
+  // ===== ارسال کاربرگ به همه‌ی دانش‌آموزان یک پایه =====
+  (function setupWsBulkGradeSelect(){
+    const sel=document.getElementById('ws-bulk-grade');
+    if(sel)sel.innerHTML=GRADE_LABELS.map(function(lbl,gi){return '<option value="'+gi+'">'+lbl+'</option>';}).join('');
+  })();
+  document.getElementById('ws-bulk-upload').addEventListener('change',async function(e){
+    const file=e.target.files&&e.target.files[0];
+    e.target.value='';
+    if(!file)return;
+    const gradeIdx=parseInt(document.getElementById('ws-bulk-grade').value,10)||0;
+    if(!WORKSHEET_STUDENTS.length){ await loadWorksheetList(); }
+    const targets=WORKSHEET_STUDENTS.filter(function(s){return (Number.isInteger(s.grade)?s.grade:0)===gradeIdx;});
+    if(!targets.length){ toast('دانش‌آموزی در این پایه پیدا نشد'); return; }
+    if(!confirm('این کاربرگ برای '+targets.length+' دانش‌آموز پایه‌ی «'+GRADE_LABELS[gradeIdx]+'» ارسال شود؟'))return;
+    let fileDataUrl,fileName;
+    try{
+      if(file.type==='application/pdf'){
+        if(file.size>4*1024*1024){toast('حجم فایل PDF باید کمتر از ۴ مگابایت باشد');return;}
+        fileDataUrl=await new Promise(function(resolve,reject){
+          const rd=new FileReader();
+          rd.onload=function(){resolve(rd.result);};
+          rd.onerror=function(){reject(new Error('خطا در خواندن فایل'));};
+          rd.readAsDataURL(file);
+        });
+        fileName=file.name;
+      }else if(file.type.startsWith('image/')){
+        fileDataUrl=await compressWorksheetImage(file);
+        fileName=file.name;
+      }else{
+        toast('فقط فایل عکس یا PDF مجاز است');return;
+      }
+    }catch(err){ toast(err.message||'خطا در پردازش فایل'); return; }
+    const statusEl=document.getElementById('ws-bulk-status');
+    statusEl.classList.remove('hidden');
+    let done=0,failed=0;
+    for(const s of targets){
+      statusEl.textContent='در حال ارسال... ('+(done+failed+1)+' از '+targets.length+')';
+      try{
+        const d=await api('/api/teacher/worksheet/'+s.uuid,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({fileDataUrl,fileName})});
+        if(d.ok)done++; else failed++;
+      }catch(err){ failed++; }
+    }
+    statusEl.textContent='ارسال به همه انجام شد: '+done+' موفق'+(failed?('، '+failed+' ناموفق'):'')+'.';
+    toast('کاربرگ برای '+done+' دانش‌آموز ارسال شد ✅');
+    if(document.getElementById('ws-student-select').value)renderWorksheetDetail(document.getElementById('ws-student-select').value);
+  });
+
   // ===== برنامه هفتگی =====
   let scheduleBg=null;
   function applyScheduleBg(dataUrl){
@@ -8803,6 +8997,196 @@ function teacherScript() {
   document.getElementById('btn-print-schedule').onclick=function(){const w=window.open('','_blank');w.document.write(getScheduleHtmlForExport());w.document.close();setTimeout(function(){w.print();},500);};
   document.getElementById('btn-word-schedule').onclick=function(){const blob=new Blob([getScheduleHtmlForExport()],{type:'application/msword'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='برنامه-هفتگی.doc';document.body.appendChild(a);a.click();a.remove();};
   document.getElementById('btn-pdf-schedule').onclick=function(){const w=window.open('','_blank');w.document.write(getScheduleHtmlForExport());w.document.close();setTimeout(function(){w.print();},500);};
+
+  /* ===================== لوح تقدیر و گواهی حضور در وبینار ===================== */
+  var CERT_FONTS=[["default","پیش‌فرض (وزیرمتن)"],["nazanin","B Nazanin"],["titr","B Titr"],["mitra","B Mitra"],["koodak","B Koodak"],["nastaliq","نستعلیق ایران"]];
+  function certFontFamily(key){
+    if(key==="nazanin")return '"B Nazanin","BNazanin",Tahoma,Arial';
+    if(key==="titr")return '"B Titr","BTitr",Tahoma,Arial';
+    if(key==="mitra")return '"B Mitra","BMitra",Tahoma,Arial';
+    if(key==="koodak")return '"B Koodak","BKoodak",Tahoma,Arial';
+    if(key==="nastaliq")return '"Noto Nastaliq Urdu","B Nazanin",serif';
+    return '"Vazirmatn",Tahoma,Arial';
+  }
+  function certFontFaceCss(key){
+    if(key==="nazanin")return '@font-face{font-family:"BNazanin";src:url(https://cdn.jsdelivr.net/gh/intuxicated/css-persian@master/fonts/BNazanin.ttf)}';
+    if(key==="titr")return '@font-face{font-family:"BTitr";src:url(https://cdn.jsdelivr.net/gh/intuxicated/css-persian@master/fonts/BTitrBold.ttf)}';
+    if(key==="mitra")return '@font-face{font-family:"BMitra";src:url(https://cdn.jsdelivr.net/gh/intuxicated/css-persian@master/fonts/BMitra.ttf)}';
+    if(key==="koodak")return '@font-face{font-family:"BKoodak";src:url(https://cdn.jsdelivr.net/gh/intuxicated/css-persian@master/fonts/BKoodakBold.ttf)}';
+    if(key==="nastaliq")return '@import url(https://fonts.googleapis.com/css2?family=Noto+Nastaliq+Urdu:wght@400..700&display=swap);';
+    return '@import url(https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css);';
+  }
+  function certPopulateFontSelects(){
+    document.querySelectorAll(".cert-font-select").forEach(function(sel){
+      if(sel.dataset.filled)return;
+      sel.dataset.filled="1";
+      sel.innerHTML=CERT_FONTS.map(function(f){return '<option value="'+f[0]+'">'+f[1]+"</option>";}).join("");
+    });
+  }
+  var CERT_SIG={cert:"",wbc:""};
+  function certRenderStudentsList(prefix){
+    var wrap=document.getElementById(prefix+"-students-list");
+    if(!wrap)return;
+    var list=(TEACHER_STUDENTS||[]).slice().sort(function(a,b){return String(a.label||"").localeCompare(String(b.label||""),"fa");});
+    if(!list.length){wrap.innerHTML='<p class="muted">دانش‌آموزی ثبت نشده است.</p>';return;}
+    wrap.innerHTML=list.map(function(s){
+      return '<label style="display:flex;align-items:center;gap:6px;border:1px solid #ddd;border-radius:8px;padding:6px 10px;cursor:pointer"><input type="checkbox" class="'+prefix+'-student-check" value="'+s.uuid+'"> '+esc(s.label||"بدون نام")+"</label>";
+    }).join("");
+    var all=document.getElementById(prefix+"-select-all");
+    if(all)all.checked=false;
+  }
+  function certWireSelectAll(prefix){
+    var all=document.getElementById(prefix+"-select-all");
+    if(!all||all.dataset.wired)return;
+    all.dataset.wired="1";
+    all.addEventListener("change",function(){
+      document.querySelectorAll("."+prefix+"-student-check").forEach(function(c){c.checked=all.checked;});
+    });
+  }
+  function certGetSelectedSorted(prefix){
+    var ids={};
+    document.querySelectorAll("."+prefix+"-student-check:checked").forEach(function(c){ids[c.value]=true;});
+    return (TEACHER_STUDENTS||[]).filter(function(s){return ids[s.uuid];}).sort(function(a,b){return String(a.label||"").localeCompare(String(b.label||""),"fa");});
+  }
+  function certReadFileAsDataUrl(file){
+    return new Promise(function(res,rej){
+      var r=new FileReader();
+      r.onload=function(){res(r.result);};
+      r.onerror=rej;
+      r.readAsDataURL(file);
+    });
+  }
+  function certWireSig(prefix){
+    var inp=document.getElementById(prefix+"-sig-file");
+    if(inp&&!inp.dataset.wired){
+      inp.dataset.wired="1";
+      inp.addEventListener("change",function(){
+        var f=inp.files&&inp.files[0];
+        if(!f)return;
+        if(f.size>1500000){toast("حجم عکس امضا زیاد است (حداکثر ۱.۵ مگابایت)");inp.value="";return;}
+        certReadFileAsDataUrl(f).then(function(data){
+          CERT_SIG[prefix]=data;
+          var img=document.getElementById(prefix+"-sig-preview");
+          if(img){img.src=data;img.style.display="inline-block";}
+        });
+      });
+    }
+    var rm=document.getElementById(prefix+"-sig-remove");
+    if(rm&&!rm.dataset.wired){
+      rm.dataset.wired="1";
+      rm.addEventListener("click",function(){
+        CERT_SIG[prefix]="";
+        var img=document.getElementById(prefix+"-sig-preview");
+        if(img){img.src="";img.style.display="none";}
+        var f2=document.getElementById(prefix+"-sig-file");
+        if(f2)f2.value="";
+      });
+    }
+  }
+  function certCollectSettings(prefix){
+    var g=function(id){var el=document.getElementById(id);return el?el.value:"";};
+    var s={number:g(prefix+"-number"),date:g(prefix+"-date"),title:g(prefix+"-title"),body:g(prefix+"-body"),
+      sigCaption:g(prefix+"-sig-caption"),sig:CERT_SIG[prefix]||"",
+      fontTitle:g(prefix+"-font-title"),sizeTitle:g(prefix+"-size-title"),
+      fontNumber:g(prefix+"-font-number"),sizeNumber:g(prefix+"-size-number"),
+      fontBody:g(prefix+"-font-body"),sizeBody:g(prefix+"-size-body"),
+      fontSig:g(prefix+"-font-sig"),sizeSig:g(prefix+"-size-sig")};
+    if(prefix==="wbc")s.event=g("wbc-event");
+    return s;
+  }
+  async function certSaveSettings(prefix){
+    var ok=await lbSave(prefix+"-settings",certCollectSettings(prefix));
+    if(ok)toast("تنظیمات ذخیره شد");
+  }
+  var CERT_SETTINGS_LOADED={cert:false,wbc:false};
+  async function certLoadSettingsIfNeeded(prefix){
+    if(CERT_SETTINGS_LOADED[prefix])return;
+    CERT_SETTINGS_LOADED[prefix]=true;
+    var s=await lbLoad(prefix+"-settings");
+    if(!s)return;
+    var set=function(id,val){var el=document.getElementById(id);if(el&&val!==undefined&&val!==null&&val!=="")el.value=val;};
+    set(prefix+"-number",s.number);set(prefix+"-date",s.date);set(prefix+"-title",s.title);set(prefix+"-body",s.body);
+    set(prefix+"-sig-caption",s.sigCaption);
+    set(prefix+"-font-title",s.fontTitle);set(prefix+"-size-title",s.sizeTitle);
+    set(prefix+"-font-number",s.fontNumber);set(prefix+"-size-number",s.sizeNumber);
+    set(prefix+"-font-body",s.fontBody);set(prefix+"-size-body",s.sizeBody);
+    set(prefix+"-font-sig",s.fontSig);set(prefix+"-size-sig",s.sizeSig);
+    if(prefix==="wbc")set("wbc-event",s.event);
+    if(s.sig){
+      CERT_SIG[prefix]=s.sig;
+      var img=document.getElementById(prefix+"-sig-preview");
+      if(img){img.src=s.sig;img.style.display="inline-block";}
+    }
+  }
+  function certNlToBr(s){
+    return String(s||"").split(String.fromCharCode(13)).join("").split(String.fromCharCode(10)).join("<br>");
+  }
+  function certFillTemplate(tpl,student,s){
+    var out=String(tpl||"");
+    out=out.split("{{نام}}").join(student.label||"");
+    out=out.split("{{تاریخ}}").join(s.date||"");
+    if(s.event!==undefined)out=out.split("{{وبینار}}").join(s.event||"");
+    out=esc(out);
+    out=certNlToBr(out);
+    return out;
+  }
+  function certBuildPageHtml(prefix,student,s,serial){
+    var titleFF=certFontFamily(s.fontTitle||"default");
+    var numFF=certFontFamily(s.fontNumber||"default");
+    var bodyFF=certFontFamily(s.fontBody||"default");
+    var sigFF=certFontFamily(s.fontSig||"default");
+    var bodyHtml=certFillTemplate(s.body,student,s);
+    var sigBlock="";
+    if(s.sig)sigBlock+='<img src="'+s.sig+'" style="max-height:70px;display:block;margin:0 auto 6px">';
+    sigBlock+='<div style="font-family:'+sigFF+";font-size:"+(s.sizeSig||13)+'pt">'+esc(s.sigCaption||"")+"</div>";
+    var barcodeBlock="";
+    if(prefix==="wbc"){
+      var code="WB-"+(s.number||"")+"-"+serial;
+      barcodeBlock='<div style="text-align:center;margin-top:18px"><svg class="cert-barcode" data-code="'+esc(code)+'"></svg></div>';
+    }
+    return ""
+      +'<div class="cert-page" style="page-break-after:always;box-sizing:border-box;width:100%;min-height:257mm;padding:16mm;border:6px double #7c5b23;outline:1px solid #d9c48a;outline-offset:-10px;position:relative;font-family:'+bodyFF+'">'
+      +'<div style="position:absolute;top:14mm;right:16mm;text-align:right;font-family:'+numFF+";font-size:"+(s.sizeNumber||12)+'pt;line-height:2">شماره: '+esc(s.number||"")+"<br>تاریخ: "+esc(s.date||"")+"</div>"
+      +'<div style="text-align:center;margin-top:30mm;font-family:'+titleFF+";font-size:"+(s.sizeTitle||28)+'pt;font-weight:800">'+esc(s.title||"")+"</div>"
+      +'<div style="margin-top:26px;font-family:'+bodyFF+";font-size:"+(s.sizeBody||14)+'pt;line-height:2.3;text-align:justify;padding:0 6mm">'+bodyHtml+"</div>"
+      +'<div style="position:absolute;bottom:16mm;left:0;right:0;text-align:center">'+sigBlock+"</div>"
+      +barcodeBlock
+      +"</div>";
+  }
+  function certBuildDocHtml(prefix){
+    var s=certCollectSettings(prefix);
+    var students=certGetSelectedSorted(prefix);
+    if(!students.length){toast("حداقل یک دانش‌آموز را انتخاب کنید");return "";}
+    var pages=students.map(function(st,i){return certBuildPageHtml(prefix,st,s,i+1);}).join("");
+    var seen={};
+    var fontFaces=[s.fontTitle,s.fontNumber,s.fontBody,s.fontSig].map(function(k){return k||"default";}).filter(function(k){if(seen[k])return false;seen[k]=true;return true;}).map(certFontFaceCss).join("");
+    var style="<style>@page{size:A4 portrait;margin:10mm}"+fontFaces+"*{-webkit-print-color-adjust:exact;print-color-adjust:exact}body{margin:0;direction:rtl}.cert-page:last-child{page-break-after:auto}</style>";
+    var barcodeScript="";
+    if(prefix==="wbc"){
+      barcodeScript='<script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"><'+"/script><script>document.querySelectorAll('.cert-barcode').forEach(function(el){try{JsBarcode(el,el.getAttribute('data-code'),{format:'CODE128',displayValue:true,fontSize:12,height:36,margin:0});}catch(e){}});<"+"/script>";
+    }
+    return '<html><head><meta charset="utf-8">'+style+"</head><body>"+pages+barcodeScript+"</body></html>";
+  }
+  function certPrint(prefix){
+    var htmlDoc=certBuildDocHtml(prefix);
+    if(!htmlDoc)return;
+    var w=window.open("","_blank");
+    w.document.write(htmlDoc);
+    w.document.close();
+    setTimeout(function(){w.print();},prefix==="wbc"?900:500);
+  }
+  function certInit(){
+    certPopulateFontSelects();
+    ["cert","wbc"].forEach(function(p){
+      certWireSelectAll(p);
+      certWireSig(p);
+      var saveBtn=document.getElementById(p+"-btn-save");
+      if(saveBtn&&!saveBtn.dataset.wired){saveBtn.dataset.wired="1";saveBtn.addEventListener("click",function(){certSaveSettings(p);});}
+      var printBtn=document.getElementById(p+"-btn-print");
+      if(printBtn&&!printBtn.dataset.wired){printBtn.dataset.wired="1";printBtn.addEventListener("click",function(){certPrint(p);});}
+    });
+  }
+  /* ===================== پایان لوح تقدیر و گواهی حضور در وبینار ===================== */
   
   document.getElementById('btn-save-schedule').onclick=async function(){
     const r=await saveScheduleData();
@@ -13381,30 +13765,70 @@ function teacherScript() {
     }
   };
 
-  // ===================== فرم حضور و غیاب (لینک واحد و عمومی، داخل تب کلاس آنلاین) =====================
+  // ===================== فرم حضور و غیاب (تب مستقل، لینک واحد و عمومی) =====================
   document.getElementById('att-link-box').textContent=location.origin+'/class/attendance';
   document.getElementById('btn-att-link-copy').onclick=()=>{copyLink(location.origin+'/class/attendance');};
-  (function setupAttToggle(){
-    const toggle=document.getElementById('att-toggle');
-    const wrap=document.getElementById('att-wrap');
-    toggle.addEventListener('click',function(){
-      wrap.classList.toggle('hidden');
-      toggle.classList.toggle('open');
-    });
-  })();
   function attFmtTime(ts){
     try{ return new Date(ts).toLocaleString('fa-IR'); }catch(e){ return ''; }
+  }
+  let attLastRecords=[];
+  function attRenderTable(){
+    const wrap=document.getElementById('att-records-wrap');
+    if(!attLastRecords.length){ wrap.innerHTML='<span class="muted">هنوز کسی فرم را ثبت نکرده است</span>'; return; }
+    wrap.innerHTML='<table><tr><th>نام</th><th>نام خانوادگی</th><th>کد ملی</th><th>مدرسه</th><th>منطقه</th><th>زمان</th><th></th></tr>'+
+      attLastRecords.map(r=>'<tr><td>'+esc(r.name||'')+'</td><td>'+esc(r.family||'')+'</td><td>'+esc(r.nationalCode||'')+'</td><td>'+esc(r.school||'')+'</td><td>'+esc(r.region||'')+'</td><td>'+attFmtTime(r.ts)+'</td><td><button class="btn sm danger" type="button" data-att-del="'+esc(r.id||'')+'">🗑 حذف</button></td></tr>').join('')+
+      '</table>';
   }
   document.getElementById('btn-att-refresh').onclick=async function(){
     const wrap=document.getElementById('att-records-wrap');
     wrap.innerHTML='<span class="muted">در حال بارگذاری...</span>';
     const d=await api('/api/teacher/attendance');
     if(!d || !d.ok){ wrap.innerHTML='<span class="muted">'+((d&&d.error)||'خطا در دریافت اطلاعات')+'</span>'; return; }
-    const records=d.records||[];
-    if(!records.length){ wrap.innerHTML='<span class="muted">هنوز کسی فرم را ثبت نکرده است</span>'; return; }
-    wrap.innerHTML='<table><tr><th>نام</th><th>نام خانوادگی</th><th>کد ملی</th><th>مدرسه</th><th>منطقه</th><th>زمان</th></tr>'+
+    attLastRecords=d.records||[];
+    attRenderTable();
+  };
+  document.getElementById('att-records-wrap').addEventListener('click',async function(e){
+    const btn=e.target.closest('[data-att-del]');
+    if(!btn)return;
+    const id=btn.dataset.attDel;
+    if(!id)return;
+    if(!confirm('این فرم حذف شود؟'))return;
+    btn.disabled=true;
+    const d=await api('/api/teacher/attendance/'+encodeURIComponent(id),{method:'DELETE'});
+    if(d && d.ok){
+      attLastRecords=attLastRecords.filter(r=>r.id!==id);
+      attRenderTable();
+      toast('فرم حذف شد ✅');
+    }else{
+      btn.disabled=false;
+      toast((d&&d.error)||'خطا در حذف');
+    }
+  });
+  async function attGetRecordsForExport(){
+    if(attLastRecords.length) return attLastRecords;
+    const d=await api('/api/teacher/attendance');
+    if(!d || !d.ok){ toast((d&&d.error)||'خطا در دریافت اطلاعات'); return null; }
+    attLastRecords=d.records||[];
+    if(!attLastRecords.length){ toast('هنوز کسی فرم را ثبت نکرده است'); return null; }
+    return attLastRecords;
+  }
+  document.getElementById('btn-att-excel').onclick=async function(){
+    const records=await attGetRecordsForExport();
+    if(!records) return;
+    await lbExcelExport('حضور-و-غیاب',async function(wb){
+      lbAddExcelSheet(wb,'حضور و غیاب',[
+        ['نام','نام خانوادگی','کد ملی','مدرسه','منطقه','زمان ثبت'],
+        ...records.map(r=>[r.name||'',r.family||'',r.nationalCode||'',r.school||'',r.region||'',attFmtTime(r.ts)])
+      ]);
+    });
+  };
+  document.getElementById('btn-att-pdf').onclick=async function(){
+    const records=await attGetRecordsForExport();
+    if(!records) return;
+    const bodyHtml='<table><tr><th>نام</th><th>نام خانوادگی</th><th>کد ملی</th><th>مدرسه</th><th>منطقه</th><th>زمان</th></tr>'+
       records.map(r=>'<tr><td>'+esc(r.name||'')+'</td><td>'+esc(r.family||'')+'</td><td>'+esc(r.nationalCode||'')+'</td><td>'+esc(r.school||'')+'</td><td>'+esc(r.region||'')+'</td><td>'+attFmtTime(r.ts)+'</td></tr>').join('')+
       '</table>';
+    lbPrintExport('فرم حضور و غیاب',bodyHtml,true);
   };
 
   // ===================== وبینار (اتاق جدا از کلاس آنلاین، لینک واحد و عمومی) =====================
