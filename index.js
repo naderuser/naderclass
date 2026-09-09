@@ -5412,12 +5412,33 @@ function teacherPage() {
         <p class="muted">قالب چاپ همیشه عمودی (Portrait) است.</p>
         <div style="margin-bottom:10px">
           <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-weight:700">
-            <input type="checkbox" id="cert-select-all"> انتخاب همه دانش‌آموزان
+            <input type="checkbox" id="cert-select-all"> انتخاب همه دانش‌آموزان (همه دوره‌ها)
           </label>
-          <div id="cert-students-list" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:10px"></div>
+          <p class="muted" style="margin:6px 0">از هر فهرست کشویی می‌توانید با نگه‌داشتن کلید Ctrl (یا Cmd در مک) چند دانش‌آموز را هم‌زمان انتخاب کنید.</p>
+          <div style="display:flex;flex-direction:column;gap:14px;margin-top:6px">
+            <div>
+              <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-weight:700;margin-bottom:6px">
+                <input type="checkbox" id="cert-select-all-elem"> 📘 دوره ابتدایی — انتخاب همه
+              </label>
+              <select id="cert-students-elem" class="cert-group-select" multiple size="6" style="width:100%;padding:8px;border:1px solid #ddd;border-radius:8px"></select>
+            </div>
+            <div>
+              <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-weight:700;margin-bottom:6px">
+                <input type="checkbox" id="cert-select-all-mid"> 📗 دوره متوسطه اول — انتخاب همه
+              </label>
+              <select id="cert-students-mid" class="cert-group-select" multiple size="6" style="width:100%;padding:8px;border:1px solid #ddd;border-radius:8px"></select>
+            </div>
+            <div>
+              <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-weight:700;margin-bottom:6px">
+                <input type="checkbox" id="cert-select-all-high"> 📙 دوره متوسطه دوم — انتخاب همه
+              </label>
+              <select id="cert-students-high" class="cert-group-select" multiple size="6" style="width:100%;padding:8px;border:1px solid #ddd;border-radius:8px"></select>
+            </div>
+          </div>
         </div>
         <button class="btn" id="cert-btn-save">💾 ذخیره تنظیمات</button>
         <button class="btn primary" id="cert-btn-print">🖨️ ساخت PDF برای دانش‌آموزان انتخاب‌شده</button>
+        <button class="btn sec" id="cert-btn-word">📄 دانلود Word</button>
         </div>
 
         <div class="subtab-content hidden" id="tab-sch-webinar">
@@ -5468,14 +5489,20 @@ function teacherPage() {
           <input type="number" id="wbc-size-sig" value="13" min="8" max="30" style="width:70px;padding:8px;border:1px solid #ddd;border-radius:6px">
         </div>
         <p class="muted">قالب چاپ همیشه عمودی (Portrait) است. یک بارکد شناسایی نیز پایین هر گواهی به‌صورت خودکار افزوده می‌شود.</p>
+        <p class="muted">فهرست زیر به‌صورت خودکار از کسانی که فرم حضور و غیاب (📋) را پر کرده‌اند ساخته می‌شود.</p>
         <div style="margin-bottom:10px">
-          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-weight:700">
-            <input type="checkbox" id="wbc-select-all"> انتخاب همه دانش‌آموزان
-          </label>
+          <div class="row" style="align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:6px">
+            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-weight:700">
+              <input type="checkbox" id="wbc-select-all"> انتخاب همه شرکت‌کنندگان
+            </label>
+            <button type="button" class="btn sm gray" id="wbc-btn-refresh-attendees">🔄 بروزرسانی فهرست از حضور و غیاب</button>
+          </div>
           <div id="wbc-students-list" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:10px"></div>
         </div>
         <button class="btn" id="wbc-btn-save">💾 ذخیره تنظیمات</button>
         <button class="btn primary" id="wbc-btn-print">🖨️ ساخت PDF برای دانش‌آموزان انتخاب‌شده</button>
+        <button class="btn sec" id="wbc-btn-word">📄 دانلود Word</button>
+        <p class="muted" style="margin-top:6px">توجه: بارکد شناسایی فقط در نسخه PDF/چاپ نمایش داده می‌شود و در فایل Word درج نمی‌گردد.</p>
         </div>
       </div>
 
@@ -9024,16 +9051,93 @@ function teacherScript() {
     });
   }
   var CERT_SIG={cert:"",wbc:""};
-  function certRenderStudentsList(prefix){
-    var wrap=document.getElementById(prefix+"-students-list");
+  /* دوره تحصیلی هر پایه را مشخص می‌کند: 0..5=ابتدایی، 6..8=متوسطه اول، 9..11=متوسطه دوم */
+  function certGroupOfGrade(grade){
+    var g=Number.isInteger(grade)?grade:0;
+    if(g>=9)return "high";
+    if(g>=6)return "mid";
+    return "elem";
+  }
+  function certRenderCertStudents(){
+    var groups={elem:[],mid:[],high:[]};
+    (TEACHER_STUDENTS||[]).slice().sort(function(a,b){return String(a.label||"").localeCompare(String(b.label||""),"fa");}).forEach(function(s){
+      groups[certGroupOfGrade(s.grade)].push(s);
+    });
+    ["elem","mid","high"].forEach(function(key){
+      var sel=document.getElementById("cert-students-"+key);
+      if(!sel)return;
+      var list=groups[key];
+      sel.innerHTML=list.length
+        ? list.map(function(s){return '<option value="'+s.uuid+'">'+esc(s.label||"بدون نام")+"</option>";}).join("")
+        : '<option value="" disabled>دانش‌آموزی در این دوره ثبت نشده است</option>';
+      var groupAll=document.getElementById("cert-select-all-"+key);
+      if(groupAll)groupAll.checked=false;
+    });
+    var master=document.getElementById("cert-select-all");
+    if(master)master.checked=false;
+  }
+  function certGetSelectedCertStudents(){
+    var ids={};
+    ["elem","mid","high"].forEach(function(key){
+      var sel=document.getElementById("cert-students-"+key);
+      if(!sel)return;
+      Array.from(sel.selectedOptions||[]).forEach(function(o){if(o.value)ids[o.value]=true;});
+    });
+    return (TEACHER_STUDENTS||[]).filter(function(s){return ids[s.uuid];}).sort(function(a,b){return String(a.label||"").localeCompare(String(b.label||""),"fa");});
+  }
+  function certWireCertSelectAll(){
+    ["elem","mid","high"].forEach(function(key){
+      var box=document.getElementById("cert-select-all-"+key);
+      if(!box||box.dataset.wired)return;
+      box.dataset.wired="1";
+      box.addEventListener("change",function(){
+        var sel=document.getElementById("cert-students-"+key);
+        if(sel)Array.from(sel.options).forEach(function(o){if(o.value)o.selected=box.checked;});
+      });
+    });
+    var master=document.getElementById("cert-select-all");
+    if(master&&!master.dataset.wired){
+      master.dataset.wired="1";
+      master.addEventListener("change",function(){
+        ["elem","mid","high"].forEach(function(key){
+          var sel=document.getElementById("cert-students-"+key);
+          if(sel)Array.from(sel.options).forEach(function(o){if(o.value)o.selected=master.checked;});
+          var groupAll=document.getElementById("cert-select-all-"+key);
+          if(groupAll)groupAll.checked=master.checked;
+        });
+      });
+    }
+  }
+  /* فهرست شرکت‌کنندگان گواهی وبینار از روی ثبت‌نام‌های فرم حضور و غیاب ساخته می‌شود */
+  var WBC_ATTENDEES=[];
+  var WBC_ATTENDEES_LOADED=false;
+  async function wbcLoadAttendees(force){
+    if(WBC_ATTENDEES_LOADED&&!force)return WBC_ATTENDEES;
+    var d=await api("/api/teacher/attendance");
+    var records=(d&&d.records)||[];
+    WBC_ATTENDEES=records.map(function(r){
+      var label=(String(r.name||"").trim()+" "+String(r.family||"").trim()).trim();
+      return {uuid:"att-"+(r.id||""),label:label||"بدون نام"};
+    }).sort(function(a,b){return String(a.label||"").localeCompare(String(b.label||""),"fa");});
+    WBC_ATTENDEES_LOADED=true;
+    return WBC_ATTENDEES;
+  }
+  function certRenderWbcStudents(list){
+    var wrap=document.getElementById("wbc-students-list");
     if(!wrap)return;
-    var list=(TEACHER_STUDENTS||[]).slice().sort(function(a,b){return String(a.label||"").localeCompare(String(b.label||""),"fa");});
-    if(!list.length){wrap.innerHTML='<p class="muted">دانش‌آموزی ثبت نشده است.</p>';return;}
+    if(!list.length){wrap.innerHTML='<p class="muted">هنوز کسی فرم حضور و غیاب را ثبت نکرده است.</p>';return;}
     wrap.innerHTML=list.map(function(s){
-      return '<label style="display:flex;align-items:center;gap:6px;border:1px solid #ddd;border-radius:8px;padding:6px 10px;cursor:pointer"><input type="checkbox" class="'+prefix+'-student-check" value="'+s.uuid+'"> '+esc(s.label||"بدون نام")+"</label>";
+      return '<label style="display:flex;align-items:center;gap:6px;border:1px solid #ddd;border-radius:8px;padding:6px 10px;cursor:pointer"><input type="checkbox" class="wbc-student-check" value="'+s.uuid+'"> '+esc(s.label||"بدون نام")+"</label>";
     }).join("");
-    var all=document.getElementById(prefix+"-select-all");
+    var all=document.getElementById("wbc-select-all");
     if(all)all.checked=false;
+  }
+  async function certRenderStudentsList(prefix){
+    if(prefix==="cert"){certRenderCertStudents();return;}
+    var wrap=document.getElementById("wbc-students-list");
+    if(wrap)wrap.innerHTML='<p class="muted">در حال دریافت فهرست از فرم حضور و غیاب...</p>';
+    var list=await wbcLoadAttendees(false);
+    certRenderWbcStudents(list);
   }
   function certWireSelectAll(prefix){
     var all=document.getElementById(prefix+"-select-all");
@@ -9043,10 +9147,23 @@ function teacherScript() {
       document.querySelectorAll("."+prefix+"-student-check").forEach(function(c){c.checked=all.checked;});
     });
   }
+  function certWireWbcRefresh(){
+    var btn=document.getElementById("wbc-btn-refresh-attendees");
+    if(!btn||btn.dataset.wired)return;
+    btn.dataset.wired="1";
+    btn.addEventListener("click",async function(){
+      btn.disabled=true;btn.textContent="در حال بروزرسانی...";
+      var list=await wbcLoadAttendees(true);
+      certRenderWbcStudents(list);
+      btn.disabled=false;btn.textContent="🔄 بروزرسانی فهرست از حضور و غیاب";
+      toast("فهرست شرکت‌کنندگان بروزرسانی شد ✅");
+    });
+  }
   function certGetSelectedSorted(prefix){
+    if(prefix==="cert")return certGetSelectedCertStudents();
     var ids={};
     document.querySelectorAll("."+prefix+"-student-check:checked").forEach(function(c){ids[c.value]=true;});
-    return (TEACHER_STUDENTS||[]).filter(function(s){return ids[s.uuid];}).sort(function(a,b){return String(a.label||"").localeCompare(String(b.label||""),"fa");});
+    return (WBC_ATTENDEES||[]).filter(function(s){return ids[s.uuid];}).sort(function(a,b){return String(a.label||"").localeCompare(String(b.label||""),"fa");});
   }
   function certReadFileAsDataUrl(file){
     return new Promise(function(res,rej){
@@ -9175,15 +9292,39 @@ function teacherScript() {
     w.document.close();
     setTimeout(function(){w.print();},prefix==="wbc"?900:500);
   }
+  function certBuildWordHtml(prefix){
+    var s=certCollectSettings(prefix);
+    var students=certGetSelectedSorted(prefix);
+    if(!students.length){toast("حداقل یک دانش‌آموز را انتخاب کنید");return "";}
+    var pages=students.map(function(st,i){return certBuildPageHtml(prefix,st,s,i+1);}).join("");
+    var seen={};
+    var fontFaces=[s.fontTitle,s.fontNumber,s.fontBody,s.fontSig].map(function(k){return k||"default";}).filter(function(k){if(seen[k])return false;seen[k]=true;return true;}).map(certFontFaceCss).join("");
+    var style="<style>@page Section1{size:21cm 29.7cm;margin:0;mso-page-orientation:portrait}div.Section1{page:Section1}"+fontFaces+"*{-webkit-print-color-adjust:exact;print-color-adjust:exact}body{margin:0;direction:rtl}.cert-page{mso-special-character:line-break;page-break-after:always}.cert-page:last-child{page-break-after:auto}</style>";
+    return '<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word"><head><meta charset="utf-8">'+style+"</head><body><div class=\"Section1\">"+pages+"</div></body></html>";
+  }
+  function certWordExport(prefix){
+    var htmlDoc=certBuildWordHtml(prefix);
+    if(!htmlDoc)return;
+    var blob=new Blob([htmlDoc],{type:"application/msword"});
+    var a=document.createElement("a");
+    a.href=URL.createObjectURL(blob);
+    a.download=(prefix==="wbc"?"گواهی-حضور-وبینار":"لوح-تقدیر")+".doc";
+    document.body.appendChild(a);a.click();a.remove();
+    URL.revokeObjectURL(a.href);
+  }
   function certInit(){
     certPopulateFontSelects();
+    certWireCertSelectAll();
+    certWireWbcRefresh();
     ["cert","wbc"].forEach(function(p){
-      certWireSelectAll(p);
+      if(p==="wbc")certWireSelectAll(p);
       certWireSig(p);
       var saveBtn=document.getElementById(p+"-btn-save");
       if(saveBtn&&!saveBtn.dataset.wired){saveBtn.dataset.wired="1";saveBtn.addEventListener("click",function(){certSaveSettings(p);});}
       var printBtn=document.getElementById(p+"-btn-print");
       if(printBtn&&!printBtn.dataset.wired){printBtn.dataset.wired="1";printBtn.addEventListener("click",function(){certPrint(p);});}
+      var wordBtn=document.getElementById(p+"-btn-word");
+      if(wordBtn&&!wordBtn.dataset.wired){wordBtn.dataset.wired="1";wordBtn.addEventListener("click",function(){certWordExport(p);});}
     });
   }
   /* ===================== پایان لوح تقدیر و گواهی حضور در وبینار ===================== */
