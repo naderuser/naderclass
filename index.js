@@ -9300,7 +9300,7 @@ function teacherScript() {
     var seen={};
     var fontFaces=[s.fontTitle,s.fontNumber,s.fontBody,s.fontSig].map(function(k){return k||"default";}).filter(function(k){if(seen[k])return false;seen[k]=true;return true;}).map(certFontFaceCss).join("");
     var style="<style>@page Section1{size:21cm 29.7cm;margin:0;mso-page-orientation:portrait}div.Section1{page:Section1}"+fontFaces+"*{-webkit-print-color-adjust:exact;print-color-adjust:exact}body{margin:0;direction:rtl}.cert-page{mso-special-character:line-break;page-break-after:always}.cert-page:last-child{page-break-after:auto}</style>";
-    return '<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word"><head><meta charset="utf-8">'+style+"</head><body><div class=\"Section1\">"+pages+"</div></body></html>";
+    return '<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word"><head><meta charset="utf-8">'+style+'</head><body><div class="Section1">'+pages+"</div></body></html>";
   }
   function certWordExport(prefix){
     var htmlDoc=certBuildWordHtml(prefix);
