@@ -5368,7 +5368,7 @@ function teacherPage() {
 
         <div class="subtab-content hidden" id="tab-sch-cert">
         <h3>🏅 لوح تقدیر</h3>
-        <p class="muted">برای دانش‌آموزانی که به این پنل وصل شده‌اند لوح تقدیر بسازید؛ متن، شماره، تاریخ، امضا و فونت هر بخش جداگانه قابل تنظیم است. یک کد QR شناسایی هم گوشه پایین سمت چپ هر لوح اضافه می‌شود.</p>
+        <p class="muted">برای دانش‌آموزانی که به این پنل وصل شده‌اند لوح تقدیر بسازید؛ متن، شماره، تاریخ، امضا و فونت هر بخش جداگانه قابل تنظیم است و همزمان با تغییر، پیش‌نمایش آن به‌صورت زنده در همین صفحه دیده می‌شود. یک بارکد شناسایی هم گوشه پایین سمت چپ هر لوح اضافه می‌شود.</p>
         <div class="row" style="margin-bottom:12px;align-items:center;gap:10px;flex-wrap:wrap">
           <span style="font-weight:700">آموزش و پرورش:</span>
           <input id="cert-org" placeholder="مثال: اداره آموزش و پرورش ناحیه ۲ ..." style="flex:1;min-width:220px;padding:8px;border:1px solid #ddd;border-radius:6px">
@@ -5392,9 +5392,7 @@ function teacherPage() {
 
         <div style="margin-bottom:12px">
           <label style="display:block;font-weight:700;margin-bottom:6px">متن لوح (به‌جای نام دانش‌آموز از {{نام}} استفاده کنید) — می‌توانید از {{نام}} استفاده کنید:</label>
-          <textarea id="cert-body" rows="8" style="width:100%;padding:10px;border:1px solid #ddd;border-radius:8px;font-size:14px">بسمه‌تعالی
-
-دانش‌آموز گرامی {{نام}}
+          <textarea id="cert-body" rows="8" style="width:100%;padding:10px;border:1px solid #ddd;border-radius:8px;font-size:14px">دانش‌آموز گرامی {{نام}}
 
 با سلام و احترام؛ به پاس تلاش مستمر، رعایت نظم و انضباط و کسب موفقیت در فعالیت‌های آموزشی و پرورشی، این لوح تقدیر به شما اهدا می‌گردد. امید است در ادامه مسیر تحصیلی، همواره موفق و سربلند باشید.</textarea>
           <div class="row" style="margin-top:8px;align-items:center;gap:10px;flex-wrap:wrap">
@@ -5412,6 +5410,8 @@ function teacherPage() {
           <span class="muted">فونت:</span>
           <select id="cert-font-sig" class="cert-font-select" style="padding:8px;border:1px solid #ddd;border-radius:6px"></select>
           <input type="number" id="cert-size-sig" value="13" min="8" max="30" style="width:70px;padding:8px;border:1px solid #ddd;border-radius:6px">
+          <span class="muted">اندازه عکس امضا:</span>
+          <input type="number" id="cert-sig-size" value="70" min="30" max="200" style="width:70px;padding:8px;border:1px solid #ddd;border-radius:6px">
         </div>
         <p class="muted">قالب چاپ همیشه عمودی (Portrait) است.</p>
         <div style="margin-bottom:10px">
@@ -5443,12 +5443,12 @@ function teacherPage() {
         <button class="btn" id="cert-btn-save">💾 ذخیره تنظیمات</button>
         <button class="btn primary" id="cert-btn-print">🖨️ ساخت PDF برای دانش‌آموزان انتخاب‌شده</button>
         <button class="btn sec" id="cert-btn-word">📄 دانلود Word</button>
-        <p class="muted" style="margin-top:6px">توجه: کد QR شناسایی فقط در نسخه PDF/چاپ نمایش داده می‌شود و در فایل Word درج نمی‌گردد.</p>
+        <p class="muted" style="margin-top:6px">توجه: بارکد شناسایی فقط در نسخه PDF/چاپ نمایش داده می‌شود و در فایل Word درج نمی‌گردد.</p>
         </div>
 
         <div class="subtab-content hidden" id="tab-sch-webinar">
         <h3>🎓 گواهی حضور در وبینار</h3>
-        <p class="muted">برای دانش‌آموزان/افرادی که در وبینار شرکت کرده‌اند گواهی حضور بسازید؛ هر گواهی یک کد QR شناسایی نیز در گوشه پایین سمت چپ خود دارد.</p>
+        <p class="muted">برای دانش‌آموزان/افرادی که در وبینار شرکت کرده‌اند گواهی حضور بسازید؛ همزمان با تغییر فونت و اندازه، پیش‌نمایش آن به‌صورت زنده در همین صفحه دیده می‌شود. هر گواهی یک بارکد شناسایی نیز در گوشه پایین سمت چپ خود دارد.</p>
         <div class="row" style="margin-bottom:12px;align-items:center;gap:10px;flex-wrap:wrap">
           <span style="font-weight:700">آموزش و پرورش:</span>
           <input id="wbc-org" placeholder="مثال: اداره آموزش و پرورش ناحیه ۲ ..." style="flex:1;min-width:220px;padding:8px;border:1px solid #ddd;border-radius:6px">
@@ -5496,8 +5496,10 @@ function teacherPage() {
           <span class="muted">فونت:</span>
           <select id="wbc-font-sig" class="cert-font-select" style="padding:8px;border:1px solid #ddd;border-radius:6px"></select>
           <input type="number" id="wbc-size-sig" value="13" min="8" max="30" style="width:70px;padding:8px;border:1px solid #ddd;border-radius:6px">
+          <span class="muted">اندازه عکس امضا:</span>
+          <input type="number" id="wbc-sig-size" value="70" min="30" max="200" style="width:70px;padding:8px;border:1px solid #ddd;border-radius:6px">
         </div>
-        <p class="muted">قالب چاپ همیشه عمودی (Portrait) است. یک کد QR شناسایی نیز گوشه پایین سمت چپ هر گواهی به‌صورت خودکار افزوده می‌شود.</p>
+        <p class="muted">قالب چاپ همیشه عمودی (Portrait) است. یک بارکد شناسایی نیز گوشه پایین سمت چپ هر گواهی به‌صورت خودکار افزوده می‌شود.</p>
         <p class="muted">فهرست زیر به‌صورت خودکار از کسانی که فرم حضور و غیاب (📋) را پر کرده‌اند ساخته می‌شود.</p>
         <div style="margin-bottom:10px">
           <div class="row" style="align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:6px">
@@ -5512,7 +5514,7 @@ function teacherPage() {
         <button class="btn" id="wbc-btn-save">💾 ذخیره تنظیمات</button>
         <button class="btn primary" id="wbc-btn-print">🖨️ ساخت PDF برای دانش‌آموزان انتخاب‌شده</button>
         <button class="btn sec" id="wbc-btn-word">📄 دانلود Word</button>
-        <p class="muted" style="margin-top:6px">توجه: کد QR شناسایی فقط در نسخه PDF/چاپ نمایش داده می‌شود و در فایل Word درج نمی‌گردد.</p>
+        <p class="muted" style="margin-top:6px">توجه: بارکد شناسایی فقط در نسخه PDF/چاپ نمایش داده می‌شود و در فایل Word درج نمی‌گردد.</p>
         </div>
       </div>
 
@@ -9060,6 +9062,49 @@ function teacherScript() {
       sel.innerHTML=CERT_FONTS.map(function(f){return '<option value="'+f[0]+'">'+f[1]+"</option>";}).join("");
     });
   }
+  var CERT_FONT_LOADED={};
+  function certEnsureFontLoaded(key){
+    key=key||"default";
+    if(CERT_FONT_LOADED[key])return;
+    CERT_FONT_LOADED[key]=true;
+    var st=document.createElement("style");
+    st.textContent=certFontFaceCss(key);
+    document.head.appendChild(st);
+  }
+  function certApplyLivePreview(prefix){
+    var g=function(id){var el=document.getElementById(id);return el?el.value:"";};
+    var groups=[
+      {font:g(prefix+"-font-title"),size:g(prefix+"-size-title"),targets:[prefix+"-title"]},
+      {font:g(prefix+"-font-number"),size:g(prefix+"-size-number"),targets:[prefix+"-number",prefix+"-date"]},
+      {font:g(prefix+"-font-body"),size:g(prefix+"-size-body"),targets:[prefix+"-body"]},
+      {font:g(prefix+"-font-sig"),size:g(prefix+"-size-sig"),targets:[prefix+"-sig-caption"]}
+    ];
+    groups.forEach(function(grp){
+      var fk=grp.font||"default";
+      certEnsureFontLoaded(fk);
+      var ff=certFontFamily(fk);
+      var fs=parseFloat(grp.size)||14;
+      grp.targets.forEach(function(id){
+        var el=document.getElementById(id);
+        if(el){el.style.fontFamily=ff;el.style.fontSize=fs+"pt";}
+      });
+    });
+    var sigInp=document.getElementById(prefix+"-sig-size");
+    var sigImg=document.getElementById(prefix+"-sig-preview");
+    if(sigInp&&sigImg)sigImg.style.maxHeight=(parseFloat(sigInp.value)||70)+"px";
+  }
+  function certWireLivePreview(prefix){
+    var ids=[prefix+"-font-title",prefix+"-size-title",prefix+"-font-number",prefix+"-size-number",
+      prefix+"-font-body",prefix+"-size-body",prefix+"-font-sig",prefix+"-size-sig",prefix+"-sig-size"];
+    ids.forEach(function(id){
+      var el=document.getElementById(id);
+      if(!el||el.dataset.livewired)return;
+      el.dataset.livewired="1";
+      el.addEventListener("change",function(){certApplyLivePreview(prefix);});
+      el.addEventListener("input",function(){certApplyLivePreview(prefix);});
+    });
+    certApplyLivePreview(prefix);
+  }
   var CERT_SIG={cert:"",wbc:""};
   /* دوره تحصیلی هر پایه را مشخص می‌کند: 0..5=ابتدایی، 6..8=متوسطه اول، 9..11=متوسطه دوم */
   function certGroupOfGrade(grade){
@@ -9196,6 +9241,7 @@ function teacherScript() {
           CERT_SIG[prefix]=data;
           var img=document.getElementById(prefix+"-sig-preview");
           if(img){img.src=data;img.style.display="inline-block";}
+          certApplyLivePreview(prefix);
         });
       });
     }
@@ -9218,7 +9264,7 @@ function teacherScript() {
       fontTitle:g(prefix+"-font-title"),sizeTitle:g(prefix+"-size-title"),
       fontNumber:g(prefix+"-font-number"),sizeNumber:g(prefix+"-size-number"),
       fontBody:g(prefix+"-font-body"),sizeBody:g(prefix+"-size-body"),
-      fontSig:g(prefix+"-font-sig"),sizeSig:g(prefix+"-size-sig")};
+      fontSig:g(prefix+"-font-sig"),sizeSig:g(prefix+"-size-sig"),sigSize:g(prefix+"-sig-size")};
     if(prefix==="wbc")s.event=g("wbc-event");
     return s;
   }
@@ -9239,13 +9285,14 @@ function teacherScript() {
     set(prefix+"-font-title",s.fontTitle);set(prefix+"-size-title",s.sizeTitle);
     set(prefix+"-font-number",s.fontNumber);set(prefix+"-size-number",s.sizeNumber);
     set(prefix+"-font-body",s.fontBody);set(prefix+"-size-body",s.sizeBody);
-    set(prefix+"-font-sig",s.fontSig);set(prefix+"-size-sig",s.sizeSig);
+    set(prefix+"-font-sig",s.fontSig);set(prefix+"-size-sig",s.sizeSig);set(prefix+"-sig-size",s.sigSize);
     if(prefix==="wbc")set("wbc-event",s.event);
     if(s.sig){
       CERT_SIG[prefix]=s.sig;
       var img=document.getElementById(prefix+"-sig-preview");
-      if(img){img.src=s.sig;img.style.display="inline-block";}
+      if(img){img.src=s.sig;img.style.display="inline-block";img.style.maxHeight=(parseFloat(s.sigSize)||70)+"px";}
     }
+    certApplyLivePreview(prefix);
   }
   function certNlToBr(s){
     return String(s||"").split(String.fromCharCode(13)).join("").split(String.fromCharCode(10)).join("<br>");
@@ -9266,26 +9313,24 @@ function teacherScript() {
     var sigFF=certFontFamily(s.fontSig||"default");
     var bodyHtml=certFillTemplate(s.body,student,s);
     var sigBlock="";
-    if(s.sig)sigBlock+='<img src="'+s.sig+'" style="max-height:70px;display:block;margin:0 auto 6px">';
+    if(s.sig)sigBlock+='<img src="'+s.sig+'" style="max-height:'+(parseFloat(s.sigSize)||70)+'px;display:block;margin:0 auto 6px">';
     sigBlock+='<div style="font-family:'+sigFF+";font-size:"+(s.sizeSig||13)+'pt">'+esc(s.sigCaption||"")+"</div>";
     var orgBlock="";
     if(s.org)orgBlock='<div style="text-align:center;font-family:'+numFF+";font-size:"+Math.max(11,(s.sizeNumber||12))+'pt;font-weight:700">'+esc(s.org)+"</div>";
-    var qrLines=[];
-    if(s.org)qrLines.push(s.org);
-    qrLines.push(s.title||(prefix==="wbc"?"گواهی حضور":"تقدیرنامه"));
-    qrLines.push("نام: "+(student.label||""));
-    if(prefix==="wbc"&&s.event)qrLines.push("عنوان دوره: "+s.event);
-    if(s.number)qrLines.push("شماره: "+toFaDigits(s.number));
-    if(s.date)qrLines.push("تاریخ: "+toFaDigits(s.date));
-    var qrBlock='<div class="cert-qr" data-code="'+esc(qrLines.join(String.fromCharCode(10)))+'" style="position:absolute;bottom:14mm;left:14mm;width:22mm;height:22mm"></div>';
+    var codeParts=[];
+    if(s.number)codeParts.push(toEnDigits(s.number));
+    if(s.date)codeParts.push(toEnDigits(s.date));
+    codeParts.push((student.uuid||"").replace(/[^a-zA-Z0-9]/g,"").slice(0,10));
+    var barcodeValue=codeParts.filter(Boolean).join("-")||("SN"+(serial||1));
+    var barcodeBlock='<svg class="cert-barcode" data-code="'+esc(barcodeValue)+'" style="position:absolute;bottom:14mm;left:14mm;width:34mm;height:14mm"></svg>';
     return ""
       +'<div class="cert-page" style="page-break-after:always;box-sizing:border-box;width:100%;min-height:257mm;padding:16mm;border:6px double #7c5b23;outline:1px solid #d9c48a;outline-offset:-10px;position:relative;font-family:'+bodyFF+'">'
       +orgBlock
-      +'<div style="position:absolute;top:14mm;right:16mm;text-align:right;font-family:'+numFF+";font-size:"+(s.sizeNumber||12)+'pt;line-height:2">شماره: '+toFaDigits(esc(s.number||""))+"<br>تاریخ: "+toFaDigits(esc(s.date||""))+"</div>"
+      +'<div style="position:absolute;top:14mm;left:16mm;text-align:right;font-family:'+numFF+";font-size:"+(s.sizeNumber||12)+'pt;line-height:2">شماره: '+toFaDigits(esc(s.number||""))+"<br>تاریخ: "+toFaDigits(esc(s.date||""))+"</div>"
       +'<div style="text-align:center;margin-top:30mm;font-family:'+titleFF+";font-size:"+(s.sizeTitle||28)+'pt;font-weight:800">'+esc(s.title||"")+"</div>"
       +'<div style="margin-top:26px;font-family:'+bodyFF+";font-size:"+(s.sizeBody||14)+'pt;line-height:2.3;text-align:justify;padding:0 6mm">'+bodyHtml+"</div>"
       +'<div style="position:absolute;bottom:16mm;left:0;right:0;text-align:center">'+sigBlock+"</div>"
-      +qrBlock
+      +barcodeBlock
       +"</div>";
   }
   function certBuildDocHtml(prefix){
@@ -9296,8 +9341,8 @@ function teacherScript() {
     var seen={};
     var fontFaces=[s.fontTitle,s.fontNumber,s.fontBody,s.fontSig].map(function(k){return k||"default";}).filter(function(k){if(seen[k])return false;seen[k]=true;return true;}).map(certFontFaceCss).join("");
     var style="<style>@page{size:A4 portrait;margin:10mm}"+fontFaces+"*{-webkit-print-color-adjust:exact;print-color-adjust:exact}body{margin:0;direction:rtl}.cert-page:last-child{page-break-after:auto}</style>";
-    var qrScript='<script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"><'+"/script><script>document.querySelectorAll('.cert-qr').forEach(function(el){try{new QRCode(el,{text:el.getAttribute('data-code'),width:88,height:88,correctLevel:QRCode.CorrectLevel.M});}catch(e){}});<"+"/script>";
-    return '<html><head><meta charset="utf-8">'+style+"</head><body>"+pages+qrScript+"</body></html>";
+    var barcodeScript='<script>(function(){function render(){document.querySelectorAll(".cert-barcode").forEach(function(el){try{JsBarcode(el,el.getAttribute("data-code"),{format:"CODE128",displayValue:false,margin:0,height:38});}catch(e){}});}function load(url,next){var s=document.createElement("script");s.onload=render;s.onerror=(next||function(){});s.src=url;document.head.appendChild(s);}load("https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js",function(){load("https://unpkg.com/jsbarcode@3.11.5/dist/JsBarcode.all.min.js");});})();<'+"/script>";
+    return '<html><head><meta charset="utf-8">'+style+"</head><body>"+pages+barcodeScript+"</body></html>";
   }
   function certPrint(prefix){
     var htmlDoc=certBuildDocHtml(prefix);
@@ -9340,6 +9385,7 @@ function teacherScript() {
     ["cert","wbc"].forEach(function(p){
       if(p==="wbc")certWireSelectAll(p);
       certWireSig(p);
+      certWireLivePreview(p);
       var saveBtn=document.getElementById(p+"-btn-save");
       if(saveBtn&&!saveBtn.dataset.wired){saveBtn.dataset.wired="1";saveBtn.addEventListener("click",function(){certSaveSettings(p);});}
       var printBtn=document.getElementById(p+"-btn-print");
