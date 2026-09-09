@@ -296,15 +296,20 @@ export default {
       }
 
       if (path.startsWith("/class/")) {
-        const id = decodeURIComponent(path.slice(7));
+        const id = decodeURIComponent(path.slice(7)).replace(/\/+$/, "");
+        // این دو مسیر ویژه زیر همان پیشوند «/class/» ثبت می‌شوند (نه یک مسیر کاملاً جدا)
+        // چون میزبان فعلی (RunFlare) فقط برای چند پیشوند مشخص (از جمله /class/) مسیر صریح تعریف کرده
+        // و مسیرهای کاملاً جدید ممکن است قبل از رسیدن به منطق اصلی با «مسیر یافت نشد» مواجه شوند.
+        if (id === "webinar") return await webinarJoinPage(env);
+        if (id === "attendance") return await attendancePage(env);
         return await studentClassPage(env, id);
       }
 
-      if (path === "/webinar") {
+      if (path === "/webinar" || path === "/webinar/") {
         return await webinarJoinPage(env);
       }
 
-      if (path === "/attendance") {
+      if (path === "/attendance" || path === "/attendance/") {
         return await attendancePage(env);
       }
 
@@ -818,6 +823,36 @@ async function handleApi(req, env, url, path) {
     return json({ ok: true, items: filtered.map((it) => ({ id: it.id, title: it.title, grade: it.grade, url: it.url })) });
   }
 
+  /* --- وبینار: موضوع/عنوان (لینک ثابت و واحد است، فقط موضوع قابل تنظیم است) --- */
+  /* عمومی است (بدون نیاز به ورود معلم برای GET)، پس باید قبل از دیوار «از این به بعد فقط معلم» باشد */
+  if (path === "/api/webinar/topic" && method === "GET") {
+    const topic = (await env.EXAM_KV.get("webinar:topic")) || "";
+    return json({ ok: true, topic });
+  }
+  if (path === "/api/webinar/topic" && method === "POST") {
+    if (!(await isTeacher(req, env))) return json({ ok: false, error: "دسترسی غیرمجاز" }, 401);
+    const body = await req.json().catch(() => ({}));
+    const topic = String(body.topic || "").slice(0, 200);
+    await env.EXAM_KV.put("webinar:topic", topic);
+    return json({ ok: true, topic });
+  }
+
+  /* --- فرم حضور و غیاب: یک لینک عمومی واحد؛ ثبت‌شده‌ها برای معلم قابل مشاهده است --- */
+  /* عمومی است (بدون نیاز به ورود معلم)، پس باید قبل از دیوار «از این به بعد فقط معلم» باشد */
+  if (path === "/api/attendance/submit" && method === "POST") {
+    const body = await req.json().catch(() => ({}));
+    const name = String(body.name || "").trim().slice(0, 80);
+    const family = String(body.family || "").trim().slice(0, 80);
+    const nationalCode = String(body.nationalCode || "").trim().slice(0, 20);
+    const school = String(body.school || "").trim().slice(0, 150);
+    const region = String(body.region || "").trim().slice(0, 100);
+    if (!name || !family) return json({ ok: false, error: "نام و نام خانوادگی الزامی است" }, 400);
+    const id = uuid();
+    const rec = { id, name, family, nationalCode, school, region, ts: Date.now() };
+    await env.EXAM_KV.put("attendance:" + id, JSON.stringify(rec));
+    return json({ ok: true });
+  }
+
   /* --- از این به بعد فقط معلم --- */
   if (path.startsWith("/api/teacher/")) {
     if (!(await isTeacher(req, env))) return json({ ok: false, error: "دسترسی غیرمجاز" }, 401);
@@ -1133,33 +1168,6 @@ async function handleApi(req, env, url, path) {
       return json({ ok: true });
     }
 
-    /* --- وبینار: موضوع/عنوان (لینک ثابت و واحد است، فقط موضوع قابل تنظیم است) --- */
-    if (path === "/api/webinar/topic" && method === "GET") {
-      const topic = (await env.EXAM_KV.get("webinar:topic")) || "";
-      return json({ ok: true, topic });
-    }
-    if (path === "/api/webinar/topic" && method === "POST") {
-      if (!(await isTeacher(req, env))) return json({ ok: false, error: "دسترسی غیرمجاز" }, 401);
-      const body = await req.json().catch(() => ({}));
-      const topic = String(body.topic || "").slice(0, 200);
-      await env.EXAM_KV.put("webinar:topic", topic);
-      return json({ ok: true, topic });
-    }
-
-    /* --- فرم حضور و غیاب: یک لینک عمومی واحد؛ ثبت‌شده‌ها برای معلم قابل مشاهده است --- */
-    if (path === "/api/attendance/submit" && method === "POST") {
-      const body = await req.json().catch(() => ({}));
-      const name = String(body.name || "").trim().slice(0, 80);
-      const family = String(body.family || "").trim().slice(0, 80);
-      const nationalCode = String(body.nationalCode || "").trim().slice(0, 20);
-      const school = String(body.school || "").trim().slice(0, 150);
-      const region = String(body.region || "").trim().slice(0, 100);
-      if (!name || !family) return json({ ok: false, error: "نام و نام خانوادگی الزامی است" }, 400);
-      const id = uuid();
-      const rec = { id, name, family, nationalCode, school, region, ts: Date.now() };
-      await env.EXAM_KV.put("attendance:" + id, JSON.stringify(rec));
-      return json({ ok: true });
-    }
     if (path === "/api/teacher/attendance" && method === "GET") {
       if (!(await isTeacher(req, env))) return json({ ok: false, error: "دسترسی غیرمجاز" }, 401);
       const out = [];
@@ -13374,8 +13382,8 @@ function teacherScript() {
   };
 
   // ===================== فرم حضور و غیاب (لینک واحد و عمومی، داخل تب کلاس آنلاین) =====================
-  document.getElementById('att-link-box').textContent=location.origin+'/attendance';
-  document.getElementById('btn-att-link-copy').onclick=()=>{copyLink(location.origin+'/attendance');};
+  document.getElementById('att-link-box').textContent=location.origin+'/class/attendance';
+  document.getElementById('btn-att-link-copy').onclick=()=>{copyLink(location.origin+'/class/attendance');};
   (function setupAttToggle(){
     const toggle=document.getElementById('att-toggle');
     const wrap=document.getElementById('att-wrap');
@@ -13402,8 +13410,8 @@ function teacherScript() {
   // ===================== وبینار (اتاق جدا از کلاس آنلاین، لینک واحد و عمومی) =====================
   document.getElementById('btn-web-options-toggle').onclick=()=>{document.getElementById('web-options-drawer').classList.toggle('hidden');};
 
-  document.getElementById('web-link-box').textContent=location.origin+'/webinar';
-  document.getElementById('btn-web-link-copy').onclick=()=>{copyLink(location.origin+'/webinar');};
+  document.getElementById('web-link-box').textContent=location.origin+'/class/webinar';
+  document.getElementById('btn-web-link-copy').onclick=()=>{copyLink(location.origin+'/class/webinar');};
 
   (async function loadWebinarTopic(){
     try{
