@@ -5443,7 +5443,7 @@ function teacherPage() {
 
         <div class="subtab-content hidden" id="tab-sch-webinar">
         <h3>🎓 گواهی حضور در وبینار</h3>
-        <p class="muted">برای دانش‌آموزان/افرادی که در وبینار شرکت کرده‌اند گواهی حضور بسازید؛ هر گواهی یک بارکد شناسایی نیز در پایین خود دارد.</p>
+        <p class="muted">برای دانش‌آموزان/افرادی که در وبینار شرکت کرده‌اند گواهی حضور بسازید؛ هر گواهی یک کد QR شناسایی نیز در گوشه پایین سمت چپ خود دارد.</p>
         <div class="lb-meta-form">
           <div><label>شماره</label><input id="wbc-number" placeholder="مثال: 1055/213093"></div>
           <div><label>تاریخ</label><input id="wbc-date" placeholder="مثال: 1404/08/02"></div>
@@ -5488,7 +5488,7 @@ function teacherPage() {
           <select id="wbc-font-sig" class="cert-font-select" style="padding:8px;border:1px solid #ddd;border-radius:6px"></select>
           <input type="number" id="wbc-size-sig" value="13" min="8" max="30" style="width:70px;padding:8px;border:1px solid #ddd;border-radius:6px">
         </div>
-        <p class="muted">قالب چاپ همیشه عمودی (Portrait) است. یک بارکد شناسایی نیز پایین هر گواهی به‌صورت خودکار افزوده می‌شود.</p>
+        <p class="muted">قالب چاپ همیشه عمودی (Portrait) است. یک کد QR شناسایی نیز گوشه پایین سمت چپ هر گواهی به‌صورت خودکار افزوده می‌شود.</p>
         <p class="muted">فهرست زیر به‌صورت خودکار از کسانی که فرم حضور و غیاب (📋) را پر کرده‌اند ساخته می‌شود.</p>
         <div style="margin-bottom:10px">
           <div class="row" style="align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:6px">
@@ -5497,12 +5497,13 @@ function teacherPage() {
             </label>
             <button type="button" class="btn sm gray" id="wbc-btn-refresh-attendees">🔄 بروزرسانی فهرست از حضور و غیاب</button>
           </div>
-          <div id="wbc-students-list" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:10px"></div>
+          <p class="muted" style="margin:6px 0">برای انتخاب چند نفر هم‌زمان، کلید Ctrl (یا Cmd در مک) را نگه دارید.</p>
+          <select id="wbc-students-list" multiple size="8" style="width:100%;padding:8px;border:1px solid #ddd;border-radius:8px"></select>
         </div>
         <button class="btn" id="wbc-btn-save">💾 ذخیره تنظیمات</button>
         <button class="btn primary" id="wbc-btn-print">🖨️ ساخت PDF برای دانش‌آموزان انتخاب‌شده</button>
         <button class="btn sec" id="wbc-btn-word">📄 دانلود Word</button>
-        <p class="muted" style="margin-top:6px">توجه: بارکد شناسایی فقط در نسخه PDF/چاپ نمایش داده می‌شود و در فایل Word درج نمی‌گردد.</p>
+        <p class="muted" style="margin-top:6px">توجه: کد QR شناسایی فقط در نسخه PDF/چاپ نمایش داده می‌شود و در فایل Word درج نمی‌گردد.</p>
         </div>
       </div>
 
@@ -9123,19 +9124,18 @@ function teacherScript() {
     return WBC_ATTENDEES;
   }
   function certRenderWbcStudents(list){
-    var wrap=document.getElementById("wbc-students-list");
-    if(!wrap)return;
-    if(!list.length){wrap.innerHTML='<p class="muted">هنوز کسی فرم حضور و غیاب را ثبت نکرده است.</p>';return;}
-    wrap.innerHTML=list.map(function(s){
-      return '<label style="display:flex;align-items:center;gap:6px;border:1px solid #ddd;border-radius:8px;padding:6px 10px;cursor:pointer"><input type="checkbox" class="wbc-student-check" value="'+s.uuid+'"> '+esc(s.label||"بدون نام")+"</label>";
-    }).join("");
+    var sel=document.getElementById("wbc-students-list");
+    if(!sel)return;
+    sel.innerHTML=list.length
+      ? list.map(function(s){return '<option value="'+s.uuid+'">'+esc(s.label||"بدون نام")+"</option>";}).join("")
+      : '<option value="" disabled>هنوز کسی فرم حضور و غیاب را ثبت نکرده است</option>';
     var all=document.getElementById("wbc-select-all");
     if(all)all.checked=false;
   }
   async function certRenderStudentsList(prefix){
     if(prefix==="cert"){certRenderCertStudents();return;}
-    var wrap=document.getElementById("wbc-students-list");
-    if(wrap)wrap.innerHTML='<p class="muted">در حال دریافت فهرست از فرم حضور و غیاب...</p>';
+    var sel=document.getElementById("wbc-students-list");
+    if(sel)sel.innerHTML='<option value="" disabled>در حال دریافت فهرست از فرم حضور و غیاب...</option>';
     var list=await wbcLoadAttendees(false);
     certRenderWbcStudents(list);
   }
@@ -9144,7 +9144,8 @@ function teacherScript() {
     if(!all||all.dataset.wired)return;
     all.dataset.wired="1";
     all.addEventListener("change",function(){
-      document.querySelectorAll("."+prefix+"-student-check").forEach(function(c){c.checked=all.checked;});
+      var sel=document.getElementById(prefix+"-students-list");
+      if(sel)Array.from(sel.options).forEach(function(o){if(o.value)o.selected=all.checked;});
     });
   }
   function certWireWbcRefresh(){
@@ -9161,8 +9162,9 @@ function teacherScript() {
   }
   function certGetSelectedSorted(prefix){
     if(prefix==="cert")return certGetSelectedCertStudents();
+    var sel=document.getElementById("wbc-students-list");
     var ids={};
-    document.querySelectorAll("."+prefix+"-student-check:checked").forEach(function(c){ids[c.value]=true;});
+    if(sel)Array.from(sel.selectedOptions||[]).forEach(function(o){if(o.value)ids[o.value]=true;});
     return (WBC_ATTENDEES||[]).filter(function(s){return ids[s.uuid];}).sort(function(a,b){return String(a.label||"").localeCompare(String(b.label||""),"fa");});
   }
   function certReadFileAsDataUrl(file){
@@ -9256,10 +9258,10 @@ function teacherScript() {
     var sigBlock="";
     if(s.sig)sigBlock+='<img src="'+s.sig+'" style="max-height:70px;display:block;margin:0 auto 6px">';
     sigBlock+='<div style="font-family:'+sigFF+";font-size:"+(s.sizeSig||13)+'pt">'+esc(s.sigCaption||"")+"</div>";
-    var barcodeBlock="";
+    var qrBlock="";
     if(prefix==="wbc"){
       var code="WB-"+(s.number||"")+"-"+serial;
-      barcodeBlock='<div style="text-align:center;margin-top:18px"><svg class="cert-barcode" data-code="'+esc(code)+'"></svg></div>';
+      qrBlock='<div class="cert-qr" data-code="'+esc(code)+'" style="position:absolute;bottom:14mm;left:14mm;width:24mm;height:24mm"></div>';
     }
     return ""
       +'<div class="cert-page" style="page-break-after:always;box-sizing:border-box;width:100%;min-height:257mm;padding:16mm;border:6px double #7c5b23;outline:1px solid #d9c48a;outline-offset:-10px;position:relative;font-family:'+bodyFF+'">'
@@ -9267,7 +9269,7 @@ function teacherScript() {
       +'<div style="text-align:center;margin-top:30mm;font-family:'+titleFF+";font-size:"+(s.sizeTitle||28)+'pt;font-weight:800">'+esc(s.title||"")+"</div>"
       +'<div style="margin-top:26px;font-family:'+bodyFF+";font-size:"+(s.sizeBody||14)+'pt;line-height:2.3;text-align:justify;padding:0 6mm">'+bodyHtml+"</div>"
       +'<div style="position:absolute;bottom:16mm;left:0;right:0;text-align:center">'+sigBlock+"</div>"
-      +barcodeBlock
+      +qrBlock
       +"</div>";
   }
   function certBuildDocHtml(prefix){
@@ -9278,11 +9280,11 @@ function teacherScript() {
     var seen={};
     var fontFaces=[s.fontTitle,s.fontNumber,s.fontBody,s.fontSig].map(function(k){return k||"default";}).filter(function(k){if(seen[k])return false;seen[k]=true;return true;}).map(certFontFaceCss).join("");
     var style="<style>@page{size:A4 portrait;margin:10mm}"+fontFaces+"*{-webkit-print-color-adjust:exact;print-color-adjust:exact}body{margin:0;direction:rtl}.cert-page:last-child{page-break-after:auto}</style>";
-    var barcodeScript="";
+    var qrScript="";
     if(prefix==="wbc"){
-      barcodeScript='<script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"><'+"/script><script>document.querySelectorAll('.cert-barcode').forEach(function(el){try{JsBarcode(el,el.getAttribute('data-code'),{format:'CODE128',displayValue:true,fontSize:12,height:36,margin:0});}catch(e){}});<"+"/script>";
+      qrScript='<script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"><'+"/script><script>document.querySelectorAll('.cert-qr').forEach(function(el){try{new QRCode(el,{text:el.getAttribute('data-code'),width:96,height:96,correctLevel:QRCode.CorrectLevel.M});}catch(e){}});<"+"/script>";
     }
-    return '<html><head><meta charset="utf-8">'+style+"</head><body>"+pages+barcodeScript+"</body></html>";
+    return '<html><head><meta charset="utf-8">'+style+"</head><body>"+pages+qrScript+"</body></html>";
   }
   function certPrint(prefix){
     var htmlDoc=certBuildDocHtml(prefix);
