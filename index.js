@@ -10626,12 +10626,12 @@ function teacherScript() {
   /* ===================== لوح تقدیر و گواهی حضور در وبینار ===================== */
   var CERT_FONTS=[["default","پیش‌فرض (Tahoma)"],["nazanin","B Nazanin"],["titr","B Titr"],["mitra","B Mitra"],["koodak","B Koodak"],["nastaliq","نستعلیق (در صورت نصب روی سیستم)"]];
   function certFontFamily(key){
-    if(key==="nazanin")return '"BNazanin","B Nazanin",Tahoma,Arial';
-    if(key==="titr")return '"BTitr","B Titr",Tahoma,Arial';
-    if(key==="mitra")return '"BMitra","B Mitra",Tahoma,Arial';
-    if(key==="koodak")return '"BKoodak","B Koodak",Tahoma,Arial';
-    if(key==="nastaliq")return '"Noto Nastaliq Urdu","B Nazanin",Tahoma,Arial';
-    return 'Tahoma,Arial';
+    if(key==="nazanin")return "'BNazanin','B Nazanin',Tahoma,Arial";
+    if(key==="titr")return "'BTitr','B Titr',Tahoma,Arial";
+    if(key==="mitra")return "'BMitra','B Mitra',Tahoma,Arial";
+    if(key==="koodak")return "'BKoodak','B Koodak',Tahoma,Arial";
+    if(key==="nastaliq")return "'Noto Nastaliq Urdu','B Nazanin',Tahoma,Arial";
+    return "Tahoma,Arial";
   }
   /* فونت‌های B Nazanin/Titr/Mitra/Koodak اکنون self-host هستند (مسیر /fonts/*.ttf روی همین سرور)، نه CDN خارجی؛ چون CDNهای خارجی (jsdelivr/Google Fonts) از ایران گاهی مسدود/کند بودند و همین باعث می‌شد فونت انتخابی هیچ‌وقت واقعاً دانلود نشود و همیشه فونت پیش‌فرض مرورگر نمایش داده شود. نستعلیق و حالت پیش‌فرض دیگر به هیچ وب‌فونت خارجی وابسته نیستند و فقط از فونت‌های از‌قبل‌نصب‌شده روی سیستم کاربر استفاده می‌کنند */
   function certFontFaceCss(key){
