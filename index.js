@@ -147,6 +147,21 @@ async function isTeacher(req, env) {
   return Boolean(cookies.t_auth && cookies.t_auth === stored);
 }
 
+/* شمارنده‌ی تعداد ثبت‌نام هر لیست حضور و غیاب، به‌صورت یک شیء واحد در کلید «attendance-counts» نگه‌داری می‌شود
+   تا شمارش لیست‌ها (GET /api/teacher/attendance-links) دیگر نیازی به خواندن تک‌تک تمام رکوردهای «attendance:»
+   نداشته باشد (که با زیاد شدن تعداد ثبت‌نام‌ها به‌مرور کند می‌شد). اگر این کلید هنوز ساخته نشده باشد (یعنی هنوز
+   اولین محاسبه‌ی کامل روی داده‌های قدیمی انجام نشده)، این تابع کاری انجام نمی‌دهد؛ همان اولین GET بعدی، با یک
+   اسکن کامل یک‌بارِ همیشگی، مقدار درست را می‌سازد و از آن به بعد دیگر لازم نیست. */
+async function bumpAttendanceCount(env, linkId, delta) {
+  const raw = await env.EXAM_KV.get("attendance-counts");
+  if (raw === null) return;
+  let counts;
+  try { counts = JSON.parse(raw); } catch (e) { counts = {}; }
+  const lid = linkId || "default";
+  counts[lid] = Math.max(0, (counts[lid] || 0) + delta);
+  await env.EXAM_KV.put("attendance-counts", JSON.stringify(counts));
+}
+
 async function getMeta(env, grade) {
   const g = clampGrade(grade);
   const raw = await env.EXAM_KV.get("meta:" + g);
@@ -882,6 +897,7 @@ async function handleApi(req, env, url, path) {
     const id = uuid();
     const rec = { id, linkId, name, family, nationalCode, school, region, ts: Date.now() };
     await env.EXAM_KV.put("attendance:" + id, JSON.stringify(rec));
+    await bumpAttendanceCount(env, linkId, 1);
     return json({ ok: true });
   }
 
@@ -1247,11 +1263,16 @@ async function handleApi(req, env, url, path) {
         await Promise.all(res.keys.map((k) => env.EXAM_KV.delete(k.name)));
         cursor = res.list_complete ? null : res.cursor;
       } while (cursor);
+      await env.EXAM_KV.put("attendance-counts", JSON.stringify({}));
       return json({ ok: true });
     }
     if (path.startsWith("/api/teacher/attendance/") && method === "DELETE") {
       const id = decodeURIComponent(path.slice("/api/teacher/attendance/".length));
+      const recRaw = await env.EXAM_KV.get("attendance:" + id);
+      let recLinkId = "default";
+      if (recRaw) { try { recLinkId = JSON.parse(recRaw).linkId || "default"; } catch (e) {} }
       await env.EXAM_KV.delete("attendance:" + id);
+      await bumpAttendanceCount(env, recLinkId, -1);
       return json({ ok: true });
     }
 
@@ -1266,27 +1287,35 @@ async function handleApi(req, env, url, path) {
         for (const v of values) { if (v) links.push(JSON.parse(v)); }
         cursor = res.list_complete ? null : res.cursor;
       } while (cursor);
-      // شمارش ثبت‌نام‌های هر لیست (و ساخت خودکار لیست «default» در صورت وجود ثبت‌نام‌های قدیمی بدون لیست مشخص)
-      const counts = {};
-      let hasLegacy = false;
-      let legacyEarliest = 0;
-      let cursor2;
-      do {
-        const res = await env.EXAM_KV.list({ prefix: "attendance:", cursor: cursor2 });
-        const values = await Promise.all(res.keys.map((k) => env.EXAM_KV.get(k.name)));
-        for (const v of values) {
-          if (!v) continue;
-          const rec = JSON.parse(v);
-          const lid = rec.linkId || "default";
-          counts[lid] = (counts[lid] || 0) + 1;
-          if (lid === "default") { hasLegacy = true; if (!legacyEarliest || (rec.ts || 0) < legacyEarliest) legacyEarliest = rec.ts || 0; }
+      // شمارش ثبت‌نام‌های هر لیست: به‌جای اسکن کامل تمام رکوردهای «attendance:» در هر بار (که با زیاد شدن
+      // تعداد ثبت‌نام‌ها کند می‌شد)، از کلید «attendance-counts» (شمارنده‌ی از‌پیش‌محاسبه‌شده) استفاده می‌شود.
+      // این اسکن کامل فقط یک‌بار (اولین اجرای این کد روی داده‌های قدیمی که هنوز شمارنده ندارند) انجام می‌شود.
+      let counts = {};
+      const countsRaw = await env.EXAM_KV.get("attendance-counts");
+      if (countsRaw !== null) {
+        try { counts = JSON.parse(countsRaw); } catch (e) { counts = {}; }
+      } else {
+        let hasLegacy = false;
+        let legacyEarliest = 0;
+        let cursor2;
+        do {
+          const res = await env.EXAM_KV.list({ prefix: "attendance:", cursor: cursor2 });
+          const values = await Promise.all(res.keys.map((k) => env.EXAM_KV.get(k.name)));
+          for (const v of values) {
+            if (!v) continue;
+            const rec = JSON.parse(v);
+            const lid = rec.linkId || "default";
+            counts[lid] = (counts[lid] || 0) + 1;
+            if (lid === "default") { hasLegacy = true; if (!legacyEarliest || (rec.ts || 0) < legacyEarliest) legacyEarliest = rec.ts || 0; }
+          }
+          cursor2 = res.list_complete ? null : res.cursor;
+        } while (cursor2);
+        if (hasLegacy && !links.some((l) => l.id === "default")) {
+          const defRec = { id: "default", shortId: "DEFAULT", title: "لینک اصلی (قبلی)", createdAt: legacyEarliest || Date.now() };
+          await env.EXAM_KV.put("attlink:default", JSON.stringify(defRec));
+          links.push(defRec);
         }
-        cursor2 = res.list_complete ? null : res.cursor;
-      } while (cursor2);
-      if (hasLegacy && !links.some((l) => l.id === "default")) {
-        const defRec = { id: "default", shortId: "DEFAULT", title: "لینک اصلی (قبلی)", createdAt: legacyEarliest || Date.now() };
-        await env.EXAM_KV.put("attlink:default", JSON.stringify(defRec));
-        links.push(defRec);
+        await env.EXAM_KV.put("attendance-counts", JSON.stringify(counts));
       }
       links.forEach((l) => { l.count = counts[l.id] || 0; });
       links.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
@@ -1322,6 +1351,13 @@ async function handleApi(req, env, url, path) {
         deletedCount += toDelete.length;
         cursor = res.list_complete ? null : res.cursor;
       } while (cursor);
+      const countsRaw2 = await env.EXAM_KV.get("attendance-counts");
+      if (countsRaw2 !== null) {
+        let counts2;
+        try { counts2 = JSON.parse(countsRaw2); } catch (e) { counts2 = {}; }
+        delete counts2[id];
+        await env.EXAM_KV.put("attendance-counts", JSON.stringify(counts2));
+      }
       return json({ ok: true, deletedCount });
     }
 
