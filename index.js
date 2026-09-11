@@ -3028,10 +3028,32 @@ async function studentPage(env, id) {
           box.innerHTML=items.map(function(it){
             let dateStr='';
             try{dateStr=new Date(it.issuedAt).toLocaleDateString('fa-IR');}catch(e){}
-            return '<button type="button" class="btn sec" data-cert-open="'+it.id.replace(/"/g,'&quot;')+'" style="width:100%;text-align:right;margin-bottom:8px;padding:16px">🏅 '+(it.title||'لوح تقدیر').replace(/</g,'&lt;')+(dateStr?(' <span class="muted" style="font-size:12px">('+dateStr+')</span>'):'')+'</button>';
+            const safeId=it.id.replace(/"/g,'&quot;');
+            const safeTitle=(it.title||'لوح تقدیر').replace(/</g,'&lt;');
+            return '<div style="display:flex;gap:8px;align-items:stretch;margin-bottom:8px">'
+              +'<button type="button" class="btn sec" data-cert-open="'+safeId+'" style="flex:1;text-align:right;padding:16px">🏅 '+safeTitle+(dateStr?(' <span class="muted" style="font-size:12px">('+dateStr+')</span>'):'')+'</button>'
+              +'<button type="button" class="btn gray sm" data-cert-download="'+safeId+'" data-cert-title="'+safeTitle+'" style="flex:0 0 auto;padding:0 16px" title="دانلود">⬇️ دانلود</button>'
+              +'</div>';
           }).join('');
           box.querySelectorAll('[data-cert-open]').forEach(function(b){
             b.onclick=function(){window.open('/cert/'+encodeURIComponent(ID)+'/'+encodeURIComponent(b.dataset.certOpen),'_blank');};
+          });
+          box.querySelectorAll('[data-cert-download]').forEach(function(b){
+            b.onclick=async function(){
+              const orig=b.textContent;
+              b.disabled=true;b.textContent='...';
+              try{
+                const resp=await fetch('/cert/'+encodeURIComponent(ID)+'/'+encodeURIComponent(b.dataset.certDownload));
+                const htmlText=await resp.text();
+                const blob=new Blob([htmlText],{type:'application/msword'});
+                const a=document.createElement('a');
+                a.href=URL.createObjectURL(blob);
+                a.download=(b.dataset.certTitle||'لوح-تقدیر')+'.doc';
+                document.body.appendChild(a);a.click();a.remove();
+                URL.revokeObjectURL(a.href);
+              }catch(e){toast('خطا در دانلود لوح');}
+              b.disabled=false;b.textContent=orig;
+            };
           });
         }catch(e){box.innerHTML='<p class="muted">خطا در دریافت لیست</p>';}
       };
