@@ -290,6 +290,7 @@ export default {
     try {
       if (path === "/api/classroom/ws") return await handleClassroomSocket(req, env, url);
       if (path === "/api/webinar/ws") return await handleWebinarSocket(req, env, url);
+      if (path === "/api/board/ws") return await handleBoardSocket(req, env, url);
 
       if (path === "/sw.js") return new Response(teacherServiceWorkerScript(), { headers: { "content-type": "application/javascript; charset=utf-8", "cache-control": "no-cache" } });
       if (path === "/qrcode.js") return new Response(qrcodeLibScript(), { headers: { "content-type": "application/javascript; charset=utf-8", "cache-control": "public, max-age=31536000, immutable" } });
@@ -328,6 +329,7 @@ export default {
         if (id === "webinar") return await webinarJoinPage(env);
         if (id === "attendance") return await attendancePage(env, null);
         if (id.startsWith("attendance/")) return await attendancePage(env, id.slice("attendance/".length));
+        if (id.startsWith("board/")) return await studentBoardPage(env, id.slice("board/".length));
         return await studentClassPage(env, id);
       }
 
@@ -383,6 +385,11 @@ async function handleClassroomSocket(req, env, url) {
 
 async function handleWebinarSocket(req, env, url) {
   return await handleRoomSocket(req, env, url, "webinar", "وبینار", true);
+}
+
+// تخته آنلاین: اتاق کاملاً مستقل از کلاس آنلاین و وبینار (Durable Object جدا با نام «board»)، دسترسی دانش‌آموز از طریق همان لینک اختصاصی خودش (نه لینک عمومی مثل وبینار)
+async function handleBoardSocket(req, env, url) {
+  return await handleRoomSocket(req, env, url, "board", "تخته آنلاین", false);
 }
 
 // openParticipation=true یعنی هر کسی با لینک واحد و فقط با وارد کردن نام می‌تواند وارد شود (بدون نیاز به فهرست دانش‌آموزان)
@@ -449,7 +456,7 @@ export class ClassRoom {
     if (req.headers.get("upgrade") !== "websocket") {
       return new Response("Expected WebSocket", { status: 400 });
     }
-    const kind = url.pathname === "/api/webinar/ws" ? "webinar" : "classroom";
+    const kind = url.pathname === "/api/webinar/ws" ? "webinar" : (url.pathname === "/api/board/ws" ? "board" : "classroom");
     this.kind = kind;
     const role = url.searchParams.get("role") === "teacher" ? "teacher" : "student";
     const id = url.searchParams.get("id") || "";
@@ -504,6 +511,10 @@ export class ClassRoom {
 
     // در وبینار فقط معلم تصویر می‌فرستد؛ شرکت‌کنندگان فقط صدا/چت/بلندکردن دست دارند (محافظتی سمت سرور)
     if (this.kind === "webinar" && session.role === "student" && (msg.type === "video-frame" || msg.type === "video-stop")) return;
+
+    // تخته آنلاین کاملاً مستقل از کلاس آنلاین است: هیچ تصویر/دوربینی (نه معلم، نه دانش‌آموز) ندارد و فقط صدای معلم پخش می‌شود
+    if (this.kind === "board" && (msg.type === "video-frame" || msg.type === "video-stop")) return;
+    if (this.kind === "board" && session.role === "student" && msg.type === "audio") return;
 
     // فقط معلم اجازه‌ی رسم روی تخته هوشمند و پخش صدا را دارد
     if (msg.type === "draw" && session.role === "teacher") {
@@ -2394,7 +2405,7 @@ const SHARED_CSS = `
   .brd-color-dot{width:22px;height:22px;border-radius:50%;border:2px solid #fff;box-shadow:0 0 0 1px #cbd5e1;cursor:pointer;display:inline-block;padding:0;box-sizing:border-box}
   .brd-color-dot:hover{transform:scale(1.12)}
   .brd-color-dot.active{box-shadow:0 0 0 2px #1e293b}
-  #brd-color-custom{width:26px;height:26px;padding:0;border:none;border-radius:50%;cursor:pointer;background:none}
+  #brd2-color-custom{width:26px;height:26px;padding:0;border:none;border-radius:50%;cursor:pointer;background:none}
 
   /* ---- سوییچ تم برنامهٔ هفتگی ---- */
   .sch-theme-btn{opacity:.6;transition:opacity .15s,transform .15s}
@@ -2797,7 +2808,8 @@ async function studentPage(env, id) {
         <button class="btn" id="btn-choice-exam" style="flex:1;min-width:200px;padding:22px 16px;font-size:16px">📝 ورود به آزمون</button>
         <button class="btn sec" id="btn-choice-worksheet" style="flex:1;min-width:200px;padding:22px 16px;font-size:16px">📓 ورود به کاربرگ</button>
         <button class="btn sec" id="btn-choice-reportcard" style="flex:1;min-width:200px;padding:22px 16px;font-size:16px">🗓️ مشاهده کارنامه ماهیانه</button>
-        <button class="btn sec" id="btn-choice-classroom" style="flex:1;min-width:200px;padding:22px 16px;font-size:16px">🖥️ ورود به تخته کلاس آنلاین</button>
+        <button class="btn sec" id="btn-choice-classroom" style="flex:1;min-width:200px;padding:22px 16px;font-size:16px">🖥️ ورود به کلاس آنلاین</button>
+        <button class="btn sec" id="btn-choice-board" style="flex:1;min-width:200px;padding:22px 16px;font-size:16px">🧑‍🏫 ورود به تخته کلاس آنلاین</button>
         <button class="btn sec" id="btn-choice-htmlgames" style="flex:1;min-width:200px;padding:22px 16px;font-size:16px">🎮 بازی و محتوای درسی HTML</button>
         <button class="btn sec" id="btn-choice-videolinks" style="flex:1;min-width:200px;padding:22px 16px;font-size:16px">🎬 فیلم‌های آموزشی درس</button>
         <button class="btn sec" id="btn-choice-certs" style="flex:1;min-width:200px;padding:22px 16px;font-size:16px">🏅 لوح‌های تقدیر من</button>
@@ -2974,6 +2986,9 @@ async function studentPage(env, id) {
       document.getElementById('btn-choice-classroom').onclick=function(){
         location.href = '/class/' + encodeURIComponent(ID);
       };
+      document.getElementById('btn-choice-board').onclick=function(){
+        location.href = '/class/board/' + encodeURIComponent(ID);
+      };
       document.getElementById('btn-choice-reportcard').onclick=async function(){
         document.getElementById('step-choice').classList.add('hidden');
         document.getElementById('step-reportcard').classList.remove('hidden');
@@ -3039,7 +3054,7 @@ async function studentPage(env, id) {
             const safeTitle=(it.title||'لوح تقدیر').replace(/</g,'&lt;');
             return '<div style="display:flex;gap:8px;align-items:stretch;margin-bottom:8px">'
               +'<button type="button" class="btn sec" data-cert-open="'+safeId+'" style="flex:1;text-align:right;padding:16px">🏅 '+safeTitle+(dateStr?(' <span class="muted" style="font-size:12px">('+dateStr+')</span>'):'')+'</button>'
-              +'<button type="button" class="btn gray sm" data-cert-download="'+safeId+'" data-cert-title="'+safeTitle+'" style="flex:0 0 auto;padding:0 16px" title="دانلود">⬇️ دانلود</button>'
+              +'<button type="button" class="btn gray sm" data-cert-download="'+safeId+'" data-cert-title="'+safeTitle+'" style="flex:0 0 auto;padding:0 16px" title="دانلود PDF">⬇️ دانلود PDF</button>'
               +'</div>';
           }).join('');
           box.querySelectorAll('[data-cert-open]').forEach(function(b){
@@ -3052,12 +3067,11 @@ async function studentPage(env, id) {
               try{
                 const resp=await fetch('/cert/'+encodeURIComponent(ID)+'/'+encodeURIComponent(b.dataset.certDownload));
                 const htmlText=await resp.text();
-                const blob=new Blob([htmlText],{type:'application/msword'});
-                const a=document.createElement('a');
-                a.href=URL.createObjectURL(blob);
-                a.download=(b.dataset.certTitle||'لوح-تقدیر')+'.doc';
-                document.body.appendChild(a);a.click();a.remove();
-                URL.revokeObjectURL(a.href);
+                const w=window.open('','_blank');
+                if(!w){toast('اجازه‌ی باز کردن پنجره‌ی چاپ داده نشد (popup blocked)');b.disabled=false;b.textContent=orig;return;}
+                w.document.write(htmlText);
+                w.document.close();
+                setTimeout(function(){w.print();},500);
               }catch(e){toast('خطا در دانلود لوح');}
               b.disabled=false;b.textContent=orig;
             };
@@ -4513,6 +4527,289 @@ async function studentClassPage(env, id) {
     (function(){
       const b=document.getElementById('board');
       const backdrop=document.getElementById('cls-board-backdrop');
+      function closeZoom(){ b.classList.remove('zoomed'); backdrop.classList.add('hidden'); }
+      function openZoom(){ b.classList.add('zoomed'); backdrop.classList.remove('hidden'); }
+      b.addEventListener('click',function(){ b.classList.contains('zoomed')?closeZoom():openZoom(); });
+      backdrop.addEventListener('click',closeZoom);
+    })();
+  </script></body></html>`);
+}
+
+/* ------------------------- تخته آنلاین - صفحه دانش‌آموز (کاملاً مستقل از کلاس آنلاین) ------------------------- */
+
+async function studentBoardPage(env, id) {
+  const raw = await env.EXAM_KV.get("student:" + id);
+  if (!raw) {
+    return html(
+      `<!doctype html><html lang="fa" dir="rtl"><head><meta charset="utf-8">${FONT_LINK}<style>${SHARED_CSS}</style></head>
+      <body><div class="wrap">${pageHeader()}<div class="card"><h2>لینک نامعتبر است</h2>
+      <p class="muted">این لینک تخته آنلاین معتبر نیست یا حذف شده است. لطفاً با معلم خود تماس بگیرید.</p></div></div></body></html>`,
+      404
+    );
+  }
+  const student = JSON.parse(raw);
+
+  return html(`<!doctype html><html lang="fa" dir="rtl"><head><meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>تخته آنلاین</title>${FONT_LINK}<style>${SHARED_CSS}
+    #bo-board{width:100%;background:#fff;border:1px solid var(--line);border-radius:10px;touch-action:none;display:block;margin:0 auto;cursor:zoom-in}
+    .cls-status{display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap}
+    .dot{width:10px;height:10px;border-radius:50%;background:#dc2626;display:inline-block}
+    .dot.on{background:#16a34a}
+    #boChatBox{height:280px;overflow:auto;border:1px solid var(--line);border-radius:10px;padding:10px;background:#fafafa;display:flex;flex-direction:column;gap:6px}
+    .msg{padding:6px 10px;border-radius:10px;max-width:90%;font-size:14px}
+    .msg.teacher{background:#eef2ff;align-self:flex-start}
+    .msg.student{background:#dcfce7;align-self:flex-end}
+    .msg .who{font-size:11px;color:#666;margin-bottom:2px}
+    #bo-board.zoomed{position:fixed!important;top:50%;left:50%;transform:translate(-50%,-50%);width:min(94vw,900px)!important;height:auto!important;max-height:88vh;z-index:41;cursor:zoom-out;box-shadow:0 10px 40px rgba(0,0,0,.5);border-radius:10px}
+    #bo-board-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:40}
+  </style></head>
+  <body><div class="wrap">
+    ${pageHeader()}
+    <div class="card">
+      <h3>🧑‍🏫 تخته آنلاین${student.label ? " — " + esc(student.label) : ""}</h3>
+      <div class="cls-status">
+        <a class="btn sm sec" href="/s/${encodeURIComponent(id)}">↩️ بازگشت</a>
+        <span class="dot" id="bo-dot"></span>
+        <span id="bo-status-text" class="muted">در حال اتصال به تخته...</span>
+        <span style="flex:1"></span>
+        <button class="btn sm" id="bo-btn-enable-sound">🔊 فعال‌سازی صدای معلم</button>
+      </div>
+      <div class="cls-stack">
+        <div class="cls-sec">
+          <div class="cls-sec-head">📝 تخته آنلاین</div>
+          <div class="cls-board-box" style="position:relative">
+            <canvas id="bo-board" width="900" height="500" title="برای بزرگ‌نمایی کلیک کنید"></canvas>
+            <div id="bo-board-backdrop" class="hidden"></div>
+          </div>
+          <p class="muted" style="font-size:12px;padding:0 14px 10px">این تخته مستقل از کلاس آنلاین است و کاملاً توسط معلم کنترل می‌شود؛ صدای توضیح معلم به‌صورت خودکار پخش می‌شود.</p>
+        </div>
+
+        <div class="cls-sec">
+          <div class="cls-sec-head tap" id="bo-users-toggle">👥 حاضرین <span id="bo-users-count" class="cls-badge-count">۰</span><span class="cls-chevron">▾</span></div>
+          <div id="bo-users-list" class="cls-users-list hidden"><span class="muted">کسی متصل نیست</span></div>
+        </div>
+
+        <div class="cls-sec">
+          <div class="cls-sec-head tap open" id="bo-chat-toggle">💬 گفتگو<span class="cls-chevron">▾</span></div>
+          <div id="bo-chat-wrap" class="cls-chat-wrap">
+            <div id="boChatBox"></div>
+            <div class="row" style="margin-top:8px">
+              <input id="boChatInput" placeholder="پیام خود را بنویسید...">
+              <button class="btn sm" id="boBtnSend" style="flex:0 0 auto">ارسال</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="toast" id="toast"></div>
+  <script>
+    const ID = ${JSON.stringify(id)};
+    const NAME = ${JSON.stringify(student.label || "دانش‌آموز")};
+    function toast(m){const t=document.getElementById('toast');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2500);}
+    function esc(s){const d=document.createElement('div');d.textContent=s==null?'':s;return d.innerHTML;}
+
+    const boCanvas=document.getElementById('bo-board');
+    const boCtx=boCanvas.getContext('2d');
+    const BO_BOARD_DEFAULT_W=900, BO_BOARD_DEFAULT_H=560;
+    function boResizeCanvas(){
+      const ratio=boCanvas.height/boCanvas.width;
+      const containerW=boCanvas.parentElement.clientWidth;
+      if(!containerW)return;
+      const maxH=window.innerHeight*0.7;
+      let w=containerW, h=w*ratio;
+      if(h>maxH){h=maxH;w=h/ratio;}
+      boCanvas.style.width=w+'px';
+      boCanvas.style.height=h+'px';
+    }
+    function boResizeCanvasTo(w,h){
+      boCanvas.width=Math.round(w);
+      boCanvas.height=Math.round(h);
+      boResizeCanvas();
+    }
+    boResizeCanvas();window.addEventListener('resize',boResizeCanvas);
+
+    function boDrawStroke(s){
+      if(!s)return;
+      if(s.type==='text'){
+        boCtx.save();
+        boCtx.fillStyle=s.color||'#111827';
+        boCtx.font='bold '+((s.size||3)*7+12)+'px Vazirmatn, Tahoma, sans-serif';
+        boCtx.textBaseline='top';
+        boCtx.fillText(s.text||'', s.x*boCanvas.width, s.y*boCanvas.height);
+        boCtx.restore();
+        return;
+      }
+      if(!s.points||s.points.length<2)return;
+      boCtx.save();
+      boCtx.strokeStyle=s.erase?'#ffffff':(s.color||'#111827');
+      boCtx.lineWidth=s.size||3;
+      boCtx.lineCap='round';boCtx.lineJoin='round';
+      boCtx.beginPath();
+      boCtx.moveTo(s.points[0][0]*boCanvas.width,s.points[0][1]*boCanvas.height);
+      for(let i=1;i<s.points.length;i++)boCtx.lineTo(s.points[i][0]*boCanvas.width,s.points[i][1]*boCanvas.height);
+      boCtx.stroke();
+      boCtx.restore();
+    }
+    function boClearBoard(){boCtx.clearRect(0,0,boCanvas.width,boCanvas.height);}
+
+    let boBoardBgImg=null;
+    function boSetBoardBg(dataUrl,w,h){
+      if(!dataUrl){
+        boBoardBgImg=null;
+        boResizeCanvasTo(w||BO_BOARD_DEFAULT_W,h||BO_BOARD_DEFAULT_H);
+        boCtx.clearRect(0,0,boCanvas.width,boCanvas.height);
+        return;
+      }
+      const img=new Image();
+      img.onload=()=>{
+        boBoardBgImg=img;
+        boResizeCanvasTo(w||img.naturalWidth,h||img.naturalHeight);
+        boCtx.clearRect(0,0,boCanvas.width,boCanvas.height);
+        boCtx.drawImage(img,0,0,boCanvas.width,boCanvas.height);
+      };
+      img.src=dataUrl;
+    }
+    function boSetBoardBgAndReplay(dataUrl,strokes,w,h){
+      if(!dataUrl){
+        boBoardBgImg=null;
+        boResizeCanvasTo(w||BO_BOARD_DEFAULT_W,h||BO_BOARD_DEFAULT_H);
+        boCtx.clearRect(0,0,boCanvas.width,boCanvas.height);
+        (strokes||[]).forEach(boDrawStroke);
+        return;
+      }
+      const img=new Image();
+      img.onload=()=>{
+        boBoardBgImg=img;
+        boResizeCanvasTo(w||img.naturalWidth,h||img.naturalHeight);
+        boCtx.clearRect(0,0,boCanvas.width,boCanvas.height);
+        boCtx.drawImage(img,0,0,boCanvas.width,boCanvas.height);
+        (strokes||[]).forEach(boDrawStroke);
+      };
+      img.src=dataUrl;
+    }
+
+    // ===== پخش صدای زنده‌ی معلم =====
+    let boAudioQueue=[], boAudioPlaying=false, boAudioWarned=false, boAudioUnlocked=false;
+    (function setupSoundUnlock(){
+      const btn=document.getElementById('bo-btn-enable-sound');
+      btn.onclick=function(){
+        const a=new Audio('data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAA=');
+        const unlock=()=>{ boAudioUnlocked=true; btn.classList.add('hidden'); boPumpAudioQueue(); };
+        a.play().then(unlock).catch(unlock);
+      };
+    })();
+    function boPlayAudioChunk(b64, mime){
+      boAudioQueue.push({b64, mime: mime||'audio/webm'});
+      if(boAudioQueue.length>2) boAudioQueue.splice(0, boAudioQueue.length-2);
+      boPumpAudioQueue();
+    }
+    function boPumpAudioQueue(){
+      if(!boAudioUnlocked || boAudioPlaying || boAudioQueue.length===0) return;
+      const item=boAudioQueue.shift();
+      const a=new Audio('data:'+item.mime+';base64,'+item.b64);
+      boAudioPlaying=true;
+      a.onended=()=>{ boAudioPlaying=false; boPumpAudioQueue(); };
+      a.onerror=()=>{
+        boAudioPlaying=false;
+        if(!boAudioWarned){
+          boAudioWarned=true;
+          toast('مرورگر شما امکان پخش صدا را ندارد؛ لطفاً Chrome را امتحان کنید');
+        }
+        boPumpAudioQueue();
+      };
+      a.play().catch(()=>{ boAudioPlaying=false; boPumpAudioQueue(); });
+    }
+
+    function boUpdateParticipants(list){
+      const box=document.getElementById('bo-users-list');
+      const countEl=document.getElementById('bo-users-count');
+      const FA_DIGITS=['۰','۱','۲','۳','۴','۵','۶','۷','۸','۹'];
+      countEl.textContent=String(list.length).replace(/[0-9]/g,d=>FA_DIGITS[+d]);
+      if(!list.length){box.innerHTML='<span class="muted">کسی متصل نیست</span>';return;}
+      box.innerHTML=list.map(function(p){
+        const roleCls=p.role==='teacher'?'role-teacher':'';
+        const icon=p.role==='teacher'?'👨‍🏫':'👤';
+        return '<div class="cls-user-row '+roleCls+'"><span class="u-dot"></span>'+icon+' '+esc(p.name||'')+'</div>';
+      }).join('');
+    }
+
+    (function setupCollapsibleSections(){
+      const usersToggle=document.getElementById('bo-users-toggle');
+      const usersList=document.getElementById('bo-users-list');
+      usersToggle.addEventListener('click',function(){
+        usersList.classList.toggle('hidden');
+        usersToggle.classList.toggle('open');
+      });
+      const chatToggle=document.getElementById('bo-chat-toggle');
+      const chatWrap=document.getElementById('bo-chat-wrap');
+      chatToggle.addEventListener('click',function(){
+        chatWrap.classList.toggle('hidden');
+        chatToggle.classList.toggle('open');
+      });
+    })();
+
+    function boAddChatMsg(entry){
+      const box=document.getElementById('boChatBox');
+      const cls=entry.role==='teacher'?'teacher':'student';
+      box.insertAdjacentHTML('beforeend','<div class="msg '+cls+'"><div class="who">'+esc(entry.from)+'</div>'+esc(entry.text)+'</div>');
+      box.scrollTop=box.scrollHeight;
+    }
+
+    let boWs=null;
+    async function boConnect(){
+      const proto=location.protocol==='https:'?'wss:':'ws:';
+      try{
+        const chk=await fetch('/api/board/ws?check=1&role=student&id='+encodeURIComponent(ID));
+        const chkData=await chk.json().catch(()=>({ok:false,error:'پاسخ نامعتبر از سرور'}));
+        if(!chkData.ok){
+          document.getElementById('bo-status-text').textContent='خطا: '+chkData.error;
+          return;
+        }
+      }catch(e){
+        document.getElementById('bo-status-text').textContent='اتصال به سرور برقرار نشد، در حال تلاش مجدد...';
+        setTimeout(boConnect,2000);
+        return;
+      }
+      boWs=new WebSocket(proto+'//'+location.host+'/api/board/ws?role=student&id='+encodeURIComponent(ID)+'&name='+encodeURIComponent(NAME));
+      boWs.onopen=()=>{document.getElementById('bo-dot').classList.add('on');document.getElementById('bo-status-text').textContent='متصل به تخته آنلاین ✅';};
+      boWs.onclose=()=>{document.getElementById('bo-dot').classList.remove('on');document.getElementById('bo-status-text').textContent='اتصال قطع شد، در حال تلاش مجدد...';setTimeout(boConnect,2000);};
+      boWs.onerror=()=>{try{boWs.close();}catch(e){}};
+      boWs.onmessage=(evt)=>{
+        let m;try{m=JSON.parse(evt.data);}catch(e){return;}
+        if(m.type==='init'){
+          if(m.boardBg){boSetBoardBgAndReplay(m.boardBg,m.strokes||[],m.boardBgW,m.boardBgH);}
+          else{boClearBoard();boBoardBgImg=null;(m.strokes||[]).forEach(boDrawStroke);}
+          (m.chat||[]).forEach(boAddChatMsg);
+          boUpdateParticipants(m.participants||[]);
+        }
+        else if(m.type==='draw'){boDrawStroke(m.stroke);}
+        else if(m.type==='clear'){boCtx.clearRect(0,0,boCanvas.width,boCanvas.height);if(boBoardBgImg)boCtx.drawImage(boBoardBgImg,0,0,boCanvas.width,boCanvas.height);}
+        else if(m.type==='board-bg'){boSetBoardBg(m.data,m.w,m.h);}
+        else if(m.type==='audio'){ if(m.role==='teacher') boPlayAudioChunk(m.data, m.mime); }
+        else if(m.type==='chat'){boAddChatMsg(m.entry);}
+        else if(m.type==='presence'){
+          boUpdateParticipants(m.participants||[]);
+          if(m.event==='join'&&m.role==='teacher')toast('معلم وارد تخته آنلاین شد');
+        }
+      };
+    }
+    boConnect();
+
+    document.getElementById('boBtnSend').onclick=()=>{
+      const inp=document.getElementById('boChatInput');
+      const text=inp.value.trim();
+      if(!text||!boWs||boWs.readyState!==1)return;
+      boWs.send(JSON.stringify({type:'chat',text}));
+      inp.value='';
+    };
+    document.getElementById('boChatInput').addEventListener('keydown',e=>{if(e.key==='Enter')document.getElementById('boBtnSend').click();});
+
+    // ===== بزرگ‌نمایی تخته توسط دانش‌آموز =====
+    (function(){
+      const b=document.getElementById('bo-board');
+      const backdrop=document.getElementById('bo-board-backdrop');
       function closeZoom(){ b.classList.remove('zoomed'); backdrop.classList.add('hidden'); }
       function openZoom(){ b.classList.add('zoomed'); backdrop.classList.remove('hidden'); }
       b.addEventListener('click',function(){ b.classList.contains('zoomed')?closeZoom():openZoom(); });
@@ -6713,6 +7010,10 @@ function teacherPage() {
             <h4>📋 فرم حضور و غیاب</h4>
             <ul><li>یک لینک عمومی، ثبت مشخصات، خروجی اکسل و PDF</li></ul>
           </a>
+          <a class="home-card" href="/teacher?tab=board">
+            <h4>🧑‍🏫 تخته آنلاین</h4>
+            <ul><li>بخش مستقل با ابزار قلم، خط‌کش، متن، رنگ، PDF و عکس پس‌زمینه؛ فقط صدای معلم</li></ul>
+          </a>
           <a class="home-card" href="/teacher?tab=logbook">
             <h4>📖 دفتر مدیریت کلاسی</h4>
             <ul>
@@ -7931,6 +8232,7 @@ function teacherPage() {
           <div class="subtab active" data-subtab="classroom">🖥️ کلاس آنلاین</div>
           <div class="subtab" data-subtab="webinar">🎙️ وبینار</div>
           <div class="subtab" data-subtab="attendance">📋 حضور و غیاب</div>
+          <div class="subtab" data-subtab="board">🧑‍🏫 تخته آنلاین</div>
         </div>
 
         <div class="subtab-content" id="tab-classroom">
@@ -7953,25 +8255,13 @@ function teacherPage() {
           <div class="cls-board-col" style="position:relative">
             <div class="t-board-wrap" style="position:relative">
               <canvas id="t-board" width="900" height="500" style="width:100%;background:#fff;border:1px solid var(--line);border-radius:10px;touch-action:none;display:block;cursor:crosshair"></canvas>
-              <canvas id="t-board-overlay" style="position:absolute;top:0;left:0;pointer-events:none"></canvas>
               <video id="t-cam-preview" autoplay muted playsinline class="hidden t-cam-oncanvas"></video>
             </div>
             <img id="t-board-zoom-img" class="hidden" style="position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);width:min(94vw,900px);height:auto;max-height:88vh;object-fit:contain;z-index:41;cursor:zoom-out;box-shadow:0 10px 40px rgba(0,0,0,.5);border-radius:10px;background:#fff">
             <div id="t-board-zoom-backdrop" class="hidden" style="position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:40"></div>
-            <div class="row" style="margin-top:8px;flex-wrap:wrap;gap:6px;align-items:center">
-              <button class="btn sm gray brd-tool-btn active" data-tool="pen" id="brd-tool-pen" style="flex:0 0 auto">✏️ قلم</button>
-              <button class="btn sm gray brd-tool-btn" data-tool="line" id="brd-tool-line" style="flex:0 0 auto">📏 خط‌کش</button>
-              <button class="btn sm gray brd-tool-btn" data-tool="text" id="brd-tool-text" style="flex:0 0 auto">🔤 متن</button>
-              <button class="btn sm gray brd-tool-btn" data-tool="eraser" id="brd-tool-eraser" style="flex:0 0 auto">🧽 پاک‌کن</button>
-              <span class="brd-color-picker" id="brd-color-picker">
-                <button type="button" class="brd-color-dot active" data-color="#000000" style="background:#000000" title="مشکی"></button>
-                <button type="button" class="brd-color-dot" data-color="#dc2626" style="background:#dc2626" title="قرمز"></button>
-                <button type="button" class="brd-color-dot" data-color="#2563eb" style="background:#2563eb" title="آبی"></button>
-                <button type="button" class="brd-color-dot" data-color="#16a34a" style="background:#16a34a" title="سبز"></button>
-                <button type="button" class="brd-color-dot" data-color="#f59e0b" style="background:#f59e0b" title="نارنجی"></button>
-                <input type="color" id="brd-color-custom" value="#000000" title="رنگ دلخواه">
-              </span>
+            <div class="row" style="margin-top:8px;flex-wrap:wrap">
               <input type="range" id="brd-size" min="1" max="20" value="3" style="flex:1;min-width:80px">
+              <button class="btn sm gray" id="brd-tool-eraser" style="flex:0 0 auto">🧽 پاک‌کن</button>
               <button class="btn sm danger" id="brd-clear" style="flex:0 0 auto">🗑️ پاک کردن یادداشت‌ها</button>
               <button class="btn sm sec" id="brd-zoom" style="flex:0 0 auto" title="بزرگ‌نمایی تخته">🔍 بزرگ‌نمایی</button>
             </div>
@@ -7989,14 +8279,9 @@ function teacherPage() {
                 <button class="btn sm primary" id="cls-pdf-show" style="flex:0 0 auto">🖼️ نمایش این صفحه روی تخته</button>
                 <button class="btn sm danger" id="cls-pdf-remove-bg" style="flex:0 0 auto">حذف PDF از تخته</button>
               </div>
-              <div class="row" style="align-items:center;flex-wrap:wrap;margin-top:8px">
-                <label class="btn sm sec" style="cursor:pointer;flex:0 0 auto">🖼️ افزودن عکس پس‌زمینه<input type="file" accept="image/*" id="cls-img-bg-file" style="display:none"></label>
-                <span id="cls-img-bg-name" class="muted" style="font-size:12px"></span>
-                <button class="btn sm danger hidden" id="cls-img-bg-remove" style="flex:0 0 auto">🗑️ حذف عکس از تخته</button>
-              </div>
             </div>
 
-            <p class="muted" style="font-size:12px;margin-top:6px">با ابزار قلم/خط‌کش روی تخته بکشید یا با ابزار متن روی تخته کلیک کنید تا نوشته اضافه شود؛ رنگ و ضخامت قابل تغییر است. همه‌ی ترسیم‌ها برای دانش‌آموزان متصل به‌صورت زنده نمایش داده می‌شود. وقتی دوربین روشن باشد و پس‌زمینه‌ای (PDF یا عکس) روی تخته نباشد، تصویر دقیقاً روی تخته نمایش داده می‌شود؛ به‌محض نمایش پس‌زمینه، تصویر کوچک می‌شود.</p>
+            <p class="muted" style="font-size:12px;margin-top:6px">روی تخته با خط مشکی بکشید؛ ترسیم برای همه دانش‌آموزان متصل به‌صورت زنده نمایش داده می‌شود. وقتی دوربین روشن باشد و PDF روی تخته نباشد، تصویر دقیقاً روی تخته نمایش داده می‌شود؛ به‌محض نمایش PDF، تصویر کوچک می‌شود تا PDF کامل دیده شود.</p>
           </div>
           <div class="cls-chat-col">
             <h4 style="margin:0 0 6px">👥 حاضرین (<span id="cls-online-count">0</span>)</h4>
@@ -8080,6 +8365,80 @@ function teacherPage() {
           <div id="att-records-wrap" style="overflow:auto"><span class="muted">برای مشاهده‌ی فهرست، روی «بروزرسانی» بزنید.</span></div>
         </div>
         </div>
+
+      <div class="subtab-content hidden" id="tab-board">
+        <h3>🧑‍🏫 تخته آنلاین</h3>
+        <p class="muted" style="margin-top:-6px">بخشی کاملاً مستقل از کلاس آنلاین و وبینار، با اتاق و لینک اختصاصی جدا برای هر دانش‌آموز (از تب دانش‌آموزان). فقط صدای معلم پخش می‌شود؛ دوربین در این بخش وجود ندارد.</p>
+
+        <div class="cls-status" style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+          <span class="dot" id="bodot" style="width:10px;height:10px;border-radius:50%;background:#dc2626;display:inline-block;flex:0 0 auto"></span>
+          <span id="t-bo-status" class="muted" style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">تخته آنلاین شروع نشده</span>
+          <button type="button" class="btn sm sec" id="btn-bo-options-toggle" style="flex:0 0 auto">⚙️ گزینه‌ها</button>
+        </div>
+        <div id="bo-options-drawer" class="cls-options-drawer hidden">
+          <button class="btn sm cls-opt-btn" id="btn-bo-start">▶️ شروع تخته آنلاین</button>
+          <button class="btn sm gray hidden cls-opt-btn" id="btn-bo-stop">⏹️ پایان تخته آنلاین</button>
+          <button class="btn sm sec hidden cls-opt-btn" id="btn-bo-mic-toggle">🎙️ روشن کردن میکروفون</button>
+        </div>
+
+        <div class="cls-wrap">
+          <div class="cls-board-col" style="position:relative">
+            <div class="t-board-wrap" style="position:relative">
+              <canvas id="bo-t-board" width="900" height="500" style="width:100%;background:#fff;border:1px solid var(--line);border-radius:10px;touch-action:none;display:block;cursor:crosshair"></canvas>
+              <canvas id="bo-t-board-overlay" style="position:absolute;top:0;left:0;pointer-events:none"></canvas>
+            </div>
+            <img id="bo-t-board-zoom-img" class="hidden" style="position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);width:min(94vw,900px);height:auto;max-height:88vh;object-fit:contain;z-index:41;cursor:zoom-out;box-shadow:0 10px 40px rgba(0,0,0,.5);border-radius:10px;background:#fff">
+            <div id="bo-t-board-zoom-backdrop" class="hidden" style="position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:40"></div>
+            <div class="row" style="margin-top:8px;flex-wrap:wrap;gap:6px;align-items:center">
+              <button class="btn sm gray brd2-tool-btn active" data-tool="pen" id="brd2-tool-pen" style="flex:0 0 auto">✏️ قلم</button>
+              <button class="btn sm gray brd2-tool-btn" data-tool="line" id="brd2-tool-line" style="flex:0 0 auto">📏 خط‌کش</button>
+              <button class="btn sm gray brd2-tool-btn" data-tool="text" id="brd2-tool-text" style="flex:0 0 auto">🔤 متن</button>
+              <button class="btn sm gray brd2-tool-btn" data-tool="eraser" id="brd2-tool-eraser" style="flex:0 0 auto">🧽 پاک‌کن</button>
+              <span class="brd-color-picker" id="brd2-color-picker">
+                <button type="button" class="brd-color-dot active" data-color="#000000" style="background:#000000" title="مشکی"></button>
+                <button type="button" class="brd-color-dot" data-color="#dc2626" style="background:#dc2626" title="قرمز"></button>
+                <button type="button" class="brd-color-dot" data-color="#2563eb" style="background:#2563eb" title="آبی"></button>
+                <button type="button" class="brd-color-dot" data-color="#16a34a" style="background:#16a34a" title="سبز"></button>
+                <button type="button" class="brd-color-dot" data-color="#f59e0b" style="background:#f59e0b" title="نارنجی"></button>
+                <input type="color" id="brd2-color-custom" value="#000000" title="رنگ دلخواه">
+              </span>
+              <input type="range" id="brd2-size" min="1" max="20" value="3" style="flex:1;min-width:80px">
+              <button class="btn sm danger" id="brd2-clear" style="flex:0 0 auto">🗑️ پاک کردن یادداشت‌ها</button>
+              <button class="btn sm sec" id="brd2-zoom" style="flex:0 0 auto" title="بزرگ‌نمایی تخته">🔍 بزرگ‌نمایی</button>
+            </div>
+
+            <div class="cls-pdf-panel" id="bo-pdf-panel" style="margin-top:12px">
+              <div class="row" style="align-items:center;flex-wrap:wrap">
+                <label class="btn sm sec" style="cursor:pointer;flex:0 0 auto">📄 افزودن PDF<input type="file" accept="application/pdf" id="bo-pdf-file" style="display:none"></label>
+                <span id="bo-pdf-name" class="muted" style="font-size:12px"></span>
+                <button class="btn sm danger hidden" id="bo-pdf-remove-file" style="flex:0 0 auto">🗑️ حذف فایل PDF</button>
+              </div>
+              <div id="bo-pdf-nav" class="row hidden" style="align-items:center;margin-top:6px;flex-wrap:wrap">
+                <button class="btn sm gray" id="bo-pdf-prev" style="flex:0 0 auto">◀ قبلی</button>
+                <span style="flex:0 0 auto">صفحه <input type="number" id="bo-pdf-pagenum" min="1" value="1" style="width:60px;text-align:center"> از <span id="bo-pdf-total">1</span></span>
+                <button class="btn sm gray" id="bo-pdf-next" style="flex:0 0 auto">بعدی ▶</button>
+                <button class="btn sm primary" id="bo-pdf-show" style="flex:0 0 auto">🖼️ نمایش این صفحه روی تخته</button>
+                <button class="btn sm danger" id="bo-pdf-remove-bg" style="flex:0 0 auto">حذف PDF از تخته</button>
+              </div>
+              <div class="row" style="align-items:center;flex-wrap:wrap;margin-top:8px">
+                <label class="btn sm sec" style="cursor:pointer;flex:0 0 auto">🖼️ افزودن عکس پس‌زمینه<input type="file" accept="image/*" id="bo-img-bg-file" style="display:none"></label>
+                <span id="bo-img-bg-name" class="muted" style="font-size:12px"></span>
+                <button class="btn sm danger hidden" id="bo-img-bg-remove" style="flex:0 0 auto">🗑️ حذف عکس از تخته</button>
+              </div>
+            </div>
+            <p class="muted" style="font-size:12px;margin-top:6px">با ابزار قلم/خط‌کش روی تخته بکشید یا با ابزار متن روی تخته کلیک کنید تا نوشته اضافه شود. همه‌ی ترسیم‌ها برای دانش‌آموزان متصل به‌صورت زنده نمایش داده می‌شود.</p>
+          </div>
+          <div class="cls-chat-col">
+            <h4 style="margin:0 0 6px">👥 حاضرین (<span id="bo-online-count">0</span>)</h4>
+            <div id="bo-participants" class="muted" style="font-size:13px;max-height:110px;overflow:auto;margin-bottom:10px"></div>
+            <div id="bo-chatBox" style="height:220px;overflow:auto;border:1px solid var(--line);border-radius:10px;padding:10px;background:#fafafa;display:flex;flex-direction:column;gap:6px"></div>
+            <div class="row" style="margin-top:8px">
+              <input id="bo-chatInput" placeholder="پیام به تخته آنلاین...">
+              <button class="btn sm" id="bo-btnSend" style="flex:0 0 auto">ارسال</button>
+            </div>
+          </div>
+        </div>
+      </div>
       </div>
 
       <div class="card tab-content hidden" id="tab-htmlgames">
@@ -9421,6 +9780,7 @@ function teacherScript() {
     if(t.dataset.subtab==='sch-webinar'){certInit();certRenderStudentsList('wbc');certLoadSettingsIfNeeded('wbc');}
     if(t.dataset.subtab==='classroom'){setTimeout(function(){if(typeof clsResizeBoard==='function')clsResizeBoard();},50);}
     if(t.dataset.subtab==='attendance'){if(typeof attLoadLinks==='function')attLoadLinks();}
+    if(t.dataset.subtab==='board'){setTimeout(function(){if(typeof boResizeBoard==='function')boResizeBoard();},50);}
   });
 
   // ===== دانش‌آموزان =====
@@ -9440,6 +9800,7 @@ function teacherScript() {
       students.map((s,i)=>{
         const link=location.origin+'/s/'+s.uuid;
         const classLink=location.origin+'/class/'+s.uuid;
+        const boardLink=location.origin+'/class/board/'+s.uuid;
         let st='<span class="pill no">در انتظار</span>';
         if(s.status==='submitted')st='<span class="pill gr">ثبت‌شده (تصحیح‌نشده)</span>';
         if(s.status==='graded')st='<span class="pill ok">تصحیح‌شده</span>';
@@ -9454,6 +9815,7 @@ function teacherScript() {
           '<td>'+st+'</td>'+
           '<td><button class="btn sm" onclick="copyLink(\\''+link+'\\')">کپی</button> '+
           '<button class="btn sm sec" onclick="copyLink(\\''+classLink+'\\')" title="'+classLink+'">🖥️ لینک کلاس آنلاین</button> '+
+          '<button class="btn sm sec" onclick="copyLink(\\''+boardLink+'\\')" title="'+boardLink+'">🧑‍🏫 لینک تخته آنلاین</button> '+
           '<label class="btn sm sec" style="cursor:pointer">📷 عکس<input type="file" accept="image/*" style="display:none" onchange="changeStudentPhoto(\\''+s.uuid+'\\',this)"></label> '+
           '<button class="btn sm danger" onclick="delStudent(\\''+s.uuid+'\\')">حذف</button></td></tr>';
       }).join('')+'</table>';
@@ -15454,14 +15816,6 @@ function teacherScript() {
   const tCtx=tBoard.getContext('2d');
   const CLS_BOARD_DEFAULT_W=900, CLS_BOARD_DEFAULT_H=560;
 
-  const tBoardOverlay=document.getElementById('t-board-overlay');
-  const tOctx=tBoardOverlay.getContext('2d');
-  function clsSyncOverlay(){
-    tBoardOverlay.width=tBoard.width;
-    tBoardOverlay.height=tBoard.height;
-    tBoardOverlay.style.width=tBoard.style.width;
-    tBoardOverlay.style.height=tBoard.style.height;
-  }
   function clsResizeBoard(){
     const ratio=tBoard.height/tBoard.width;
     const containerW=tBoard.parentElement.clientWidth;
@@ -15471,7 +15825,6 @@ function teacherScript() {
     if(h>maxH){h=maxH;w=h/ratio;}
     tBoard.style.width=w+'px';
     tBoard.style.height=h+'px';
-    clsSyncOverlay();
   }
   function clsResizeBoardTo(w,h){
     tBoard.width=Math.round(w);
@@ -15658,106 +16011,27 @@ function teacherScript() {
     toast('فایل PDF حذف شد');
   };
 
-  // ===== افزودن عکس به‌عنوان پس‌زمینه تخته =====
-  document.getElementById('cls-img-bg-file').addEventListener('change',function(){
-    const f=this.files&&this.files[0];this.value='';
-    if(!f)return;
-    if(f.type.indexOf('image/')!==0){toast('فقط فایل عکس مجاز است');return;}
-    const reader=new FileReader();
-    reader.onload=function(){
-      const dataUrl=reader.result;
-      const img=new Image();
-      img.onload=function(){
-        clsResizeBoardTo(img.naturalWidth,img.naturalHeight);
-        clsSetBoardBg(dataUrl);
-        clsSend({type:'board-bg',data:dataUrl,w:img.naturalWidth,h:img.naturalHeight});
-        document.getElementById('cls-img-bg-name').textContent=f.name;
-        document.getElementById('cls-img-bg-remove').classList.remove('hidden');
-        toast('عکس روی تخته نمایش داده شد ✅');
-      };
-      img.onerror=function(){toast('خطا در بارگذاری عکس');};
-      img.src=dataUrl;
-    };
-    reader.onerror=function(){toast('خطا در خواندن فایل عکس');};
-    reader.readAsDataURL(f);
-  });
-  document.getElementById('cls-img-bg-remove').onclick=function(){
-    clsResizeBoardTo(CLS_BOARD_DEFAULT_W,CLS_BOARD_DEFAULT_H);
-    clsSetBoardBg(null);
-    clsSend({type:'board-bg',data:null,w:CLS_BOARD_DEFAULT_W,h:CLS_BOARD_DEFAULT_H});
-    document.getElementById('cls-img-bg-name').textContent='';
-    this.classList.add('hidden');
-    toast('عکس از روی تخته حذف شد');
-  };
-
-  let brdMode='pen'; // pen | eraser | line | text
-  let brdColor='#000000';
-  let clsLineStart=null;
-
-  function clsSetTool(mode){
-    brdMode=mode;
-    document.querySelectorAll('.brd-tool-btn').forEach(function(b){ b.classList.toggle('active', b.dataset.tool===mode); });
-    tBoard.style.cursor = mode==='text' ? 'text' : 'crosshair';
+  let brdMode='pen'; // pen | eraser
+  const BRD_COLOR='#000000';
+  function clsSetEraser(on){
+    brdMode = on ? 'eraser' : 'pen';
+    const btn=document.getElementById('brd-tool-eraser');
+    btn.classList.toggle('active', on);
+    btn.textContent = on ? '✏️ برگشت به قلم' : '🧽 پاک‌کن';
   }
-  document.getElementById('brd-tool-pen').onclick=function(){ clsSetTool('pen'); };
-  document.getElementById('brd-tool-line').onclick=function(){ clsSetTool('line'); };
-  document.getElementById('brd-tool-text').onclick=function(){ clsSetTool('text'); };
-  document.getElementById('brd-tool-eraser').onclick=function(){ clsSetTool('eraser'); };
-
-  function clsSetColor(c){
-    brdColor=c;
-    document.querySelectorAll('.brd-color-dot').forEach(function(d){ d.classList.toggle('active', d.dataset.color===c); });
-    document.getElementById('brd-color-custom').value=c;
-  }
-  document.querySelectorAll('.brd-color-dot').forEach(function(dot){
-    dot.onclick=function(){ clsSetColor(dot.dataset.color); };
-  });
-  document.getElementById('brd-color-custom').addEventListener('input',function(){ clsSetColor(this.value); });
+  document.getElementById('brd-tool-eraser').onclick=function(){ clsSetEraser(brdMode!=='eraser'); };
 
   function clsStartStroke(e){
     e.preventDefault();
     const pt=clsPointFromEvent(e);
-
-    if(brdMode==='text'){
-      const txt=prompt('متن مورد نظر را وارد کنید:');
-      if(txt && txt.trim()){
-        const stroke={ type:'text', color: brdColor, size: parseInt(document.getElementById('brd-size').value)||3, x: pt[0], y: pt[1], text: txt.trim() };
-        clsDrawLocal(stroke);
-        clsSend({type:'draw', stroke});
-      }
-      return;
-    }
-
-    if(brdMode==='line'){
-      clsLineStart=pt;
-      clsDrawing=true;
-      return;
-    }
-
     clsDrawing=true;
     const eraseOn=brdMode==='eraser';
-    clsCurrentStroke={ color: brdColor, size: parseInt(document.getElementById('brd-size').value)||3, erase: eraseOn, points: [pt] };
+    clsCurrentStroke={ color: BRD_COLOR, size: parseInt(document.getElementById('brd-size').value)||3, erase: eraseOn, points: [pt] };
   }
   function clsMoveStroke(e){
     if(!clsDrawing)return;
     e.preventDefault();
     const pt=clsPointFromEvent(e);
-
-    if(brdMode==='line'){
-      if(!clsLineStart)return;
-      tOctx.clearRect(0,0,tBoardOverlay.width,tBoardOverlay.height);
-      tOctx.save();
-      tOctx.strokeStyle=brdColor;
-      tOctx.lineWidth=parseInt(document.getElementById('brd-size').value)||3;
-      tOctx.lineCap='round';
-      tOctx.beginPath();
-      tOctx.moveTo(clsLineStart[0]*tBoardOverlay.width, clsLineStart[1]*tBoardOverlay.height);
-      tOctx.lineTo(pt[0]*tBoardOverlay.width, pt[1]*tBoardOverlay.height);
-      tOctx.stroke();
-      tOctx.restore();
-      return;
-    }
-
     clsCurrentStroke.points.push(pt);
     if(clsCurrentStroke.points.length>=2){
       const tail={ ...clsCurrentStroke, points: clsCurrentStroke.points.slice(-2) };
@@ -15766,14 +16040,6 @@ function teacherScript() {
     }
   }
   function clsEndStroke(e){
-    if(brdMode==='line' && clsLineStart){
-      const pt=clsPointFromEvent(e.changedTouches?{touches:e.changedTouches}:e);
-      tOctx.clearRect(0,0,tBoardOverlay.width,tBoardOverlay.height);
-      const stroke={ color: brdColor, size: parseInt(document.getElementById('brd-size').value)||3, erase:false, points: [clsLineStart, pt] };
-      clsDrawLocal(stroke);
-      clsSend({type:'draw', stroke});
-      clsLineStart=null;
-    }
     clsDrawing=false; clsCurrentStroke=null;
   }
 
@@ -15787,7 +16053,6 @@ function teacherScript() {
   document.getElementById('brd-clear').onclick=function(){
     tCtx.clearRect(0,0,tBoard.width,tBoard.height);
     if(clsBoardBgImg)tCtx.drawImage(clsBoardBgImg,0,0,tBoard.width,tBoard.height);
-    tOctx.clearRect(0,0,tBoardOverlay.width,tBoardOverlay.height);
     clsSend({type:'clear'});
   };
 
@@ -16542,6 +16807,454 @@ function teacherScript() {
         document.getElementById('btn-web-cam-flip').classList.add('hidden');
       }
     }
+  };
+
+  // ===================== تخته آنلاین (کاملاً مستقل از کلاس آنلاین و وبینار؛ فقط صدای معلم، بدون دوربین) =====================
+  let boWs=null, boMicStream=null, boRecorder=null, boDrawing=false, boCurrentStroke=null, boAudioActive=false, boAudioGen=0;
+  const boBoard=document.getElementById('bo-t-board');
+  const boCtx=boBoard.getContext('2d');
+  const BO_BOARD_DEFAULT_W=900, BO_BOARD_DEFAULT_H=560;
+
+  const boBoardOverlay=document.getElementById('bo-t-board-overlay');
+  const boOctx=boBoardOverlay.getContext('2d');
+  function boSyncOverlay(){
+    boBoardOverlay.width=boBoard.width;
+    boBoardOverlay.height=boBoard.height;
+    boBoardOverlay.style.width=boBoard.style.width;
+    boBoardOverlay.style.height=boBoard.style.height;
+  }
+  function boResizeBoard(){
+    const ratio=boBoard.height/boBoard.width;
+    const containerW=boBoard.parentElement.clientWidth;
+    if(!containerW)return;
+    const maxH=window.innerHeight*0.78;
+    let w=containerW, h=w*ratio;
+    if(h>maxH){h=maxH;w=h/ratio;}
+    boBoard.style.width=w+'px';
+    boBoard.style.height=h+'px';
+    boSyncOverlay();
+  }
+  function boResizeBoardTo(w,h){
+    boBoard.width=Math.round(w);
+    boBoard.height=Math.round(h);
+    boResizeBoard();
+  }
+  boResizeBoard();window.addEventListener('resize',boResizeBoard);
+
+  function boPointFromEvent(e){
+    const rect=boBoard.getBoundingClientRect();
+    const cx=(e.touches?e.touches[0].clientX:e.clientX)-rect.left;
+    const cy=(e.touches?e.touches[0].clientY:e.clientY)-rect.top;
+    return [cx/rect.width, cy/rect.height];
+  }
+  function boDrawLocal(stroke){
+    if(!stroke)return;
+    if(stroke.type==='text'){
+      boCtx.save();
+      boCtx.fillStyle=stroke.color||'#111827';
+      boCtx.font='bold '+((stroke.size||3)*7+12)+'px Vazirmatn, Tahoma, sans-serif';
+      boCtx.textBaseline='top';
+      boCtx.fillText(stroke.text||'', stroke.x*boBoard.width, stroke.y*boBoard.height);
+      boCtx.restore();
+      return;
+    }
+    if(!stroke.points||stroke.points.length<2)return;
+    boCtx.save();
+    boCtx.strokeStyle=stroke.erase?'#ffffff':(stroke.color||'#111827');
+    boCtx.lineWidth=stroke.size||3;
+    boCtx.lineCap='round';boCtx.lineJoin='round';
+    boCtx.beginPath();
+    boCtx.moveTo(stroke.points[0][0]*boBoard.width, stroke.points[0][1]*boBoard.height);
+    for(let i=1;i<stroke.points.length;i++)boCtx.lineTo(stroke.points[i][0]*boBoard.width, stroke.points[i][1]*boBoard.height);
+    boCtx.stroke();
+    boCtx.restore();
+  }
+  function boSend(obj){ if(boWs && boWs.readyState===1) boWs.send(JSON.stringify(obj)); }
+
+  let boBoardBgImg=null;
+  function boSetBoardBg(dataUrl,w,h){
+    if(!dataUrl){
+      boBoardBgImg=null;
+      boResizeBoardTo(w||BO_BOARD_DEFAULT_W,h||BO_BOARD_DEFAULT_H);
+      boCtx.clearRect(0,0,boBoard.width,boBoard.height);
+      return;
+    }
+    const img=new Image();
+    img.onload=()=>{
+      boBoardBgImg=img;
+      boResizeBoardTo(w||img.naturalWidth,h||img.naturalHeight);
+      boCtx.clearRect(0,0,boBoard.width,boBoard.height);
+      boCtx.drawImage(img,0,0,boBoard.width,boBoard.height);
+    };
+    img.onerror=()=>{toast('خطا در بارگذاری تصویر پس‌زمینه');};
+    img.src=dataUrl;
+  }
+
+  let boPdfDoc=null, boPdfCurrentPage=1;
+  document.getElementById('bo-pdf-file').addEventListener('change',async function(){
+    const f=this.files&&this.files[0];this.value='';
+    if(!f)return;
+    if(f.type!=='application/pdf'){toast('فقط فایل PDF مجاز است');return;}
+    try{
+      const buf=await f.arrayBuffer();
+      boPdfDoc=await pdfjsLib.getDocument({data:buf}).promise;
+      boPdfCurrentPage=1;
+      document.getElementById('bo-pdf-name').textContent=f.name;
+      document.getElementById('bo-pdf-total').textContent=boPdfDoc.numPages;
+      const pn=document.getElementById('bo-pdf-pagenum');
+      pn.value=1;pn.max=boPdfDoc.numPages;
+      document.getElementById('bo-pdf-nav').classList.remove('hidden');
+      document.getElementById('bo-pdf-remove-file').classList.remove('hidden');
+      toast('فایل PDF بارگذاری شد ✅ ('+boPdfDoc.numPages+' صفحه)');
+    }catch(e){
+      toast('خطا در باز کردن فایل PDF - فایل معتبر است؟');
+      boPdfDoc=null;
+    }
+  });
+  async function boRenderPdfPage(pageNum){
+    const page=await boPdfDoc.getPage(pageNum);
+    const baseViewport=page.getViewport({scale:1});
+    async function renderAt(targetWidth,quality){
+      const scale=targetWidth/baseViewport.width;
+      const viewport=page.getViewport({scale});
+      const canvas=document.createElement('canvas');
+      canvas.width=viewport.width;canvas.height=viewport.height;
+      const ctx=canvas.getContext('2d');
+      ctx.fillStyle='#fff';ctx.fillRect(0,0,canvas.width,canvas.height);
+      await page.render({canvasContext:ctx,viewport}).promise;
+      return {dataUrl:canvas.toDataURL('image/jpeg',quality), w:canvas.width, h:canvas.height};
+    }
+    let result=await renderAt(1900,0.9);
+    if(result.dataUrl.length>3_000_000){ result=await renderAt(1500,0.82); }
+    if(result.dataUrl.length>3_000_000){ result=await renderAt(1100,0.75); }
+    return result;
+  }
+  document.getElementById('bo-pdf-prev').onclick=()=>{
+    if(!boPdfDoc)return;
+    boPdfCurrentPage=Math.max(1,boPdfCurrentPage-1);
+    document.getElementById('bo-pdf-pagenum').value=boPdfCurrentPage;
+  };
+  document.getElementById('bo-pdf-next').onclick=()=>{
+    if(!boPdfDoc)return;
+    boPdfCurrentPage=Math.min(boPdfDoc.numPages,boPdfCurrentPage+1);
+    document.getElementById('bo-pdf-pagenum').value=boPdfCurrentPage;
+  };
+  document.getElementById('bo-pdf-pagenum').addEventListener('change',function(){
+    if(!boPdfDoc)return;
+    let v=parseInt(this.value,10)||1;
+    v=Math.max(1,Math.min(boPdfDoc.numPages,v));
+    boPdfCurrentPage=v;this.value=v;
+  });
+  document.getElementById('bo-pdf-show').onclick=async()=>{
+    if(!boPdfDoc){toast('ابتدا یک فایل PDF انتخاب کنید');return;}
+    const btn=document.getElementById('bo-pdf-show');btn.disabled=true;const orig=btn.textContent;btn.textContent='⏳ در حال رندر...';
+    try{
+      const {dataUrl,w,h}=await boRenderPdfPage(boPdfCurrentPage);
+      boResizeBoardTo(w,h);
+      boSetBoardBg(dataUrl);
+      boSend({type:'board-bg',data:dataUrl,w,h});
+      toast('صفحه '+boPdfCurrentPage+' روی تخته نمایش داده شد ✅');
+    }catch(e){
+      toast('خطا در رندر این صفحه از PDF');
+    }finally{
+      btn.disabled=false;btn.textContent=orig;
+    }
+  };
+  document.getElementById('bo-pdf-remove-bg').onclick=()=>{
+    boResizeBoardTo(BO_BOARD_DEFAULT_W,BO_BOARD_DEFAULT_H);
+    boSetBoardBg(null);
+    boSend({type:'board-bg',data:null,w:BO_BOARD_DEFAULT_W,h:BO_BOARD_DEFAULT_H});
+    toast('PDF از روی تخته حذف شد');
+  };
+  document.getElementById('bo-pdf-remove-file').onclick=()=>{
+    if(!confirm('فایل PDF بارگذاری‌شده حذف شود؟ (اگر روی تخته نمایش داده شده، آن هم حذف می‌شود)'))return;
+    boPdfDoc=null;boPdfCurrentPage=1;
+    document.getElementById('bo-pdf-name').textContent='';
+    document.getElementById('bo-pdf-nav').classList.add('hidden');
+    document.getElementById('bo-pdf-remove-file').classList.add('hidden');
+    document.getElementById('bo-pdf-file').value='';
+    if(boBoardBgImg){boResizeBoardTo(BO_BOARD_DEFAULT_W,BO_BOARD_DEFAULT_H);boSetBoardBg(null);boSend({type:'board-bg',data:null,w:BO_BOARD_DEFAULT_W,h:BO_BOARD_DEFAULT_H});}
+    toast('فایل PDF حذف شد');
+  };
+
+  document.getElementById('bo-img-bg-file').addEventListener('change',function(){
+    const f=this.files&&this.files[0];this.value='';
+    if(!f)return;
+    if(f.type.indexOf('image/')!==0){toast('فقط فایل عکس مجاز است');return;}
+    const reader=new FileReader();
+    reader.onload=function(){
+      const dataUrl=reader.result;
+      const img=new Image();
+      img.onload=function(){
+        boResizeBoardTo(img.naturalWidth,img.naturalHeight);
+        boSetBoardBg(dataUrl);
+        boSend({type:'board-bg',data:dataUrl,w:img.naturalWidth,h:img.naturalHeight});
+        document.getElementById('bo-img-bg-name').textContent=f.name;
+        document.getElementById('bo-img-bg-remove').classList.remove('hidden');
+        toast('عکس روی تخته نمایش داده شد ✅');
+      };
+      img.onerror=function(){toast('خطا در بارگذاری عکس');};
+      img.src=dataUrl;
+    };
+    reader.onerror=function(){toast('خطا در خواندن فایل عکس');};
+    reader.readAsDataURL(f);
+  });
+  document.getElementById('bo-img-bg-remove').onclick=function(){
+    boResizeBoardTo(BO_BOARD_DEFAULT_W,BO_BOARD_DEFAULT_H);
+    boSetBoardBg(null);
+    boSend({type:'board-bg',data:null,w:BO_BOARD_DEFAULT_W,h:BO_BOARD_DEFAULT_H});
+    document.getElementById('bo-img-bg-name').textContent='';
+    this.classList.add('hidden');
+    toast('عکس از روی تخته حذف شد');
+  };
+
+  let brd2Mode='pen'; // pen | eraser | line | text
+  let brd2Color='#000000';
+  let bo2LineStart=null;
+
+  function bo2SetTool(mode){
+    brd2Mode=mode;
+    document.querySelectorAll('.brd2-tool-btn').forEach(function(b){ b.classList.toggle('active', b.dataset.tool===mode); });
+    boBoard.style.cursor = mode==='text' ? 'text' : 'crosshair';
+  }
+  document.getElementById('brd2-tool-pen').onclick=function(){ bo2SetTool('pen'); };
+  document.getElementById('brd2-tool-line').onclick=function(){ bo2SetTool('line'); };
+  document.getElementById('brd2-tool-text').onclick=function(){ bo2SetTool('text'); };
+  document.getElementById('brd2-tool-eraser').onclick=function(){ bo2SetTool('eraser'); };
+
+  function bo2SetColor(c){
+    brd2Color=c;
+    document.querySelectorAll('#brd2-color-picker .brd-color-dot').forEach(function(d){ d.classList.toggle('active', d.dataset.color===c); });
+    document.getElementById('brd2-color-custom').value=c;
+  }
+  document.querySelectorAll('#brd2-color-picker .brd-color-dot').forEach(function(dot){
+    dot.onclick=function(){ bo2SetColor(dot.dataset.color); };
+  });
+  document.getElementById('brd2-color-custom').addEventListener('input',function(){ bo2SetColor(this.value); });
+
+  function boStartStroke(e){
+    e.preventDefault();
+    const pt=boPointFromEvent(e);
+
+    if(brd2Mode==='text'){
+      const txt=prompt('متن مورد نظر را وارد کنید:');
+      if(txt && txt.trim()){
+        const stroke={ type:'text', color: brd2Color, size: parseInt(document.getElementById('brd2-size').value)||3, x: pt[0], y: pt[1], text: txt.trim() };
+        boDrawLocal(stroke);
+        boSend({type:'draw', stroke});
+      }
+      return;
+    }
+
+    if(brd2Mode==='line'){
+      bo2LineStart=pt;
+      boDrawing=true;
+      return;
+    }
+
+    boDrawing=true;
+    const eraseOn=brd2Mode==='eraser';
+    boCurrentStroke={ color: brd2Color, size: parseInt(document.getElementById('brd2-size').value)||3, erase: eraseOn, points: [pt] };
+  }
+  function boMoveStroke(e){
+    if(!boDrawing)return;
+    e.preventDefault();
+    const pt=boPointFromEvent(e);
+
+    if(brd2Mode==='line'){
+      if(!bo2LineStart)return;
+      boOctx.clearRect(0,0,boBoardOverlay.width,boBoardOverlay.height);
+      boOctx.save();
+      boOctx.strokeStyle=brd2Color;
+      boOctx.lineWidth=parseInt(document.getElementById('brd2-size').value)||3;
+      boOctx.lineCap='round';
+      boOctx.beginPath();
+      boOctx.moveTo(bo2LineStart[0]*boBoardOverlay.width, bo2LineStart[1]*boBoardOverlay.height);
+      boOctx.lineTo(pt[0]*boBoardOverlay.width, pt[1]*boBoardOverlay.height);
+      boOctx.stroke();
+      boOctx.restore();
+      return;
+    }
+
+    boCurrentStroke.points.push(pt);
+    if(boCurrentStroke.points.length>=2){
+      const tail={ ...boCurrentStroke, points: boCurrentStroke.points.slice(-2) };
+      boDrawLocal(tail);
+      boSend({type:'draw', stroke: tail});
+    }
+  }
+  function boEndStroke(e){
+    if(brd2Mode==='line' && bo2LineStart){
+      const pt=boPointFromEvent(e.changedTouches?{touches:e.changedTouches}:e);
+      boOctx.clearRect(0,0,boBoardOverlay.width,boBoardOverlay.height);
+      const stroke={ color: brd2Color, size: parseInt(document.getElementById('brd2-size').value)||3, erase:false, points: [bo2LineStart, pt] };
+      boDrawLocal(stroke);
+      boSend({type:'draw', stroke});
+      bo2LineStart=null;
+    }
+    boDrawing=false; boCurrentStroke=null;
+  }
+
+  boBoard.addEventListener('mousedown',boStartStroke);
+  boBoard.addEventListener('mousemove',boMoveStroke);
+  window.addEventListener('mouseup',boEndStroke);
+  boBoard.addEventListener('touchstart',boStartStroke,{passive:false});
+  boBoard.addEventListener('touchmove',boMoveStroke,{passive:false});
+  boBoard.addEventListener('touchend',boEndStroke);
+
+  document.getElementById('brd2-clear').onclick=function(){
+    boCtx.clearRect(0,0,boBoard.width,boBoard.height);
+    if(boBoardBgImg)boCtx.drawImage(boBoardBgImg,0,0,boBoard.width,boBoard.height);
+    boOctx.clearRect(0,0,boBoardOverlay.width,boBoardOverlay.height);
+    boSend({type:'clear'});
+  };
+
+  (function(){
+    const zoomImg=document.getElementById('bo-t-board-zoom-img');
+    const backdrop=document.getElementById('bo-t-board-zoom-backdrop');
+    function closeZoom(){ zoomImg.classList.add('hidden'); backdrop.classList.add('hidden'); }
+    function openZoom(){ zoomImg.src=boBoard.toDataURL(); zoomImg.classList.remove('hidden'); backdrop.classList.remove('hidden'); }
+    document.getElementById('brd2-zoom').onclick=openZoom;
+    zoomImg.addEventListener('click',closeZoom);
+    backdrop.addEventListener('click',closeZoom);
+  })();
+
+  document.getElementById('btn-bo-options-toggle').onclick=()=>{document.getElementById('bo-options-drawer').classList.toggle('hidden');};
+
+  function boUpdateParticipants(list){
+    document.getElementById('bo-online-count').textContent=list.length;
+    const box=document.getElementById('bo-participants');
+    if(!list.length){box.innerHTML='کسی متصل نیست';return;}
+    box.innerHTML=list.map(function(p){
+      const icon=p.role==='teacher'?'👨‍🏫':'👤';
+      return '<div>'+icon+' '+esc(p.name||'')+'</div>';
+    }).join('');
+  }
+  function boAddChatMsg(entry){
+    const box=document.getElementById('bo-chatBox');
+    const cls=entry.role==='teacher'?'teacher':'student';
+    box.insertAdjacentHTML('beforeend','<div class="msg '+cls+'"><div class="who">'+esc(entry.from)+'</div>'+esc(entry.text)+'</div>');
+    box.scrollTop=box.scrollHeight;
+  }
+  document.getElementById('bo-btnSend').onclick=()=>{
+    const inp=document.getElementById('bo-chatInput');
+    const text=inp.value.trim();
+    if(!text||!boWs||boWs.readyState!==1)return;
+    boWs.send(JSON.stringify({type:'chat',text}));
+    inp.value='';
+  };
+  document.getElementById('bo-chatInput').addEventListener('keydown',e=>{if(e.key==='Enter')document.getElementById('bo-btnSend').click();});
+
+  let boAudioQueues={}, boAudioUnlockedFlag=true;
+  function boPlayAudioChunk(id, b64, mime){
+    let st=boAudioQueues[id];
+    if(!st) st=boAudioQueues[id]={queue:[],playing:false};
+    st.queue.push({b64, mime: mime||'audio/webm'});
+    if(st.queue.length>2) st.queue.splice(0, st.queue.length-2);
+    boPumpAudioQueue(id);
+  }
+  function boPumpAudioQueue(id){
+    const st=boAudioQueues[id];
+    if(!st || st.playing || st.queue.length===0) return;
+    const item=st.queue.shift();
+    const a=new Audio('data:'+item.mime+';base64,'+item.b64);
+    st.playing=true;
+    a.onended=()=>{ st.playing=false; boPumpAudioQueue(id); };
+    a.onerror=()=>{ st.playing=false; boPumpAudioQueue(id); };
+    a.play().catch(()=>{ st.playing=false; boPumpAudioQueue(id); });
+  }
+
+  async function boConnect(){
+    const proto=location.protocol==='https:'?'wss:':'ws:';
+    try{
+      const chk=await fetch('/api/board/ws?check=1&role=teacher');
+      const d=await chk.json().catch(()=>({ok:false,error:'پاسخ نامعتبر از سرور'}));
+      if(!d.ok){document.getElementById('t-bo-status').textContent='خطا: '+d.error;return;}
+    }catch(e){document.getElementById('t-bo-status').textContent='اتصال به سرور برقرار نشد';return;}
+    boWs=new WebSocket(proto+'//'+location.host+'/api/board/ws?role=teacher&name='+encodeURIComponent('معلم'));
+    boWs.onopen=()=>{
+      document.getElementById('bodot').classList.add('on');
+      document.getElementById('t-bo-status').textContent='تخته آنلاین فعال است ✅';
+      document.getElementById('btn-bo-start').classList.add('hidden');
+      document.getElementById('btn-bo-stop').classList.remove('hidden');
+      document.getElementById('btn-bo-mic-toggle').classList.remove('hidden');
+      toast('تخته آنلاین شروع شد');
+    };
+    boWs.onclose=()=>{
+      document.getElementById('bodot').classList.remove('on');
+      document.getElementById('t-bo-status').textContent='تخته آنلاین شروع نشده';
+      document.getElementById('btn-bo-start').classList.remove('hidden');
+      document.getElementById('btn-bo-stop').classList.add('hidden');
+      document.getElementById('btn-bo-mic-toggle').classList.add('hidden');
+    };
+    boWs.onerror=()=>{try{boWs.close();}catch(e){}};
+    boWs.onmessage=(evt)=>{
+      let m;try{m=JSON.parse(evt.data);}catch(e){return;}
+      if(m.type==='init'){
+        if(m.boardBg){boResizeBoardTo(m.boardBgW||BO_BOARD_DEFAULT_W,m.boardBgH||BO_BOARD_DEFAULT_H);boSetBoardBg(m.boardBg,m.boardBgW,m.boardBgH);(m.strokes||[]).forEach(boDrawLocal);}
+        else{(m.strokes||[]).forEach(boDrawLocal);}
+        (m.chat||[]).forEach(boAddChatMsg);
+        boUpdateParticipants(m.participants||[]);
+      }
+      else if(m.type==='chat'){boAddChatMsg(m.entry);}
+      else if(m.type==='audio'){ boPlayAudioChunk(m.id||m.role, m.data, m.mime); }
+      else if(m.type==='presence'){ boUpdateParticipants(m.participants||[]); }
+    };
+  }
+  document.getElementById('btn-bo-start').onclick=boConnect;
+  document.getElementById('btn-bo-stop').onclick=function(){
+    if(boMicStream){boMicStream.getTracks().forEach(t=>t.stop());boMicStream=null;boAudioActive=false;}
+    if(boWs){boWs.close();boWs=null;}
+  };
+
+  function boStartMicRecorder(stream){
+    if(boAudioActive) return;
+    boMicStream=stream;
+    boAudioActive=true;
+    boAudioGen++;
+    const myGen=boAudioGen;
+    const preferredMimes=['audio/webm;codecs=opus','audio/webm','audio/mp4'];
+    const mime=preferredMimes.find(m=>window.MediaRecorder && MediaRecorder.isTypeSupported(m)) || '';
+    function recordOneChunk(){
+      if(myGen!==boAudioGen || !boAudioActive || !boMicStream) return;
+      let chunks=[];
+      let rec;
+      try{ rec=new MediaRecorder(boMicStream, mime?{mimeType:mime}:undefined); }
+      catch(e){ boAudioActive=false; toast('امکان ضبط صدا در این مرورگر نیست'); return; }
+      rec.ondataavailable=(e)=>{ if(e.data && e.data.size>0) chunks.push(e.data); };
+      rec.onstop=async()=>{
+        if(myGen!==boAudioGen) return;
+        if(chunks.length){
+          const blob=new Blob(chunks, {type: mime||'audio/webm'});
+          const buf=await blob.arrayBuffer();
+          let binary='';const bytes=new Uint8Array(buf);
+          for(let i=0;i<bytes.length;i++)binary+=String.fromCharCode(bytes[i]);
+          boSend({type:'audio', data: btoa(binary), mime: mime||'audio/webm'});
+        }
+        if(boAudioActive && myGen===boAudioGen) setTimeout(recordOneChunk, 15);
+      };
+      rec.start();
+      boRecorder=rec;
+      setTimeout(()=>{ if(rec.state==='recording') rec.stop(); }, 260);
+    }
+    recordOneChunk();
+  }
+  function boStopMicRecorder(){
+    boAudioActive=false;
+    boAudioGen++;
+    if(boRecorder && boRecorder.state==='recording')boRecorder.stop();
+    if(boMicStream)boMicStream.getTracks().forEach(t=>t.stop());
+    boMicStream=null;
+    document.getElementById('btn-bo-mic-toggle').textContent='🎙️ روشن کردن میکروفون';
+  }
+  document.getElementById('btn-bo-mic-toggle').onclick=async function(){
+    if(boRecorder && boRecorder.state==='recording'){ boStopMicRecorder(); return; }
+    try{
+      const stream=await navigator.mediaDevices.getUserMedia({audio:true});
+      boStartMicRecorder(stream);
+      this.textContent='🔴 خاموش کردن میکروفون';
+      toast('میکروفون فعال شد');
+    }catch(e){ toast('دسترسی به میکروفون داده نشد'); }
   };
 
   // ===================== دفتر مدیریت کلاسی =====================
