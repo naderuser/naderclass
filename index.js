@@ -449,6 +449,7 @@ export class ClassRoom {
     this.boardBg = null; // صفحه‌ی PDF فعلی روی تخته (data URL) یا null
     this.boardBgW = 900;
     this.boardBgH = 560;
+    this.allowedSpeakers = new Set(); // شناسه‌ی دانش‌آموزانی که معلم اجازه‌ی صحبت (میکروفون) به آن‌ها داده (فقط تخته آنلاین)
   }
 
   async fetch(req) {
@@ -491,6 +492,7 @@ export class ClassRoom {
     const onClose = () => {
       if (!this.sessions.has(server)) return;
       this.sessions.delete(server);
+      if (this.kind === "board" && session.role === "student" && session.id) this.allowedSpeakers.delete(session.id);
       this.broadcast({ type: "presence", event: "leave", role: session.role, name: session.name, participants: this.participantList() });
     };
     server.addEventListener("close", onClose);
@@ -507,14 +509,15 @@ export class ClassRoom {
     if (!msg || typeof msg !== "object") return;
 
     // وبینار تخته آنلاین ندارد؛ این پیام‌ها فقط برای اتاق کلاس آنلاین معتبرند (محافظتی، چون رابط کاربری وبینار اصلاً این دکمه‌ها را ندارد)
-    if (this.kind === "webinar" && (msg.type === "draw" || msg.type === "clear" || msg.type === "board-bg")) return;
+    if (this.kind === "webinar" && (msg.type === "draw" || msg.type === "clear" || msg.type === "board-bg" || msg.type === "undo")) return;
 
     // در وبینار فقط معلم تصویر می‌فرستد؛ شرکت‌کنندگان فقط صدا/چت/بلندکردن دست دارند (محافظتی سمت سرور)
     if (this.kind === "webinar" && session.role === "student" && (msg.type === "video-frame" || msg.type === "video-stop")) return;
 
-    // تخته آنلاین کاملاً مستقل از کلاس آنلاین است: هیچ تصویر/دوربینی (نه معلم، نه دانش‌آموز) ندارد و فقط صدای معلم پخش می‌شود
+    // تخته آنلاین کاملاً مستقل از کلاس آنلاین است: هیچ تصویر/دوربینی (نه معلم، نه دانش‌آموز) ندارد؛
+    // دانش‌آموز فقط وقتی می‌تواند صدا بفرستد که معلم صراحتاً به او اجازه‌ی صحبت داده باشد (این کد: this.allowedSpeakers)
     if (this.kind === "board" && (msg.type === "video-frame" || msg.type === "video-stop")) return;
-    if (this.kind === "board" && session.role === "student" && msg.type === "audio") return;
+    if (this.kind === "board" && session.role === "student" && msg.type === "audio" && !this.allowedSpeakers.has(session.id)) return;
 
     // فقط معلم اجازه‌ی رسم روی تخته هوشمند و پخش صدا را دارد
     if (msg.type === "draw" && session.role === "teacher") {
@@ -527,6 +530,14 @@ export class ClassRoom {
     if (msg.type === "clear" && session.role === "teacher") {
       this.strokes = [];
       this.broadcast({ type: "clear" }, sender);
+      return;
+    }
+
+    // واگرد (Undo): آخرین N مورد از تاریخچه‌ی ترسیم را حذف می‌کند (فقط معلم)
+    if (msg.type === "undo" && session.role === "teacher") {
+      const n = Math.max(1, Math.min(1000, parseInt(msg.count, 10) || 1));
+      this.strokes.splice(-n, n);
+      this.broadcast({ type: "undo", count: n }, sender);
       return;
     }
 
@@ -588,6 +599,22 @@ export class ClassRoom {
 
     if (msg.type === "raise-hand" && session.role === "student") {
       this.broadcast({ type: "raise-hand", name: session.name });
+      return;
+    }
+
+    // درخواست اجازه‌ی صحبت در تخته آنلاین (دانش‌آموز) و پاسخ معلم (اجازه/لغو اجازه)
+    if (msg.type === "speak-request" && session.role === "student") {
+      this.broadcast({ type: "speak-request", id: session.id, name: session.name });
+      return;
+    }
+    if (msg.type === "speak-grant" && session.role === "teacher" && msg.id) {
+      this.allowedSpeakers.add(String(msg.id));
+      this.broadcast({ type: "speak-grant", id: msg.id });
+      return;
+    }
+    if (msg.type === "speak-revoke" && session.role === "teacher" && msg.id) {
+      this.allowedSpeakers.delete(String(msg.id));
+      this.broadcast({ type: "speak-revoke", id: msg.id });
       return;
     }
   }
@@ -4575,6 +4602,10 @@ async function studentBoardPage(env, id) {
         <span style="flex:1"></span>
         <button class="btn sm" id="bo-btn-enable-sound">🔊 فعال‌سازی صدای معلم</button>
       </div>
+      <div class="cls-status" id="bo-speak-row">
+        <button class="btn sm sec" id="bo-btn-speak-request">✋ درخواست اجازه‌ی صحبت</button>
+        <button class="btn sm hidden" id="bo-btn-mic-toggle">🎙️ روشن کردن میکروفون</button>
+      </div>
       <div class="cls-stack">
         <div class="cls-sec">
           <div class="cls-sec-head">📝 تخته آنلاین</div>
@@ -4630,6 +4661,33 @@ async function studentBoardPage(env, id) {
     }
     boResizeCanvas();window.addEventListener('resize',boResizeCanvas);
 
+    function boDrawShape(ctx,s,cw,ch){
+      const x1=s.start[0]*cw, y1=s.start[1]*ch;
+      const x2=s.end[0]*cw, y2=s.end[1]*ch;
+      ctx.save();
+      ctx.strokeStyle=s.color||'#111827';
+      ctx.fillStyle=s.color||'#111827';
+      ctx.lineWidth=s.size||3;
+      ctx.lineCap='round';ctx.lineJoin='round';
+      if(s.shapeType==='line'){
+        ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.stroke();
+      }else if(s.shapeType==='arrow'){
+        ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.stroke();
+        const angle=Math.atan2(y2-y1,x2-x1);
+        const headLen=Math.max(10,(s.size||3)*4);
+        ctx.beginPath();
+        ctx.moveTo(x2,y2);
+        ctx.lineTo(x2-headLen*Math.cos(angle-Math.PI/6), y2-headLen*Math.sin(angle-Math.PI/6));
+        ctx.lineTo(x2-headLen*Math.cos(angle+Math.PI/6), y2-headLen*Math.sin(angle+Math.PI/6));
+        ctx.closePath();ctx.fill();
+      }else if(s.shapeType==='circle'){
+        const cx=(x1+x2)/2, cy=(y1+y2)/2, rx=Math.abs(x2-x1)/2, ry=Math.abs(y2-y1)/2;
+        ctx.beginPath();ctx.ellipse(cx,cy,rx,ry,0,0,Math.PI*2);ctx.stroke();
+      }else if(s.shapeType==='rect'){
+        ctx.strokeRect(Math.min(x1,x2),Math.min(y1,y2),Math.abs(x2-x1),Math.abs(y2-y1));
+      }
+      ctx.restore();
+    }
     function boDrawStroke(s){
       if(!s)return;
       if(s.type==='text'){
@@ -4641,16 +4699,24 @@ async function studentBoardPage(env, id) {
         boCtx.restore();
         return;
       }
+      if(s.type==='shape'){ boDrawShape(boCtx, s, boCanvas.width, boCanvas.height); return; }
       if(!s.points||s.points.length<2)return;
       boCtx.save();
+      if(s.highlight) boCtx.globalAlpha=0.35;
       boCtx.strokeStyle=s.erase?'#ffffff':(s.color||'#111827');
-      boCtx.lineWidth=s.size||3;
+      boCtx.lineWidth=s.highlight?(s.size||3)*3:(s.size||3);
       boCtx.lineCap='round';boCtx.lineJoin='round';
       boCtx.beginPath();
       boCtx.moveTo(s.points[0][0]*boCanvas.width,s.points[0][1]*boCanvas.height);
       for(let i=1;i<s.points.length;i++)boCtx.lineTo(s.points[i][0]*boCanvas.width,s.points[i][1]*boCanvas.height);
       boCtx.stroke();
       boCtx.restore();
+    }
+    let boStrokes=[];
+    function boRedrawAll(){
+      boCtx.clearRect(0,0,boCanvas.width,boCanvas.height);
+      if(boBoardBgImg)boCtx.drawImage(boBoardBgImg,0,0,boCanvas.width,boCanvas.height);
+      boStrokes.forEach(boDrawStroke);
     }
     function boClearBoard(){boCtx.clearRect(0,0,boCanvas.width,boCanvas.height);}
 
@@ -4779,23 +4845,99 @@ async function studentBoardPage(env, id) {
       boWs.onmessage=(evt)=>{
         let m;try{m=JSON.parse(evt.data);}catch(e){return;}
         if(m.type==='init'){
+          boStrokes=(m.strokes||[]).slice();
           if(m.boardBg){boSetBoardBgAndReplay(m.boardBg,m.strokes||[],m.boardBgW,m.boardBgH);}
           else{boClearBoard();boBoardBgImg=null;(m.strokes||[]).forEach(boDrawStroke);}
           (m.chat||[]).forEach(boAddChatMsg);
           boUpdateParticipants(m.participants||[]);
         }
-        else if(m.type==='draw'){boDrawStroke(m.stroke);}
-        else if(m.type==='clear'){boCtx.clearRect(0,0,boCanvas.width,boCanvas.height);if(boBoardBgImg)boCtx.drawImage(boBoardBgImg,0,0,boCanvas.width,boCanvas.height);}
-        else if(m.type==='board-bg'){boSetBoardBg(m.data,m.w,m.h);}
-        else if(m.type==='audio'){ if(m.role==='teacher') boPlayAudioChunk(m.data, m.mime); }
+        else if(m.type==='draw'){boStrokes.push(m.stroke);boDrawStroke(m.stroke);}
+        else if(m.type==='clear'){boStrokes=[];boCtx.clearRect(0,0,boCanvas.width,boCanvas.height);if(boBoardBgImg)boCtx.drawImage(boBoardBgImg,0,0,boCanvas.width,boCanvas.height);}
+        else if(m.type==='board-bg'){boStrokes=[];boSetBoardBg(m.data,m.w,m.h);}
+        else if(m.type==='undo'){ const n=m.count||1; boStrokes.splice(Math.max(0,boStrokes.length-n), n); boRedrawAll(); }
+        else if(m.type==='audio'){ boPlayAudioChunk(m.data, m.mime); }
         else if(m.type==='chat'){boAddChatMsg(m.entry);}
         else if(m.type==='presence'){
           boUpdateParticipants(m.participants||[]);
           if(m.event==='join'&&m.role==='teacher')toast('معلم وارد تخته آنلاین شد');
         }
+        else if(m.type==='speak-grant'){
+          if(String(m.id)===String(ID)){
+            document.getElementById('bo-btn-speak-request').classList.add('hidden');
+            document.getElementById('bo-btn-mic-toggle').classList.remove('hidden');
+            toast('✅ معلم به شما اجازه‌ی صحبت داد');
+          }
+        }
+        else if(m.type==='speak-revoke'){
+          if(String(m.id)===String(ID)){
+            boStopMicRecorder();
+            document.getElementById('bo-btn-mic-toggle').classList.add('hidden');
+            document.getElementById('bo-btn-speak-request').classList.remove('hidden');
+            toast('🔇 اجازه‌ی صحبت شما لغو شد');
+          }
+        }
       };
     }
     boConnect();
+
+    // ===== درخواست اجازه‌ی صحبت و میکروفون دانش‌آموز =====
+    let boMicStream=null, boRecorder=null, boAudioActive=false, boAudioGen=0;
+    document.getElementById('bo-btn-speak-request').onclick=function(){
+      if(!boWs||boWs.readyState!==1)return;
+      boWs.send(JSON.stringify({type:'speak-request'}));
+      this.disabled=true;this.textContent='⏳ درخواست ارسال شد، منتظر تأیید معلم...';
+      setTimeout(()=>{this.disabled=false;this.textContent='✋ درخواست اجازه‌ی صحبت';},15000);
+    };
+    function boStartMicRecorder(stream){
+      if(boAudioActive) return;
+      boMicStream=stream;
+      boAudioActive=true;
+      boAudioGen++;
+      const myGen=boAudioGen;
+      const preferredMimes=['audio/webm;codecs=opus','audio/webm','audio/mp4'];
+      const mime=preferredMimes.find(m=>window.MediaRecorder && MediaRecorder.isTypeSupported(m)) || '';
+      function recordOneChunk(){
+        if(myGen!==boAudioGen || !boAudioActive || !boMicStream) return;
+        let chunks=[];
+        let rec;
+        try{ rec=new MediaRecorder(boMicStream, mime?{mimeType:mime}:undefined); }
+        catch(e){ boAudioActive=false; toast('امکان ضبط صدا در این مرورگر نیست'); return; }
+        rec.ondataavailable=(e)=>{ if(e.data && e.data.size>0) chunks.push(e.data); };
+        rec.onstop=async()=>{
+          if(myGen!==boAudioGen) return;
+          if(chunks.length){
+            const blob=new Blob(chunks, {type: mime||'audio/webm'});
+            const buf=await blob.arrayBuffer();
+            let binary='';const bytes=new Uint8Array(buf);
+            for(let i=0;i<bytes.length;i++)binary+=String.fromCharCode(bytes[i]);
+            if(boWs&&boWs.readyState===1)boWs.send(JSON.stringify({type:'audio', data: btoa(binary), mime: mime||'audio/webm'}));
+          }
+          if(boAudioActive && myGen===boAudioGen) setTimeout(recordOneChunk, 15);
+        };
+        rec.start();
+        boRecorder=rec;
+        setTimeout(()=>{ if(rec.state==='recording') rec.stop(); }, 260);
+      }
+      recordOneChunk();
+    }
+    function boStopMicRecorder(){
+      boAudioActive=false;
+      boAudioGen++;
+      if(boRecorder && boRecorder.state==='recording')boRecorder.stop();
+      if(boMicStream)boMicStream.getTracks().forEach(t=>t.stop());
+      boMicStream=null;
+      const btn=document.getElementById('bo-btn-mic-toggle');
+      if(btn)btn.textContent='🎙️ روشن کردن میکروفون';
+    }
+    document.getElementById('bo-btn-mic-toggle').onclick=async function(){
+      if(boRecorder && boRecorder.state==='recording'){ boStopMicRecorder(); return; }
+      try{
+        const stream=await navigator.mediaDevices.getUserMedia({audio:true});
+        boStartMicRecorder(stream);
+        this.textContent='🔴 خاموش کردن میکروفون';
+        toast('میکروفون شما فعال شد');
+      }catch(e){ toast('دسترسی به میکروفون داده نشد'); }
+    };
 
     document.getElementById('boBtnSend').onclick=()=>{
       const inp=document.getElementById('boChatInput');
@@ -8368,7 +8510,7 @@ function teacherPage() {
 
       <div class="subtab-content hidden" id="tab-board">
         <h3>🧑‍🏫 تخته آنلاین</h3>
-        <p class="muted" style="margin-top:-6px">بخشی کاملاً مستقل از کلاس آنلاین و وبینار، با اتاق و لینک اختصاصی جدا برای هر دانش‌آموز (از تب دانش‌آموزان). فقط صدای معلم پخش می‌شود؛ دوربین در این بخش وجود ندارد.</p>
+        <p class="muted" style="margin-top:-6px">بخشی کاملاً مستقل از کلاس آنلاین و وبینار، با اتاق و لینک اختصاصی جدا برای هر دانش‌آموز (از تب دانش‌آموزان). دوربین در این بخش وجود ندارد؛ به‌صورت پیش‌فرض فقط صدای معلم پخش می‌شود، اما دانش‌آموز می‌تواند درخواست اجازه‌ی صحبت بدهد و شما می‌توانید تأیید یا رد کنید.</p>
 
         <div class="cls-status" style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
           <span class="dot" id="bodot" style="width:10px;height:10px;border-radius:50%;background:#dc2626;display:inline-block;flex:0 0 auto"></span>
@@ -8381,6 +8523,9 @@ function teacherPage() {
           <button class="btn sm sec hidden cls-opt-btn" id="btn-bo-mic-toggle">🎙️ روشن کردن میکروفون</button>
         </div>
 
+        <div id="bo-speak-requests" class="hidden" style="margin-bottom:10px;border:1px solid var(--line);border-radius:10px;padding:10px;background:#fffbeb"></div>
+        <div id="bo-allowed-speakers" class="hidden" style="margin-bottom:10px;border:1px solid var(--line);border-radius:10px;padding:10px"></div>
+
         <div class="cls-wrap">
           <div class="cls-board-col" style="position:relative">
             <div class="t-board-wrap" style="position:relative">
@@ -8391,7 +8536,11 @@ function teacherPage() {
             <div id="bo-t-board-zoom-backdrop" class="hidden" style="position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:40"></div>
             <div class="row" style="margin-top:8px;flex-wrap:wrap;gap:6px;align-items:center">
               <button class="btn sm gray brd2-tool-btn active" data-tool="pen" id="brd2-tool-pen" style="flex:0 0 auto">✏️ قلم</button>
-              <button class="btn sm gray brd2-tool-btn" data-tool="line" id="brd2-tool-line" style="flex:0 0 auto">📏 خط‌کش</button>
+              <button class="btn sm gray brd2-tool-btn" data-tool="highlight" id="brd2-tool-highlight" style="flex:0 0 auto">🖍️ هایلایتر</button>
+              <button class="btn sm gray brd2-tool-btn" data-tool="line" id="brd2-tool-line" style="flex:0 0 auto">📏 خط</button>
+              <button class="btn sm gray brd2-tool-btn" data-tool="arrow" id="brd2-tool-arrow" style="flex:0 0 auto">➡️ فلش</button>
+              <button class="btn sm gray brd2-tool-btn" data-tool="circle" id="brd2-tool-circle" style="flex:0 0 auto">⭕ دایره</button>
+              <button class="btn sm gray brd2-tool-btn" data-tool="rect" id="brd2-tool-rect" style="flex:0 0 auto">⬜ مربع/مستطیل</button>
               <button class="btn sm gray brd2-tool-btn" data-tool="text" id="brd2-tool-text" style="flex:0 0 auto">🔤 متن</button>
               <button class="btn sm gray brd2-tool-btn" data-tool="eraser" id="brd2-tool-eraser" style="flex:0 0 auto">🧽 پاک‌کن</button>
               <span class="brd-color-picker" id="brd2-color-picker">
@@ -8402,8 +8551,10 @@ function teacherPage() {
                 <button type="button" class="brd-color-dot" data-color="#f59e0b" style="background:#f59e0b" title="نارنجی"></button>
                 <input type="color" id="brd2-color-custom" value="#000000" title="رنگ دلخواه">
               </span>
-              <input type="range" id="brd2-size" min="1" max="20" value="3" style="flex:1;min-width:80px">
-              <button class="btn sm danger" id="brd2-clear" style="flex:0 0 auto">🗑️ پاک کردن یادداشت‌ها</button>
+              <input type="range" id="brd2-size" min="1" max="20" value="3" style="flex:1;min-width:80px" title="ضخامت قلم">
+              <button class="btn sm sec" id="brd2-undo" style="flex:0 0 auto">↩️ واگرد</button>
+              <button class="btn sm sec" id="brd2-redo" style="flex:0 0 auto">↪️ ازسرگیری</button>
+              <button class="btn sm danger" id="brd2-clear" style="flex:0 0 auto">🗑️ پاک کردن کل تخته</button>
               <button class="btn sm sec" id="brd2-zoom" style="flex:0 0 auto" title="بزرگ‌نمایی تخته">🔍 بزرگ‌نمایی</button>
             </div>
 
@@ -8426,7 +8577,7 @@ function teacherPage() {
                 <button class="btn sm danger hidden" id="bo-img-bg-remove" style="flex:0 0 auto">🗑️ حذف عکس از تخته</button>
               </div>
             </div>
-            <p class="muted" style="font-size:12px;margin-top:6px">با ابزار قلم/خط‌کش روی تخته بکشید یا با ابزار متن روی تخته کلیک کنید تا نوشته اضافه شود. همه‌ی ترسیم‌ها برای دانش‌آموزان متصل به‌صورت زنده نمایش داده می‌شود.</p>
+            <p class="muted" style="font-size:12px;margin-top:6px">با قلم/هایلایتر/خط/فلش/دایره/مربع روی تخته بکشید یا با ابزار متن روی تخته کلیک کنید تا نوشته اضافه شود. با پاک‌کن می‌توانید فقط بخشی از نوشته را پاک کنید و با «پاک کردن کل تخته» همه چیز را یکجا پاک کنید. دکمه‌های واگرد/ازسرگیری آخرین حرکت‌ها را برمی‌گردانند. همه‌ی ترسیم‌ها برای دانش‌آموزان متصل به‌صورت زنده نمایش داده می‌شود.</p>
           </div>
           <div class="cls-chat-col">
             <h4 style="margin:0 0 6px">👥 حاضرین (<span id="bo-online-count">0</span>)</h4>
@@ -16847,6 +16998,33 @@ function teacherScript() {
     const cy=(e.touches?e.touches[0].clientY:e.clientY)-rect.top;
     return [cx/rect.width, cy/rect.height];
   }
+  function boDrawShape(ctx,s,cw,ch){
+    const x1=s.start[0]*cw, y1=s.start[1]*ch;
+    const x2=s.end[0]*cw, y2=s.end[1]*ch;
+    ctx.save();
+    ctx.strokeStyle=s.color||'#111827';
+    ctx.fillStyle=s.color||'#111827';
+    ctx.lineWidth=s.size||3;
+    ctx.lineCap='round';ctx.lineJoin='round';
+    if(s.shapeType==='line'){
+      ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.stroke();
+    }else if(s.shapeType==='arrow'){
+      ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.stroke();
+      const angle=Math.atan2(y2-y1,x2-x1);
+      const headLen=Math.max(10,(s.size||3)*4);
+      ctx.beginPath();
+      ctx.moveTo(x2,y2);
+      ctx.lineTo(x2-headLen*Math.cos(angle-Math.PI/6), y2-headLen*Math.sin(angle-Math.PI/6));
+      ctx.lineTo(x2-headLen*Math.cos(angle+Math.PI/6), y2-headLen*Math.sin(angle+Math.PI/6));
+      ctx.closePath();ctx.fill();
+    }else if(s.shapeType==='circle'){
+      const cx=(x1+x2)/2, cy=(y1+y2)/2, rx=Math.abs(x2-x1)/2, ry=Math.abs(y2-y1)/2;
+      ctx.beginPath();ctx.ellipse(cx,cy,rx,ry,0,0,Math.PI*2);ctx.stroke();
+    }else if(s.shapeType==='rect'){
+      ctx.strokeRect(Math.min(x1,x2),Math.min(y1,y2),Math.abs(x2-x1),Math.abs(y2-y1));
+    }
+    ctx.restore();
+  }
   function boDrawLocal(stroke){
     if(!stroke)return;
     if(stroke.type==='text'){
@@ -16858,16 +17036,23 @@ function teacherScript() {
       boCtx.restore();
       return;
     }
+    if(stroke.type==='shape'){ boDrawShape(boCtx, stroke, boBoard.width, boBoard.height); return; }
     if(!stroke.points||stroke.points.length<2)return;
     boCtx.save();
+    if(stroke.highlight) boCtx.globalAlpha=0.35;
     boCtx.strokeStyle=stroke.erase?'#ffffff':(stroke.color||'#111827');
-    boCtx.lineWidth=stroke.size||3;
+    boCtx.lineWidth=stroke.highlight?(stroke.size||3)*3:(stroke.size||3);
     boCtx.lineCap='round';boCtx.lineJoin='round';
     boCtx.beginPath();
     boCtx.moveTo(stroke.points[0][0]*boBoard.width, stroke.points[0][1]*boBoard.height);
     for(let i=1;i<stroke.points.length;i++)boCtx.lineTo(stroke.points[i][0]*boBoard.width, stroke.points[i][1]*boBoard.height);
     boCtx.stroke();
     boCtx.restore();
+  }
+  function boRedrawAll(){
+    boCtx.clearRect(0,0,boBoard.width,boBoard.height);
+    if(boBoardBgImg)boCtx.drawImage(boBoardBgImg,0,0,boBoard.width,boBoard.height);
+    boStrokes.forEach(boDrawLocal);
   }
   function boSend(obj){ if(boWs && boWs.readyState===1) boWs.send(JSON.stringify(obj)); }
 
@@ -16952,6 +17137,7 @@ function teacherScript() {
       const {dataUrl,w,h}=await boRenderPdfPage(boPdfCurrentPage);
       boResizeBoardTo(w,h);
       boSetBoardBg(dataUrl);
+      boStrokes=[];boGroupSizes=[];boRedoStack=[];
       boSend({type:'board-bg',data:dataUrl,w,h});
       toast('صفحه '+boPdfCurrentPage+' روی تخته نمایش داده شد ✅');
     }catch(e){
@@ -16963,6 +17149,7 @@ function teacherScript() {
   document.getElementById('bo-pdf-remove-bg').onclick=()=>{
     boResizeBoardTo(BO_BOARD_DEFAULT_W,BO_BOARD_DEFAULT_H);
     boSetBoardBg(null);
+    boStrokes=[];boGroupSizes=[];boRedoStack=[];
     boSend({type:'board-bg',data:null,w:BO_BOARD_DEFAULT_W,h:BO_BOARD_DEFAULT_H});
     toast('PDF از روی تخته حذف شد');
   };
@@ -16973,7 +17160,7 @@ function teacherScript() {
     document.getElementById('bo-pdf-nav').classList.add('hidden');
     document.getElementById('bo-pdf-remove-file').classList.add('hidden');
     document.getElementById('bo-pdf-file').value='';
-    if(boBoardBgImg){boResizeBoardTo(BO_BOARD_DEFAULT_W,BO_BOARD_DEFAULT_H);boSetBoardBg(null);boSend({type:'board-bg',data:null,w:BO_BOARD_DEFAULT_W,h:BO_BOARD_DEFAULT_H});}
+    if(boBoardBgImg){boResizeBoardTo(BO_BOARD_DEFAULT_W,BO_BOARD_DEFAULT_H);boSetBoardBg(null);boStrokes=[];boGroupSizes=[];boRedoStack=[];boSend({type:'board-bg',data:null,w:BO_BOARD_DEFAULT_W,h:BO_BOARD_DEFAULT_H});}
     toast('فایل PDF حذف شد');
   };
 
@@ -16988,6 +17175,7 @@ function teacherScript() {
       img.onload=function(){
         boResizeBoardTo(img.naturalWidth,img.naturalHeight);
         boSetBoardBg(dataUrl);
+        boStrokes=[];boGroupSizes=[];boRedoStack=[];
         boSend({type:'board-bg',data:dataUrl,w:img.naturalWidth,h:img.naturalHeight});
         document.getElementById('bo-img-bg-name').textContent=f.name;
         document.getElementById('bo-img-bg-remove').classList.remove('hidden');
@@ -17002,15 +17190,18 @@ function teacherScript() {
   document.getElementById('bo-img-bg-remove').onclick=function(){
     boResizeBoardTo(BO_BOARD_DEFAULT_W,BO_BOARD_DEFAULT_H);
     boSetBoardBg(null);
+    boStrokes=[];boGroupSizes=[];boRedoStack=[];
     boSend({type:'board-bg',data:null,w:BO_BOARD_DEFAULT_W,h:BO_BOARD_DEFAULT_H});
     document.getElementById('bo-img-bg-name').textContent='';
     this.classList.add('hidden');
     toast('عکس از روی تخته حذف شد');
   };
 
-  let brd2Mode='pen'; // pen | eraser | line | text
+  let brd2Mode='pen'; // pen | eraser | highlight | line | arrow | circle | rect | text
   let brd2Color='#000000';
   let bo2LineStart=null;
+  let boStrokes=[], boGroupSizes=[], boRedoStack=[], boGestureCount=0;
+  const SHAPE_TOOLS=['line','arrow','circle','rect'];
 
   function bo2SetTool(mode){
     brd2Mode=mode;
@@ -17018,7 +17209,11 @@ function teacherScript() {
     boBoard.style.cursor = mode==='text' ? 'text' : 'crosshair';
   }
   document.getElementById('brd2-tool-pen').onclick=function(){ bo2SetTool('pen'); };
+  document.getElementById('brd2-tool-highlight').onclick=function(){ bo2SetTool('highlight'); };
   document.getElementById('brd2-tool-line').onclick=function(){ bo2SetTool('line'); };
+  document.getElementById('brd2-tool-arrow').onclick=function(){ bo2SetTool('arrow'); };
+  document.getElementById('brd2-tool-circle').onclick=function(){ bo2SetTool('circle'); };
+  document.getElementById('brd2-tool-rect').onclick=function(){ bo2SetTool('rect'); };
   document.getElementById('brd2-tool-text').onclick=function(){ bo2SetTool('text'); };
   document.getElementById('brd2-tool-eraser').onclick=function(){ bo2SetTool('eraser'); };
 
@@ -17032,6 +17227,20 @@ function teacherScript() {
   });
   document.getElementById('brd2-color-custom').addEventListener('input',function(){ bo2SetColor(this.value); });
 
+  function boCommitSegment(stroke){
+    boDrawLocal(stroke);
+    boStrokes.push(stroke);
+    boSend({type:'draw', stroke});
+    boGestureCount++;
+  }
+  function boCommitStroke(stroke){
+    boDrawLocal(stroke);
+    boStrokes.push(stroke);
+    boSend({type:'draw', stroke});
+    boGroupSizes.push(1);
+    boRedoStack=[];
+  }
+
   function boStartStroke(e){
     e.preventDefault();
     const pt=boPointFromEvent(e);
@@ -17040,59 +17249,54 @@ function teacherScript() {
       const txt=prompt('متن مورد نظر را وارد کنید:');
       if(txt && txt.trim()){
         const stroke={ type:'text', color: brd2Color, size: parseInt(document.getElementById('brd2-size').value)||3, x: pt[0], y: pt[1], text: txt.trim() };
-        boDrawLocal(stroke);
-        boSend({type:'draw', stroke});
+        boCommitStroke(stroke);
       }
       return;
     }
 
-    if(brd2Mode==='line'){
+    if(SHAPE_TOOLS.includes(brd2Mode)){
       bo2LineStart=pt;
       boDrawing=true;
       return;
     }
 
     boDrawing=true;
+    boGestureCount=0;
     const eraseOn=brd2Mode==='eraser';
-    boCurrentStroke={ color: brd2Color, size: parseInt(document.getElementById('brd2-size').value)||3, erase: eraseOn, points: [pt] };
+    const highlightOn=brd2Mode==='highlight';
+    boCurrentStroke={ color: brd2Color, size: parseInt(document.getElementById('brd2-size').value)||3, erase: eraseOn, highlight: highlightOn, points: [pt] };
   }
   function boMoveStroke(e){
     if(!boDrawing)return;
     e.preventDefault();
     const pt=boPointFromEvent(e);
 
-    if(brd2Mode==='line'){
+    if(SHAPE_TOOLS.includes(brd2Mode)){
       if(!bo2LineStart)return;
       boOctx.clearRect(0,0,boBoardOverlay.width,boBoardOverlay.height);
-      boOctx.save();
-      boOctx.strokeStyle=brd2Color;
-      boOctx.lineWidth=parseInt(document.getElementById('brd2-size').value)||3;
-      boOctx.lineCap='round';
-      boOctx.beginPath();
-      boOctx.moveTo(bo2LineStart[0]*boBoardOverlay.width, bo2LineStart[1]*boBoardOverlay.height);
-      boOctx.lineTo(pt[0]*boBoardOverlay.width, pt[1]*boBoardOverlay.height);
-      boOctx.stroke();
-      boOctx.restore();
+      const preview={type:'shape', shapeType:brd2Mode, color:brd2Color, size:parseInt(document.getElementById('brd2-size').value)||3, start:bo2LineStart, end:pt};
+      boDrawShape(boOctx, preview, boBoardOverlay.width, boBoardOverlay.height);
       return;
     }
 
     boCurrentStroke.points.push(pt);
     if(boCurrentStroke.points.length>=2){
       const tail={ ...boCurrentStroke, points: boCurrentStroke.points.slice(-2) };
-      boDrawLocal(tail);
-      boSend({type:'draw', stroke: tail});
+      boCommitSegment(tail);
     }
   }
   function boEndStroke(e){
-    if(brd2Mode==='line' && bo2LineStart){
+    if(SHAPE_TOOLS.includes(brd2Mode) && bo2LineStart){
       const pt=boPointFromEvent(e.changedTouches?{touches:e.changedTouches}:e);
       boOctx.clearRect(0,0,boBoardOverlay.width,boBoardOverlay.height);
-      const stroke={ color: brd2Color, size: parseInt(document.getElementById('brd2-size').value)||3, erase:false, points: [bo2LineStart, pt] };
-      boDrawLocal(stroke);
-      boSend({type:'draw', stroke});
+      const stroke={type:'shape', shapeType:brd2Mode, color:brd2Color, size:parseInt(document.getElementById('brd2-size').value)||3, start:bo2LineStart, end:pt};
+      boCommitStroke(stroke);
       bo2LineStart=null;
+    }else if(boGestureCount>0){
+      boGroupSizes.push(boGestureCount);
+      boRedoStack=[];
     }
-    boDrawing=false; boCurrentStroke=null;
+    boDrawing=false; boCurrentStroke=null; boGestureCount=0;
   }
 
   boBoard.addEventListener('mousedown',boStartStroke);
@@ -17102,7 +17306,24 @@ function teacherScript() {
   boBoard.addEventListener('touchmove',boMoveStroke,{passive:false});
   boBoard.addEventListener('touchend',boEndStroke);
 
+  document.getElementById('brd2-undo').onclick=function(){
+    if(!boGroupSizes.length){toast('چیزی برای واگرد نیست');return;}
+    const n=boGroupSizes.pop();
+    const removed=boStrokes.splice(Math.max(0,boStrokes.length-n), n);
+    boRedoStack.push(removed);
+    boSend({type:'undo', count:n});
+    boRedrawAll();
+  };
+  document.getElementById('brd2-redo').onclick=function(){
+    if(!boRedoStack.length){toast('چیزی برای ازسرگیری نیست');return;}
+    const group=boRedoStack.pop();
+    group.forEach(function(s){ boStrokes.push(s); boSend({type:'draw', stroke:s}); });
+    boGroupSizes.push(group.length);
+    boRedrawAll();
+  };
+
   document.getElementById('brd2-clear').onclick=function(){
+    boStrokes=[];boGroupSizes=[];boRedoStack=[];
     boCtx.clearRect(0,0,boBoard.width,boBoard.height);
     if(boBoardBgImg)boCtx.drawImage(boBoardBgImg,0,0,boBoard.width,boBoard.height);
     boOctx.clearRect(0,0,boBoardOverlay.width,boBoardOverlay.height);
@@ -17144,6 +17365,54 @@ function teacherScript() {
     inp.value='';
   };
   document.getElementById('bo-chatInput').addEventListener('keydown',e=>{if(e.key==='Enter')document.getElementById('bo-btnSend').click();});
+
+  // ===== درخواست‌های اجازه‌ی صحبت دانش‌آموزان =====
+  let boSpeakRequests={}, boAllowedSpeakers={}; // id -> name
+  function boRenderSpeakRequests(){
+    const box=document.getElementById('bo-speak-requests');
+    const ids=Object.keys(boSpeakRequests);
+    if(!ids.length){box.classList.add('hidden');box.innerHTML='';return;}
+    box.classList.remove('hidden');
+    box.innerHTML='<b style="display:block;margin-bottom:6px">✋ درخواست‌های اجازه‌ی صحبت</b>'+ids.map(function(id){
+      return '<div class="row" style="align-items:center;margin-bottom:4px">'
+        +'<span style="flex:1">'+esc(boSpeakRequests[id])+'</span>'
+        +'<button class="btn sm" data-grant="'+esc(id)+'" style="flex:0 0 auto">✅ اجازه بده</button>'
+        +'<button class="btn sm gray" data-deny="'+esc(id)+'" style="flex:0 0 auto">❌ رد کن</button>'
+        +'</div>';
+    }).join('');
+    box.querySelectorAll('[data-grant]').forEach(function(b){
+      b.onclick=function(){
+        const id=b.dataset.grant;
+        boWs && boWs.send(JSON.stringify({type:'speak-grant', id}));
+        boAllowedSpeakers[id]=boSpeakRequests[id];
+        delete boSpeakRequests[id];
+        boRenderSpeakRequests();boRenderAllowedSpeakers();
+      };
+    });
+    box.querySelectorAll('[data-deny]').forEach(function(b){
+      b.onclick=function(){ delete boSpeakRequests[b.dataset.deny]; boRenderSpeakRequests(); };
+    });
+  }
+  function boRenderAllowedSpeakers(){
+    const box=document.getElementById('bo-allowed-speakers');
+    const ids=Object.keys(boAllowedSpeakers);
+    if(!ids.length){box.classList.add('hidden');box.innerHTML='';return;}
+    box.classList.remove('hidden');
+    box.innerHTML='<b style="display:block;margin-bottom:6px">🎙️ اجازه‌ی صحبت دارند</b>'+ids.map(function(id){
+      return '<div class="row" style="align-items:center;margin-bottom:4px">'
+        +'<span style="flex:1">'+esc(boAllowedSpeakers[id])+'</span>'
+        +'<button class="btn sm danger" data-revoke="'+esc(id)+'" style="flex:0 0 auto">🔇 لغو اجازه</button>'
+        +'</div>';
+    }).join('');
+    box.querySelectorAll('[data-revoke]').forEach(function(b){
+      b.onclick=function(){
+        const id=b.dataset.revoke;
+        boWs && boWs.send(JSON.stringify({type:'speak-revoke', id}));
+        delete boAllowedSpeakers[id];
+        boRenderAllowedSpeakers();
+      };
+    });
+  }
 
   let boAudioQueues={}, boAudioUnlockedFlag=true;
   function boPlayAudioChunk(id, b64, mime){
@@ -17191,6 +17460,7 @@ function teacherScript() {
     boWs.onmessage=(evt)=>{
       let m;try{m=JSON.parse(evt.data);}catch(e){return;}
       if(m.type==='init'){
+        boStrokes=(m.strokes||[]).slice();boGroupSizes=[];boRedoStack=[];
         if(m.boardBg){boResizeBoardTo(m.boardBgW||BO_BOARD_DEFAULT_W,m.boardBgH||BO_BOARD_DEFAULT_H);boSetBoardBg(m.boardBg,m.boardBgW,m.boardBgH);(m.strokes||[]).forEach(boDrawLocal);}
         else{(m.strokes||[]).forEach(boDrawLocal);}
         (m.chat||[]).forEach(boAddChatMsg);
@@ -17199,9 +17469,14 @@ function teacherScript() {
       else if(m.type==='chat'){boAddChatMsg(m.entry);}
       else if(m.type==='audio'){ boPlayAudioChunk(m.id||m.role, m.data, m.mime); }
       else if(m.type==='presence'){ boUpdateParticipants(m.participants||[]); }
+      else if(m.type==='undo'){ const n=m.count||1; boStrokes.splice(Math.max(0,boStrokes.length-n), n); boRedrawAll(); }
+      else if(m.type==='speak-request'){ boSpeakRequests[m.id]=m.name||'دانش‌آموز'; boRenderSpeakRequests(); toast('✋ '+(m.name||'دانش‌آموز')+' درخواست اجازه‌ی صحبت داد'); }
     };
   }
-  document.getElementById('btn-bo-start').onclick=boConnect;
+  document.getElementById('btn-bo-start').onclick=function(){
+    boSpeakRequests={};boAllowedSpeakers={};boRenderSpeakRequests();boRenderAllowedSpeakers();
+    boConnect();
+  };
   document.getElementById('btn-bo-stop').onclick=function(){
     if(boMicStream){boMicStream.getTracks().forEach(t=>t.stop());boMicStream=null;boAudioActive=false;}
     if(boWs){boWs.close();boWs=null;}
