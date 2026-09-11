@@ -2389,6 +2389,13 @@ const SHARED_CSS = `
   .row-color-dot[data-color="none"]{background:#fff;position:relative}
   .row-color-dot[data-color="none"]::after{content:'';position:absolute;inset:2px;border-top:1.5px solid #ef4444;transform:rotate(45deg)}
 
+  /* ---- تخته آنلاین: ابزارها و پالت رنگ ---- */
+  .brd-color-picker{display:inline-flex;gap:4px;align-items:center;vertical-align:middle}
+  .brd-color-dot{width:22px;height:22px;border-radius:50%;border:2px solid #fff;box-shadow:0 0 0 1px #cbd5e1;cursor:pointer;display:inline-block;padding:0;box-sizing:border-box}
+  .brd-color-dot:hover{transform:scale(1.12)}
+  .brd-color-dot.active{box-shadow:0 0 0 2px #1e293b}
+  #brd-color-custom{width:26px;height:26px;padding:0;border:none;border-radius:50%;cursor:pointer;background:none}
+
   /* ---- سوییچ تم برنامهٔ هفتگی ---- */
   .sch-theme-btn{opacity:.6;transition:opacity .15s,transform .15s}
   .sch-theme-btn.active{opacity:1;transform:scale(1.05);box-shadow:0 2px 8px rgba(0,0,0,.15)}
@@ -2790,7 +2797,7 @@ async function studentPage(env, id) {
         <button class="btn" id="btn-choice-exam" style="flex:1;min-width:200px;padding:22px 16px;font-size:16px">📝 ورود به آزمون</button>
         <button class="btn sec" id="btn-choice-worksheet" style="flex:1;min-width:200px;padding:22px 16px;font-size:16px">📓 ورود به کاربرگ</button>
         <button class="btn sec" id="btn-choice-reportcard" style="flex:1;min-width:200px;padding:22px 16px;font-size:16px">🗓️ مشاهده کارنامه ماهیانه</button>
-        <button class="btn sec" id="btn-choice-classroom" style="flex:1;min-width:200px;padding:22px 16px;font-size:16px">🖥️ ورود به کلاس آنلاین</button>
+        <button class="btn sec" id="btn-choice-classroom" style="flex:1;min-width:200px;padding:22px 16px;font-size:16px">🖥️ ورود به تخته کلاس آنلاین</button>
         <button class="btn sec" id="btn-choice-htmlgames" style="flex:1;min-width:200px;padding:22px 16px;font-size:16px">🎮 بازی و محتوای درسی HTML</button>
         <button class="btn sec" id="btn-choice-videolinks" style="flex:1;min-width:200px;padding:22px 16px;font-size:16px">🎬 فیلم‌های آموزشی درس</button>
         <button class="btn sec" id="btn-choice-certs" style="flex:1;min-width:200px;padding:22px 16px;font-size:16px">🏅 لوح‌های تقدیر من</button>
@@ -7946,13 +7953,25 @@ function teacherPage() {
           <div class="cls-board-col" style="position:relative">
             <div class="t-board-wrap" style="position:relative">
               <canvas id="t-board" width="900" height="500" style="width:100%;background:#fff;border:1px solid var(--line);border-radius:10px;touch-action:none;display:block;cursor:crosshair"></canvas>
+              <canvas id="t-board-overlay" style="position:absolute;top:0;left:0;pointer-events:none"></canvas>
               <video id="t-cam-preview" autoplay muted playsinline class="hidden t-cam-oncanvas"></video>
             </div>
             <img id="t-board-zoom-img" class="hidden" style="position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);width:min(94vw,900px);height:auto;max-height:88vh;object-fit:contain;z-index:41;cursor:zoom-out;box-shadow:0 10px 40px rgba(0,0,0,.5);border-radius:10px;background:#fff">
             <div id="t-board-zoom-backdrop" class="hidden" style="position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:40"></div>
-            <div class="row" style="margin-top:8px;flex-wrap:wrap">
+            <div class="row" style="margin-top:8px;flex-wrap:wrap;gap:6px;align-items:center">
+              <button class="btn sm gray brd-tool-btn active" data-tool="pen" id="brd-tool-pen" style="flex:0 0 auto">✏️ قلم</button>
+              <button class="btn sm gray brd-tool-btn" data-tool="line" id="brd-tool-line" style="flex:0 0 auto">📏 خط‌کش</button>
+              <button class="btn sm gray brd-tool-btn" data-tool="text" id="brd-tool-text" style="flex:0 0 auto">🔤 متن</button>
+              <button class="btn sm gray brd-tool-btn" data-tool="eraser" id="brd-tool-eraser" style="flex:0 0 auto">🧽 پاک‌کن</button>
+              <span class="brd-color-picker" id="brd-color-picker">
+                <button type="button" class="brd-color-dot active" data-color="#000000" style="background:#000000" title="مشکی"></button>
+                <button type="button" class="brd-color-dot" data-color="#dc2626" style="background:#dc2626" title="قرمز"></button>
+                <button type="button" class="brd-color-dot" data-color="#2563eb" style="background:#2563eb" title="آبی"></button>
+                <button type="button" class="brd-color-dot" data-color="#16a34a" style="background:#16a34a" title="سبز"></button>
+                <button type="button" class="brd-color-dot" data-color="#f59e0b" style="background:#f59e0b" title="نارنجی"></button>
+                <input type="color" id="brd-color-custom" value="#000000" title="رنگ دلخواه">
+              </span>
               <input type="range" id="brd-size" min="1" max="20" value="3" style="flex:1;min-width:80px">
-              <button class="btn sm gray" id="brd-tool-eraser" style="flex:0 0 auto">🧽 پاک‌کن</button>
               <button class="btn sm danger" id="brd-clear" style="flex:0 0 auto">🗑️ پاک کردن یادداشت‌ها</button>
               <button class="btn sm sec" id="brd-zoom" style="flex:0 0 auto" title="بزرگ‌نمایی تخته">🔍 بزرگ‌نمایی</button>
             </div>
@@ -7970,9 +7989,14 @@ function teacherPage() {
                 <button class="btn sm primary" id="cls-pdf-show" style="flex:0 0 auto">🖼️ نمایش این صفحه روی تخته</button>
                 <button class="btn sm danger" id="cls-pdf-remove-bg" style="flex:0 0 auto">حذف PDF از تخته</button>
               </div>
+              <div class="row" style="align-items:center;flex-wrap:wrap;margin-top:8px">
+                <label class="btn sm sec" style="cursor:pointer;flex:0 0 auto">🖼️ افزودن عکس پس‌زمینه<input type="file" accept="image/*" id="cls-img-bg-file" style="display:none"></label>
+                <span id="cls-img-bg-name" class="muted" style="font-size:12px"></span>
+                <button class="btn sm danger hidden" id="cls-img-bg-remove" style="flex:0 0 auto">🗑️ حذف عکس از تخته</button>
+              </div>
             </div>
 
-            <p class="muted" style="font-size:12px;margin-top:6px">روی تخته با خط مشکی بکشید؛ ترسیم برای همه دانش‌آموزان متصل به‌صورت زنده نمایش داده می‌شود. وقتی دوربین روشن باشد و PDF روی تخته نباشد، تصویر دقیقاً روی تخته نمایش داده می‌شود؛ به‌محض نمایش PDF، تصویر کوچک می‌شود تا PDF کامل دیده شود.</p>
+            <p class="muted" style="font-size:12px;margin-top:6px">با ابزار قلم/خط‌کش روی تخته بکشید یا با ابزار متن روی تخته کلیک کنید تا نوشته اضافه شود؛ رنگ و ضخامت قابل تغییر است. همه‌ی ترسیم‌ها برای دانش‌آموزان متصل به‌صورت زنده نمایش داده می‌شود. وقتی دوربین روشن باشد و پس‌زمینه‌ای (PDF یا عکس) روی تخته نباشد، تصویر دقیقاً روی تخته نمایش داده می‌شود؛ به‌محض نمایش پس‌زمینه، تصویر کوچک می‌شود.</p>
           </div>
           <div class="cls-chat-col">
             <h4 style="margin:0 0 6px">👥 حاضرین (<span id="cls-online-count">0</span>)</h4>
@@ -15430,6 +15454,14 @@ function teacherScript() {
   const tCtx=tBoard.getContext('2d');
   const CLS_BOARD_DEFAULT_W=900, CLS_BOARD_DEFAULT_H=560;
 
+  const tBoardOverlay=document.getElementById('t-board-overlay');
+  const tOctx=tBoardOverlay.getContext('2d');
+  function clsSyncOverlay(){
+    tBoardOverlay.width=tBoard.width;
+    tBoardOverlay.height=tBoard.height;
+    tBoardOverlay.style.width=tBoard.style.width;
+    tBoardOverlay.style.height=tBoard.style.height;
+  }
   function clsResizeBoard(){
     const ratio=tBoard.height/tBoard.width;
     const containerW=tBoard.parentElement.clientWidth;
@@ -15439,6 +15471,7 @@ function teacherScript() {
     if(h>maxH){h=maxH;w=h/ratio;}
     tBoard.style.width=w+'px';
     tBoard.style.height=h+'px';
+    clsSyncOverlay();
   }
   function clsResizeBoardTo(w,h){
     tBoard.width=Math.round(w);
@@ -15625,27 +15658,106 @@ function teacherScript() {
     toast('فایل PDF حذف شد');
   };
 
-  let brdMode='pen'; // pen | eraser
-  const BRD_COLOR='#000000';
-  function clsSetEraser(on){
-    brdMode = on ? 'eraser' : 'pen';
-    const btn=document.getElementById('brd-tool-eraser');
-    btn.classList.toggle('active', on);
-    btn.textContent = on ? '✏️ برگشت به قلم' : '🧽 پاک‌کن';
+  // ===== افزودن عکس به‌عنوان پس‌زمینه تخته =====
+  document.getElementById('cls-img-bg-file').addEventListener('change',function(){
+    const f=this.files&&this.files[0];this.value='';
+    if(!f)return;
+    if(f.type.indexOf('image/')!==0){toast('فقط فایل عکس مجاز است');return;}
+    const reader=new FileReader();
+    reader.onload=function(){
+      const dataUrl=reader.result;
+      const img=new Image();
+      img.onload=function(){
+        clsResizeBoardTo(img.naturalWidth,img.naturalHeight);
+        clsSetBoardBg(dataUrl);
+        clsSend({type:'board-bg',data:dataUrl,w:img.naturalWidth,h:img.naturalHeight});
+        document.getElementById('cls-img-bg-name').textContent=f.name;
+        document.getElementById('cls-img-bg-remove').classList.remove('hidden');
+        toast('عکس روی تخته نمایش داده شد ✅');
+      };
+      img.onerror=function(){toast('خطا در بارگذاری عکس');};
+      img.src=dataUrl;
+    };
+    reader.onerror=function(){toast('خطا در خواندن فایل عکس');};
+    reader.readAsDataURL(f);
+  });
+  document.getElementById('cls-img-bg-remove').onclick=function(){
+    clsResizeBoardTo(CLS_BOARD_DEFAULT_W,CLS_BOARD_DEFAULT_H);
+    clsSetBoardBg(null);
+    clsSend({type:'board-bg',data:null,w:CLS_BOARD_DEFAULT_W,h:CLS_BOARD_DEFAULT_H});
+    document.getElementById('cls-img-bg-name').textContent='';
+    this.classList.add('hidden');
+    toast('عکس از روی تخته حذف شد');
+  };
+
+  let brdMode='pen'; // pen | eraser | line | text
+  let brdColor='#000000';
+  let clsLineStart=null;
+
+  function clsSetTool(mode){
+    brdMode=mode;
+    document.querySelectorAll('.brd-tool-btn').forEach(function(b){ b.classList.toggle('active', b.dataset.tool===mode); });
+    tBoard.style.cursor = mode==='text' ? 'text' : 'crosshair';
   }
-  document.getElementById('brd-tool-eraser').onclick=function(){ clsSetEraser(brdMode!=='eraser'); };
+  document.getElementById('brd-tool-pen').onclick=function(){ clsSetTool('pen'); };
+  document.getElementById('brd-tool-line').onclick=function(){ clsSetTool('line'); };
+  document.getElementById('brd-tool-text').onclick=function(){ clsSetTool('text'); };
+  document.getElementById('brd-tool-eraser').onclick=function(){ clsSetTool('eraser'); };
+
+  function clsSetColor(c){
+    brdColor=c;
+    document.querySelectorAll('.brd-color-dot').forEach(function(d){ d.classList.toggle('active', d.dataset.color===c); });
+    document.getElementById('brd-color-custom').value=c;
+  }
+  document.querySelectorAll('.brd-color-dot').forEach(function(dot){
+    dot.onclick=function(){ clsSetColor(dot.dataset.color); };
+  });
+  document.getElementById('brd-color-custom').addEventListener('input',function(){ clsSetColor(this.value); });
 
   function clsStartStroke(e){
     e.preventDefault();
     const pt=clsPointFromEvent(e);
+
+    if(brdMode==='text'){
+      const txt=prompt('متن مورد نظر را وارد کنید:');
+      if(txt && txt.trim()){
+        const stroke={ type:'text', color: brdColor, size: parseInt(document.getElementById('brd-size').value)||3, x: pt[0], y: pt[1], text: txt.trim() };
+        clsDrawLocal(stroke);
+        clsSend({type:'draw', stroke});
+      }
+      return;
+    }
+
+    if(brdMode==='line'){
+      clsLineStart=pt;
+      clsDrawing=true;
+      return;
+    }
+
     clsDrawing=true;
     const eraseOn=brdMode==='eraser';
-    clsCurrentStroke={ color: BRD_COLOR, size: parseInt(document.getElementById('brd-size').value)||3, erase: eraseOn, points: [pt] };
+    clsCurrentStroke={ color: brdColor, size: parseInt(document.getElementById('brd-size').value)||3, erase: eraseOn, points: [pt] };
   }
   function clsMoveStroke(e){
     if(!clsDrawing)return;
     e.preventDefault();
     const pt=clsPointFromEvent(e);
+
+    if(brdMode==='line'){
+      if(!clsLineStart)return;
+      tOctx.clearRect(0,0,tBoardOverlay.width,tBoardOverlay.height);
+      tOctx.save();
+      tOctx.strokeStyle=brdColor;
+      tOctx.lineWidth=parseInt(document.getElementById('brd-size').value)||3;
+      tOctx.lineCap='round';
+      tOctx.beginPath();
+      tOctx.moveTo(clsLineStart[0]*tBoardOverlay.width, clsLineStart[1]*tBoardOverlay.height);
+      tOctx.lineTo(pt[0]*tBoardOverlay.width, pt[1]*tBoardOverlay.height);
+      tOctx.stroke();
+      tOctx.restore();
+      return;
+    }
+
     clsCurrentStroke.points.push(pt);
     if(clsCurrentStroke.points.length>=2){
       const tail={ ...clsCurrentStroke, points: clsCurrentStroke.points.slice(-2) };
@@ -15654,6 +15766,14 @@ function teacherScript() {
     }
   }
   function clsEndStroke(e){
+    if(brdMode==='line' && clsLineStart){
+      const pt=clsPointFromEvent(e.changedTouches?{touches:e.changedTouches}:e);
+      tOctx.clearRect(0,0,tBoardOverlay.width,tBoardOverlay.height);
+      const stroke={ color: brdColor, size: parseInt(document.getElementById('brd-size').value)||3, erase:false, points: [clsLineStart, pt] };
+      clsDrawLocal(stroke);
+      clsSend({type:'draw', stroke});
+      clsLineStart=null;
+    }
     clsDrawing=false; clsCurrentStroke=null;
   }
 
@@ -15667,6 +15787,7 @@ function teacherScript() {
   document.getElementById('brd-clear').onclick=function(){
     tCtx.clearRect(0,0,tBoard.width,tBoard.height);
     if(clsBoardBgImg)tCtx.drawImage(clsBoardBgImg,0,0,tBoard.width,tBoard.height);
+    tOctx.clearRect(0,0,tBoardOverlay.width,tBoardOverlay.height);
     clsSend({type:'clear'});
   };
 
