@@ -7012,7 +7012,14 @@ function teacherPage() {
         </div>
 
         <a class="tab" data-tab="examsheet" href="/teacher?tab=examsheet"><span class="tab-ico">🖨️</span><span class="tab-label">ساخت آزمون</span></a>
-        <a class="tab" data-tab="schedule" href="/teacher?tab=schedule"><span class="tab-ico">📅</span><span class="tab-label">برنامه هفتگی و تقدیرنامه</span></a>
+        <div class="tab-group">
+          <div class="tab-parent" data-tab="schedule"><span class="tab-ico">📅</span><span class="tab-label">برنامه هفتگی و تقدیرنامه</span><span class="tab-arrow">▾</span></div>
+          <div class="tab-children" id="tab-children-schedule">
+            <a class="tab-child" href="/teacher?tab=schedule&subtab=sch-weekly">📅 برنامه هفتگی</a>
+            <a class="tab-child" href="/teacher?tab=schedule&subtab=sch-cert">🏅 لوح تقدیر</a>
+            <a class="tab-child" href="/teacher?tab=schedule&subtab=sch-webinar">🎓 گواهی حضور در وبینار</a>
+          </div>
+        </div>
 
         <div class="tab-group">
           <div class="tab-parent" data-tab="tablesorg"><span class="tab-ico">📊</span><span class="tab-label">جدول‌ساز</span><span class="tab-arrow">▾</span></div>
@@ -7044,7 +7051,15 @@ function teacherPage() {
           </div>
         </div>
 
-        <a class="tab" data-tab="classwebinar" href="/teacher?tab=classwebinar"><span class="tab-ico">🖥️</span><span class="tab-label">کلاس آنلاین و وبینار</span></a>
+        <div class="tab-group">
+          <div class="tab-parent" data-tab="classwebinar"><span class="tab-ico">🖥️</span><span class="tab-label">کلاس آنلاین و وبینار</span><span class="tab-arrow">▾</span></div>
+          <div class="tab-children" id="tab-children-classwebinar">
+            <a class="tab-child" href="/teacher?tab=classwebinar&subtab=classroom">🖥️ کلاس آنلاین</a>
+            <a class="tab-child" href="/teacher?tab=classwebinar&subtab=webinar">🎙️ وبینار</a>
+            <a class="tab-child" href="/teacher?tab=classwebinar&subtab=attendance">📋 حضور و غیاب</a>
+            <a class="tab-child" href="/teacher?tab=classwebinar&subtab=board">🧑‍🏫 تخته آنلاین</a>
+          </div>
+        </div>
         <a class="tab" data-tab="htmlgames" href="/teacher?tab=htmlgames"><span class="tab-ico">🎬</span><span class="tab-label">محتوای تعاملی</span></a>
 
         <div class="tab-group">
@@ -7111,12 +7126,12 @@ function teacherPage() {
             <ul><li>طراحی و چاپ برگه آزمون با خروجی Word و PDF</li></ul>
           </a>
           <a class="home-card" href="/teacher?tab=schedule">
-            <h4>📅 برنامه هفتگی</h4>
-            <ul><li>ساخت و چاپ برنامه هفتگی کلاس</li></ul>
-          </a>
-          <a class="home-card" href="/teacher?tab=sch-cert">
-            <h4>🏅 لوح تقدیر</h4>
-            <ul><li>ساخت و صدور لوح تقدیر و گواهی حضور در وبینار برای دانش‌آموزان</li></ul>
+            <h4>📅 برنامه هفتگی و تقدیرنامه</h4>
+            <ul>
+              <li>📅 برنامه هفتگی</li>
+              <li>🏅 لوح تقدیر</li>
+              <li>🎓 گواهی حضور در وبینار</li>
+            </ul>
           </a>
           <a class="home-card" href="/teacher?tab=tablesorg">
             <h4>📊 جدول‌ساز</h4>
@@ -7144,21 +7159,14 @@ function teacherPage() {
               <li>📝 ساخت ورد</li>
             </ul>
           </a>
-          <a class="home-card" href="/teacher?tab=classroom">
-            <h4>🖥️ کلاس آنلاین</h4>
-            <ul><li>برگزاری کلاس آنلاین با تخته، چت و وبکم</li></ul>
-          </a>
-          <a class="home-card" href="/teacher?tab=webinar">
-            <h4>🎙️ وبینار</h4>
-            <ul><li>یک لینک عمومی، ورود با نام، بدون محدودیت تعداد</li></ul>
-          </a>
-          <a class="home-card" href="/teacher?tab=attendance">
-            <h4>📋 فرم حضور و غیاب</h4>
-            <ul><li>یک لینک عمومی، ثبت مشخصات، خروجی اکسل و PDF</li></ul>
-          </a>
-          <a class="home-card" href="/teacher?tab=board">
-            <h4>🧑‍🏫 تخته آنلاین</h4>
-            <ul><li>بخش مستقل با ابزار قلم، خط‌کش، متن، رنگ، PDF و عکس پس‌زمینه؛ فقط صدای معلم</li></ul>
+          <a class="home-card" href="/teacher?tab=classwebinar">
+            <h4>🖥️ کلاس آنلاین و وبینار</h4>
+            <ul>
+              <li>🖥️ کلاس آنلاین</li>
+              <li>🎙️ وبینار</li>
+              <li>📋 حضور و غیاب</li>
+              <li>🧑‍🏫 تخته آنلاین</li>
+            </ul>
           </a>
           <a class="home-card" href="/teacher?tab=logbook">
             <h4>📖 دفتر مدیریت کلاسی</h4>
@@ -9900,29 +9908,7 @@ function teacherScript() {
     });
   });
 
-  function activateSubtab(name){
-    document.querySelectorAll('.subtab[data-subtab]').forEach(x=>x.classList.remove('active'));
-    var tEl=document.querySelector('.subtab[data-subtab="'+name+'"]');
-    if(tEl)tEl.classList.add('active');
-    document.querySelectorAll('.subtab-content').forEach(c=>c.classList.add('hidden'));
-    var cEl=document.getElementById('tab-'+name);
-    if(cEl)cEl.classList.remove('hidden');
-    if(name==='answers')loadAnswers();
-    if(name==='worksheet')loadWorksheetList();
-    if(name==='questions'){updateDurationDisplay();}
-    if(name==='sch-cert'){certInit();certRenderStudentsList('cert');certLoadSettingsIfNeeded('cert');}
-    if(name==='sch-webinar'){certInit();certRenderStudentsList('wbc');certLoadSettingsIfNeeded('wbc');}
-    if(name==='classroom'){setTimeout(function(){if(typeof clsResizeBoard==='function')clsResizeBoard();},50);}
-    if(name==='attendance'){if(typeof attLoadLinks==='function')attLoadLinks();}
-    if(name==='board'){setTimeout(function(){if(typeof boResizeBoard==='function')boResizeBoard();},50);}
-  }
-  // نگاشت زیرتب‌هایی که لینک صفحه اصلی/منو مستقیم به آن‌ها اشاره می‌کند، به تب اصلی‌شان
-  // (چون این‌ها آی‌دی تب اصلی نیستند و activateSection باید بداند اول کدام کارت را باز کند)
-  var SUBTAB_PARENTS={ classroom:'classwebinar', webinar:'classwebinar', attendance:'classwebinar', board:'classwebinar', 'sch-weekly':'schedule', 'sch-cert':'schedule', 'sch-webinar':'schedule' };
-
   function activateSection(tabName){
-    var subtabTarget=null;
-    if(SUBTAB_PARENTS[tabName]){ subtabTarget=tabName; tabName=SUBTAB_PARENTS[tabName]; }
     document.querySelectorAll('.tab[data-tab]').forEach(x=>x.classList.remove('active'));
     var tEl=document.querySelector('.tab[data-tab="'+tabName+'"]');
     if(tEl)tEl.classList.add('active');
@@ -9943,10 +9929,22 @@ function teacherScript() {
     if(tabName==='classwebinar'){setTimeout(function(){if(typeof clsResizeBoard==='function')clsResizeBoard();},50);}
     if(tabName==='examsheet'){if(typeof loadExamSheetIfNeeded==='function')loadExamSheetIfNeeded();}
     if(tabName==='infoexchange'){if(typeof loadInfoExchangeIfNeeded==='function')loadInfoExchangeIfNeeded();}
-    if(subtabTarget)setTimeout(function(){activateSubtab(subtabTarget);},0);
   }
 
-  document.querySelectorAll('.subtab[data-subtab]').forEach(t=>t.onclick=()=>activateSubtab(t.dataset.subtab));
+  document.querySelectorAll('.subtab[data-subtab]').forEach(t=>t.onclick=()=>{
+    document.querySelectorAll('.subtab[data-subtab]').forEach(x=>x.classList.remove('active'));
+    t.classList.add('active');
+    document.querySelectorAll('.subtab-content').forEach(c=>c.classList.add('hidden'));
+    document.getElementById('tab-'+t.dataset.subtab).classList.remove('hidden');
+    if(t.dataset.subtab==='answers')loadAnswers();
+    if(t.dataset.subtab==='worksheet')loadWorksheetList();
+    if(t.dataset.subtab==='questions'){updateDurationDisplay();}
+    if(t.dataset.subtab==='sch-cert'){certInit();certRenderStudentsList('cert');certLoadSettingsIfNeeded('cert');}
+    if(t.dataset.subtab==='sch-webinar'){certInit();certRenderStudentsList('wbc');certLoadSettingsIfNeeded('wbc');}
+    if(t.dataset.subtab==='classroom'){setTimeout(function(){if(typeof clsResizeBoard==='function')clsResizeBoard();},50);}
+    if(t.dataset.subtab==='attendance'){if(typeof attLoadLinks==='function')attLoadLinks();}
+    if(t.dataset.subtab==='board'){setTimeout(function(){if(typeof boResizeBoard==='function')boResizeBoard();},50);}
+  });
 
   // ===== دانش‌آموزان =====
   let TEACHER_STUDENTS=[];
