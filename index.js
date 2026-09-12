@@ -651,8 +651,8 @@ async function handleApi(req, env, url, path) {
       hasGroqKey: typeof env.GROQ_API_KEY === "string" && env.GROQ_API_KEY.length > 0,
       groqKeyLength: env.GROQ_API_KEY ? env.GROQ_API_KEY.length : 0,
       hasCloudflareAiBinding: typeof env.AI !== "undefined" && env.AI !== null,
-      hasDashscopeKey: typeof env.DASHSCOPE_API_KEY === "string" && env.DASHSCOPE_API_KEY.length > 0,
-      dashscopeKeyLength: env.DASHSCOPE_API_KEY ? env.DASHSCOPE_API_KEY.length : 0,
+      hasMistralKey: typeof env.MISTRAL_API_KEY === "string" && env.MISTRAL_API_KEY.length > 0,
+      mistralKeyLength: env.MISTRAL_API_KEY ? env.MISTRAL_API_KEY.length : 0,
     });
   }
 
@@ -1491,19 +1491,19 @@ async function handleApi(req, env, url, path) {
       const body = await req.json().catch(() => ({}));
       const messages = body.messages || [];
       const maxTokens = Math.min(Math.max(parseInt(body.max_tokens, 10) || 1024, 256), 8192);
-      const provider = body.provider === "groq" ? "groq" : body.provider === "cloudflare" ? "cloudflare" : body.provider === "qwen" ? "qwen" : "gemini";
+      const provider = body.provider === "groq" ? "groq" : body.provider === "cloudflare" ? "cloudflare" : body.provider === "mistral" ? "mistral" : "gemini";
 
-      // ----- موتور Qwen (DashScope بین‌المللی - Alibaba) — سازگار با فرمت OpenAI، مدل‌های Qwen-VL برای عکس -----
-      if (provider === "qwen") {
-        const qwenKey = env.DASHSCOPE_API_KEY;
-        if (!qwenKey) return json({ error: "کلید DASHSCOPE_API_KEY تنظیم نشده" }, 500);
-        const qwenModel = body.model || env.QWEN_MODEL || "qwen3-vl-flash";
-        const trimmedQwenMessages = messages.slice(-10);
+      // ----- موتور Mistral (Pixtral) — سازگار با فرمت OpenAI، مدل‌های Pixtral برای عکس/سند -----
+      if (provider === "mistral") {
+        const mistralKey = env.MISTRAL_API_KEY;
+        if (!mistralKey) return json({ error: "کلید MISTRAL_API_KEY تنظیم نشده" }, 500);
+        const mistralModel = body.model || env.MISTRAL_MODEL || "pixtral-12b-2409";
+        const trimmedMistralMessages = messages.slice(-10);
         const result = await callOpenAiCompatible(
-          "https://dashscope-intl.aliyuncs.com/compatible-mode/v1/chat/completions",
-          qwenKey, qwenModel, trimmedQwenMessages, maxTokens
+          "https://api.mistral.ai/v1/chat/completions",
+          mistralKey, mistralModel, trimmedMistralMessages, maxTokens
         );
-        if (!result.ok) return json({ error: "Qwen: " + result.error }, result.status);
+        if (!result.ok) return json({ error: "Mistral: " + result.error }, result.status);
         return json({ ok: true, content: result.content });
       }
 
@@ -9533,7 +9533,7 @@ function teacherPage() {
           <label style="display:flex;align-items:center;gap:6px;font-weight:700;cursor:pointer"><input type="radio" name="ai-provider" value="gemini" id="ai-provider-gemini"> ✨ Gemini (گوگل)</label>
           <label style="display:flex;align-items:center;gap:6px;font-weight:700;cursor:pointer"><input type="radio" name="ai-provider" value="groq" id="ai-provider-groq"> ⚡ Groq</label>
           <label style="display:flex;align-items:center;gap:6px;font-weight:700;cursor:pointer"><input type="radio" name="ai-provider" value="cloudflare" id="ai-provider-cloudflare"> ☁️ Cloudflare Workers AI</label>
-          <label style="display:flex;align-items:center;gap:6px;font-weight:700;cursor:pointer"><input type="radio" name="ai-provider" value="qwen" id="ai-provider-qwen"> 🐉 Qwen (DashScope)</label>
+          <label style="display:flex;align-items:center;gap:6px;font-weight:700;cursor:pointer"><input type="radio" name="ai-provider" value="mistral" id="ai-provider-mistral"> 🌬️ Mistral (Pixtral)</label>
         </div>
         <div id="ai-groq-model-wrap" class="hidden" style="margin-bottom:18px">
           <label>مدل Groq</label>
@@ -9558,14 +9558,13 @@ function teacherPage() {
           </select>
           <p class="muted" style="font-size:12px;margin-top:6px">☁️ این موتور نیازی به API key ندارد؛ فقط کافی است مدیر سیستم یک AI binding به تنظیمات Worker اضافه کند. پلن رایگان Cloudflare هر روز سهمیه‌ی رایگان محدودی دارد. برای OCR/تحلیل تصویر یکی از مدل‌های «پشتیبانی از عکس» (Gemma 4، Mistral Small یا Llama Vision) را انتخاب کنید — بقیه‌ی مدل‌ها فقط متنی هستند و اگر همراه عکس ارسال شوند، خودکار به Gemma 4 سوییچ می‌شود.</p>
         </div>
-        <div id="ai-qwen-model-wrap" class="hidden" style="margin-bottom:18px">
-          <label>مدل Qwen (DashScope)</label>
-          <select id="ai-qwen-model">
-            <option value="qwen3-vl-flash">Qwen3-VL Flash (سریع، پشتیبانی از عکس، پیش‌فرض)</option>
-            <option value="qwen3-vl-plus">Qwen3-VL Plus (دقیق‌تر روی عکس با کیفیت بالا، کندتر)</option>
-            <option value="qwen-vl-ocr-2025-11-20">Qwen-VL-OCR (تخصصی استخراج متن از عکس/سند)</option>
+        <div id="ai-mistral-model-wrap" class="hidden" style="margin-bottom:18px">
+          <label>مدل Mistral (Pixtral)</label>
+          <select id="ai-mistral-model">
+            <option value="pixtral-12b-2409">Pixtral 12B (سریع‌تر، پیش‌فرض)</option>
+            <option value="pixtral-large-2411">Pixtral Large (۱۲۴B، دقیق‌تر روی سند/چارت پیچیده، کندتر)</option>
           </select>
-          <p class="muted" style="font-size:12px;margin-top:6px">🐉 نیاز به کلید DASHSCOPE_API_KEY (از پلتفرم Alibaba Cloud Model Studio) دارد. مدل‌های Qwen-VL برای OCR و فهم سند/عکس خیلی قوی‌ان.</p>
+          <p class="muted" style="font-size:12px;margin-top:6px">🌬️ نیاز به کلید MISTRAL_API_KEY (از پلتفرم La Plateforme میسترال) دارد. Pixtral برای فهم عکس، سند و چارت طراحی شده.</p>
         </div>
         <h3>🔐 تغییر رمز عبور</h3>
         <label>رمز عبور جدید</label><input id="new-pass" type="password" autocomplete="new-password">
@@ -9771,20 +9770,20 @@ function teacherScript() {
     applyColorTheme(b.dataset.color);
   });});
 
-  // ===== موتور هوش مصنوعی: قابل انتخاب بین Gemini، Groq، Cloudflare Workers AI و Qwen (DashScope) =====
+  // ===== موتور هوش مصنوعی: قابل انتخاب بین Gemini، Groq، Cloudflare Workers AI و Mistral (Pixtral) =====
   var AI_PROVIDER_KEY='ai-provider-choice';
   var AI_MODEL_KEY_GROQ='ai-groq-model-choice';
   var AI_MODEL_KEY_CLOUDFLARE='ai-cloudflare-model-choice';
-  var AI_MODEL_KEY_QWEN='ai-qwen-model-choice';
+  var AI_MODEL_KEY_MISTRAL='ai-mistral-model-choice';
   window.getAiProvider=function(){
     var p=localStorage.getItem(AI_PROVIDER_KEY)||'gemini';
-    return (p==='groq'||p==='cloudflare'||p==='qwen')?p:'gemini'; // موتور OpenCode حذف شده؛ اگر قبلاً انتخاب شده بود، برگرد به Gemini
+    return (p==='groq'||p==='cloudflare'||p==='mistral')?p:'gemini'; // موتور OpenCode حذف شده؛ اگر قبلاً انتخاب شده بود، برگرد به Gemini
   };
   window.getAiModel=function(){
     var p=getAiProvider();
     if(p==='groq')return localStorage.getItem(AI_MODEL_KEY_GROQ)||'openai/gpt-oss-20b';
     if(p==='cloudflare')return localStorage.getItem(AI_MODEL_KEY_CLOUDFLARE)||'@cf/meta/llama-3.1-8b-instruct-fast';
-    if(p==='qwen')return localStorage.getItem(AI_MODEL_KEY_QWEN)||'qwen3-vl-flash';
+    if(p==='mistral')return localStorage.getItem(AI_MODEL_KEY_MISTRAL)||'pixtral-12b-2409';
     return '';
   };
   (function initAiProviderUI(){
@@ -9793,21 +9792,21 @@ function teacherScript() {
     var groqSel=document.getElementById('ai-groq-model');
     var cfWrap=document.getElementById('ai-cloudflare-model-wrap');
     var cfSel=document.getElementById('ai-cloudflare-model');
-    var qwenWrap=document.getElementById('ai-qwen-model-wrap');
-    var qwenSel=document.getElementById('ai-qwen-model');
+    var mistralWrap=document.getElementById('ai-mistral-model-wrap');
+    var mistralSel=document.getElementById('ai-mistral-model');
     if(!radios.length)return;
     function applyVisibility(p){
       if(groqWrap)groqWrap.classList.toggle('hidden',p!=='groq');
       if(cfWrap)cfWrap.classList.toggle('hidden',p!=='cloudflare');
-      if(qwenWrap)qwenWrap.classList.toggle('hidden',p!=='qwen');
+      if(mistralWrap)mistralWrap.classList.toggle('hidden',p!=='mistral');
     }
     var current=getAiProvider();
     radios.forEach(function(r){r.checked=(r.value===current);});
     applyVisibility(current);
     if(groqSel)groqSel.value=localStorage.getItem(AI_MODEL_KEY_GROQ)||'openai/gpt-oss-20b';
     if(cfSel)cfSel.value=localStorage.getItem(AI_MODEL_KEY_CLOUDFLARE)||'@cf/meta/llama-3.1-8b-instruct-fast';
-    if(qwenSel)qwenSel.value=localStorage.getItem(AI_MODEL_KEY_QWEN)||'qwen3-vl-flash';
-    var AI_PROVIDER_LABELS={gemini:'Gemini',groq:'Groq',cloudflare:'Cloudflare Workers AI',qwen:'Qwen (DashScope)'};
+    if(mistralSel)mistralSel.value=localStorage.getItem(AI_MODEL_KEY_MISTRAL)||'pixtral-12b-2409';
+    var AI_PROVIDER_LABELS={gemini:'Gemini',groq:'Groq',cloudflare:'Cloudflare Workers AI',mistral:'Mistral (Pixtral)'};
     radios.forEach(function(r){
       r.addEventListener('change',function(){
         if(!this.checked)return;
@@ -9828,10 +9827,10 @@ function teacherScript() {
         toast('مدل Cloudflare Workers AI ذخیره شد ✅');
       });
     }
-    if(qwenSel){
-      qwenSel.addEventListener('change',function(){
-        localStorage.setItem(AI_MODEL_KEY_QWEN,this.value);
-        toast('مدل Qwen ذخیره شد ✅');
+    if(mistralSel){
+      mistralSel.addEventListener('change',function(){
+        localStorage.setItem(AI_MODEL_KEY_MISTRAL,this.value);
+        toast('مدل Mistral ذخیره شد ✅');
       });
     }
   })();
