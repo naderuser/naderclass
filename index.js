@@ -7177,6 +7177,17 @@ function teacherPage() {
               <li>📅 برنامه هفتگی</li>
             </ul>
           </a>
+          <a class="home-card" href="/teacher?tab=htmlgames">
+            <h4>🎬 محتوای تعاملی</h4>
+            <ul>
+              <li>🎬 لینک فیلم درس بر اساس پایه</li>
+              <li>🎮 بازی و محتوای تعاملی HTML</li>
+            </ul>
+          </a>
+          <a class="home-card" href="/teacher?tab=infoexchange">
+            <h4>📨 دریافت و ارسال اطلاعات</h4>
+            <ul><li>ساخت لینک اختصاصی برای معلم/راهبر/مدیر جهت دریافت و ارسال عکس، PDF، Word و Excel</li></ul>
+          </a>
           <a class="home-card" href="/teacher?tab=settings">
             <h4>⚙️ تنظیمات</h4>
             <ul><li>تنظیمات حساب و پنل</li></ul>
