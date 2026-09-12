@@ -4190,39 +4190,39 @@ async function studentClassPage(env, id) {
     }
 
     // ===== پخش صدای زنده‌ی معلم و دانش‌آموزان (هر فرستنده صف پخش جداگانه دارد تا صداها روی هم نیفتند) =====
-    let audioQueues={}, audioPlayingAny=false, audioWarned=false, audioUnlocked=false;
+    let audioQueues={}, audioWarned=false, audioUnlocked=false, sharedAudioCtx=null;
+    function getAudioCtx(){ if(!sharedAudioCtx) sharedAudioCtx=new (window.AudioContext||window.webkitAudioContext)(); return sharedAudioCtx; }
     (function setupSoundUnlock(){
       const btn=document.getElementById('btn-enable-sound');
       btn.onclick=function(){
-        // پخش یک صدای خیلی کوتاه و بی‌صدا برای باز کردن قفل پخش خودکار صدا در مرورگر
-        const a=new Audio('data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAA=');
-        const unlock=()=>{ audioUnlocked=true; btn.classList.add('hidden'); Object.keys(audioQueues).forEach(pumpAudioQueue); };
-        a.play().then(unlock).catch(unlock);
+        const ctx=getAudioCtx();
+        const unlock=()=>{ audioUnlocked=true; btn.classList.add('hidden'); };
+        if(ctx.state==='suspended') ctx.resume().then(unlock).catch(unlock); else unlock();
       };
     })();
     function playAudioChunk(id, b64, mime){
       let st=audioQueues[id];
-      if(!st) st=audioQueues[id]={queue:[],playing:false};
-      st.queue.push({b64, mime: mime||'audio/webm'});
-      if(st.queue.length>2) st.queue.splice(0, st.queue.length-2); // اگر پخش عقب افتاد، فقط تازه‌ترین‌ها را نگه دار تا صدا زنده‌تر بماند
-      pumpAudioQueue(id);
-    }
-    function pumpAudioQueue(id){
-      const st=audioQueues[id];
-      if(!st || !audioUnlocked || st.playing || st.queue.length===0) return;
-      const item=st.queue.shift();
-      const a=new Audio('data:'+item.mime+';base64,'+item.b64);
-      st.playing=true;
-      a.onended=()=>{ st.playing=false; pumpAudioQueue(id); };
-      a.onerror=()=>{
-        st.playing=false;
-        if(!audioWarned){
-          audioWarned=true;
-          toast('مرورگر شما امکان پخش صدا را ندارد؛ لطفاً Chrome را امتحان کنید');
+      if(!st) st=audioQueues[id]={nextTime:0, chain:Promise.resolve()};
+      st.chain=st.chain.then(async()=>{
+        if(!audioUnlocked) return;
+        try{
+          const ctx=getAudioCtx();
+          const binary=atob(b64);
+          const bytes=new Uint8Array(binary.length);
+          for(let i=0;i<binary.length;i++) bytes[i]=binary.charCodeAt(i);
+          const audioBuffer=await ctx.decodeAudioData(bytes.buffer);
+          const now=ctx.currentTime;
+          if(st.nextTime < now+0.05) st.nextTime=now+0.05;
+          if(st.nextTime - now > 1.5) st.nextTime=now+0.05;
+          const src=ctx.createBufferSource();
+          src.buffer=audioBuffer;
+          src.connect(ctx.destination);
+          src.start(st.nextTime);
+          st.nextTime += audioBuffer.duration;
+        }catch(e){
+          if(!audioWarned){ audioWarned=true; toast('مرورگر شما امکان پخش صدا را ندارد؛ لطفاً Chrome را امتحان کنید'); }
         }
-        pumpAudioQueue(id);
-      };
-      a.play().catch(()=>{ st.playing=false; pumpAudioQueue(id); });
+      });
     }
 
     // ===== دوربین/صدای زنده‌ی دیگر دانش‌آموزان (نمایش برای این دانش‌آموز) =====
@@ -4420,6 +4420,8 @@ async function studentClassPage(env, id) {
         rec.ondataavailable=(e)=>{ if(e.data && e.data.size>0) chunks.push(e.data); };
         rec.onstop=async()=>{
           if(myGen!==myAudioGen) return;
+          // شروع فوری تکه‌ی بعدی صدا، پیش از کار async ارسال، تا شکاف بین ضبط‌ها به حداقل برسد
+          if(myAudioActive) recordOneChunk();
           if(chunks.length){
             const blob=new Blob(chunks, {type: mime||'audio/webm'});
             const buf=await blob.arrayBuffer();
@@ -4427,7 +4429,6 @@ async function studentClassPage(env, id) {
             for(let i=0;i<bytes.length;i++)binary+=String.fromCharCode(bytes[i]);
             if(ws&&ws.readyState===1)ws.send(JSON.stringify({type:'audio', data: btoa(binary), mime: mime||'audio/webm'}));
           }
-          if(myAudioActive && myGen===myAudioGen) setTimeout(recordOneChunk, 15);
         };
         rec.start();
         myRecorder=rec;
@@ -4761,35 +4762,37 @@ async function studentBoardPage(env, id) {
     }
 
     // ===== پخش صدای زنده‌ی معلم =====
-    let boAudioQueue=[], boAudioPlaying=false, boAudioWarned=false, boAudioUnlocked=false;
+    let boAudioWarned=false, boAudioUnlocked=false, boNextTime=0, boAudioChain=Promise.resolve(), boSharedAudioCtx=null;
+    function boGetAudioCtx(){ if(!boSharedAudioCtx) boSharedAudioCtx=new (window.AudioContext||window.webkitAudioContext)(); return boSharedAudioCtx; }
     (function setupSoundUnlock(){
       const btn=document.getElementById('bo-btn-enable-sound');
       btn.onclick=function(){
-        const a=new Audio('data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAA=');
-        const unlock=()=>{ boAudioUnlocked=true; btn.classList.add('hidden'); boPumpAudioQueue(); };
-        a.play().then(unlock).catch(unlock);
+        const ctx=boGetAudioCtx();
+        const unlock=()=>{ boAudioUnlocked=true; btn.classList.add('hidden'); };
+        if(ctx.state==='suspended') ctx.resume().then(unlock).catch(unlock); else unlock();
       };
     })();
     function boPlayAudioChunk(b64, mime){
-      boAudioQueue.push({b64, mime: mime||'audio/webm'});
-      if(boAudioQueue.length>2) boAudioQueue.splice(0, boAudioQueue.length-2);
-      boPumpAudioQueue();
-    }
-    function boPumpAudioQueue(){
-      if(!boAudioUnlocked || boAudioPlaying || boAudioQueue.length===0) return;
-      const item=boAudioQueue.shift();
-      const a=new Audio('data:'+item.mime+';base64,'+item.b64);
-      boAudioPlaying=true;
-      a.onended=()=>{ boAudioPlaying=false; boPumpAudioQueue(); };
-      a.onerror=()=>{
-        boAudioPlaying=false;
-        if(!boAudioWarned){
-          boAudioWarned=true;
-          toast('مرورگر شما امکان پخش صدا را ندارد؛ لطفاً Chrome را امتحان کنید');
+      boAudioChain=boAudioChain.then(async()=>{
+        if(!boAudioUnlocked) return;
+        try{
+          const ctx=boGetAudioCtx();
+          const binary=atob(b64);
+          const bytes=new Uint8Array(binary.length);
+          for(let i=0;i<binary.length;i++) bytes[i]=binary.charCodeAt(i);
+          const audioBuffer=await ctx.decodeAudioData(bytes.buffer);
+          const now=ctx.currentTime;
+          if(boNextTime < now+0.05) boNextTime=now+0.05;
+          if(boNextTime - now > 1.5) boNextTime=now+0.05;
+          const src=ctx.createBufferSource();
+          src.buffer=audioBuffer;
+          src.connect(ctx.destination);
+          src.start(boNextTime);
+          boNextTime += audioBuffer.duration;
+        }catch(e){
+          if(!boAudioWarned){ boAudioWarned=true; toast('مرورگر شما امکان پخش صدا را ندارد؛ لطفاً Chrome را امتحان کنید'); }
         }
-        boPumpAudioQueue();
-      };
-      a.play().catch(()=>{ boAudioPlaying=false; boPumpAudioQueue(); });
+      });
     }
 
     function boUpdateParticipants(list){
@@ -4909,6 +4912,8 @@ async function studentBoardPage(env, id) {
         rec.ondataavailable=(e)=>{ if(e.data && e.data.size>0) chunks.push(e.data); };
         rec.onstop=async()=>{
           if(myGen!==boAudioGen) return;
+          // شروع فوری تکه‌ی بعدی صدا، پیش از کار async ارسال، تا شکاف بین ضبط‌ها به حداقل برسد
+          if(boAudioActive) recordOneChunk();
           if(chunks.length){
             const blob=new Blob(chunks, {type: mime||'audio/webm'});
             const buf=await blob.arrayBuffer();
@@ -4916,7 +4921,6 @@ async function studentBoardPage(env, id) {
             for(let i=0;i<bytes.length;i++)binary+=String.fromCharCode(bytes[i]);
             if(boWs&&boWs.readyState===1)boWs.send(JSON.stringify({type:'audio', data: btoa(binary), mime: mime||'audio/webm'}));
           }
-          if(boAudioActive && myGen===boAudioGen) setTimeout(recordOneChunk, 15);
         };
         rec.start();
         boRecorder=rec;
@@ -5051,41 +5055,39 @@ async function webinarJoinPage(env) {
 
     // ===== پخش زنده‌ی صدا (صف پخش برای هر فرستنده جداگانه، تا صداها روی هم نیفتند) =====
     const audioQueues={};
-    let audioUnlocked=false, audioWarned=false;
+    let audioUnlocked=false, audioWarned=false, sharedAudioCtx=null;
+    function getAudioCtx(){ if(!sharedAudioCtx) sharedAudioCtx=new (window.AudioContext||window.webkitAudioContext)(); return sharedAudioCtx; }
     (function(){
       const btn=document.getElementById('btn-enable-sound');
       btn.onclick=function(){
-        audioUnlocked=true;
-        btn.textContent='🔊 صدا فعال است';
-        btn.disabled=true;
-        const a=new Audio('data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAA=');
-        const unlock=()=>{ Object.keys(audioQueues).forEach(pumpAudioQueue); };
-        a.play().then(unlock).catch(unlock);
+        const ctx=getAudioCtx();
+        const unlock=()=>{ audioUnlocked=true; btn.textContent='🔊 صدا فعال است'; btn.disabled=true; };
+        if(ctx.state==='suspended') ctx.resume().then(unlock).catch(unlock); else unlock();
       };
     })();
     function playAudioChunk(id, b64, mime){
       let st=audioQueues[id];
-      if(!st) st=audioQueues[id]={queue:[],playing:false};
-      st.queue.push({b64, mime: mime||'audio/webm'});
-      if(st.queue.length>2) st.queue.splice(0, st.queue.length-2);
-      pumpAudioQueue(id);
-    }
-    function pumpAudioQueue(id){
-      const st=audioQueues[id];
-      if(!st || !audioUnlocked || st.playing || st.queue.length===0) return;
-      const item=st.queue.shift();
-      const a=new Audio('data:'+item.mime+';base64,'+item.b64);
-      st.playing=true;
-      a.onended=()=>{ st.playing=false; pumpAudioQueue(id); };
-      a.onerror=()=>{
-        st.playing=false;
-        if(!audioWarned){
-          audioWarned=true;
-          toast('مرورگر شما امکان پخش صدا را ندارد؛ لطفاً Chrome را امتحان کنید');
+      if(!st) st=audioQueues[id]={nextTime:0, chain:Promise.resolve()};
+      st.chain=st.chain.then(async()=>{
+        if(!audioUnlocked) return;
+        try{
+          const ctx=getAudioCtx();
+          const binary=atob(b64);
+          const bytes=new Uint8Array(binary.length);
+          for(let i=0;i<binary.length;i++) bytes[i]=binary.charCodeAt(i);
+          const audioBuffer=await ctx.decodeAudioData(bytes.buffer);
+          const now=ctx.currentTime;
+          if(st.nextTime < now+0.05) st.nextTime=now+0.05;
+          if(st.nextTime - now > 1.5) st.nextTime=now+0.05;
+          const src=ctx.createBufferSource();
+          src.buffer=audioBuffer;
+          src.connect(ctx.destination);
+          src.start(st.nextTime);
+          st.nextTime += audioBuffer.duration;
+        }catch(e){
+          if(!audioWarned){ audioWarned=true; toast('مرورگر شما امکان پخش صدا را ندارد؛ لطفاً Chrome را امتحان کنید'); }
         }
-        pumpAudioQueue(id);
-      };
-      a.play().catch(()=>{ st.playing=false; pumpAudioQueue(id); });
+      });
     }
 
     function updateParticipants(list){
@@ -5222,6 +5224,8 @@ async function webinarJoinPage(env) {
         rec.ondataavailable=(e)=>{ if(e.data && e.data.size>0) chunks.push(e.data); };
         rec.onstop=async()=>{
           if(myGen!==myAudioGen) return;
+          // شروع فوری تکه‌ی بعدی صدا، پیش از کار async ارسال، تا شکاف بین ضبط‌ها به حداقل برسد
+          if(myAudioActive) recordOneChunk();
           if(chunks.length){
             const blob=new Blob(chunks, {type: mime||'audio/webm'});
             const buf=await blob.arrayBuffer();
@@ -5229,7 +5233,6 @@ async function webinarJoinPage(env) {
             for(let i=0;i<bytes.length;i++)binary+=String.fromCharCode(bytes[i]);
             if(ws&&ws.readyState===1)ws.send(JSON.stringify({type:'audio', data: btoa(binary), mime: mime||'audio/webm'}));
           }
-          if(myAudioActive && myGen===myAudioGen) setTimeout(recordOneChunk, 15);
         };
         rec.start();
         myRecorder=rec;
@@ -16318,22 +16321,27 @@ function teacherScript() {
     studentCamTiles[id]=obj;
     return obj;
   }
+  function studentGetAudioCtx(){ if(!window.__studentAudioCtx) window.__studentAudioCtx=new (window.AudioContext||window.webkitAudioContext)(); return window.__studentAudioCtx; }
   function playStudentAudio(id, b64, mime){
     let st=studentAudioQ[id];
-    if(!st) st=studentAudioQ[id]={queue:[],playing:false};
-    st.queue.push({b64, mime: mime||'audio/webm'});
-    if(st.queue.length>2) st.queue.splice(0, st.queue.length-2);
-    pumpStudentAudio(id);
-  }
-  function pumpStudentAudio(id){
-    const st=studentAudioQ[id];
-    if(!st || st.playing || st.queue.length===0) return;
-    const item=st.queue.shift();
-    const a=new Audio('data:'+item.mime+';base64,'+item.b64);
-    st.playing=true;
-    a.onended=()=>{ st.playing=false; pumpStudentAudio(id); };
-    a.onerror=()=>{ st.playing=false; pumpStudentAudio(id); };
-    a.play().catch(()=>{ st.playing=false; pumpStudentAudio(id); });
+    if(!st) st=studentAudioQ[id]={nextTime:0, chain:Promise.resolve()};
+    st.chain=st.chain.then(async()=>{
+      try{
+        const ctx=studentGetAudioCtx();
+        const binary=atob(b64);
+        const bytes=new Uint8Array(binary.length);
+        for(let i=0;i<binary.length;i++) bytes[i]=binary.charCodeAt(i);
+        const audioBuffer=await ctx.decodeAudioData(bytes.buffer);
+        const now=ctx.currentTime;
+        if(st.nextTime < now+0.05) st.nextTime=now+0.05;
+        if(st.nextTime - now > 1.5) st.nextTime=now+0.05;
+        const src=ctx.createBufferSource();
+        src.buffer=audioBuffer;
+        src.connect(ctx.destination);
+        src.start(st.nextTime);
+        st.nextTime += audioBuffer.duration;
+      }catch(e){}
+    });
   }
   function clsPruneStudentMedia(list){
     const activeIds=new Set(list.filter(p=>p.role==='student').map(p=>p.id));
@@ -16448,7 +16456,9 @@ function teacherScript() {
       catch(e){ clsAudioActive=false; toast('امکان ضبط صدا در این مرورگر نیست'); return; }
       rec.ondataavailable=(e)=>{ if(e.data && e.data.size>0) chunks.push(e.data); };
       rec.onstop=async()=>{
-        if(myGen!==clsAudioGen) return; // این نسل صدا دیگر معتبر نیست (متوقف یا دوباره‌شروع‌شده)
+        if(myGen!==clsAudioGen) return;
+        // شروع فوری تکه‌ی بعدی صدا، پیش از کار async ارسال، تا شکاف بین ضبط‌ها به حداقل برسد
+        if(clsAudioActive) recordOneChunk();
         if(chunks.length){
           const blob=new Blob(chunks, {type: mime||'audio/webm'});
           const buf=await blob.arrayBuffer();
@@ -16456,7 +16466,6 @@ function teacherScript() {
           for(let i=0;i<bytes.length;i++)binary+=String.fromCharCode(bytes[i]);
           clsSend({type:'audio', data: btoa(binary), mime: mime||'audio/webm'});
         }
-        if(clsAudioActive && myGen===clsAudioGen) setTimeout(recordOneChunk, 15);
       };
       rec.start();
       clsRecorder=rec;
@@ -16746,23 +16755,27 @@ function teacherScript() {
   let webMicStream=null, webRecorder=null, webAudioActive=false, webAudioGen=0;
   let webCamStream=null, webCamInterval=null, webAudioFromCam=false, webCamFacing='user';
   const webAudioQueues={};
-
+  function webGetAudioCtx(){ if(!window.__webTAudioCtx) window.__webTAudioCtx=new (window.AudioContext||window.webkitAudioContext)(); return window.__webTAudioCtx; }
   function webPlayAudioChunk(id, b64, mime){
     let st=webAudioQueues[id];
-    if(!st) st=webAudioQueues[id]={queue:[],playing:false};
-    st.queue.push({b64, mime: mime||'audio/webm'});
-    if(st.queue.length>2) st.queue.splice(0, st.queue.length-2);
-    webPumpAudioQueue(id);
-  }
-  function webPumpAudioQueue(id){
-    const st=webAudioQueues[id];
-    if(!st || st.playing || st.queue.length===0) return;
-    const item=st.queue.shift();
-    const a=new Audio('data:'+item.mime+';base64,'+item.b64);
-    st.playing=true;
-    a.onended=()=>{ st.playing=false; webPumpAudioQueue(id); };
-    a.onerror=()=>{ st.playing=false; webPumpAudioQueue(id); };
-    a.play().catch(()=>{ st.playing=false; webPumpAudioQueue(id); });
+    if(!st) st=webAudioQueues[id]={nextTime:0, chain:Promise.resolve()};
+    st.chain=st.chain.then(async()=>{
+      try{
+        const ctx=webGetAudioCtx();
+        const binary=atob(b64);
+        const bytes=new Uint8Array(binary.length);
+        for(let i=0;i<binary.length;i++) bytes[i]=binary.charCodeAt(i);
+        const audioBuffer=await ctx.decodeAudioData(bytes.buffer);
+        const now=ctx.currentTime;
+        if(st.nextTime < now+0.05) st.nextTime=now+0.05;
+        if(st.nextTime - now > 1.5) st.nextTime=now+0.05;
+        const src=ctx.createBufferSource();
+        src.buffer=audioBuffer;
+        src.connect(ctx.destination);
+        src.start(st.nextTime);
+        st.nextTime += audioBuffer.duration;
+      }catch(e){}
+    });
   }
 
   function webUpdateParticipants(list){
@@ -16866,6 +16879,8 @@ function teacherScript() {
       rec.ondataavailable=(e)=>{ if(e.data && e.data.size>0) chunks.push(e.data); };
       rec.onstop=async()=>{
         if(webGen!==webAudioGen) return;
+        // شروع فوری تکه‌ی بعدی صدا، پیش از کار async ارسال، تا شکاف بین ضبط‌ها به حداقل برسد
+        if(webAudioActive) recordOneChunk();
         if(chunks.length){
           const blob=new Blob(chunks, {type: mime||'audio/webm'});
           const buf=await blob.arrayBuffer();
@@ -16873,7 +16888,6 @@ function teacherScript() {
           for(let i=0;i<bytes.length;i++)binary+=String.fromCharCode(bytes[i]);
           webSend({type:'audio', data: btoa(binary), mime: mime||'audio/webm'});
         }
-        if(webAudioActive && webGen===webAudioGen) setTimeout(recordOneChunk, 15);
       };
       rec.start();
       webRecorder=rec;
@@ -17442,23 +17456,28 @@ function teacherScript() {
     });
   }
 
-  let boAudioQueues={}, boAudioUnlockedFlag=true;
+  let boAudioQueues={};
+  function boGetAudioCtx(){ if(!window.__boTAudioCtx) window.__boTAudioCtx=new (window.AudioContext||window.webkitAudioContext)(); return window.__boTAudioCtx; }
   function boPlayAudioChunk(id, b64, mime){
     let st=boAudioQueues[id];
-    if(!st) st=boAudioQueues[id]={queue:[],playing:false};
-    st.queue.push({b64, mime: mime||'audio/webm'});
-    if(st.queue.length>2) st.queue.splice(0, st.queue.length-2);
-    boPumpAudioQueue(id);
-  }
-  function boPumpAudioQueue(id){
-    const st=boAudioQueues[id];
-    if(!st || st.playing || st.queue.length===0) return;
-    const item=st.queue.shift();
-    const a=new Audio('data:'+item.mime+';base64,'+item.b64);
-    st.playing=true;
-    a.onended=()=>{ st.playing=false; boPumpAudioQueue(id); };
-    a.onerror=()=>{ st.playing=false; boPumpAudioQueue(id); };
-    a.play().catch(()=>{ st.playing=false; boPumpAudioQueue(id); });
+    if(!st) st=boAudioQueues[id]={nextTime:0, chain:Promise.resolve()};
+    st.chain=st.chain.then(async()=>{
+      try{
+        const ctx=boGetAudioCtx();
+        const binary=atob(b64);
+        const bytes=new Uint8Array(binary.length);
+        for(let i=0;i<binary.length;i++) bytes[i]=binary.charCodeAt(i);
+        const audioBuffer=await ctx.decodeAudioData(bytes.buffer);
+        const now=ctx.currentTime;
+        if(st.nextTime < now+0.05) st.nextTime=now+0.05;
+        if(st.nextTime - now > 1.5) st.nextTime=now+0.05;
+        const src=ctx.createBufferSource();
+        src.buffer=audioBuffer;
+        src.connect(ctx.destination);
+        src.start(st.nextTime);
+        st.nextTime += audioBuffer.duration;
+      }catch(e){}
+    });
   }
 
   async function boConnect(){
@@ -17527,6 +17546,8 @@ function teacherScript() {
       rec.ondataavailable=(e)=>{ if(e.data && e.data.size>0) chunks.push(e.data); };
       rec.onstop=async()=>{
         if(myGen!==boAudioGen) return;
+        // شروع فوری تکه‌ی بعدی صدا، پیش از کار async ارسال، تا شکاف بین ضبط‌ها به حداقل برسد
+        if(boAudioActive) recordOneChunk();
         if(chunks.length){
           const blob=new Blob(chunks, {type: mime||'audio/webm'});
           const buf=await blob.arrayBuffer();
@@ -17534,7 +17555,6 @@ function teacherScript() {
           for(let i=0;i<bytes.length;i++)binary+=String.fromCharCode(bytes[i]);
           boSend({type:'audio', data: btoa(binary), mime: mime||'audio/webm'});
         }
-        if(boAudioActive && myGen===boAudioGen) setTimeout(recordOneChunk, 15);
       };
       rec.start();
       boRecorder=rec;
