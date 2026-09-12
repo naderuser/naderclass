@@ -7114,6 +7114,10 @@ function teacherPage() {
             <h4>📅 برنامه هفتگی</h4>
             <ul><li>ساخت و چاپ برنامه هفتگی کلاس</li></ul>
           </a>
+          <a class="home-card" href="/teacher?tab=sch-cert">
+            <h4>🏅 لوح تقدیر</h4>
+            <ul><li>ساخت و صدور لوح تقدیر و گواهی حضور در وبینار برای دانش‌آموزان</li></ul>
+          </a>
           <a class="home-card" href="/teacher?tab=tablesorg">
             <h4>📊 جدول‌ساز</h4>
             <ul>
@@ -9896,7 +9900,29 @@ function teacherScript() {
     });
   });
 
+  function activateSubtab(name){
+    document.querySelectorAll('.subtab[data-subtab]').forEach(x=>x.classList.remove('active'));
+    var tEl=document.querySelector('.subtab[data-subtab="'+name+'"]');
+    if(tEl)tEl.classList.add('active');
+    document.querySelectorAll('.subtab-content').forEach(c=>c.classList.add('hidden'));
+    var cEl=document.getElementById('tab-'+name);
+    if(cEl)cEl.classList.remove('hidden');
+    if(name==='answers')loadAnswers();
+    if(name==='worksheet')loadWorksheetList();
+    if(name==='questions'){updateDurationDisplay();}
+    if(name==='sch-cert'){certInit();certRenderStudentsList('cert');certLoadSettingsIfNeeded('cert');}
+    if(name==='sch-webinar'){certInit();certRenderStudentsList('wbc');certLoadSettingsIfNeeded('wbc');}
+    if(name==='classroom'){setTimeout(function(){if(typeof clsResizeBoard==='function')clsResizeBoard();},50);}
+    if(name==='attendance'){if(typeof attLoadLinks==='function')attLoadLinks();}
+    if(name==='board'){setTimeout(function(){if(typeof boResizeBoard==='function')boResizeBoard();},50);}
+  }
+  // نگاشت زیرتب‌هایی که لینک صفحه اصلی/منو مستقیم به آن‌ها اشاره می‌کند، به تب اصلی‌شان
+  // (چون این‌ها آی‌دی تب اصلی نیستند و activateSection باید بداند اول کدام کارت را باز کند)
+  var SUBTAB_PARENTS={ classroom:'classwebinar', webinar:'classwebinar', attendance:'classwebinar', board:'classwebinar', 'sch-weekly':'schedule', 'sch-cert':'schedule', 'sch-webinar':'schedule' };
+
   function activateSection(tabName){
+    var subtabTarget=null;
+    if(SUBTAB_PARENTS[tabName]){ subtabTarget=tabName; tabName=SUBTAB_PARENTS[tabName]; }
     document.querySelectorAll('.tab[data-tab]').forEach(x=>x.classList.remove('active'));
     var tEl=document.querySelector('.tab[data-tab="'+tabName+'"]');
     if(tEl)tEl.classList.add('active');
@@ -9917,22 +9943,10 @@ function teacherScript() {
     if(tabName==='classwebinar'){setTimeout(function(){if(typeof clsResizeBoard==='function')clsResizeBoard();},50);}
     if(tabName==='examsheet'){if(typeof loadExamSheetIfNeeded==='function')loadExamSheetIfNeeded();}
     if(tabName==='infoexchange'){if(typeof loadInfoExchangeIfNeeded==='function')loadInfoExchangeIfNeeded();}
+    if(subtabTarget)setTimeout(function(){activateSubtab(subtabTarget);},0);
   }
 
-  document.querySelectorAll('.subtab[data-subtab]').forEach(t=>t.onclick=()=>{
-    document.querySelectorAll('.subtab[data-subtab]').forEach(x=>x.classList.remove('active'));
-    t.classList.add('active');
-    document.querySelectorAll('.subtab-content').forEach(c=>c.classList.add('hidden'));
-    document.getElementById('tab-'+t.dataset.subtab).classList.remove('hidden');
-    if(t.dataset.subtab==='answers')loadAnswers();
-    if(t.dataset.subtab==='worksheet')loadWorksheetList();
-    if(t.dataset.subtab==='questions'){updateDurationDisplay();}
-    if(t.dataset.subtab==='sch-cert'){certInit();certRenderStudentsList('cert');certLoadSettingsIfNeeded('cert');}
-    if(t.dataset.subtab==='sch-webinar'){certInit();certRenderStudentsList('wbc');certLoadSettingsIfNeeded('wbc');}
-    if(t.dataset.subtab==='classroom'){setTimeout(function(){if(typeof clsResizeBoard==='function')clsResizeBoard();},50);}
-    if(t.dataset.subtab==='attendance'){if(typeof attLoadLinks==='function')attLoadLinks();}
-    if(t.dataset.subtab==='board'){setTimeout(function(){if(typeof boResizeBoard==='function')boResizeBoard();},50);}
-  });
+  document.querySelectorAll('.subtab[data-subtab]').forEach(t=>t.onclick=()=>activateSubtab(t.dataset.subtab));
 
   // ===== دانش‌آموزان =====
   let TEACHER_STUDENTS=[];
