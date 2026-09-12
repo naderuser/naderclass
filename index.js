@@ -9161,7 +9161,7 @@ function teacherPage() {
         <div class="lb-panel hidden" id="lb-panel-idmatch">
           <button class="btn sm gray lb-back-btn">← بازگشت به دفتر</button>
           <h3>🪪 فرم تطبیق با اصل شناسنامه دانش‌آموز</h3>
-          <p class="muted">فرم تطبیق با اصل شناسنامه برای ثبت‌نام؛ بعد از انتخاب پایه و دانش‌آموز، مشخصات را تکمیل و تأیید کنید</p>
+          <p class="muted">فرم را به‌صورت دستی تکمیل کنید؛ نیازی به انتخاب از لیست دانش‌آموزان نیست</p>
           <div class="row" style="align-items:center">
             <label style="flex:0 0 auto">پایه تحصیلی:</label>
             <select id="im-grade-select" style="flex:0 0 auto;min-width:180px">
@@ -9172,16 +9172,9 @@ function teacherPage() {
               <option value="4">پایه پنجم ابتدایی</option>
               <option value="5">پایه ششم ابتدایی</option>
             </select>
+            <button class="btn sm gray" type="button" id="btn-im-clear" style="flex:0 0 auto">🗑️ پاک کردن فرم</button>
           </div>
-          <div class="row" style="align-items:center;flex-wrap:wrap;gap:8px">
-            <label style="flex:0 0 auto">دانش‌آموز:</label>
-            <select id="im-student-select" style="flex:0 0 auto;min-width:220px">
-              <option value="">— انتخاب دانش‌آموز —</option>
-            </select>
-            <button class="btn sm danger hidden" id="btn-im-delete">🗑️ حذف این فرم</button>
-          </div>
-          <p class="muted" style="margin:4px 0 0">دانش‌آموز موردنظر را نمی‌بینید؟ ابتدا از بخش «لیست اسامی دانش‌آموزان» او را اضافه کنید.</p>
-          <div id="im-form-wrap" class="hidden">
+          <div id="im-form-wrap">
             <div class="rc-header-box">
               <div class="rc-photo-wrap">
                 <img id="im-photo-preview" class="hidden">
@@ -9213,11 +9206,11 @@ function teacherPage() {
                 <textarea id="im-confirm-note" rows="2" class="lb-textarea" style="margin-top:8px" placeholder="توضیحات (در صورت وجود منع سنی یا نکته‌ی خاص، اینجا بنویسید)"></textarea>
               </div>
               <div style="flex:0 0 auto;display:flex;flex-direction:column;align-items:center;gap:8px">
-                <div style="width:100%"><label>معلم</label><input id="im-teacher-name" placeholder="نام و نام‌خانوادگی معلم" style="min-width:170px"></div>
+                <div style="width:100%"><label>مدیر</label><input id="im-principal-name" placeholder="نام و نام‌خانوادگی مدیر" style="min-width:170px"></div>
                 <div class="im-sign-box">مهر و امضا</div>
               </div>
             </div>
-            <p class="muted" style="font-size:12px;text-align:center">توجّه! مسئولیت کنترل شرایط سنی دانش‌آموز بر عهده‌ی معلم می‌باشد.</p>
+            <p class="muted" style="font-size:12px;text-align:center">توجّه! مسئولیت کنترل شرایط سنی دانش‌آموز بر عهده‌ی مدیر مدرسه می‌باشد.</p>
             <div class="row" style="justify-content:center;align-items:center;margin-top:10px;flex-wrap:wrap;gap:8px">
               <span style="font-weight:700">🔤 فونت:</span>
               <select id="im-font" style="padding:8px;border:1px solid #ddd;border-radius:6px;width:auto">
@@ -17703,11 +17696,7 @@ function teacherScript() {
         RC_CURRENT_UUID=null;
         rcRenderStudentList(rcSelectedGradeIdx());
       }
-      if(b.dataset.lb==='idmatch'){
-        document.getElementById('im-form-wrap').classList.add('hidden');
-        IM_CURRENT_UUID=null;
-        imRenderStudentList(imSelectedGradeIdx());
-      }
+      if(b.dataset.lb==='idmatch')lbLoadIdmatchIfNeeded();
       if(b.dataset.lb==='council')lbLoadCouncilIfNeeded();
       if(b.dataset.lb==='meetings')lbLoadMeetingsIfNeeded();
       if(b.dataset.lb==='weekly')lbLoadWeeklyIfNeeded();
@@ -19479,11 +19468,7 @@ function teacherScript() {
     });
   };
 
-  // ===================== فرم تطبیق با اصل شناسنامه =====================
-  function imSelectedGradeIdx(){
-    return parseInt(document.getElementById('im-grade-select').value,10)||0;
-  }
-  var IM_CURRENT_UUID=null;
+  // ===================== فرم تطبیق با اصل شناسنامه (فرم دستی، بدون اتصال به دانش‌آموز) =====================
   var IM_PHOTO='';
   function imSetPhoto(dataUrl){
     IM_PHOTO=dataUrl||'';
@@ -19525,63 +19510,38 @@ function teacherScript() {
   });
   var imFontSizeCtl=lbLiveFontSize('#im-form-wrap','im-fontsize','btn-im-fontsize-inc','btn-im-fontsize-dec',14);
 
-  document.getElementById('im-grade-select').addEventListener('change',function(){
-    document.getElementById('im-form-wrap').classList.add('hidden');
-    document.getElementById('btn-im-delete').classList.add('hidden');
-    IM_CURRENT_UUID=null;
-    imRenderStudentList(imSelectedGradeIdx());
-  });
-
-  async function imRenderStudentList(gradeIdx){
-    // فهرست دانش‌آموزان همان فهرست واقعی ثبت‌نامی کلاس است (مطابق الگوی کارنامه‌ساز) تا فرم
-    // تطبیق‌شده دقیقاً زیر همان شناسه‌ی دانش‌آموز ذخیره شود.
-    var sel=document.getElementById('im-student-select');
-    var prevVal=sel.value;
-    sel.innerHTML='<option value="">در حال بارگذاری...</option>';
-    var d=await api('/api/teacher/students');
-    var all=(d&&d.ok&&d.students)||[];
-    var list=all.filter(function(s){return (Number.isInteger(s.grade)?s.grade:0)===gradeIdx;});
-    sel.innerHTML='<option value="">— انتخاب دانش‌آموز —</option>';
-    list.forEach(function(s){
-      var opt=document.createElement('option');
-      opt.value=s.uuid;
-      opt.textContent=s.label||'(بدون نام)';
-      sel.appendChild(opt);
-    });
-    if(!list.length){
-      var opt2=document.createElement('option');
-      opt2.value='';opt2.disabled=true;
-      opt2.textContent='دانش‌آموزی در این پایه ثبت نشده (از بخش «لیست اسامی دانش‌آموزان» اضافه کنید)';
-      sel.appendChild(opt2);
-    }else if(prevVal && list.some(function(s){return s.uuid===prevVal;})){
-      sel.value=prevVal;
-    }
-  }
   function imUpdateConfirmEcho(){
     var name=document.getElementById('im-student-name').value||'.......................';
     document.getElementById('im-confirm-name-echo').textContent=name;
   }
-  async function imLoadStudent(uuidStr){
-    var rec=await lbLoad('idmatch:student:'+uuidStr);
-    IM_CURRENT_UUID=uuidStr;
-    if(!rec){
-      var nameFromList=document.getElementById('im-student-select').selectedOptions[0]?document.getElementById('im-student-select').selectedOptions[0].textContent:'';
-      document.getElementById('im-student-name').value=nameFromList||'';
-      document.getElementById('im-father-name').value='';
-      document.getElementById('im-national-id').value='';
-      document.getElementById('im-birth-day').value='';
-      document.getElementById('im-birth-month').value='';
-      document.getElementById('im-birth-year').value='';
-      document.getElementById('im-confirm-checkbox').checked=false;
-      document.getElementById('im-confirm-note').value='';
-      document.getElementById('im-teacher-name').value='';
-      imSetPhoto('');
-      document.getElementById('btn-im-delete').classList.add('hidden');
-      document.getElementById('im-form-wrap').classList.remove('hidden');
-      imUpdateConfirmEcho();
-      toast('برای «'+(nameFromList||'این دانش‌آموز')+'» هنوز فرم تطبیقی ثبت نشده؛ می‌توانید تکمیل کنید');
-      return;
-    }
+  document.getElementById('im-student-name').addEventListener('input',imUpdateConfirmEcho);
+
+  function imClearForm(){
+    document.getElementById('im-school').value='';
+    document.getElementById('im-year').value='';
+    document.getElementById('im-student-name').value='';
+    document.getElementById('im-father-name').value='';
+    document.getElementById('im-national-id').value='';
+    document.getElementById('im-birth-day').value='';
+    document.getElementById('im-birth-month').value='';
+    document.getElementById('im-birth-year').value='';
+    document.getElementById('im-confirm-checkbox').checked=false;
+    document.getElementById('im-confirm-note').value='';
+    document.getElementById('im-principal-name').value='';
+    imSetPhoto('');
+    imUpdateConfirmEcho();
+  }
+  document.getElementById('btn-im-clear').onclick=function(){
+    if(!confirm('آیا از پاک کردن فرم مطمئن هستید؟'))return;
+    imClearForm();
+  };
+
+  var IM_LOADED=false;
+  async function lbLoadIdmatchIfNeeded(){
+    if(IM_LOADED)return;
+    IM_LOADED=true;
+    var rec=await lbLoad('idmatch');
+    if(!rec)return;
     document.getElementById('im-student-name').value=rec.name||'';
     document.getElementById('im-father-name').value=rec.fatherName||'';
     document.getElementById('im-national-id').value=rec.nationalId||'';
@@ -19590,47 +19550,24 @@ function teacherScript() {
     document.getElementById('im-birth-year').value=rec.birthYear||'';
     document.getElementById('im-confirm-checkbox').checked=!!rec.confirmed;
     document.getElementById('im-confirm-note').value=rec.confirmNote||'';
-    document.getElementById('im-teacher-name').value=rec.teacherName||'';
+    document.getElementById('im-principal-name').value=rec.principalName||'';
     imSetPhoto(rec.photo||'');
     if(rec.meta){
       document.getElementById('im-school').value=rec.meta.school||'';
       document.getElementById('im-year').value=rec.meta.year||'';
     }
+    if(Number.isInteger(rec.grade))document.getElementById('im-grade-select').value=String(rec.grade);
     if(rec.font){
       document.getElementById('im-font').value=rec.font;
       var panel=document.getElementById('lb-panel-idmatch');
       if(panel)panel.style.fontFamily=IM_FONTS[rec.font]||'';
     }
-    document.getElementById('btn-im-delete').classList.remove('hidden');
-    document.getElementById('im-form-wrap').classList.remove('hidden');
     imUpdateConfirmEcho();
   }
-  document.getElementById('im-student-select').addEventListener('change',function(){
-    if(this.value)imLoadStudent(this.value);
-    else{document.getElementById('im-form-wrap').classList.add('hidden');document.getElementById('btn-im-delete').classList.add('hidden');}
-  });
-  document.getElementById('im-student-name').addEventListener('input',imUpdateConfirmEcho);
-  document.getElementById('btn-im-delete').onclick=async function(){
-    if(!IM_CURRENT_UUID)return;
-    var studentName=document.getElementById('im-student-name').value||'این دانش‌آموز';
-    if(!confirm('آیا از حذف فرم تطبیق با اصل شناسنامه‌ی «'+studentName+'» مطمئن هستید؟ این کار قابل بازگشت نیست.'))return;
-    var ok=await lbSave('idmatch:student:'+IM_CURRENT_UUID,null,true);
-    if(ok){
-      toast('فرم تطبیقی حذف شد ✅');
-      imLoadStudent(IM_CURRENT_UUID);
-    }else{
-      toast('خطا در حذف اطلاعات');
-    }
-  };
   document.getElementById('btn-im-save').onclick=async function(){
-    var name=document.getElementById('im-student-name').value.trim();
-    if(!name){toast('لطفاً ابتدا نام دانش‌آموز را وارد کنید');return;}
-    if(!IM_CURRENT_UUID){toast('لطفاً ابتدا دانش‌آموز را از فهرست «— انتخاب دانش‌آموز —» انتخاب کنید');return;}
-    var gradeIdx=imSelectedGradeIdx();
     var rec={
-      uuid:IM_CURRENT_UUID,
-      name:name,
-      grade:gradeIdx,
+      name:document.getElementById('im-student-name').value,
+      grade:parseInt(document.getElementById('im-grade-select').value,10)||0,
       fatherName:document.getElementById('im-father-name').value,
       nationalId:document.getElementById('im-national-id').value,
       birthDay:document.getElementById('im-birth-day').value,
@@ -19638,18 +19575,13 @@ function teacherScript() {
       birthYear:document.getElementById('im-birth-year').value,
       confirmed:document.getElementById('im-confirm-checkbox').checked,
       confirmNote:document.getElementById('im-confirm-note').value,
-      teacherName:document.getElementById('im-teacher-name').value,
+      principalName:document.getElementById('im-principal-name').value,
       photo:IM_PHOTO,
       font:imFontKey(),
       meta:{school:document.getElementById('im-school').value,year:document.getElementById('im-year').value}
     };
-    var ok=await lbSave('idmatch:student:'+IM_CURRENT_UUID,rec,true);
-    if(ok){
-      document.getElementById('btn-im-delete').classList.remove('hidden');
-      toast('فرم تطبیق «'+name+'» ذخیره شد ✅');
-    }else{
-      toast('خطا در ذخیره اطلاعات');
-    }
+    var ok=await lbSave('idmatch',rec,true);
+    toast(ok?'فرم تطبیق ذخیره شد ✅':'خطا در ذخیره اطلاعات');
   };
   function imExportHtml(){
     var gradeText=document.getElementById('im-grade-select').selectedOptions[0].textContent;
@@ -19675,10 +19607,10 @@ function teacherScript() {
     if(confirmNote)confirmBox+='<p style="margin:2px 0"><b>توضیحات:</b> '+esc(confirmNote)+'</p>';
     confirmBox+='</div>';
     confirmBox+='<div style="flex:0 0 auto;text-align:center;font-size:13px">';
-    confirmBox+='<p style="margin:2px 0"><b>معلم</b></p><p style="margin:2px 0">'+esc(document.getElementById('im-teacher-name').value||'.......................')+'</p>';
+    confirmBox+='<p style="margin:2px 0"><b>مدیر</b></p><p style="margin:2px 0">'+esc(document.getElementById('im-principal-name').value||'.......................')+'</p>';
     confirmBox+='<div style="border:1.5px dashed #94a3b8;border-radius:8px;padding:10px 16px;margin-top:6px;color:#64748b;font-size:12px">مهر و امضا</div>';
     confirmBox+='</div></div>';
-    var note='<p style="font-size:11px;text-align:center;color:#555">توجّه! مسئولیت کنترل شرایط سنی دانش‌آموز بر عهده‌ی معلم می‌باشد.</p>';
+    var note='<p style="font-size:11px;text-align:center;color:#555">توجّه! مسئولیت کنترل شرایط سنی دانش‌آموز بر عهده‌ی مدیر مدرسه می‌باشد.</p>';
     return h+meta+confirmBox+note;
   }
   document.getElementById('btn-im-word').onclick=function(){lbWordExport('فرم تطبیق با اصل شناسنامه',imExportHtml(),'فرم-تطبیق-شناسنامه',false,imFontFamily(),imFontSizeCtl.current());};
@@ -19697,7 +19629,7 @@ function teacherScript() {
       rows.push(['تاریخ تولد',(document.getElementById('im-birth-day').value||'')+'/'+(document.getElementById('im-birth-month').value||'')+'/'+(document.getElementById('im-birth-year').value||'')]);
       rows.push(['تأیید تطبیق با شناسنامه',document.getElementById('im-confirm-checkbox').checked?'بله':'خیر']);
       rows.push(['توضیحات',document.getElementById('im-confirm-note').value||'']);
-      rows.push(['نام معلم',document.getElementById('im-teacher-name').value||'']);
+      rows.push(['نام مدیر',document.getElementById('im-principal-name').value||'']);
       lbAddExcelSheet(wb,'تطبیق شناسنامه',rows);
     });
   };
