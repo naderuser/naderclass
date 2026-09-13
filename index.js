@@ -651,6 +651,8 @@ async function handleApi(req, env, url, path) {
       hasGroqKey: typeof env.GROQ_API_KEY === "string" && env.GROQ_API_KEY.length > 0,
       groqKeyLength: env.GROQ_API_KEY ? env.GROQ_API_KEY.length : 0,
       hasCloudflareAiBinding: typeof env.AI !== "undefined" && env.AI !== null,
+      hasAllHandsKey: typeof env.ALLHANDS_API_KEY === "string" && env.ALLHANDS_API_KEY.length > 0,
+      allHandsKeyLength: env.ALLHANDS_API_KEY ? env.ALLHANDS_API_KEY.length : 0,
     });
   }
 
@@ -1490,7 +1492,21 @@ async function handleApi(req, env, url, path) {
       const body = await req.json().catch(() => ({}));
       const messages = body.messages || [];
       const maxTokens = Math.min(Math.max(parseInt(body.max_tokens, 10) || 1024, 256), 8192);
-      const provider = body.provider === "groq" ? "groq" : body.provider === "cloudflare" ? "cloudflare" : "gemini";
+      const provider = body.provider === "groq" ? "groq" : body.provider === "cloudflare" ? "cloudflare" : body.provider === "allhands" ? "allhands" : "gemini";
+
+      // ----- موتور OpenHands (all-hands.dev) — سازگار با فرمت OpenAI -----
+      if (provider === "allhands") {
+        const ahKey = env.ALLHANDS_API_KEY;
+        if (!ahKey) return json({ error: "کلید ALLHANDS_API_KEY تنظیم نشده" }, 500);
+        const ahModel = body.model || env.ALLHANDS_MODEL || "deepseek-v4-flash";
+        const trimmedAhMessages = messages.slice(-10);
+        const result = await callOpenAiCompatible(
+          "https://llm-proxy.app.all-hands.dev/v1/chat/completions",
+          ahKey, ahModel, trimmedAhMessages, maxTokens
+        );
+        if (!result.ok) return json({ error: "OpenHands: " + result.error }, result.status);
+        return json({ ok: true, content: result.content });
+      }
 
       // ----- موتور Groq — سازگار با فرمت OpenAI، سخت‌افزار LPU با سرعت بسیار بالا -----
       if (provider === "groq") {
@@ -9635,6 +9651,14 @@ function teacherPage() {
           <label style="display:flex;align-items:center;gap:6px;font-weight:700;cursor:pointer"><input type="radio" name="ai-provider" value="gemini" id="ai-provider-gemini"> ✨ Gemini (گوگل)</label>
           <label style="display:flex;align-items:center;gap:6px;font-weight:700;cursor:pointer"><input type="radio" name="ai-provider" value="groq" id="ai-provider-groq"> ⚡ Groq</label>
           <label style="display:flex;align-items:center;gap:6px;font-weight:700;cursor:pointer"><input type="radio" name="ai-provider" value="cloudflare" id="ai-provider-cloudflare"> ☁️ Cloudflare Workers AI</label>
+          <label style="display:flex;align-items:center;gap:6px;font-weight:700;cursor:pointer"><input type="radio" name="ai-provider" value="allhands" id="ai-provider-allhands"> 🤝 OpenHands (رایگان)</label>
+        </div>
+        <div id="ai-allhands-model-wrap" class="hidden" style="margin-bottom:18px">
+          <label>مدل OpenHands</label>
+          <select id="ai-allhands-model">
+            <option value="deepseek-v4-flash">DeepSeek V4 Flash (رایگان)</option>
+          </select>
+          <p class="muted" style="font-size:12px;margin-top:6px">🤝 این موتور از سرویس رایگان OpenHands (all-hands.dev) استفاده می‌کند. کلید API باید به‌صورت متغیر محیطی ALLHANDS_API_KEY در تنظیمات Worker ذخیره شده باشد.</p>
         </div>
         <div id="ai-groq-model-wrap" class="hidden" style="margin-bottom:18px">
           <label>مدل Groq</label>
@@ -9865,14 +9889,16 @@ function teacherScript() {
   var AI_PROVIDER_KEY='ai-provider-choice';
   var AI_MODEL_KEY_GROQ='ai-groq-model-choice';
   var AI_MODEL_KEY_CLOUDFLARE='ai-cloudflare-model-choice';
+  var AI_MODEL_KEY_ALLHANDS='ai-allhands-model-choice';
   window.getAiProvider=function(){
     var p=localStorage.getItem(AI_PROVIDER_KEY)||'gemini';
-    return (p==='groq'||p==='cloudflare')?p:'gemini'; // موتور OpenCode حذف شده؛ اگر قبلاً انتخاب شده بود، برگرد به Gemini
+    return (p==='groq'||p==='cloudflare'||p==='allhands')?p:'gemini'; // موتور OpenCode حذف شده؛ اگر قبلاً انتخاب شده بود، برگرد به Gemini
   };
   window.getAiModel=function(){
     var p=getAiProvider();
     if(p==='groq')return localStorage.getItem(AI_MODEL_KEY_GROQ)||'openai/gpt-oss-20b';
     if(p==='cloudflare')return localStorage.getItem(AI_MODEL_KEY_CLOUDFLARE)||'@cf/meta/llama-3.1-8b-instruct-fast';
+    if(p==='allhands')return localStorage.getItem(AI_MODEL_KEY_ALLHANDS)||'deepseek-v4-flash';
     return '';
   };
   (function initAiProviderUI(){
@@ -9881,17 +9907,21 @@ function teacherScript() {
     var groqSel=document.getElementById('ai-groq-model');
     var cfWrap=document.getElementById('ai-cloudflare-model-wrap');
     var cfSel=document.getElementById('ai-cloudflare-model');
+    var ahWrap=document.getElementById('ai-allhands-model-wrap');
+    var ahSel=document.getElementById('ai-allhands-model');
     if(!radios.length)return;
     function applyVisibility(p){
       if(groqWrap)groqWrap.classList.toggle('hidden',p!=='groq');
       if(cfWrap)cfWrap.classList.toggle('hidden',p!=='cloudflare');
+      if(ahWrap)ahWrap.classList.toggle('hidden',p!=='allhands');
     }
     var current=getAiProvider();
     radios.forEach(function(r){r.checked=(r.value===current);});
     applyVisibility(current);
     if(groqSel)groqSel.value=localStorage.getItem(AI_MODEL_KEY_GROQ)||'openai/gpt-oss-20b';
     if(cfSel)cfSel.value=localStorage.getItem(AI_MODEL_KEY_CLOUDFLARE)||'@cf/meta/llama-3.1-8b-instruct-fast';
-    var AI_PROVIDER_LABELS={gemini:'Gemini',groq:'Groq',cloudflare:'Cloudflare Workers AI'};
+    if(ahSel)ahSel.value=localStorage.getItem(AI_MODEL_KEY_ALLHANDS)||'deepseek-v4-flash';
+    var AI_PROVIDER_LABELS={gemini:'Gemini',groq:'Groq',cloudflare:'Cloudflare Workers AI',allhands:'OpenHands'};
     radios.forEach(function(r){
       r.addEventListener('change',function(){
         if(!this.checked)return;
@@ -9900,6 +9930,11 @@ function teacherScript() {
         toast('موتور هوش مصنوعی به «'+(AI_PROVIDER_LABELS[this.value]||this.value)+'» تغییر کرد ✅');
       });
     });
+    if(ahSel){
+      ahSel.addEventListener('change',function(){
+        localStorage.setItem(AI_MODEL_KEY_ALLHANDS,this.value);
+      });
+    }
     if(groqSel){
       groqSel.addEventListener('change',function(){
         localStorage.setItem(AI_MODEL_KEY_GROQ,this.value);
