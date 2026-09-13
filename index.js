@@ -9790,7 +9790,7 @@ function teacherScript() {
            dark:{bg:'#2B0F18',card:'#3A1420',primary:'#D6336C',   'primary-2':'#A61E4D',accent:'#6FA37D',muted:'#C9A0AC',line:'#4A1F2C',text:'#FBEAEF',danger:'#DC2626',soft:'#3A1420','soft-2':'#4A1F2C'}},
     tea:{light:{bg:'#F4EDDD',card:'#FAF3E4',primary:'#AE4E28','primary-2':'#C08A2E',accent:'#3E7C4F',muted:'#6b6455',line:'#E4D8B8',text:'#1C3327',danger:'#C0392B',soft:'#F3E4C8','soft-2':'#E4D8B8'},
          dark:{bg:'#15271E',card:'#1C3327',primary:'#AE4E28',   'primary-2':'#C08A2E',accent:'#4F9464',muted:'#A9B7A9',line:'#33473A',text:'#F4EDDD',danger:'#DC2626',soft:'#26392c','soft-2':'#33473A'}},
-    ocean:{light:{bg:'#f1f5f9',card:'#e9f0fb',primary:'#1d4ed8','primary-2':'#2563eb',accent:'#0d9488',muted:'#64748b',line:'#e2e8f0',text:'#0f172a',danger:'#dc2626',soft:'#e0e7ff','soft-2':'#c7d2fe'},
+    ocean:{light:{bg:'#F5F8FD',card:'#FFFFFF',primary:'#7CA3E8','primary-2':'#93B9EE',accent:'#6FBDB2',muted:'#8592A8',line:'#E7EDF7',text:'#33415A',danger:'#dc2626',soft:'#EDF3FC','soft-2':'#DEE9FA'},
           dark:{bg:'#0f172a',card:'#1e293b',primary:'#1d4ed8',   'primary-2':'#2563eb',accent:'#14b8a6',muted:'#94a3b8',line:'#334155',text:'#f1f5f9',danger:'#dc2626',soft:'#334155','soft-2':'#475569'}},
     emerald:{light:{bg:'#f0fdf6',card:'#e6fbef',primary:'#059669','primary-2':'#10b981',accent:'#0891b2',muted:'#64748b',line:'#d1fae5',text:'#0f2e22',danger:'#dc2626',soft:'#d1fae5','soft-2':'#a7f3d0'},
             dark:{bg:'#052e22',card:'#0e3d2e',primary:'#059669',   'primary-2':'#10b981',accent:'#22d3ee',muted:'#9fc9b8',line:'#155e46',text:'#ecfdf5',danger:'#dc2626',soft:'#155e46','soft-2':'#1c6e53'}},
