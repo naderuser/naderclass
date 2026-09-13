@@ -2099,6 +2099,19 @@ const SHARED_CSS = `
   .lb-table th{background:#dbeafe;color:var(--text);font-weight:700}
   [data-theme="dark"] .lb-table th{background:#1e3a5f}
   .lb-table input,.lb-table textarea{width:100%;border:none;background:transparent;text-align:center;font-family:inherit;font-size:12px;padding:2px}
+  /* --- طرح درس روزانه --- */
+  .lp-sheet{overflow-x:auto}
+  .lp-table{table-layout:fixed}
+  .lp-table td{vertical-align:top}
+  .lp-table td.lp-r{text-align:right}
+  .lp-table td.lp-r input,.lp-table td.lp-r textarea{text-align:right}
+  .lp-table td.lp-hd{background:#dbeafe;font-weight:700;text-align:center;vertical-align:middle}
+  [data-theme="dark"] .lp-table td.lp-hd{background:#1e3a5f}
+  .lp-table td.lp-time{min-width:56px;text-align:center;vertical-align:middle}
+  .lp-table .lp-line{display:flex;align-items:center;gap:4px;margin:3px 0;white-space:nowrap}
+  .lp-table .lp-line b{flex:0 0 auto;font-size:12px}
+  .lp-table .lp-line input{flex:1;min-width:30px}
+  .lp-table textarea.lp-area{min-height:44px;margin-top:2px}
   .lbs-cell-ta{resize:none;overflow:hidden;box-sizing:border-box;line-height:1.5;display:block;min-height:1.6em}
   #lbr-table th{color:#1e293b}
   #lbr-table th.lbr-th-0{background:#e0e7ff}
@@ -8635,6 +8648,7 @@ function teacherPage() {
           <h3>📖 دفتر مدیریت کلاسی</h3>
           <p class="muted">مجموعه‌ی فرم‌های اداری و آموزشی معلم؛ هرکدام را انتخاب کنید تا وارد شوید. همه قابل دانلود Word، Excel و چاپ/PDF هستند.</p>
           <div class="lb-menu-grid">
+            <button class="lb-menu-btn" data-lb="lessonplan"><span class="lb-ico">📝</span><span class="lb-t">طرح درس روزانه</span><small>فرم کامل با جدول مراحل تدریس</small></button>
             <button class="lb-menu-btn" data-lb="pacing"><span class="lb-ico">📈</span><span class="lb-t">جدول بودجه‌بندی آموزشی</span><small>پایه‌های اول تا ششم</small></button>
             <button class="lb-menu-btn" data-lb="roster"><span class="lb-ico">👥</span><span class="lb-t">لیست اسامی دانش‌آموزان</span></button>
             <button class="lb-menu-btn" data-lb="genderstats"><span class="lb-ico">🥧</span><span class="lb-t">آمار دانش‌آموزان</span><small>به تفکیک جنسیت</small></button>
@@ -9506,6 +9520,112 @@ function teacherPage() {
           </div>
         </div>
 
+        <!-- ===== طرح درس روزانه ===== -->
+        <div class="lb-panel hidden" id="lb-panel-lessonplan">
+          <button class="btn sm gray lb-back-btn">← بازگشت به دفتر</button>
+          <div class="row" style="align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px">
+            <h3 style="margin:0">📝 طرح درس روزانه</h3>
+          </div>
+          <div class="row" style="align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px">
+            <label style="flex:0 0 auto;font-weight:700">فونت سند خروجی:</label>
+            <select id="lp-font" style="flex:0 0 auto;min-width:150px">
+              <option value="default">پیش‌فرض</option>
+              <option value="nazanin" selected>B Nazanin</option>
+              <option value="mitra">B Mitra</option>
+              <option value="titr">B Titr</option>
+            </select>
+            <label style="flex:0 0 auto;font-weight:700">اندازه فونت:</label>
+            <input type="number" id="lp-font-size" min="8" max="24" step="1" value="12" style="width:70px;padding:6px;border:1px solid #ddd;border-radius:6px">
+          </div>
+          <p class="muted" style="text-align:center;font-weight:700;margin:0 0 2px">به نام خدا</p>
+          <p class="muted" style="text-align:center;font-weight:700;margin:0 0 10px">طرح درس روزانه</p>
+
+          <div class="lb-preview lp-sheet">
+            <table class="lb-table lp-table" id="lp-table">
+              <tbody>
+                <tr>
+                  <td colspan="2" class="lp-r">
+                    <div class="lp-line"><b>شماره طرح درس:</b><input type="text" id="lp-num"></div>
+                    <div class="lp-line"><b>نام مدرسه:</b><input type="text" id="lp-school"></div>
+                    <div class="lp-line"><b>تعداد دانش‌آموزان:</b><input type="text" id="lp-students"></div>
+                  </td>
+                  <td class="lp-r">
+                    <div class="lp-line"><b>پایه:</b><input type="text" id="lp-grade"></div>
+                    <div class="lp-line"><b>دوره تحصیلی:</b><input type="text" id="lp-period"></div>
+                  </td>
+                  <td colspan="2" class="lp-r">
+                    <div class="lp-line"><b>نام مجری:</b><input type="text" id="lp-teacher"></div>
+                    <div class="lp-line"><b>تاریخ اجرا:</b><input type="text" id="lp-date"></div>
+                    <div class="lp-line"><b>مدت اجرا:</b><input type="text" id="lp-duration"></div>
+                  </td>
+                  <td class="lp-r">
+                    <div class="lp-line"><b>نام درس:</b><input type="text" id="lp-lesson"></div>
+                    <div class="lp-line"><b>موضوع درس:</b><input type="text" id="lp-topic"></div>
+                    <div class="lp-line"><b>صفحات:</b><input type="text" id="lp-pages"></div>
+                  </td>
+                  <td class="lp-hd">مشخصات کلی</td>
+                </tr>
+                <tr><td colspan="7" class="lp-r"><div class="lp-line"><b>هدف کلی:</b></div><textarea id="lp-goal-general" class="lp-area" rows="2"></textarea></td></tr>
+                <tr><td colspan="7" class="lp-r"><div class="lp-line"><b>هدف های جزیی:</b></div><textarea id="lp-goal-partial" class="lp-area" rows="2"></textarea></td></tr>
+                <tr><td colspan="7" class="lp-r"><div class="lp-line"><b>هدف های رفتاری:</b></div><textarea id="lp-goal-behavioral" class="lp-area" rows="2"></textarea></td></tr>
+                <tr><td colspan="7" class="lp-r"><div class="lp-line"><b>رفتار ورودی (پیش‌دانسته‌ها):</b> دانش‌آموزان قبل از تدریس این درس می‌توانند</div><textarea id="lp-entry-behavior" class="lp-area" rows="2"></textarea></td></tr>
+                <tr><td colspan="7" class="lp-r"><div class="lp-line"><b>رئوس مطالب:</b></div><textarea id="lp-outline" class="lp-area" rows="2"></textarea></td></tr>
+                <tr><td colspan="7" class="lp-r"><div class="lp-line"><b>مواد و رسانه‌های آموزشی:</b></div><textarea id="lp-materials" class="lp-area" rows="2"></textarea></td></tr>
+                <tr><td colspan="7" class="lp-r"><div class="lp-line"><b>الگوها و روش‌های یاددهی-یادگیری:</b></div><textarea id="lp-methods" class="lp-area" rows="2"></textarea></td></tr>
+                <tr><td colspan="7" class="lp-hd">مراحل تدریس (ارائه محتوا)</td></tr>
+                <tr>
+                  <td class="lp-hd lp-time">زمان<br><small>(دقیقه)</small></td>
+                  <td colspan="6" class="lp-hd">الف) فعالیت‌های مقدماتی</td>
+                </tr>
+                <tr>
+                  <td class="lp-time"><input type="text" id="lp-time-prep"></td>
+                  <td colspan="6" class="lp-r"><div class="lp-line"><b>۱- کارهای مقدماتی شامل:</b></div><textarea id="lp-prep-tasks" class="lp-area" rows="2"></textarea></td>
+                </tr>
+                <tr>
+                  <td class="lp-time"><input type="text" id="lp-time-preeval"></td>
+                  <td colspan="6" class="lp-r"><div class="lp-line"><b>۲- ارزشیابی ورودی (آزمون آغازین):</b> جهت ارزشیابی رفتاری ورودی دانش‌آموزان سؤالات زیر را می‌پرسیم</div><textarea id="lp-pre-eval" class="lp-area" rows="2"></textarea></td>
+                </tr>
+                <tr>
+                  <td class="lp-time" rowspan="3"><input type="text" id="lp-time-main" placeholder="زمان کل"></td>
+                  <td colspan="6" class="lp-hd">ب) فعالیت‌های یاددهی – یادگیری</td>
+                </tr>
+                <tr>
+                  <td colspan="3" class="lp-hd">فعالیت‌های فراگیران (تجارب یادگیری)</td>
+                  <td colspan="3" class="lp-hd">فعالیت‌های مدیر یادگیری (معلم)</td>
+                </tr>
+                <tr>
+                  <td colspan="3"><textarea id="lp-learner-activity" class="lp-area" rows="4"></textarea></td>
+                  <td colspan="3"><textarea id="lp-teacher-activity" class="lp-area" rows="4"></textarea></td>
+                </tr>
+                <tr>
+                  <td class="lp-time"><input type="text" id="lp-time-c-header"></td>
+                  <td colspan="6" class="lp-hd">ج) فعالیت‌های تکمیلی</td>
+                </tr>
+                <tr>
+                  <td class="lp-time"><input type="text" id="lp-time-summary"></td>
+                  <td colspan="6" class="lp-r"><div class="lp-line"><b>۱- جمع‌بندی و نتیجه‌گیری:</b></div><textarea id="lp-summary" class="lp-area" rows="2"></textarea></td>
+                </tr>
+                <tr>
+                  <td class="lp-time" rowspan="3"><input type="text" id="lp-time-final" placeholder="زمان کل"></td>
+                  <td colspan="6" class="lp-r"><div class="lp-line"><b>۲- ارزشیابی پایان درس یا تکمیلی:</b> جهت ارزشیابی تکمیلی درس سؤالات زیر را از دانش‌آموزان می‌پرسیم</div><textarea id="lp-final-eval" class="lp-area" rows="2"></textarea></td>
+                </tr>
+                <tr>
+                  <td colspan="6" class="lp-r"><div class="lp-line"><b>۳- تعیین تکلیف و موضوع جلسه آینده:</b></div><textarea id="lp-homework" class="lp-area" rows="2"></textarea></td>
+                </tr>
+                <tr>
+                  <td colspan="6" class="lp-r"><div class="lp-line"><b>معرفی منابع جهت مطالعه دانش‌آموزان:</b></div><textarea id="lp-resources" class="lp-area" rows="2"></textarea></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="row" style="margin-top:12px">
+            <button class="btn primary" id="btn-lp-save">💾 ذخیره</button>
+            <button class="btn primary" id="btn-lp-word">📄 دانلود Word</button>
+            <button class="btn gray" id="btn-lp-pdf">🖨️ چاپ / دانلود PDF</button>
+            <button class="btn danger" type="button" id="btn-lp-clear">🗑️ پاک کردن فرم</button>
+          </div>
+        </div>
 
       </div>
 
@@ -17812,6 +17932,7 @@ function teacherScript() {
       if(b.dataset.lb==='weekly2')lbLoadWeekly2IfNeeded();
       if(b.dataset.lb==='staff')lbLoadStaffIfNeeded();
       if(b.dataset.lb==='minutes')lbLoadMinutesIfNeeded();
+      if(b.dataset.lb==='lessonplan')lbLoadLessonPlanIfNeeded();
     };
   });
   document.querySelectorAll('.lb-back-btn').forEach(function(b){
@@ -20661,6 +20782,107 @@ function teacherScript() {
     }
   }
 
+  // ===================== طرح درس روزانه =====================
+  var LP_FONTS={default:'',nazanin:"'B Nazanin','BNazanin',tahoma,Arial",mitra:"'B Mitra','BMitra',tahoma,Arial",titr:"'B Titr','BTitr',tahoma,Arial"};
+  var LP_FIELDS=['lp-num','lp-school','lp-students','lp-grade','lp-period','lp-teacher','lp-date','lp-duration','lp-lesson','lp-topic','lp-pages',
+    'lp-goal-general','lp-goal-partial','lp-goal-behavioral','lp-entry-behavior','lp-outline','lp-materials','lp-methods',
+    'lp-time-prep','lp-prep-tasks','lp-time-preeval','lp-pre-eval','lp-time-main','lp-learner-activity','lp-teacher-activity',
+    'lp-time-c-header','lp-time-summary','lp-summary','lp-time-final','lp-final-eval','lp-homework','lp-resources'];
+  function lpVal(id){var el=document.getElementById(id);return el?el.value:'';}
+  function lpNl2Br(s){return esc(s||'').replace(/\n/g,'<br>');}
+  // اعمال زنده‌ی فونت/اندازه‌ی انتخابی روی خودِ جدول طرح درس (مثل قابلیت مشابه در لیست اسامی دانش‌آموزان)
+  function lpApplyStyle(){
+    var fontKey=(document.getElementById('lp-font')||{}).value||'default';
+    var size=parseInt((document.getElementById('lp-font-size')||{}).value,10)||12;
+    var family=LP_FONTS[fontKey]||'';
+    var tableEl=document.getElementById('lp-table');
+    if(!tableEl)return;
+    tableEl.style.fontSize=size+'px';
+    if(family)tableEl.style.fontFamily=family;
+    tableEl.querySelectorAll('td,input,textarea,b,small').forEach(function(el){
+      if(family)el.style.fontFamily=family;
+      el.style.fontSize=size+'px';
+    });
+  }
+  document.getElementById('lp-font').addEventListener('change',lpApplyStyle);
+  document.getElementById('lp-font-size').addEventListener('input',lpApplyStyle);
+  document.getElementById('lp-font-size').addEventListener('change',lpApplyStyle);
+  document.getElementById('lp-font-size').addEventListener('keydown',function(e){if(e.key==='Enter')lpApplyStyle();});
+  // خروجی HTML جدول طرح درس با همان چیدمان ردیف/ستون سند اصلی، برای Word و چاپ/PDF
+  function lpExportHtml(){
+    function td(content,o){
+      o=o||{};
+      var a='';
+      if(o.colspan)a+=' colspan="'+o.colspan+'"';
+      if(o.rowspan)a+=' rowspan="'+o.rowspan+'"';
+      var st='border:1px solid #333;padding:6px;vertical-align:top;'+(o.center?'text-align:center;':'text-align:right;')+(o.bg?'background:#dbeafe;font-weight:bold;':'');
+      return '<td'+a+' style="'+st+'">'+(content||'&nbsp;')+'</td>';
+    }
+    var h='<p style="text-align:center;font-weight:bold;margin:0 0 2px">به نام خدا</p>';
+    h+='<p style="text-align:center;font-weight:bold;margin:0 0 10px">طرح درس روزانه</p>';
+    h+='<table style="width:100%;border-collapse:collapse;table-layout:fixed" class="lb-table-zebra"><tbody>';
+    h+='<tr>'
+      +td('<b>شماره طرح درس:</b> '+esc(lpVal('lp-num'))+'<br><b>نام مدرسه:</b> '+esc(lpVal('lp-school'))+'<br><b>تعداد دانش‌آموزان:</b> '+esc(lpVal('lp-students')),{colspan:2})
+      +td('<b>پایه:</b> '+esc(lpVal('lp-grade'))+'<br><b>دوره تحصیلی:</b> '+esc(lpVal('lp-period')))
+      +td('<b>نام مجری:</b> '+esc(lpVal('lp-teacher'))+'<br><b>تاریخ اجرا:</b> '+esc(lpVal('lp-date'))+'<br><b>مدت اجرا:</b> '+esc(lpVal('lp-duration')),{colspan:2})
+      +td('<b>نام درس:</b> '+esc(lpVal('lp-lesson'))+'<br><b>موضوع درس:</b> '+esc(lpVal('lp-topic'))+'<br><b>صفحات:</b> '+esc(lpVal('lp-pages')))
+      +td('مشخصات کلی',{center:true,bg:true})
+      +'</tr>';
+    h+='<tr>'+td('<b>هدف کلی:</b><br>'+lpNl2Br(lpVal('lp-goal-general')),{colspan:7})+'</tr>';
+    h+='<tr>'+td('<b>هدف های جزیی:</b><br>'+lpNl2Br(lpVal('lp-goal-partial')),{colspan:7})+'</tr>';
+    h+='<tr>'+td('<b>هدف های رفتاری:</b><br>'+lpNl2Br(lpVal('lp-goal-behavioral')),{colspan:7})+'</tr>';
+    h+='<tr>'+td('<b>رفتار ورودی (پیش‌دانسته‌ها):</b> دانش‌آموزان قبل از تدریس این درس می‌توانند<br>'+lpNl2Br(lpVal('lp-entry-behavior')),{colspan:7})+'</tr>';
+    h+='<tr>'+td('<b>رئوس مطالب:</b><br>'+lpNl2Br(lpVal('lp-outline')),{colspan:7})+'</tr>';
+    h+='<tr>'+td('<b>مواد و رسانه‌های آموزشی:</b><br>'+lpNl2Br(lpVal('lp-materials')),{colspan:7})+'</tr>';
+    h+='<tr>'+td('<b>الگوها و روش‌های یاددهی-یادگیری:</b><br>'+lpNl2Br(lpVal('lp-methods')),{colspan:7})+'</tr>';
+    h+='<tr>'+td('مراحل تدریس (ارائه محتوا)',{colspan:7,center:true,bg:true})+'</tr>';
+    h+='<tr>'+td('زمان<br>(دقیقه)',{center:true,bg:true})+td('الف) فعالیت‌های مقدماتی',{colspan:6,center:true,bg:true})+'</tr>';
+    h+='<tr>'+td(esc(lpVal('lp-time-prep')),{center:true})+td('<b>۱- کارهای مقدماتی شامل:</b><br>'+lpNl2Br(lpVal('lp-prep-tasks')),{colspan:6})+'</tr>';
+    h+='<tr>'+td(esc(lpVal('lp-time-preeval')),{center:true})+td('<b>۲- ارزشیابی ورودی (آزمون آغازین):</b> جهت ارزشیابی رفتاری ورودی دانش‌آموزان سؤالات زیر را می‌پرسیم<br>'+lpNl2Br(lpVal('lp-pre-eval')),{colspan:6})+'</tr>';
+    h+='<tr>'+td(esc(lpVal('lp-time-main')),{center:true,rowspan:3})+td('ب) فعالیت‌های یاددهی – یادگیری',{colspan:6,center:true,bg:true})+'</tr>';
+    h+='<tr>'+td('فعالیت‌های فراگیران (تجارب یادگیری)',{colspan:3,center:true,bg:true})+td('فعالیت‌های مدیر یادگیری (معلم)',{colspan:3,center:true,bg:true})+'</tr>';
+    h+='<tr>'+td(lpNl2Br(lpVal('lp-learner-activity')),{colspan:3})+td(lpNl2Br(lpVal('lp-teacher-activity')),{colspan:3})+'</tr>';
+    h+='<tr>'+td(esc(lpVal('lp-time-c-header')),{center:true})+td('ج) فعالیت‌های تکمیلی',{colspan:6,center:true,bg:true})+'</tr>';
+    h+='<tr>'+td(esc(lpVal('lp-time-summary')),{center:true})+td('<b>۱- جمع‌بندی و نتیجه‌گیری:</b><br>'+lpNl2Br(lpVal('lp-summary')),{colspan:6})+'</tr>';
+    h+='<tr>'+td(esc(lpVal('lp-time-final')),{center:true,rowspan:3})+td('<b>۲- ارزشیابی پایان درس یا تکمیلی:</b> جهت ارزشیابی تکمیلی درس سؤالات زیر را از دانش‌آموزان می‌پرسیم<br>'+lpNl2Br(lpVal('lp-final-eval')),{colspan:6})+'</tr>';
+    h+='<tr>'+td('<b>۳- تعیین تکلیف و موضوع جلسه آینده:</b><br>'+lpNl2Br(lpVal('lp-homework')),{colspan:6})+'</tr>';
+    h+='<tr>'+td('<b>معرفی منابع جهت مطالعه دانش‌آموزان:</b><br>'+lpNl2Br(lpVal('lp-resources')),{colspan:6})+'</tr>';
+    h+='</tbody></table>';
+    return h;
+  }
+  document.getElementById('btn-lp-word').onclick=function(){
+    var fk=document.getElementById('lp-font').value,fs=parseInt(document.getElementById('lp-font-size').value,10)||12;
+    lbWordExport('طرح درس روزانه',lpExportHtml(),'طرح-درس-روزانه',false,LP_FONTS[fk]||'',fs);
+  };
+  document.getElementById('btn-lp-pdf').onclick=function(){
+    var fk=document.getElementById('lp-font').value,fs=parseInt(document.getElementById('lp-font-size').value,10)||12;
+    lbPrintExport('طرح درس روزانه',lpExportHtml(),false,LP_FONTS[fk]||'',fs);
+  };
+  document.getElementById('btn-lp-clear').onclick=function(){
+    if(!confirm('آیا از پاک‌کردن تمام اطلاعات طرح درس مطمئن هستید؟ این کار قابل بازگشت نیست.'))return;
+    LP_FIELDS.forEach(function(id){var el=document.getElementById(id);if(el)el.value='';});
+    document.getElementById('lp-font').value='nazanin';
+    document.getElementById('lp-font-size').value='12';
+    lpApplyStyle();
+    toast('فرم طرح درس پاک شد ✅');
+  };
+  document.getElementById('btn-lp-save').onclick=function(){
+    var data={font:document.getElementById('lp-font').value,fontSize:document.getElementById('lp-font-size').value};
+    LP_FIELDS.forEach(function(id){data[id]=lpVal(id);});
+    lbSave('lessonplan',data);
+  };
+  var LP_LOADED=false;
+  async function lbLoadLessonPlanIfNeeded(){
+    if(LP_LOADED){lpApplyStyle();return;}
+    LP_LOADED=true;
+    var saved=await lbLoad('lessonplan');
+    if(saved){
+      LP_FIELDS.forEach(function(id){if(saved[id]!==undefined){var el=document.getElementById(id);if(el)el.value=saved[id];}});
+      document.getElementById('lp-font').value=saved.font||'nazanin';
+      document.getElementById('lp-font-size').value=saved.fontSize||'12';
+    }
+    lpApplyStyle();
+  }
 
   // ===================== پایان دفتر مدیریت کلاسی =====================
 
