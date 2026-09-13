@@ -1834,12 +1834,12 @@ const SHARED_CSS = `
   @font-face{font-family:"BMitra";src:url(https://cdn.jsdelivr.net/gh/intuxicated/css-persian@master/fonts/BMitra.ttf);font-weight:bold}
   @font-face{font-family:"BTitr";src:url(https://cdn.jsdelivr.net/gh/intuxicated/css-persian@master/fonts/BTitrBold.ttf);font-weight:bold}
   @font-face{font-family:"BKoodak";src:url(https://cdn.jsdelivr.net/gh/intuxicated/css-persian@master/fonts/BKoodakBold.ttf);font-weight:bold}
-  :root{--bg:#EEF1FB;--card:#FFFFFF;--primary:#4338CA;--primary-2:#0EA5B7;--accent:#D4A027;--muted:#5B6478;--line:#DEE2F1;--danger:#D9376E;--text:#171B2E;--soft:#EEF0FB;--soft-2:#E2E6FA;--success:#12946B;--warning:#B4650F;--info:#0E6FA8;--shadow:0 10px 32px rgba(35,30,90,.12);
-    --glass-bg:rgba(255,255,255,.58);--glass-bg-2:rgba(255,255,255,.38);--glass-border:rgba(255,255,255,.65);--glass-blur:8px;--ring:rgba(67,56,202,.22);}
-  [data-theme="light"]{--bg:#EEF1FB;--card:#FFFFFF;--primary:#4338CA;--primary-2:#0EA5B7;--muted:#5B6478;--line:#DEE2F1;--text:#171B2E;--soft:#EEF0FB;--soft-2:#E2E6FA;
-    --glass-bg:rgba(255,255,255,.58);--glass-bg-2:rgba(255,255,255,.38);--glass-border:rgba(255,255,255,.65);--ring:rgba(67,56,202,.22);}
-  [data-theme="dark"]{--bg:#0A0E1C;--card:#131A2C;--primary:#8B85F4;--primary-2:#2DD4C8;--muted:#95A0BE;--line:#232C46;--text:#EAEDFB;--soft:#111830;--soft-2:#182144;--shadow:0 16px 40px rgba(0,0,0,.55);
-    --glass-bg:rgba(24,29,55,.55);--glass-bg-2:rgba(24,29,55,.35);--glass-border:rgba(255,255,255,.10);--ring:rgba(139,133,244,.30);}
+  :root{--bg:#F5F7FB;--card:#FFFFFF;--primary:#6366F1;--primary-2:#8B5CF6;--accent:#F59E0B;--muted:#64748B;--line:#E2E8F0;--danger:#E11D48;--text:#1E293B;--soft:#EEF0FB;--soft-2:#E0E7FF;--success:#10B981;--warning:#B45309;--info:#0E7490;--shadow:0 10px 32px rgba(79,70,229,.14);
+    --glass-bg:rgba(255,255,255,.58);--glass-bg-2:rgba(255,255,255,.38);--glass-border:rgba(255,255,255,.65);--glass-blur:8px;--ring:rgba(99,102,241,.24);}
+  [data-theme="light"]{--bg:#F5F7FB;--card:#FFFFFF;--primary:#6366F1;--primary-2:#8B5CF6;--muted:#64748B;--line:#E2E8F0;--text:#1E293B;--soft:#EEF0FB;--soft-2:#E0E7FF;
+    --glass-bg:rgba(255,255,255,.58);--glass-bg-2:rgba(255,255,255,.38);--glass-border:rgba(255,255,255,.65);--ring:rgba(99,102,241,.24);}
+  [data-theme="dark"]{--bg:#0F172A;--card:#1E293B;--primary:#818CF8;--primary-2:#A78BFA;--muted:#94A3B8;--line:#334155;--text:#F1F5F9;--soft:#1E293B;--soft-2:#2E3A5B;--shadow:0 16px 40px rgba(0,0,0,.55);
+    --glass-bg:rgba(24,29,55,.55);--glass-bg-2:rgba(24,29,55,.35);--glass-border:rgba(255,255,255,.10);--ring:rgba(129,140,248,.30);}
   @keyframes fadeInUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
   @keyframes blobFloat{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(3%,-4%) scale(1.06)}}
   @keyframes shine{0%{background-position:200% 0}100%{background-position:-200% 0}}
@@ -9618,7 +9618,7 @@ function teacherPage() {
         </div>
         <h3>🎨 رنگ تم</h3>
         <div style="display:flex;gap:14px;margin-bottom:20px;flex-wrap:wrap;align-items:center" id="color-theme-row">
-          <button class="color-swatch active" data-color="academy" style="background:linear-gradient(135deg,#123A5C,#B8922E)" title="حرفه‌ای (سرمه‌ای و طلایی)"></button>
+          <button class="color-swatch active" data-color="academy" style="background:linear-gradient(135deg,#6366F1,#8B5CF6)" title="مدرسه (بنفش و نیلی)"></button>
           <button class="color-swatch" data-color="petal" style="background:linear-gradient(135deg,#D6336C,#4F7D5D)" title="گلبرگی (رز و برگ سبز)"></button>
           <button class="color-swatch" data-color="tea" style="background:linear-gradient(135deg,#AE4E28,#C08A2E)" title="چایخانه (آجری و زعفرانی)"></button>
           <button class="color-swatch" data-color="ocean" style="background:linear-gradient(135deg,#1d4ed8,#0d9488)" title="اقیانوسی (آبی)"></button>
@@ -9820,9 +9820,9 @@ function teacherScript() {
   }
 
   const COLOR_THEMES={
-    academy:{light:{bg:'#F3F6F9',card:'#FFFFFF',primary:'#123A5C','primary-2':'#1F6E8C',accent:'#B8922E',muted:'#5B6B7C',line:'#DEE5EC',text:'#16212E',danger:'#B3261E',soft:'#EBF0F5','soft-2':'#DCE4EC'},
-             dark:{bg:'#0B141E',card:'#101C29',primary:'#1E5A78',   'primary-2':'#2A7495',accent:'#D4AF37',muted:'#93A6B8',line:'#1E2E3F',text:'#E8EEF3',danger:'#DC2626',soft:'#152232','soft-2':'#1C2C3F'}},
-    petal:{light:{bg:'#FBF1F4',card:'#FFFAFB',primary:'#D6336C','primary-2':'#A61E4D',accent:'#4F7D5D',muted:'#8A5B6C',line:'#F0D3DD',text:'#33111F',danger:'#B3261E',soft:'#F7E2E9','soft-2':'#F2A9C2'},
+    academy:{light:{bg:'#F3F6F9',card:'#FFFFFF',primary:'#6366F1','primary-2':'#8B5CF6',accent:'#F59E0B',muted:'#64748B',line:'#E2E8F0',text:'#1E293B',danger:'#E11D48',soft:'#EEF0FB','soft-2':'#E0E7FF'},
+             dark:{bg:'#0F172A',card:'#1E293B',primary:'#818CF8',   'primary-2':'#A78BFA',accent:'#FBBF24',muted:'#94A3B8',line:'#334155',text:'#F1F5F9',danger:'#DC2626',soft:'#1E293B','soft-2':'#2E3A5B'}},
+    petal:{light:{bg:'#FBF1F4',card:'#FFFAFB',primary:'#D6336C','primary-2':'#A61E4D',accent:'#4F7D5D',muted:'#8A5B6C',line:'#F0D3DD',text:'#33111F',danger:'#E11D48',soft:'#F7E2E9','soft-2':'#F2A9C2'},
            dark:{bg:'#2B0F18',card:'#3A1420',primary:'#D6336C',   'primary-2':'#A61E4D',accent:'#6FA37D',muted:'#C9A0AC',line:'#4A1F2C',text:'#FBEAEF',danger:'#DC2626',soft:'#3A1420','soft-2':'#4A1F2C'}},
     tea:{light:{bg:'#F4EDDD',card:'#FAF3E4',primary:'#AE4E28','primary-2':'#C08A2E',accent:'#3E7C4F',muted:'#6b6455',line:'#E4D8B8',text:'#1C3327',danger:'#C0392B',soft:'#F3E4C8','soft-2':'#E4D8B8'},
          dark:{bg:'#15271E',card:'#1C3327',primary:'#AE4E28',   'primary-2':'#C08A2E',accent:'#4F9464',muted:'#A9B7A9',line:'#33473A',text:'#F4EDDD',danger:'#DC2626',soft:'#26392c','soft-2':'#33473A'}},
