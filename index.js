@@ -354,7 +354,7 @@ export default {
 
       if (path === "/teacher" || path === "/teacher/") return html(teacherPage(), 200, { "cache-control": "no-store" });
 
-      if (path === "/") return html(landingPage());
+      if (path === "/") return Response.redirect(new URL("/teacher", url.origin).toString(), 302);
 
       return html(notFoundPage(), 404);
     } catch (err) {
@@ -1888,7 +1888,7 @@ const SHARED_CSS = `
   .teacher-header{position:relative;padding:20px 18px}
   .teacher-header h1{font-size:18px;margin:2px 0}
   .th-topbar{position:relative;display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px}
-  .th-clock{background:linear-gradient(135deg,rgba(255,255,255,.22),rgba(255,255,255,.08));border:1px solid rgba(255,255,255,.4);color:#fff;border-radius:10px;padding:6px 14px;font-size:13px;font-weight:600;letter-spacing:.3px;font-variant-numeric:tabular-nums;text-shadow:0 1px 2px rgba(0,0,0,.35);display:inline-flex;align-items:center;gap:8px;box-shadow:0 2px 10px rgba(0,0,0,.18),inset 0 1px 0 rgba(255,255,255,.15);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+  .th-clock{background:rgba(0,0,0,.32);border:1px solid rgba(255,255,255,.35);color:#fff;border-radius:10px;padding:6px 14px;font-size:13px;font-weight:600;letter-spacing:.3px;font-variant-numeric:tabular-nums;text-shadow:0 1px 2px rgba(0,0,0,.4);display:inline-flex;align-items:center;gap:8px;box-shadow:0 2px 10px rgba(0,0,0,.18),inset 0 1px 0 rgba(255,255,255,.08);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
   .th-clock-time{direction:ltr;font-weight:700}
   .th-colon{opacity:.85}
   .th-clock-date{border-right:1px solid rgba(255,255,255,.35);padding-right:8px;margin-right:2px;font-weight:500;font-size:12px;opacity:.9}
@@ -2764,68 +2764,6 @@ function teacherHeader() {
     <h1>${esc(APP_TITLE)}</h1>
     <div class="th-designer">🎨 ${esc(APP_DESIGNER)} <span class="en">Designer: Nader Akshik</span></div>
   </div>`;
-}
-
-/* ------------------------- صفحه اصلی ------------------------- */
-
-function landingPage() {
-  const features = [
-    { ico: "📝", title: "آزمون‌ساز هوشمند", desc: "طراحی آزمون با انواع سوال، سربرگ کامل و تصحیح خودکار یا نمره‌ای" },
-    { ico: "📅", title: "برنامه و دفتر کلاسی", desc: "برنامه هفتگی، حضور و غیاب، ارزشیابی و کارنامه‌ساز" },
-    { ico: "📊", title: "جدول‌ساز حرفه‌ای", desc: "خروجی اکسل راست‌به‌چپ با میانگین‌گیری خودکار" },
-    { ico: "🖼️", title: "ابزار عکس و اسکنر", desc: "اسکن، برش، کاهش حجم و تبدیل عکس/PDF" },
-    { ico: "🖥️", title: "کلاس آنلاین", desc: "برگزاری کلاس آنلاین و تعامل با دانش‌آموزان" },
-    { ico: "🤖", title: "ترجمه و هوش مصنوعی", desc: "دستیار هوشمند برای تولید محتوا و ترجمه متن" },
-  ];
-  return `<!doctype html><html lang="fa" dir="rtl"><head><meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>${esc(APP_TITLE)}</title>
-  <meta name="description" content="پنل آموزشی جامع برای معلمان: آزمون‌سازی، برنامه هفتگی، جدول‌ساز، ابزار عکس و کلاس آنلاین">
-  ${FONT_LINK}<style>${SHARED_CSS}
-    .hero{position:relative;background:linear-gradient(135deg,rgba(255,255,255,.14),rgba(255,255,255,0)),linear-gradient(125deg,var(--primary),var(--primary-2));color:#fff;border:1px solid var(--glass-border);border-radius:26px;padding:52px 26px;text-align:center;box-shadow:var(--shadow);backdrop-filter:blur(var(--glass-blur));overflow:hidden;animation:fadeInUp .5s ease both}
-    .hero::after{content:'';position:absolute;inset-inline-end:6%;top:-30px;width:260px;height:260px;background:radial-gradient(circle,color-mix(in srgb, var(--accent) 60%, transparent) 0%,transparent 70%);filter:blur(14px);pointer-events:none}
-    .hero-badge{display:inline-flex;align-items:center;gap:6px;background:rgba(0,0,0,.28);border:1px solid rgba(255,255,255,.35);color:#fff;border-radius:999px;padding:5px 16px;font-size:12px;margin-bottom:14px}
-    .hero h1{position:relative;margin:6px 0;font-size:28px;font-weight:800;text-shadow:0 1px 4px rgba(0,0,0,.35)}
-    .hero p{position:relative;margin:10px auto 0;max-width:560px;font-size:14.5px;color:rgba(255,255,255,.92);line-height:2}
-    .hero-actions{position:relative;display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:24px}
-    .hero-actions .btn.ghost{background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.5);box-shadow:none}
-    .hero-actions .btn.ghost:hover{background:rgba(255,255,255,.24)}
-    .feat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px;margin-top:22px}
-    .feat-card{background:var(--glass-bg);border:1px solid var(--glass-border);border-radius:18px;padding:18px;backdrop-filter:blur(var(--glass-blur));box-shadow:0 4px 18px rgba(35,30,90,.08);transition:transform .2s ease,box-shadow .2s ease;animation:fadeInUp .5s ease both}
-    .feat-card:hover{transform:translateY(-4px);box-shadow:0 10px 26px rgba(35,30,90,.16)}
-    .feat-ico{width:46px;height:46px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:21px;background:linear-gradient(135deg,var(--primary),var(--primary-2));color:#fff;margin-bottom:10px}
-    .feat-card h4{margin:0 0 6px;font-size:14.5px}
-    .feat-card p{margin:0;font-size:12.5px;color:var(--muted);line-height:1.9}
-    .section-title{margin:26px 4px 0;font-size:16px;font-weight:800;display:flex;align-items:center;gap:8px}
-    .student-note{display:flex;align-items:center;gap:12px}
-    .student-note .n-ico{width:44px;height:44px;flex:none;border-radius:12px;background:var(--soft);display:flex;align-items:center;justify-content:center;font-size:20px}
-    .land-foot{text-align:center;margin:26px 0 8px;font-size:12px;color:var(--muted)}
-  </style></head><body><div class="wrap">
-  <div class="hero">
-    <span class="hero-badge">✨ نسخه‌ی جامع مدیریت کلاس</span>
-    <h1>${esc(APP_TITLE)}</h1>
-    <p>یک پنل یکپارچه برای معلمان: طراحی و برگزاری آزمون، مدیریت دانش‌آموزان، برنامه‌ریزی هفتگی، جدول‌سازی حرفه‌ای و ابزارهای هوشمند — همه در یک‌جا.</p>
-    <div class="hero-actions">
-      <a class="btn" href="/teacher">🔐 ورود معلم</a>
-      <a class="btn ghost" href="#student-guide">👨‍🎓 راهنمای دانش‌آموز</a>
-    </div>
-  </div>
-
-  <div class="section-title">🧩 امکانات پنل</div>
-  <div class="feat-grid">
-    ${features.map((f) => `<div class="feat-card"><div class="feat-ico">${f.ico}</div><h4>${esc(f.title)}</h4><p>${esc(f.desc)}</p></div>`).join("")}
-  </div>
-
-  <div class="card student-note" id="student-guide">
-    <div class="n-ico">👨‍🎓</div>
-    <div>
-      <p style="margin:0">دانش‌آموز گرامی، برای شرکت در آزمون از <b>لینک اختصاصی</b> که معلم برای شما ارسال کرده استفاده کنید.</p>
-      <p class="muted" style="margin:4px 0 0">هر دانش‌آموز یک لینک منحصربه‌فرد دارد؛ نیازی به ورود از این صفحه نیست.</p>
-    </div>
-  </div>
-
-  <div class="land-foot">${esc(APP_DESIGNER)}</div>
-  </div></body></html>`;
 }
 
 function notFoundPage() {
