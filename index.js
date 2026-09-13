@@ -9784,7 +9784,7 @@ function teacherScript() {
   }
 
   const COLOR_THEMES={
-    academy:{light:{bg:'#E7EDF4',card:'#FFFFFF',primary:'#123A5C','primary-2':'#1F6E8C',accent:'#B8922E',muted:'#5B6B7C',line:'#D3DDE8',text:'#16212E',danger:'#B3261E',soft:'#E2E9F1','soft-2':'#D2DEEA'},
+    academy:{light:{bg:'#D9E3EF',card:'#FFFFFF',primary:'#123A5C','primary-2':'#1F6E8C',accent:'#B8922E',muted:'#5B6B7C',line:'#C2D0DF',text:'#16212E',danger:'#B3261E',soft:'#D4E0EC','soft-2':'#C0D0E0'},
              dark:{bg:'#0B141E',card:'#101C29',primary:'#1E5A78',   'primary-2':'#2A7495',accent:'#D4AF37',muted:'#93A6B8',line:'#1E2E3F',text:'#E8EEF3',danger:'#DC2626',soft:'#152232','soft-2':'#1C2C3F'}},
     petal:{light:{bg:'#FBF1F4',card:'#FFFAFB',primary:'#D6336C','primary-2':'#A61E4D',accent:'#4F7D5D',muted:'#8A5B6C',line:'#F0D3DD',text:'#33111F',danger:'#B3261E',soft:'#F7E2E9','soft-2':'#F2A9C2'},
            dark:{bg:'#2B0F18',card:'#3A1420',primary:'#D6336C',   'primary-2':'#A61E4D',accent:'#6FA37D',muted:'#C9A0AC',line:'#4A1F2C',text:'#FBEAEF',danger:'#DC2626',soft:'#3A1420','soft-2':'#4A1F2C'}},
