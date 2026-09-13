@@ -1870,16 +1870,10 @@ const SHARED_CSS = `
   .teacher-header{position:relative;padding:20px 18px}
   .teacher-header h1{font-size:18px;margin:2px 0}
   .th-topbar{position:relative;display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px}
-  .th-clock{background:rgba(0,0,0,.32);border:1px solid rgba(255,255,255,.35);color:#fff;border-radius:8px;padding:5px 12px;font-size:13px;font-weight:700;letter-spacing:1px;font-variant-numeric:tabular-nums;text-shadow:0 1px 2px rgba(0,0,0,.4);display:inline-flex;align-items:center;gap:7px;box-shadow:0 0 8px rgba(255,255,255,.25);animation:thClockGlow 2.6s ease-in-out infinite}
-  @keyframes thClockGlow{0%,100%{box-shadow:0 0 6px rgba(255,255,255,.18)}50%{box-shadow:0 0 14px rgba(255,255,255,.5)}}
-  .th-clock-time{direction:ltr}
-  .th-colon{animation:thColonBlink 1s steps(1) infinite}
-  @keyframes thColonBlink{0%,49%{opacity:1}50%,100%{opacity:.15}}
-  .th-clock-date{border-right:1px solid rgba(255,255,255,.35);padding-right:7px;margin-right:2px;font-weight:600;font-size:12px;opacity:.92}
-  .th-clock.th-tod-morning{background:linear-gradient(135deg,rgba(255,175,64,.38),rgba(0,0,0,.28));border-color:rgba(255,205,120,.5)}
-  .th-clock.th-tod-noon{background:linear-gradient(135deg,rgba(64,170,255,.34),rgba(0,0,0,.28));border-color:rgba(140,205,255,.5)}
-  .th-clock.th-tod-evening{background:linear-gradient(135deg,rgba(255,110,64,.34),rgba(0,0,0,.3));border-color:rgba(255,160,120,.5)}
-  .th-clock.th-tod-night{background:linear-gradient(135deg,rgba(70,60,160,.4),rgba(0,0,0,.32));border-color:rgba(150,140,220,.5)}
+  .th-clock{background:linear-gradient(135deg,rgba(255,255,255,.22),rgba(255,255,255,.08));border:1px solid rgba(255,255,255,.4);color:#fff;border-radius:10px;padding:6px 14px;font-size:13px;font-weight:600;letter-spacing:.3px;font-variant-numeric:tabular-nums;text-shadow:0 1px 2px rgba(0,0,0,.35);display:inline-flex;align-items:center;gap:8px;box-shadow:0 2px 10px rgba(0,0,0,.18),inset 0 1px 0 rgba(255,255,255,.15);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+  .th-clock-time{direction:ltr;font-weight:700}
+  .th-colon{opacity:.85}
+  .th-clock-date{border-right:1px solid rgba(255,255,255,.35);padding-right:8px;margin-right:2px;font-weight:500;font-size:12px;opacity:.9}
   .th-en-badge{background:rgba(0,0,0,.32);border:1px solid rgba(255,255,255,.35);color:#fff;border-radius:8px;padding:5px 12px;font-size:11px;font-weight:600;letter-spacing:.3px;white-space:nowrap;text-shadow:0 1px 2px rgba(0,0,0,.4)}
   .th-designer{position:relative;display:inline-flex;align-items:center;gap:8px;background:rgba(0,0,0,.32);border:1px solid rgba(255,255,255,.35);color:#fff;border-radius:999px;padding:4px 14px;font-size:11px;margin-top:2px;text-shadow:0 1px 2px rgba(0,0,0,.4)}
   .th-designer .en{opacity:.85;font-weight:400}
@@ -9864,7 +9858,6 @@ function teacherScript() {
   setTimeout(()=>{document.querySelectorAll('.theme-btn').forEach(b=>b.classList.toggle('active',b.dataset.theme===savedTheme));},100);
   window.setTheme=function(t){document.documentElement.setAttribute('data-theme',t);localStorage.setItem('panelTheme',t);document.querySelectorAll('.theme-btn').forEach(b=>b.classList.toggle('active',b.dataset.theme===t));applyColorTheme(localStorage.getItem('panelColorTheme')||'academy');};
   document.querySelectorAll('.color-swatch').forEach(function(b){b.addEventListener('click',function(){
-    if(b.dataset.color==='goldnight')window.setTheme('dark');
     applyColorTheme(b.dataset.color);
   });});
 
@@ -9988,6 +9981,8 @@ function teacherScript() {
         return [jy,jm,jd];
       }
       function thPad2(n){return String(n).padStart(2,'0');}
+      var THCLK_FA_DIGITS=['۰','۱','۲','۳','۴','۵','۶','۷','۸','۹'];
+      function toFaDigits(n){return String(n).replace(/[0-9]/g,function(d){return THCLK_FA_DIGITS[+d];});}
       function thTickClock(){
         var now=new Date();
         var hh=now.getHours();
@@ -10002,8 +9997,6 @@ function teacherScript() {
         else if(hh>=11&&hh<16){tod='noon';icon='⛅';}
         else if(hh>=16&&hh<20){tod='evening';icon='🌆';}
         else{tod='night';icon='🌙';}
-        clockEl.classList.remove('th-tod-morning','th-tod-noon','th-tod-evening','th-tod-night');
-        clockEl.classList.add('th-tod-'+tod);
         iconEl.textContent=icon;
       }
       thTickClock();
