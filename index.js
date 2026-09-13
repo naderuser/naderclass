@@ -1879,7 +1879,7 @@ const SHARED_CSS = `
   body::before{width:420px;height:420px;top:-120px;inset-inline-start:-100px;background:radial-gradient(circle,var(--primary) 0%,transparent 70%)}
   body::after{width:460px;height:460px;bottom:-140px;inset-inline-end:-120px;background:radial-gradient(circle,var(--primary-2) 0%,transparent 70%);animation-delay:-8s}
   .wrap{max-width:1180px;margin:0 auto;padding:18px;position:relative;overflow-x:auto}
-  .header{position:relative;background:linear-gradient(135deg,rgba(255,255,255,.2),rgba(255,255,255,0)),linear-gradient(115deg,var(--primary),var(--accent) 55%,var(--primary-2));color:#fff;border:1px solid var(--glass-border);border-radius:28px;padding:32px 22px 26px;text-align:center;box-shadow:var(--shadow);backdrop-filter:blur(var(--glass-blur));-webkit-backdrop-filter:blur(var(--glass-blur));animation:fadeInUp .5s ease both;overflow:hidden}
+  .header{position:relative;background:linear-gradient(135deg,rgba(255,255,255,.2),rgba(255,255,255,0)),linear-gradient(120deg,var(--primary),var(--primary-2));color:#fff;border:1px solid var(--glass-border);border-radius:28px;padding:32px 22px 26px;text-align:center;box-shadow:var(--shadow);backdrop-filter:blur(var(--glass-blur));-webkit-backdrop-filter:blur(var(--glass-blur));animation:fadeInUp .5s ease both;overflow:hidden}
   .header::before{content:'';position:absolute;right:14%;left:14%;top:0;height:8px;background:repeating-linear-gradient(90deg,rgba(255,255,255,.9) 0 14px,transparent 14px 22px);border-radius:0 0 8px 8px;pointer-events:none;opacity:.85}
   .header::after{content:'';position:absolute;right:8%;left:8%;top:-26px;height:60px;background:radial-gradient(60% 100% at 50% 100%, color-mix(in srgb, var(--primary-2) 55%, transparent) 0%, transparent 75%);filter:blur(6px);pointer-events:none;z-index:-1}
   .header h1{position:relative;margin:4px 0;font-size:23px;font-weight:800;color:#fff;letter-spacing:.2px;text-shadow:0 1px 3px rgba(0,0,0,.4)}
@@ -1912,7 +1912,7 @@ const SHARED_CSS = `
   .auth-shell{display:flex;justify-content:center;padding:26px 0 10px}
   .auth-card{max-width:400px;width:100%;text-align:center;padding:32px 26px 26px;position:relative;overflow:hidden}
   .auth-card::before{content:'';position:absolute;inset-inline-start:-40%;top:-60%;width:180%;height:180%;background:radial-gradient(circle at 30% 20%, color-mix(in srgb, var(--primary) 18%, transparent) 0%, transparent 55%);pointer-events:none;z-index:-1}
-  .auth-logo{width:64px;height:64px;margin:0 auto 12px;border-radius:24px;display:flex;align-items:center;justify-content:center;font-size:28px;background:linear-gradient(135deg,var(--primary),var(--accent) 60%,var(--primary-2));color:#fff;box-shadow:0 10px 24px color-mix(in srgb, var(--primary) 45%, transparent)}
+  .auth-logo{width:64px;height:64px;margin:0 auto 12px;border-radius:24px;display:flex;align-items:center;justify-content:center;font-size:28px;background:linear-gradient(135deg,var(--primary),var(--primary-2));color:#fff;box-shadow:0 10px 24px color-mix(in srgb, var(--primary) 45%, transparent)}
   .auth-card h3{margin:4px 0 4px;font-size:19px;font-weight:800}
   .auth-card label{text-align:right}
   .auth-btn{width:100%;margin-top:14px;padding:13px 22px}
