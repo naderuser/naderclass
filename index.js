@@ -1130,13 +1130,14 @@ async function handleApi(req, env, url, path) {
       const studentUuid = String(body.studentUuid || "").trim();
       const title = String(body.title || "لوح تقدیر").slice(0, 120);
       const certHtml = String(body.html || "");
+      const clientId = String(body.id || "").trim().replace(/[^A-Za-z0-9_-]/g, "").slice(0, 64);
       if (!studentUuid) return json({ ok: false, error: "دانش‌آموز نامعتبر است" }, 400);
       const studentRaw = await env.EXAM_KV.get("student:" + studentUuid);
       if (!studentRaw) return json({ ok: false, error: "این دانش‌آموز پیدا نشد (ممکن است حذف شده باشد)" }, 404);
       if (!certHtml.trim()) return json({ ok: false, error: "محتوای لوح خالی است" }, 400);
       const byteLen = new TextEncoder().encode(certHtml).length;
       if (byteLen > 500 * 1024) return json({ ok: false, error: "حجم لوح بیش از حد مجاز است" }, 400);
-      const id = uuid();
+      const id = clientId || uuid();
       const listRaw = await env.EXAM_KV.get("certificates:" + studentUuid);
       const list = listRaw ? JSON.parse(listRaw) : [];
       list.unshift({ id, title, issuedAt: Date.now(), html: certHtml });
@@ -1869,7 +1870,16 @@ const SHARED_CSS = `
   .teacher-header{position:relative;padding:20px 18px}
   .teacher-header h1{font-size:18px;margin:2px 0}
   .th-topbar{position:relative;display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px}
-  .th-clock{background:rgba(0,0,0,.32);border:1px solid rgba(255,255,255,.35);color:#fff;border-radius:8px;padding:5px 12px;font-size:13px;font-weight:700;letter-spacing:1px;font-variant-numeric:tabular-nums;direction:ltr;text-shadow:0 1px 2px rgba(0,0,0,.4)}
+  .th-clock{background:rgba(0,0,0,.32);border:1px solid rgba(255,255,255,.35);color:#fff;border-radius:8px;padding:5px 12px;font-size:13px;font-weight:700;letter-spacing:1px;font-variant-numeric:tabular-nums;text-shadow:0 1px 2px rgba(0,0,0,.4);display:inline-flex;align-items:center;gap:7px;box-shadow:0 0 8px rgba(255,255,255,.25);animation:thClockGlow 2.6s ease-in-out infinite}
+  @keyframes thClockGlow{0%,100%{box-shadow:0 0 6px rgba(255,255,255,.18)}50%{box-shadow:0 0 14px rgba(255,255,255,.5)}}
+  .th-clock-time{direction:ltr}
+  .th-colon{animation:thColonBlink 1s steps(1) infinite}
+  @keyframes thColonBlink{0%,49%{opacity:1}50%,100%{opacity:.15}}
+  .th-clock-date{border-right:1px solid rgba(255,255,255,.35);padding-right:7px;margin-right:2px;font-weight:600;font-size:12px;opacity:.92}
+  .th-clock.th-tod-morning{background:linear-gradient(135deg,rgba(255,175,64,.38),rgba(0,0,0,.28));border-color:rgba(255,205,120,.5)}
+  .th-clock.th-tod-noon{background:linear-gradient(135deg,rgba(64,170,255,.34),rgba(0,0,0,.28));border-color:rgba(140,205,255,.5)}
+  .th-clock.th-tod-evening{background:linear-gradient(135deg,rgba(255,110,64,.34),rgba(0,0,0,.3));border-color:rgba(255,160,120,.5)}
+  .th-clock.th-tod-night{background:linear-gradient(135deg,rgba(70,60,160,.4),rgba(0,0,0,.32));border-color:rgba(150,140,220,.5)}
   .th-en-badge{background:rgba(0,0,0,.32);border:1px solid rgba(255,255,255,.35);color:#fff;border-radius:8px;padding:5px 12px;font-size:11px;font-weight:600;letter-spacing:.3px;white-space:nowrap;text-shadow:0 1px 2px rgba(0,0,0,.4)}
   .th-designer{position:relative;display:inline-flex;align-items:center;gap:8px;background:rgba(0,0,0,.32);border:1px solid rgba(255,255,255,.35);color:#fff;border-radius:999px;padding:4px 14px;font-size:11px;margin-top:2px;text-shadow:0 1px 2px rgba(0,0,0,.4)}
   .th-designer .en{opacity:.85;font-weight:400}
@@ -2736,7 +2746,7 @@ function pageHeader() {
 function teacherHeader() {
   return `<div class="header teacher-header">
     <div class="th-topbar">
-      <div class="th-clock" id="th-clock">--:--:--</div>
+      <div class="th-clock" id="th-clock"><span class="th-clock-icon" id="th-clock-icon">🕐</span><span class="th-clock-time" id="th-clock-time">--<span class="th-colon">:</span>--<span class="th-colon">:</span>--</span><span class="th-clock-date" id="th-clock-date"></span></div>
       <div class="th-en-badge">Teacher's Educational Assistant</div>
     </div>
     <h1>${esc(APP_TITLE)}</h1>
@@ -7672,10 +7682,18 @@ function teacherPage() {
 
         <div class="subtab-content hidden" id="tab-sch-cert">
         <h3>🏅 لوح تقدیر</h3>
-        <p class="muted">برای دانش‌آموزانی که به این پنل وصل شده‌اند لوح تقدیر بسازید؛ متن، شماره، تاریخ، امضا و فونت هر بخش جداگانه قابل تنظیم است و همزمان با تغییر، پیش‌نمایش آن به‌صورت زنده در همین صفحه دیده می‌شود. یک کد QR شناسایی (قابل اسکن با گوشی) هم گوشه پایین سمت چپ هر لوح اضافه می‌شود.</p>
+        <p class="muted">برای دانش‌آموزانی که به این پنل وصل شده‌اند لوح تقدیر بسازید؛ متن، شماره، تاریخ، امضا و فونت هر بخش جداگانه قابل تنظیم است و همزمان با تغییر، پیش‌نمایش آن به‌صورت زنده در همین صفحه دیده می‌شود. یک کد QR شناسایی (قابل اسکن با گوشی) هم گوشه پایین سمت چپ هر لوح اضافه می‌شود. چند قالب رنگی و تزئینی جدید (مدرن، گل و بوته، مدال و روبان) هم به «قالب طرح» اضافه شده و امکان بارگذاری لوگوی مدرسه هم فراهم است.</p>
         <div class="row" style="margin-bottom:12px;align-items:center;gap:10px;flex-wrap:wrap">
           <span style="font-weight:700">قالب طرح:</span>
           <select id="cert-theme" class="cert-theme-select" style="padding:8px;border:1px solid #ddd;border-radius:6px"></select>
+        </div>
+        <div class="row" style="margin-bottom:12px;align-items:center;gap:10px;flex-wrap:wrap">
+          <span style="font-weight:700">لوگو/مهر مدرسه:</span>
+          <input type="file" id="cert-logo-file" accept="image/*">
+          <img id="cert-logo-preview" style="max-height:56px;display:none;border:1px solid #ddd;border-radius:6px;background:#fff">
+          <button type="button" class="btn sm gray" id="cert-logo-remove">حذف لوگو</button>
+          <span class="muted">اندازه:</span>
+          <input type="number" id="cert-logo-size" value="60" min="30" max="160" style="width:70px;padding:8px;border:1px solid #ddd;border-radius:6px">
         </div>
         <div class="row" style="margin-bottom:12px;align-items:center;gap:10px;flex-wrap:wrap">
           <span style="font-weight:700">آموزش و پرورش:</span>
@@ -7714,7 +7732,8 @@ function teacherPage() {
           <input type="file" id="cert-sig-file" accept="image/*">
           <img id="cert-sig-preview" style="max-height:60px;display:none;border:1px solid #ddd;border-radius:6px;background:#fff">
           <button type="button" class="btn sm gray" id="cert-sig-remove">حذف امضا</button>
-          <input id="cert-sig-caption" placeholder="عنوان زیر امضا (مثال: مدیر مدرسه)" style="min-width:200px;padding:8px;border:1px solid #ddd;border-radius:6px">
+          <input id="cert-sig-caption" placeholder="نام امضاکننده (مثال: علی رضایی)" style="min-width:200px;padding:8px;border:1px solid #ddd;border-radius:6px">
+          <input id="cert-sig-role" placeholder="سمت (مثال: مدیر مدرسه)" style="min-width:160px;padding:8px;border:1px solid #ddd;border-radius:6px">
           <span class="muted">فونت:</span>
           <select id="cert-font-sig" class="cert-font-select" style="padding:8px;border:1px solid #ddd;border-radius:6px"></select>
           <input type="number" id="cert-size-sig" value="13" min="8" max="30" style="width:70px;padding:8px;border:1px solid #ddd;border-radius:6px">
@@ -7775,6 +7794,14 @@ function teacherPage() {
           <select id="wbc-theme" class="cert-theme-select" style="padding:8px;border:1px solid #ddd;border-radius:6px"></select>
         </div>
         <div class="row" style="margin-bottom:12px;align-items:center;gap:10px;flex-wrap:wrap">
+          <span style="font-weight:700">لوگو/مهر مدرسه:</span>
+          <input type="file" id="wbc-logo-file" accept="image/*">
+          <img id="wbc-logo-preview" style="max-height:56px;display:none;border:1px solid #ddd;border-radius:6px;background:#fff">
+          <button type="button" class="btn sm gray" id="wbc-logo-remove">حذف لوگو</button>
+          <span class="muted">اندازه:</span>
+          <input type="number" id="wbc-logo-size" value="60" min="30" max="160" style="width:70px;padding:8px;border:1px solid #ddd;border-radius:6px">
+        </div>
+        <div class="row" style="margin-bottom:12px;align-items:center;gap:10px;flex-wrap:wrap">
           <span style="font-weight:700">آموزش و پرورش:</span>
           <input id="wbc-org" placeholder="مثال: اداره آموزش و پرورش ناحیه ۲ ..." style="flex:1;min-width:220px;padding:8px;border:1px solid #ddd;border-radius:6px">
         </div>
@@ -7815,7 +7842,8 @@ function teacherPage() {
           <input type="file" id="wbc-sig-file" accept="image/*">
           <img id="wbc-sig-preview" style="max-height:60px;display:none;border:1px solid #ddd;border-radius:6px;background:#fff">
           <button type="button" class="btn sm gray" id="wbc-sig-remove">حذف امضا</button>
-          <input id="wbc-sig-caption" placeholder="عنوان زیر امضا (مثال: مدیر مدرسه)" style="min-width:200px;padding:8px;border:1px solid #ddd;border-radius:6px">
+          <input id="wbc-sig-caption" placeholder="نام امضاکننده (مثال: علی رضایی)" style="min-width:200px;padding:8px;border:1px solid #ddd;border-radius:6px">
+          <input id="wbc-sig-role" placeholder="سمت (مثال: مدیر مدرسه)" style="min-width:160px;padding:8px;border:1px solid #ddd;border-radius:6px">
           <span class="muted">فونت:</span>
           <select id="wbc-font-sig" class="cert-font-select" style="padding:8px;border:1px solid #ddd;border-radius:6px"></select>
           <input type="number" id="wbc-size-sig" value="13" min="8" max="30" style="width:70px;padding:8px;border:1px solid #ddd;border-radius:6px">
@@ -9938,13 +9966,45 @@ function teacherScript() {
 
   (function(){
     var clockEl=document.getElementById('th-clock');
+    var timeEl=document.getElementById('th-clock-time');
+    var dateEl=document.getElementById('th-clock-date');
+    var iconEl=document.getElementById('th-clock-icon');
     if(clockEl){
+      var THJ_MONTHS=['فروردین','اردیبهشت','خرداد','تیر','مرداد','شهریور','مهر','آبان','آذر','دی','بهمن','اسفند'];
+      function thDiv(a,b){return ~~(a/b);}
+      function thGregorianToJalali(gy,gm,gd){
+        var g_d_m=[0,31,59,90,120,151,181,212,243,273,304,334];
+        var jy=(gy<=1600)?0:979;
+        gy-=(gy<=1600)?621:1600;
+        var gy2=(gm>2)?(gy+1):gy;
+        var days=(365*gy)+(thDiv((gy2+3),4))-(thDiv((gy2+99),100))+(thDiv((gy2+399),400))-80+gd+g_d_m[gm-1];
+        jy+=33*thDiv(days,12053);
+        days%=12053;
+        jy+=4*thDiv(days,1461);
+        days%=1461;
+        if(days>365){jy+=thDiv((days-1),365);days=(days-1)%365;}
+        var jm=(days<186)?1+thDiv(days,31):7+thDiv((days-186),30);
+        var jd=1+((days<186)?(days%31):((days-186)%30));
+        return [jy,jm,jd];
+      }
+      function thPad2(n){return String(n).padStart(2,'0');}
       function thTickClock(){
         var now=new Date();
-        var hh=String(now.getHours()).padStart(2,'0');
-        var mm=String(now.getMinutes()).padStart(2,'0');
-        var ss=String(now.getSeconds()).padStart(2,'0');
-        clockEl.textContent=hh+':'+mm+':'+ss;
+        var hh=now.getHours();
+        var mm=now.getMinutes();
+        var ss=now.getSeconds();
+        timeEl.innerHTML=thPad2(hh)+'<span class="th-colon">:</span>'+thPad2(mm)+'<span class="th-colon">:</span>'+thPad2(ss);
+        var j=thGregorianToJalali(now.getFullYear(),now.getMonth()+1,now.getDate());
+        var jDateStr=toFaDigits(j[2])+' '+THJ_MONTHS[j[1]-1]+' '+toFaDigits(j[0]);
+        dateEl.textContent=jDateStr;
+        var tod,icon;
+        if(hh>=5&&hh<11){tod='morning';icon='☀️';}
+        else if(hh>=11&&hh<16){tod='noon';icon='⛅';}
+        else if(hh>=16&&hh<20){tod='evening';icon='🌆';}
+        else{tod='night';icon='🌙';}
+        clockEl.classList.remove('th-tod-morning','th-tod-noon','th-tod-evening','th-tod-night');
+        clockEl.classList.add('th-tod-'+tod);
+        iconEl.textContent=icon;
       }
       thTickClock();
       setInterval(thTickClock,1000);
@@ -11584,22 +11644,51 @@ function teacherScript() {
       sel.innerHTML=CERT_FONTS.map(function(f){return '<option value="'+f[0]+'">'+f[1]+"</option>";}).join("");
     });
   }
-  /* قالب‌های تزئینی سنتی برای لوح تقدیر/گواهی وبینار — فقط ظاهر کادر/رنگ عنوان/زینت را تغییر می‌دهند، متن و فونت‌های انتخابی هر بخش دست‌نخورده می‌ماند */
+  /* قالب‌های تزئینی سنتی و مدرن برای لوح تقدیر/گواهی وبینار — فقط ظاهر کادر/رنگ عنوان/زینت را تغییر می‌دهند، متن و فونت‌های انتخابی هر بخش دست‌نخورده می‌ماند */
+  var CERT_TEX_PAPER="radial-gradient(circle at 1px 1px, rgba(90,65,30,0.05) 1px, transparent 0) 0 0/15px 15px";
+  function certCornerOrnament(svgFn,color){
+    var svg=svgFn(color);
+    return '<div style="position:absolute;top:8mm;right:8mm">'+svg+'</div>'
+      +'<div style="position:absolute;top:8mm;left:8mm;transform:scaleX(-1)">'+svg+'</div>'
+      +'<div style="position:absolute;bottom:8mm;right:8mm;transform:scaleY(-1)">'+svg+'</div>'
+      +'<div style="position:absolute;bottom:8mm;left:8mm;transform:scale(-1,-1)">'+svg+'</div>';
+  }
+  function certFloralSvg(color){
+    return '<svg width="44" height="44" viewBox="0 0 44 44" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="'+color+'" stroke-width="2"><path d="M4 40 C4 20 20 4 40 4" stroke-linecap="round"/><circle cx="10" cy="32" r="3" fill="'+color+'" stroke="none"/><circle cx="20" cy="20" r="3.5" fill="'+color+'" stroke="none"/><circle cx="32" cy="10" r="3" fill="'+color+'" stroke="none"/></svg>';
+  }
+  function certDigitalDotsSvg(color){
+    return '<svg width="38" height="38" viewBox="0 0 38 38" xmlns="http://www.w3.org/2000/svg" fill="'+color+'"><circle cx="4" cy="4" r="2.2"/><circle cx="14" cy="4" r="2.2"/><circle cx="24" cy="4" r="2.2"/><circle cx="4" cy="14" r="2.2"/><circle cx="4" cy="24" r="2.2"/></svg>';
+  }
+  function certRibbonSvg(color){
+    return '<div style="text-align:center;margin-top:2mm"><svg width="60" height="76" viewBox="0 0 64 80" xmlns="http://www.w3.org/2000/svg">'
+      +'<polygon points="18,40 26,80 32,66 38,80 46,40" fill="'+color+'" opacity="0.85"/>'
+      +'<circle cx="32" cy="26" r="22" fill="none" stroke="'+color+'" stroke-width="4"/>'
+      +'<circle cx="32" cy="26" r="13" fill="'+color+'" opacity="0.15"/>'
+      +'<path d="M22 26 l7 7 l13 -15" fill="none" stroke="'+color+'" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>'
+      +'</svg></div>';
+  }
   var CERT_THEMES={
     default:{label:"کلاسیک (پیش‌فرض)",border:"6px double #7c5b23",outline:"1px solid #d9c48a",outlineOffset:"-10px",inset:"",insetBorder:"",bg:"",titleColor:"",ornament:""},
-    a:{label:"طلایی مضاعف",border:"8px double #80602e",outline:"",outlineOffset:"",inset:"8mm",insetBorder:"2px solid #b08a43",bg:"#fbf7ea",titleColor:"#755421",ornament:""},
-    b:{label:"برگ زیتون",border:"3px solid #57422c",outline:"",outlineOffset:"",inset:"",insetBorder:"",bg:"#fbf7ea",titleColor:"#4b3826",ornament:'<div style="text-align:center;font-size:26px;letter-spacing:8px;color:#765b3a;margin-top:6mm">❧ ❧ ❧</div>'},
-    c:{label:"سبز و طلایی",border:"12px solid #31534a",outline:"",outlineOffset:"",inset:"5mm",insetBorder:"3px solid #c49b4b",bg:"#fbf7ea",titleColor:"#31534a",ornament:""},
+    a:{label:"طلایی مضاعف",border:"8px double #80602e",outline:"",outlineOffset:"",inset:"8mm",insetBorder:"2px solid #b08a43",bg:CERT_TEX_PAPER+",#fbf7ea",titleColor:"#755421",ornament:""},
+    b:{label:"برگ زیتون",border:"3px solid #57422c",outline:"",outlineOffset:"",inset:"",insetBorder:"",bg:CERT_TEX_PAPER+",#fbf7ea",titleColor:"#4b3826",ornament:'<div style="text-align:center;font-size:26px;letter-spacing:8px;color:#765b3a;margin-top:6mm">❧ ❧ ❧</div>'},
+    c:{label:"سبز و طلایی",border:"12px solid #31534a",outline:"",outlineOffset:"",inset:"5mm",insetBorder:"3px solid #c49b4b",bg:CERT_TEX_PAPER+",#fbf7ea",titleColor:"#31534a",ornament:""},
     d:{label:"ستاره طلایی",border:"2px solid #9b7138",outline:"",outlineOffset:"",inset:"",insetBorder:"",bg:"linear-gradient(145deg,#fffdf5,#f2ead8)",titleColor:"#704d24",ornament:'<div style="text-align:center;font-size:42px;color:#9b7138;margin-top:6mm">✦</div>'},
-    e:{label:"قرمز سلطنتی",border:"7px solid #6e3428",outline:"",outlineOffset:"",inset:"6mm",insetBorder:"2px solid #c79a50",bg:"#fbf7ea",titleColor:"#6e3428",ornament:""}
+    e:{label:"قرمز سلطنتی",border:"7px solid #6e3428",outline:"",outlineOffset:"",inset:"6mm",insetBorder:"2px solid #c79a50",bg:CERT_TEX_PAPER+",#fbf7ea",titleColor:"#6e3428",ornament:""},
+    floral:{label:"گل و بوته",border:"5px double #6b7f4a",outline:"",outlineOffset:"",inset:"6mm",insetBorder:"1px solid #9fae7c",bg:CERT_TEX_PAPER+",#fbfbf3",titleColor:"#4b5a34",ornament:certCornerOrnament(certFloralSvg,"#6b7f4a")},
+    ribbon:{label:"مدال و روبان",border:"4px double #8a6d1f",outline:"",outlineOffset:"",inset:"",insetBorder:"",bg:CERT_TEX_PAPER+",#fffdf6",titleColor:"#7a5c17",ornament:certRibbonSvg("#a4801f"),titleMarginTop:"22mm"},
+    modernBlue:{label:"آبی مدرن",border:"3px solid #1d4ed8",outline:"1px solid #93c5fd",outlineOffset:"-8px",inset:"",insetBorder:"",bg:"linear-gradient(160deg,#eef4ff,#dbe9ff)",titleColor:"#1e3a8a",ornament:""},
+    modernPurple:{label:"بنفش مدرن",border:"3px solid #7c3aed",outline:"1px solid #ddd6fe",outlineOffset:"-8px",inset:"",insetBorder:"",bg:"linear-gradient(160deg,#f5f0ff,#e9defd)",titleColor:"#5b21b6",ornament:""},
+    pastel:{label:"پاستلی",border:"3px solid #f59ab0",outline:"1px dashed #ffd3e0",outlineOffset:"-8px",inset:"",insetBorder:"",bg:"linear-gradient(160deg,#fff7f2,#ffe9ee)",titleColor:"#c2426a",ornament:""},
+    digital:{label:"دیجیتال (مناسب وبینار)",border:"2px solid #14b8a6",outline:"1px solid rgba(20,184,166,0.35)",outlineOffset:"-10px",inset:"",insetBorder:"",bg:"linear-gradient(160deg,#0b1e3a,#0f2f4f)",titleColor:"#5eead4",textColor:"#dff7f2",ornament:certCornerOrnament(certDigitalDotsSvg,"#5eead4")}
   };
-  var CERT_THEME_ORDER=["default","a","b","c","d","e"];
+  var CERT_THEME_ORDER=["default","a","b","c","d","e","floral","ribbon","modernBlue","modernPurple","pastel","digital"];
   function certGetTheme(key){return CERT_THEMES[key]||CERT_THEMES.default;}
   function certPopulateThemeSelects(){
     document.querySelectorAll(".cert-theme-select").forEach(function(sel){
       if(sel.dataset.filled)return;
       sel.dataset.filled="1";
       sel.innerHTML=CERT_THEME_ORDER.map(function(k){return '<option value="'+k+'">'+CERT_THEMES[k].label+"</option>";}).join("");
+      if(sel.id==="wbc-theme")sel.value="digital";
     });
   }
   var CERT_FONT_LOADED={};
@@ -11617,7 +11706,7 @@ function teacherScript() {
       {font:g(prefix+"-font-title"),size:g(prefix+"-size-title"),targets:[prefix+"-title"]},
       {font:g(prefix+"-font-number"),size:g(prefix+"-size-number"),targets:[prefix+"-number",prefix+"-date"]},
       {font:g(prefix+"-font-body"),size:g(prefix+"-size-body"),targets:[prefix+"-body"]},
-      {font:g(prefix+"-font-sig"),size:g(prefix+"-size-sig"),targets:[prefix+"-sig-caption"]}
+      {font:g(prefix+"-font-sig"),size:g(prefix+"-size-sig"),targets:[prefix+"-sig-caption",prefix+"-sig-role"]}
     ];
     groups.forEach(function(grp){
       var fk=grp.font||"default";
@@ -11646,6 +11735,7 @@ function teacherScript() {
     certApplyLivePreview(prefix);
   }
   var CERT_SIG={cert:"",wbc:""};
+  var CERT_LOGO={cert:"",wbc:""};
   /* دوره تحصیلی هر پایه را مشخص می‌کند: 0..5=ابتدایی، 6..8=متوسطه اول، 9..11=متوسطه دوم */
   function certGroupOfGrade(grade){
     var g=Number.isInteger(grade)?grade:0;
@@ -11872,10 +11962,38 @@ function teacherScript() {
       });
     }
   }
+  function certWireLogo(prefix){
+    var inp=document.getElementById(prefix+"-logo-file");
+    if(inp&&!inp.dataset.wired){
+      inp.dataset.wired="1";
+      inp.addEventListener("change",function(){
+        var f=inp.files&&inp.files[0];
+        if(!f)return;
+        if(f.size>1500000){toast("حجم لوگو زیاد است (حداکثر ۱.۵ مگابایت)");inp.value="";return;}
+        certReadFileAsDataUrl(f).then(function(data){
+          CERT_LOGO[prefix]=data;
+          var img=document.getElementById(prefix+"-logo-preview");
+          if(img){img.src=data;img.style.display="inline-block";}
+        });
+      });
+    }
+    var rm=document.getElementById(prefix+"-logo-remove");
+    if(rm&&!rm.dataset.wired){
+      rm.dataset.wired="1";
+      rm.addEventListener("click",function(){
+        CERT_LOGO[prefix]="";
+        var img=document.getElementById(prefix+"-logo-preview");
+        if(img){img.src="";img.style.display="none";}
+        var f2=document.getElementById(prefix+"-logo-file");
+        if(f2)f2.value="";
+      });
+    }
+  }
   function certCollectSettings(prefix){
     var g=function(id){var el=document.getElementById(id);return el?el.value:"";};
     var s={theme:g(prefix+"-theme")||"default",org:g(prefix+"-org"),number:g(prefix+"-number"),date:g(prefix+"-date"),title:g(prefix+"-title"),body:g(prefix+"-body"),
-      sigCaption:g(prefix+"-sig-caption"),sig:CERT_SIG[prefix]||"",
+      sigCaption:g(prefix+"-sig-caption"),sigRole:g(prefix+"-sig-role"),sig:CERT_SIG[prefix]||"",
+      logo:CERT_LOGO[prefix]||"",logoSize:g(prefix+"-logo-size"),
       fontTitle:g(prefix+"-font-title"),sizeTitle:g(prefix+"-size-title"),
       fontNumber:g(prefix+"-font-number"),sizeNumber:g(prefix+"-size-number"),
       fontBody:g(prefix+"-font-body"),sizeBody:g(prefix+"-size-body"),
@@ -11897,7 +12015,8 @@ function teacherScript() {
     set(prefix+"-theme",s.theme);
     set(prefix+"-org",s.org);
     set(prefix+"-number",s.number);set(prefix+"-date",s.date);set(prefix+"-title",s.title);set(prefix+"-body",s.body);
-    set(prefix+"-sig-caption",s.sigCaption);
+    set(prefix+"-sig-caption",s.sigCaption);set(prefix+"-sig-role",s.sigRole);
+    set(prefix+"-logo-size",s.logoSize);
     set(prefix+"-font-title",s.fontTitle);set(prefix+"-size-title",s.sizeTitle);
     set(prefix+"-font-number",s.fontNumber);set(prefix+"-size-number",s.sizeNumber);
     set(prefix+"-font-body",s.fontBody);set(prefix+"-size-body",s.sizeBody);
@@ -11907,6 +12026,11 @@ function teacherScript() {
       CERT_SIG[prefix]=s.sig;
       var img=document.getElementById(prefix+"-sig-preview");
       if(img){img.src=s.sig;img.style.display="inline-block";img.style.maxHeight=(parseFloat(s.sigSize)||70)+"px";}
+    }
+    if(s.logo){
+      CERT_LOGO[prefix]=s.logo;
+      var logoImg=document.getElementById(prefix+"-logo-preview");
+      if(logoImg){logoImg.src=s.logo;logoImg.style.display="inline-block";logoImg.style.maxHeight=(parseFloat(s.logoSize)||60)+"px";}
     }
     certApplyLivePreview(prefix);
   }
@@ -11969,26 +12093,39 @@ function teacherScript() {
     var sigBlock="";
     if(s.sig)sigBlock+='<img src="'+s.sig+'" style="max-height:'+(parseFloat(s.sigSize)||70)+'px;display:block;margin:0 auto 6px">';
     sigBlock+='<div style="font-family:'+sigFF+";font-size:"+(s.sizeSig||13)+'pt">'+esc(s.sigCaption||"")+"</div>";
+    if(s.sigRole)sigBlock+='<div style="font-family:'+sigFF+";font-size:"+Math.max(8,(parseFloat(s.sizeSig)||13)-2)+'pt">'+esc(s.sigRole)+"</div>";
     var orgBlock="";
     if(s.org)orgBlock='<div style="text-align:center;font-family:'+numFF+";font-size:"+Math.max(11,(s.sizeNumber||12))+'pt;font-weight:700">'+esc(s.org)+"</div>";
     var codeParts=[];
     if(s.number)codeParts.push(toEnDigits(s.number));
     if(s.date)codeParts.push(toEnDigits(s.date));
     codeParts.push((student.uuid||"").replace(/[^a-zA-Z0-9]/g,"").slice(0,10));
-    var qrValue=codeParts.filter(Boolean).join("-")||("SN"+(serial||1));
+    var qrValue;
+    if(s.certId&&student.uuid){
+      qrValue=location.origin+"/cert/"+encodeURIComponent(student.uuid)+"/"+encodeURIComponent(s.certId);
+    }else{
+      qrValue=codeParts.filter(Boolean).join("-")||("SN"+(serial||1));
+    }
     var qrCls="cqr"+prefix+(serial||1);
     var qrTable=certQrTableHtml(qrValue,22,qrCls);
-    var qrBlock=qrTable?('<div style="position:absolute;bottom:12mm;left:12mm">'+qrTable+"</div>"):"";
+    var qrBlock=qrTable?('<div style="position:absolute;bottom:12mm;left:12mm;background:#fff;padding:2mm;border-radius:2mm;line-height:0">'+qrTable+"</div>"):"";
     var pageStyle="page-break-after:always;box-sizing:border-box;width:100%;min-height:257mm;padding:16mm;border:"+theme.border+";position:relative;font-family:"+bodyFF;
+    if(theme.textColor)pageStyle+=";color:"+theme.textColor;
     if(theme.outline)pageStyle+=";outline:"+theme.outline+";outline-offset:"+(theme.outlineOffset||"0");
     if(theme.bg)pageStyle+=";background:"+theme.bg;
     var insetHtml=(theme.inset&&theme.insetBorder)?('<div style="position:absolute;top:'+theme.inset+';left:'+theme.inset+';right:'+theme.inset+';bottom:'+theme.inset+';border:'+theme.insetBorder+';pointer-events:none"></div>'):"";
     var titleColorCss=theme.titleColor?(";color:"+theme.titleColor):"";
-    var titleMarginTop=theme.ornament?"12mm":"30mm";
+    var titleMarginTop=theme.titleMarginTop||(theme.ornament?"12mm":"30mm");
+    var logoBlock=s.logo?('<div style="position:absolute;top:8mm;left:0;right:0;text-align:center"><img src="'+s.logo+'" style="max-height:'+(parseFloat(s.logoSize)||60)+'px;display:inline-block"></div>'):"";
+    if(s.logo){
+      var logoMm=(parseFloat(s.logoSize)||60)*0.2646+6;
+      titleMarginTop=(parseFloat(titleMarginTop)+logoMm)+"mm";
+    }
     return ""
       +'<div class="cert-page" style="'+pageStyle+'">'
       +insetHtml
       +orgBlock
+      +logoBlock
       +'<div style="position:absolute;top:14mm;left:16mm;text-align:right;font-family:'+numFF+";font-size:"+(s.sizeNumber||12)+'pt;line-height:2">شماره: '+toFaDigits(esc(s.number||""))+"<br>تاریخ: "+toFaDigits(esc(s.date||""))+"</div>"
       +theme.ornament
       +'<div style="text-align:center;margin-top:'+titleMarginTop+";font-family:"+titleFF+";font-size:"+(s.sizeTitle||28)+"pt;font-weight:800"+titleColorCss+'">'+esc(s.title||"")+"</div>"
@@ -12053,8 +12190,9 @@ function teacherScript() {
     var page=certBuildPageHtml(prefix,st,s,serial);
     var seen={};
     var fontFaces=[s.fontTitle,s.fontNumber,s.fontBody,s.fontSig].map(function(k){return k||"default";}).filter(function(k){if(seen[k])return false;seen[k]=true;return true;}).map(certFontFaceCss).join("");
-    var style="<style>@page{size:A4 portrait;margin:10mm}"+fontFaces+"*{-webkit-print-color-adjust:exact;print-color-adjust:exact}body{margin:0;direction:rtl}.cert-page{page-break-after:auto}</style>";
-    return '<html><head><meta charset="utf-8">'+style+"</head><body>"+page+"</body></html>";
+    var style="<style>@page{size:A4 portrait;margin:10mm}"+fontFaces+"*{-webkit-print-color-adjust:exact;print-color-adjust:exact}body{margin:0;direction:rtl}.cert-page{page-break-after:auto}@media print{.cert-dl-btn{display:none}}</style>";
+    var dlBtn='<button type="button" class="cert-dl-btn" onclick="window.print()" style="position:fixed;top:10px;left:10px;z-index:9;padding:10px 16px;border:0;border-radius:8px;background:#16a34a;color:#fff;font-family:Tahoma,Arial;font-size:14px;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.25)">⬇️ دانلود / چاپ لوح</button>';
+    return '<html><head><meta charset="utf-8">'+style+"</head><body>"+dlBtn+page+"</body></html>";
   }
   async function certIssueToStudents(prefix){
     if(prefix!=="cert"){toast("این قابلیت فعلاً فقط برای لوح تقدیر در دسترس است");return;}
@@ -12068,8 +12206,10 @@ function teacherScript() {
     for(var i=0;i<students.length;i++){
       var st=students[i];
       try{
-        var docHtml=await certBuildSingleDocHtml(prefix,st,s,i+1);
-        var r=await fetch("/api/teacher/certificates/issue",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({studentUuid:st.uuid,title:s.title||"لوح تقدیر",html:docHtml})});
+        var certId=(window.crypto&&crypto.randomUUID)?crypto.randomUUID():("c"+Date.now().toString(36)+Math.random().toString(36).slice(2,10));
+        var sWithId=Object.assign({},s,{certId:certId});
+        var docHtml=await certBuildSingleDocHtml(prefix,st,sWithId,i+1);
+        var r=await fetch("/api/teacher/certificates/issue",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({id:certId,studentUuid:st.uuid,title:s.title||"لوح تقدیر",html:docHtml})});
         var d=await r.json().catch(function(){return {ok:false};});
         if(d&&d.ok)okCount++;else failCount++;
       }catch(e){failCount++;}
@@ -12088,6 +12228,7 @@ function teacherScript() {
     ["cert","wbc"].forEach(function(p){
       if(p==="wbc")certWireSelectAll(p);
       certWireSig(p);
+      certWireLogo(p);
       certWireLivePreview(p);
       var saveBtn=document.getElementById(p+"-btn-save");
       if(saveBtn&&!saveBtn.dataset.wired){saveBtn.dataset.wired="1";saveBtn.addEventListener("click",function(){certSaveSettings(p);});}
