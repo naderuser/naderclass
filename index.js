@@ -9638,6 +9638,7 @@ function teacherPage() {
             <input type="file" id="ab-file" accept="application/pdf">
             <span id="ab-filename" class="muted"></span>
           </div>
+          <div id="ab-status" class="muted" style="margin:0 0 8px;min-height:18px"></div>
 
           <div id="ab-controls" class="hidden">
             <div class="row" style="gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:8px">
@@ -20922,7 +20923,7 @@ function teacherScript() {
   }
 
   // ===================== کتاب صوتی (Text-to-Speech رایگان مرورگر) =====================
-  var abPdfDoc=null, abCurrentPage=0, abQueue=[], abQueueIdx=0, abSpeaking=false;
+  var abPdfDoc=null, abCurrentPage=0, abQueue=[], abQueueIdx=0, abSpeaking=false, abBusy=false, abErrStreak=0;
   function abPopulateVoices(){
     if(typeof speechSynthesis==='undefined')return;
     var voices=speechSynthesis.getVoices();
@@ -20944,21 +20945,54 @@ function teacherScript() {
     speechSynthesis.onvoiceschanged=abPopulateVoices;
     abPopulateVoices();
   }
+  function abSetBusy(b,msg){
+    abBusy=b;
+    var st=document.getElementById('ab-status');
+    if(st)st.textContent=msg||'';
+    ['ab-prev','ab-next','ab-play'].forEach(function(id){
+      var el=document.getElementById(id);
+      if(el)el.disabled=b;
+    });
+  }
+  // اگر متنِ استخراج‌شده از خودِ PDF به‌هم‌ریخته باشد (فونت‌های قدیمی که کاراکترها را به بازه‌های نامرتبط
+  // نگاشت می‌کنند)، به‌جای آن از OCR روی تصویر همان صفحه استفاده می‌کنیم که همیشه درست است
   async function abGetPageText(n){
     var page=await abPdfDoc.getPage(n);
     var content=await page.getTextContent();
-    return content.items.map(function(it){return it.str;}).join(' ');
+    var text=content.items.map(function(it){return it.str;}).join(' ').trim();
+    if(text && !hasBrokenGlyphs(text))return {text:text,ocr:false};
+    if(typeof Tesseract==='undefined')return {text:text,ocr:false};
+    try{
+      abSetBusy(true,'🔎 متن این صفحه با فونت قدیمی خراب است؛ در حال تشخیص نوری متن (OCR)... چند لحظه صبر کنید');
+      var rendered=await renderPageForOcr(page);
+      var worker=await getOcrWorker();
+      await worker.setParameters({tessedit_pageseg_mode:'6'});
+      var res=await worker.recognize(rendered.canvas);
+      await worker.setParameters({tessedit_pageseg_mode:'7'});
+      var ocrText=(res.data.text||'').trim();
+      if(ocrText)return {text:ocrText,ocr:true};
+      return {text:text,ocr:false};
+    }catch(err){
+      return {text:text,ocr:false};
+    }
   }
   function abStopSpeaking(){
     if(typeof speechSynthesis!=='undefined')speechSynthesis.cancel();
-    abSpeaking=false;abQueue=[];abQueueIdx=0;
+    abSpeaking=false;abQueue=[];abQueueIdx=0;abErrStreak=0;
   }
   async function abShowPage(n){
+    if(abBusy)return;
     abStopSpeaking();
-    var text=await abGetPageText(n);
-    document.getElementById('ab-text').value=text;
-    document.getElementById('ab-page-num').textContent=toFaDigits(n);
-    abCurrentPage=n;
+    abSetBusy(true,'در حال استخراج متن صفحه...');
+    try{
+      var res=await abGetPageText(n);
+      document.getElementById('ab-text').value=res.text;
+      document.getElementById('ab-page-num').textContent=toFaDigits(n);
+      abCurrentPage=n;
+      abSetBusy(false,res.ocr?'این صفحه با OCR خوانده شد (ممکن است چند غلط تایپی داشته باشد).':'');
+    }catch(err){
+      abSetBusy(false,'خطا در استخراج متن این صفحه.');
+    }
   }
   async function abLoadPdf(file){
     if(file.type!=='application/pdf'){toast('فقط فایل PDF مجاز است');return;}
@@ -20973,11 +21007,11 @@ function teacherScript() {
     if(e.target.files&&e.target.files[0])abLoadPdf(e.target.files[0]);
   });
   document.getElementById('ab-prev').onclick=function(){
-    if(!abPdfDoc||abCurrentPage<=1)return;
+    if(abBusy||!abPdfDoc||abCurrentPage<=1)return;
     abShowPage(abCurrentPage-1);
   };
   document.getElementById('ab-next').onclick=function(){
-    if(!abPdfDoc||abCurrentPage>=abPdfDoc.numPages)return;
+    if(abBusy||!abPdfDoc||abCurrentPage>=abPdfDoc.numPages)return;
     abShowPage(abCurrentPage+1);
   };
   document.getElementById('ab-rate').addEventListener('input',function(){
@@ -21000,7 +21034,7 @@ function teacherScript() {
   }
   function abSpeakNextChunk(){
     if(abQueueIdx>=abQueue.length){
-      abSpeaking=false;
+      abSpeaking=false;abErrStreak=0;
       if(document.getElementById('ab-autonext').checked&&abPdfDoc&&abCurrentPage<abPdfDoc.numPages){
         abShowPage(abCurrentPage+1).then(function(){abStartSpeaking();});
       }
@@ -21013,8 +21047,18 @@ function teacherScript() {
     if(voice)utter.voice=voice;
     utter.lang=(voice&&voice.lang)||'fa-IR';
     utter.rate=parseFloat(document.getElementById('ab-rate').value)||1;
-    utter.onend=function(){abQueueIdx++;abSpeakNextChunk();};
-    utter.onerror=function(){abQueueIdx++;abSpeakNextChunk();};
+    utter.onend=function(){abErrStreak=0;abQueueIdx++;abSpeakNextChunk();};
+    // اگر چند تکه‌ی پشت‌سرهم با خطا مواجه شوند (مثلاً به‌خاطر متن ناسالم)، به‌جای رد شدنِ سریع و پشت‌سرهم از کل صفحه‌ها
+    // (که ظاهرش می‌شود «خودش صفحه عوض می‌کند»)، خواندن را کاملاً متوقف می‌کنیم و به کاربر خبر می‌دهیم
+    utter.onerror=function(){
+      abErrStreak++;
+      if(abErrStreak>=3){
+        abStopSpeaking();
+        toast('خواندن این صفحه با خطا مواجه شد و متوقف شد.');
+        return;
+      }
+      abQueueIdx++;abSpeakNextChunk();
+    };
     speechSynthesis.speak(utter);
   }
   function abStartSpeaking(){
@@ -21024,6 +21068,7 @@ function teacherScript() {
     speechSynthesis.cancel();
     abQueue=abSplitText(text);
     abQueueIdx=0;
+    abErrStreak=0;
     abSpeaking=true;
     abSpeakNextChunk();
   }
