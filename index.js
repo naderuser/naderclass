@@ -651,8 +651,6 @@ async function handleApi(req, env, url, path) {
       hasGroqKey: typeof env.GROQ_API_KEY === "string" && env.GROQ_API_KEY.length > 0,
       groqKeyLength: env.GROQ_API_KEY ? env.GROQ_API_KEY.length : 0,
       hasCloudflareAiBinding: typeof env.AI !== "undefined" && env.AI !== null,
-      hasOpenRouterKey: typeof env.OPENROUTER_API_KEY === "string" && env.OPENROUTER_API_KEY.length > 0,
-      openRouterKeyLength: env.OPENROUTER_API_KEY ? env.OPENROUTER_API_KEY.length : 0,
     });
   }
 
@@ -1492,21 +1490,7 @@ async function handleApi(req, env, url, path) {
       const body = await req.json().catch(() => ({}));
       const messages = body.messages || [];
       const maxTokens = Math.min(Math.max(parseInt(body.max_tokens, 10) || 1024, 256), 8192);
-      const provider = body.provider === "groq" ? "groq" : body.provider === "cloudflare" ? "cloudflare" : body.provider === "openrouter" ? "openrouter" : "gemini";
-
-      // ----- موتور OpenRouter — سازگار با فرمت OpenAI (مدل رایگان DeepSeek V4 Flash) -----
-      if (provider === "openrouter") {
-        const orKey = env.OPENROUTER_API_KEY;
-        if (!orKey) return json({ error: "کلید OPENROUTER_API_KEY تنظیم نشده" }, 500);
-        const orModel = body.model || env.OPENROUTER_MODEL || "deepseek/deepseek-v4-flash:free";
-        const trimmedOrMessages = messages.slice(-10);
-        const result = await callOpenAiCompatible(
-          "https://openrouter.ai/api/v1/chat/completions",
-          orKey, orModel, trimmedOrMessages, maxTokens
-        );
-        if (!result.ok) return json({ error: "OpenRouter: " + result.error }, result.status);
-        return json({ ok: true, content: result.content });
-      }
+      const provider = body.provider === "groq" ? "groq" : body.provider === "cloudflare" ? "cloudflare" : "gemini";
 
       // ----- موتور Groq — سازگار با فرمت OpenAI، سخت‌افزار LPU با سرعت بسیار بالا -----
       if (provider === "groq") {
@@ -8649,7 +8633,6 @@ function teacherPage() {
           <p class="muted">مجموعه‌ی فرم‌های اداری و آموزشی معلم؛ هرکدام را انتخاب کنید تا وارد شوید. همه قابل دانلود Word، Excel و چاپ/PDF هستند.</p>
           <div class="lb-menu-grid">
             <button class="lb-menu-btn" data-lb="lessonplan"><span class="lb-ico">📝</span><span class="lb-t">طرح درس روزانه</span><small>فرم کامل با جدول مراحل تدریس</small></button>
-            <button class="lb-menu-btn" data-lb="audiobook"><span class="lb-ico">📖</span><span class="lb-t">کتاب صوتی</span><small>خواندن فایل PDF با صدای مرورگر</small></button>
             <button class="lb-menu-btn" data-lb="pacing"><span class="lb-ico">📈</span><span class="lb-t">جدول بودجه‌بندی آموزشی</span><small>پایه‌های اول تا ششم</small></button>
             <button class="lb-menu-btn" data-lb="roster"><span class="lb-ico">👥</span><span class="lb-t">لیست اسامی دانش‌آموزان</span></button>
             <button class="lb-menu-btn" data-lb="genderstats"><span class="lb-ico">🥧</span><span class="lb-t">آمار دانش‌آموزان</span><small>به تفکیک جنسیت</small></button>
@@ -9628,42 +9611,6 @@ function teacherPage() {
           </div>
         </div>
 
-        <!-- ===== کتاب صوتی ===== -->
-        <div class="lb-panel hidden" id="lb-panel-audiobook">
-          <button class="btn sm gray lb-back-btn">← بازگشت به دفتر</button>
-          <h3 style="margin:6px 0">📖 کتاب صوتی (خواندن متن با صدای مرورگر)</h3>
-          <p class="muted" style="margin:0 0 10px">فایل PDF کتاب یا جزوه را بارگذاری کنید تا صفحه‌به‌صفحه با صدای مرورگر برایتان خوانده شود. کیفیت صدا و پشتیبانی از زبان فارسی به دستگاه و مرورگر شما بستگی دارد؛ این قابلیت رایگان و بدون نیاز به اینترنت اضافه کار می‌کند.</p>
-
-          <div class="row" style="gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px">
-            <input type="file" id="ab-file" accept="application/pdf">
-            <span id="ab-filename" class="muted"></span>
-          </div>
-          <div id="ab-status" class="muted" style="margin:0 0 8px;min-height:18px"></div>
-
-          <div id="ab-controls" class="hidden">
-            <div class="row" style="gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:8px">
-              <label style="font-weight:700">صدا:</label>
-              <select id="ab-voice" style="min-width:200px"></select>
-              <label style="font-weight:700">سرعت:</label>
-              <input type="range" id="ab-rate" min="0.5" max="2" step="0.1" value="1">
-              <span id="ab-rate-val" class="muted">1x</span>
-            </div>
-            <div class="row" style="gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:8px">
-              <button class="btn sm gray" id="ab-prev">◀ صفحه قبل</button>
-              <span class="muted">صفحه <b id="ab-page-num">۰</b> از <b id="ab-page-count">۰</b></span>
-              <button class="btn sm gray" id="ab-next">صفحه بعد ▶</button>
-              <label style="display:flex;align-items:center;gap:4px"><input type="checkbox" id="ab-autonext" checked> خواندن خودکار صفحه بعد</label>
-            </div>
-            <div class="row" style="gap:8px;flex-wrap:wrap;margin-bottom:10px">
-              <button class="btn primary" id="ab-play">▶️ پخش</button>
-              <button class="btn gray" id="ab-pause">⏸️ توقف موقت</button>
-              <button class="btn gray" id="ab-resume">⏯️ ادامه</button>
-              <button class="btn danger" type="button" id="ab-stop">⏹️ توقف کامل</button>
-            </div>
-            <textarea id="ab-text" class="lb-textarea" rows="10" style="width:100%;font-size:13px" placeholder="متن استخراج‌شده‌ی صفحه اینجا نمایش داده می‌شود؛ در صورت نیاز می‌توانید قبل از پخش آن را ویرایش کنید..."></textarea>
-          </div>
-        </div>
-
       </div>
 
 
@@ -9748,14 +9695,6 @@ function teacherPage() {
           <label style="display:flex;align-items:center;gap:6px;font-weight:700;cursor:pointer"><input type="radio" name="ai-provider" value="gemini" id="ai-provider-gemini"> ✨ Gemini (گوگل)</label>
           <label style="display:flex;align-items:center;gap:6px;font-weight:700;cursor:pointer"><input type="radio" name="ai-provider" value="groq" id="ai-provider-groq"> ⚡ Groq</label>
           <label style="display:flex;align-items:center;gap:6px;font-weight:700;cursor:pointer"><input type="radio" name="ai-provider" value="cloudflare" id="ai-provider-cloudflare"> ☁️ Cloudflare Workers AI</label>
-          <label style="display:flex;align-items:center;gap:6px;font-weight:700;cursor:pointer"><input type="radio" name="ai-provider" value="openrouter" id="ai-provider-openrouter"> 🌐 OpenRouter (رایگان)</label>
-        </div>
-        <div id="ai-openrouter-model-wrap" class="hidden" style="margin-bottom:18px">
-          <label>مدل OpenRouter</label>
-          <select id="ai-openrouter-model">
-            <option value="deepseek/deepseek-v4-flash:free">DeepSeek V4 Flash (رایگان)</option>
-          </select>
-          <p class="muted" style="font-size:12px;margin-top:6px">🌐 این موتور از مدل رایگان DeepSeek V4 Flash روی OpenRouter استفاده می‌کند. کلید API باید به‌صورت متغیر محیطی OPENROUTER_API_KEY در تنظیمات Worker ذخیره شده باشد.</p>
         </div>
         <div id="ai-groq-model-wrap" class="hidden" style="margin-bottom:18px">
           <label>مدل Groq</label>
@@ -9982,20 +9921,18 @@ function teacherScript() {
     applyColorTheme(b.dataset.color);
   });});
 
-  // ===== موتور هوش مصنوعی: قابل انتخاب بین Gemini، Groq، Cloudflare Workers AI و OpenRouter =====
+  // ===== موتور هوش مصنوعی: قابل انتخاب بین Gemini، Groq و Cloudflare Workers AI =====
   var AI_PROVIDER_KEY='ai-provider-choice';
   var AI_MODEL_KEY_GROQ='ai-groq-model-choice';
   var AI_MODEL_KEY_CLOUDFLARE='ai-cloudflare-model-choice';
-  var AI_MODEL_KEY_OPENROUTER='ai-openrouter-model-choice';
   window.getAiProvider=function(){
     var p=localStorage.getItem(AI_PROVIDER_KEY)||'gemini';
-    return (p==='groq'||p==='cloudflare'||p==='openrouter')?p:'gemini'; // موتور OpenCode حذف شده؛ اگر قبلاً انتخاب شده بود، برگرد به Gemini
+    return (p==='groq'||p==='cloudflare')?p:'gemini'; // موتورهای OpenCode/OpenRouter حذف شده‌اند؛ اگر قبلاً انتخاب شده بود، برگرد به Gemini
   };
   window.getAiModel=function(){
     var p=getAiProvider();
     if(p==='groq')return localStorage.getItem(AI_MODEL_KEY_GROQ)||'openai/gpt-oss-20b';
     if(p==='cloudflare')return localStorage.getItem(AI_MODEL_KEY_CLOUDFLARE)||'@cf/meta/llama-3.1-8b-instruct-fast';
-    if(p==='openrouter')return localStorage.getItem(AI_MODEL_KEY_OPENROUTER)||'deepseek/deepseek-v4-flash:free';
     return '';
   };
   (function initAiProviderUI(){
@@ -10004,21 +9941,17 @@ function teacherScript() {
     var groqSel=document.getElementById('ai-groq-model');
     var cfWrap=document.getElementById('ai-cloudflare-model-wrap');
     var cfSel=document.getElementById('ai-cloudflare-model');
-    var orWrap=document.getElementById('ai-openrouter-model-wrap');
-    var orSel=document.getElementById('ai-openrouter-model');
     if(!radios.length)return;
     function applyVisibility(p){
       if(groqWrap)groqWrap.classList.toggle('hidden',p!=='groq');
       if(cfWrap)cfWrap.classList.toggle('hidden',p!=='cloudflare');
-      if(orWrap)orWrap.classList.toggle('hidden',p!=='openrouter');
     }
     var current=getAiProvider();
     radios.forEach(function(r){r.checked=(r.value===current);});
     applyVisibility(current);
     if(groqSel)groqSel.value=localStorage.getItem(AI_MODEL_KEY_GROQ)||'openai/gpt-oss-20b';
     if(cfSel)cfSel.value=localStorage.getItem(AI_MODEL_KEY_CLOUDFLARE)||'@cf/meta/llama-3.1-8b-instruct-fast';
-    if(orSel)orSel.value=localStorage.getItem(AI_MODEL_KEY_OPENROUTER)||'deepseek/deepseek-v4-flash:free';
-    var AI_PROVIDER_LABELS={gemini:'Gemini',groq:'Groq',cloudflare:'Cloudflare Workers AI',openrouter:'OpenRouter'};
+    var AI_PROVIDER_LABELS={gemini:'Gemini',groq:'Groq',cloudflare:'Cloudflare Workers AI'};
     radios.forEach(function(r){
       r.addEventListener('change',function(){
         if(!this.checked)return;
@@ -10027,11 +9960,6 @@ function teacherScript() {
         toast('موتور هوش مصنوعی به «'+(AI_PROVIDER_LABELS[this.value]||this.value)+'» تغییر کرد ✅');
       });
     });
-    if(orSel){
-      orSel.addEventListener('change',function(){
-        localStorage.setItem(AI_MODEL_KEY_OPENROUTER,this.value);
-      });
-    }
     if(groqSel){
       groqSel.addEventListener('change',function(){
         localStorage.setItem(AI_MODEL_KEY_GROQ,this.value);
@@ -17970,7 +17898,6 @@ function teacherScript() {
       if(b.dataset.lb==='staff')lbLoadStaffIfNeeded();
       if(b.dataset.lb==='minutes')lbLoadMinutesIfNeeded();
       if(b.dataset.lb==='lessonplan')lbLoadLessonPlanIfNeeded();
-      if(b.dataset.lb==='audiobook')lbLoadAudiobookIfNeeded();
     };
   });
   document.querySelectorAll('.lb-back-btn').forEach(function(b){
@@ -20922,168 +20849,6 @@ function teacherScript() {
     lpApplyStyle();
   }
 
-  // ===================== کتاب صوتی (Text-to-Speech رایگان مرورگر) =====================
-  var abPdfDoc=null, abCurrentPage=0, abQueue=[], abQueueIdx=0, abSpeaking=false, abBusy=false, abErrStreak=0;
-  function abPopulateVoices(){
-    if(typeof speechSynthesis==='undefined')return;
-    var voices=speechSynthesis.getVoices();
-    var sel=document.getElementById('ab-voice');
-    if(!sel||!voices.length)return;
-    var faVoices=voices.filter(function(v){return /^fa/i.test(v.lang);});
-    var list=faVoices.length?faVoices:voices;
-    var prev=sel.value;
-    sel.innerHTML='';
-    list.forEach(function(v){
-      var opt=document.createElement('option');
-      opt.value=v.name;
-      opt.textContent=v.name+' ('+v.lang+')';
-      sel.appendChild(opt);
-    });
-    if(prev&&list.some(function(v){return v.name===prev;}))sel.value=prev;
-  }
-  if(typeof speechSynthesis!=='undefined'){
-    speechSynthesis.onvoiceschanged=abPopulateVoices;
-    abPopulateVoices();
-  }
-  function abSetBusy(b,msg){
-    abBusy=b;
-    var st=document.getElementById('ab-status');
-    if(st)st.textContent=msg||'';
-    ['ab-prev','ab-next','ab-play'].forEach(function(id){
-      var el=document.getElementById(id);
-      if(el)el.disabled=b;
-    });
-  }
-  // اگر متنِ استخراج‌شده از خودِ PDF به‌هم‌ریخته باشد (فونت‌های قدیمی که کاراکترها را به بازه‌های نامرتبط
-  // نگاشت می‌کنند)، به‌جای آن از OCR روی تصویر همان صفحه استفاده می‌کنیم که همیشه درست است
-  async function abGetPageText(n){
-    var page=await abPdfDoc.getPage(n);
-    var content=await page.getTextContent();
-    var text=content.items.map(function(it){return it.str;}).join(' ').trim();
-    if(text && !hasBrokenGlyphs(text))return {text:text,ocr:false};
-    if(typeof Tesseract==='undefined')return {text:text,ocr:false};
-    try{
-      abSetBusy(true,'🔎 متن این صفحه با فونت قدیمی خراب است؛ در حال تشخیص نوری متن (OCR)... چند لحظه صبر کنید');
-      var rendered=await renderPageForOcr(page);
-      var worker=await getOcrWorker();
-      await worker.setParameters({tessedit_pageseg_mode:'6'});
-      var res=await worker.recognize(rendered.canvas);
-      await worker.setParameters({tessedit_pageseg_mode:'7'});
-      var ocrText=(res.data.text||'').trim();
-      if(ocrText)return {text:ocrText,ocr:true};
-      return {text:text,ocr:false};
-    }catch(err){
-      return {text:text,ocr:false};
-    }
-  }
-  function abStopSpeaking(){
-    if(typeof speechSynthesis!=='undefined')speechSynthesis.cancel();
-    abSpeaking=false;abQueue=[];abQueueIdx=0;abErrStreak=0;
-  }
-  async function abShowPage(n){
-    if(abBusy)return;
-    abStopSpeaking();
-    abSetBusy(true,'در حال استخراج متن صفحه...');
-    try{
-      var res=await abGetPageText(n);
-      document.getElementById('ab-text').value=res.text;
-      document.getElementById('ab-page-num').textContent=toFaDigits(n);
-      abCurrentPage=n;
-      abSetBusy(false,res.ocr?'این صفحه با OCR خوانده شد (ممکن است چند غلط تایپی داشته باشد).':'');
-    }catch(err){
-      abSetBusy(false,'خطا در استخراج متن این صفحه.');
-    }
-  }
-  async function abLoadPdf(file){
-    if(file.type!=='application/pdf'){toast('فقط فایل PDF مجاز است');return;}
-    document.getElementById('ab-filename').textContent=file.name;
-    var buf=await file.arrayBuffer();
-    abPdfDoc=await pdfjsLib.getDocument({data:buf}).promise;
-    document.getElementById('ab-page-count').textContent=toFaDigits(abPdfDoc.numPages);
-    document.getElementById('ab-controls').classList.remove('hidden');
-    await abShowPage(1);
-  }
-  document.getElementById('ab-file').addEventListener('change',function(e){
-    if(e.target.files&&e.target.files[0])abLoadPdf(e.target.files[0]);
-  });
-  document.getElementById('ab-prev').onclick=function(){
-    if(abBusy||!abPdfDoc||abCurrentPage<=1)return;
-    abShowPage(abCurrentPage-1);
-  };
-  document.getElementById('ab-next').onclick=function(){
-    if(abBusy||!abPdfDoc||abCurrentPage>=abPdfDoc.numPages)return;
-    abShowPage(abCurrentPage+1);
-  };
-  document.getElementById('ab-rate').addEventListener('input',function(){
-    document.getElementById('ab-rate-val').textContent=this.value+'x';
-  });
-  function abSplitText(text){
-    var raw=text.split(/([.!?؟\\n]+)/);
-    var parts=[];
-    for(var i=0;i<raw.length;i+=2){
-      var chunk=(raw[i]+(raw[i+1]||'')).trim();
-      if(chunk)parts.push(chunk);
-    }
-    var merged=[],buf='';
-    parts.forEach(function(p){
-      if((buf+' '+p).length<220){buf=(buf?buf+' ':'')+p;}
-      else{if(buf)merged.push(buf);buf=p;}
-    });
-    if(buf)merged.push(buf);
-    return merged.length?merged:[text];
-  }
-  function abSpeakNextChunk(){
-    if(abQueueIdx>=abQueue.length){
-      abSpeaking=false;abErrStreak=0;
-      if(document.getElementById('ab-autonext').checked&&abPdfDoc&&abCurrentPage<abPdfDoc.numPages){
-        abShowPage(abCurrentPage+1).then(function(){abStartSpeaking();});
-      }
-      return;
-    }
-    var utter=new SpeechSynthesisUtterance(abQueue[abQueueIdx]);
-    var voiceName=(document.getElementById('ab-voice')||{}).value;
-    var voices=speechSynthesis.getVoices();
-    var voice=voices.find(function(v){return v.name===voiceName;});
-    if(voice)utter.voice=voice;
-    utter.lang=(voice&&voice.lang)||'fa-IR';
-    utter.rate=parseFloat(document.getElementById('ab-rate').value)||1;
-    utter.onend=function(){abErrStreak=0;abQueueIdx++;abSpeakNextChunk();};
-    // اگر چند تکه‌ی پشت‌سرهم با خطا مواجه شوند (مثلاً به‌خاطر متن ناسالم)، به‌جای رد شدنِ سریع و پشت‌سرهم از کل صفحه‌ها
-    // (که ظاهرش می‌شود «خودش صفحه عوض می‌کند»)، خواندن را کاملاً متوقف می‌کنیم و به کاربر خبر می‌دهیم
-    utter.onerror=function(){
-      abErrStreak++;
-      if(abErrStreak>=3){
-        abStopSpeaking();
-        toast('خواندن این صفحه با خطا مواجه شد و متوقف شد.');
-        return;
-      }
-      abQueueIdx++;abSpeakNextChunk();
-    };
-    speechSynthesis.speak(utter);
-  }
-  function abStartSpeaking(){
-    if(typeof speechSynthesis==='undefined'){toast('مرورگر شما از خواندن صوتی پشتیبانی نمی‌کند');return;}
-    var text=document.getElementById('ab-text').value.trim();
-    if(!text){toast('متنی برای خواندن وجود ندارد');return;}
-    speechSynthesis.cancel();
-    abQueue=abSplitText(text);
-    abQueueIdx=0;
-    abErrStreak=0;
-    abSpeaking=true;
-    abSpeakNextChunk();
-  }
-  document.getElementById('ab-play').onclick=function(){abStartSpeaking();};
-  document.getElementById('ab-pause').onclick=function(){if(typeof speechSynthesis!=='undefined')speechSynthesis.pause();};
-  document.getElementById('ab-resume').onclick=function(){if(typeof speechSynthesis!=='undefined')speechSynthesis.resume();};
-  document.getElementById('ab-stop').onclick=function(){abStopSpeaking();};
-  var AB_LOADED=false;
-  function lbLoadAudiobookIfNeeded(){
-    if(AB_LOADED)return;
-    AB_LOADED=true;
-    abPopulateVoices();
-  }
-
-  // ===================== پایان دفتر مدیریت کلاسی =====================
 
   // ===================== دریافت و ارسال اطلاعات =====================
   var INFOEX_LINKS=[];
