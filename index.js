@@ -44,6 +44,50 @@ const QUESTION_TYPES = {
   short: "کوتاه‌پاسخ",
 };
 
+/* اسکریپت مشترک حالت تمام‌صفحه برای کلاس آنلاین و وبینار (هم پنل معلم، هم صفحه دانش‌آموز/شرکت‌کننده) —
+   یک کانتینر مشخص را هم با Fullscreen API واقعی (در صورت پشتیبانی مرورگر) و هم با یک کلاس CSS پوششی
+   (برای مرورگرهایی مثل Safari موبایل که از Fullscreen API روی عنصر دلخواه پشتیبانی نمی‌کنند) تمام‌صفحه می‌کند،
+   و یک دکمه‌ی بازگشت برای خروج از آن فراهم می‌کند. */
+const CLS_FULLSCREEN_JS = `
+function clsSetupFullscreen(containerId, toggleBtnId, backBtnId){
+  var el=document.getElementById(containerId);
+  var toggleBtn=document.getElementById(toggleBtnId);
+  var backBtn=backBtnId?document.getElementById(backBtnId):null;
+  if(!el||!toggleBtn)return;
+  function isActive(){return el.classList.contains('cls-fullscreen-active');}
+  function updateUi(){
+    toggleBtn.textContent=isActive()?'✖️ خروج از تمام‌صفحه':'🖥️ تمام‌صفحه';
+    if(backBtn)backBtn.classList.toggle('hidden',!isActive());
+  }
+  function bumpResize(){setTimeout(function(){try{window.dispatchEvent(new Event('resize'));}catch(e){}},60);}
+  function enter(){
+    el.classList.add('cls-fullscreen-active');
+    var req=el.requestFullscreen||el.webkitRequestFullscreen||el.msRequestFullscreen;
+    if(req){try{req.call(el).catch(function(){});}catch(e){}}
+    updateUi();bumpResize();
+  }
+  function exit(){
+    el.classList.remove('cls-fullscreen-active');
+    if(document.fullscreenElement||document.webkitFullscreenElement){
+      var ex=document.exitFullscreen||document.webkitExitFullscreen||document.msExitFullscreen;
+      if(ex){try{ex.call(document).catch(function(){});}catch(e){}}
+    }
+    updateUi();bumpResize();
+  }
+  toggleBtn.onclick=function(){isActive()?exit():enter();};
+  if(backBtn)backBtn.onclick=function(){exit();};
+  ['fullscreenchange','webkitfullscreenchange'].forEach(function(ev){
+    document.addEventListener(ev,function(){
+      if(!document.fullscreenElement && !document.webkitFullscreenElement && isActive()){
+        el.classList.remove('cls-fullscreen-active');
+        updateUi();bumpResize();
+      }
+    });
+  });
+  updateUi();
+}
+`;
+
 /* ------------------------- ابزارهای کمکی ------------------------- */
 
 function json(data, status = 200, headers = {}) {
@@ -2265,6 +2309,12 @@ const SHARED_CSS = `
   .cls-chat-wrap{padding:10px 14px}
   .cls-chat-wrap.hidden{display:none}
 
+  /* ---- حالت تمام‌صفحه برای کلاس آنلاین و وبینار ---- */
+  .cls-fs-container.cls-fullscreen-active{position:fixed;inset:0;z-index:9999;background:var(--bg);overflow:auto;margin:0;padding:14px;border-radius:0;max-width:none;width:100%;height:100%;box-sizing:border-box}
+  .cls-fs-back{display:none}
+  .cls-fs-back.hidden{display:none !important}
+  .cls-fullscreen-active .cls-fs-back:not(.hidden){display:inline-flex}
+
   .mt-ph{display:inline-block;min-width:18px;min-height:1.1em;border:1px dashed #94a3b8;border-radius:4px;padding:0 3px;outline:none}
   .mt-ph:empty:before{content:attr(data-ph);color:#94a3b8;font-size:.7em}
   .mt-ph:focus{border-color:var(--primary-2);border-style:solid}
@@ -3981,15 +4031,17 @@ async function studentClassPage(env, id) {
   </style></head>
   <body><div class="wrap">
     ${pageHeader()}
-    <div class="card">
+    <div class="card cls-fs-container" id="scls-main-card">
       <h3>🖥️ کلاس آنلاین${student.label ? " — " + esc(student.label) : ""}</h3>
       <div class="cls-status">
         <a class="btn sm sec" href="/s/${encodeURIComponent(id)}">↩️ بازگشت</a>
         <span class="dot" id="cls-dot"></span>
         <span id="cls-status-text" class="muted">در حال اتصال به کلاس...</span>
         <span style="flex:1"></span>
+        <button class="btn sm sec cls-fs-back hidden" id="btn-scls-fs-back">↩️ بازگشت از تمام‌صفحه</button>
         <button class="btn sm sec" id="btn-raise-hand">✋ بلند کردن دست</button>
         <button class="btn sm" id="btn-enable-sound">🔊 فعال‌سازی صدای کلاس</button>
+        <button class="btn sm sec" id="btn-scls-fullscreen">🖥️ تمام‌صفحه</button>
       </div>
       <div class="cls-stack">
         <div class="cls-sec">
@@ -4050,6 +4102,8 @@ async function studentClassPage(env, id) {
     const NAME = ${JSON.stringify(student.label || "دانش‌آموز")};
     function toast(m){const t=document.getElementById('toast');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2500);}
     function esc(s){const d=document.createElement('div');d.textContent=s==null?'':s;return d.innerHTML;}
+    ${CLS_FULLSCREEN_JS}
+    clsSetupFullscreen('scls-main-card','btn-scls-fullscreen','btn-scls-fs-back');
 
     const canvas=document.getElementById('board');
     const ctx=canvas.getContext('2d');
@@ -4959,14 +5013,16 @@ async function webinarJoinPage(env) {
       <p id="web-join-error" class="muted hidden" style="color:#dc2626;margin-top:8px"></p>
     </div>
 
-    <div class="card hidden" id="web-main-card">
+    <div class="card hidden cls-fs-container" id="web-main-card">
       <h3>🎙️ وبینار${topic ? " — " + esc(topic) : ""}</h3>
       <div class="cls-status">
         <span class="dot" id="cls-dot"></span>
         <span id="cls-status-text" class="muted">در حال اتصال به وبینار...</span>
         <span style="flex:1"></span>
+        <button class="btn sm sec cls-fs-back hidden" id="btn-sweb-fs-back">↩️ بازگشت از تمام‌صفحه</button>
         <button class="btn sm sec" id="btn-raise-hand">✋ بلند کردن دست</button>
         <button class="btn sm" id="btn-enable-sound">🔊 فعال‌سازی صدای وبینار</button>
+        <button class="btn sm sec" id="btn-sweb-fullscreen">🖥️ تمام‌صفحه</button>
       </div>
       <div class="cls-stack">
         <div class="cls-sec">
@@ -5010,6 +5066,8 @@ async function webinarJoinPage(env) {
     let NAME = '';
     function toast(m){const t=document.getElementById('toast');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2500);}
     function esc(s){const d=document.createElement('div');d.textContent=s==null?'':s;return d.innerHTML;}
+    ${CLS_FULLSCREEN_JS}
+    clsSetupFullscreen('web-main-card','btn-sweb-fullscreen','btn-sweb-fs-back');
 
     // ===== پخش زنده‌ی صدا (صف پخش برای هر فرستنده جداگانه، تا صداها روی هم نیفتند) =====
     const audioQueues={};
@@ -8384,12 +8442,14 @@ function teacherPage() {
           <div class="subtab" data-subtab="board">🧑‍🏫 تخته آنلاین</div>
         </div>
 
-        <div class="subtab-content" id="tab-classroom">
+        <div class="subtab-content cls-fs-container" id="tab-classroom">
         <h3>🖥️ کلاس آنلاین</h3>
 
         <div class="cls-status" style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
           <span class="dot" id="tdot" style="width:10px;height:10px;border-radius:50%;background:#dc2626;display:inline-block;flex:0 0 auto"></span>
           <span id="t-cls-status" class="muted" style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">کلاس آنلاین شروع نشده</span>
+          <button type="button" class="btn sm sec cls-fs-back hidden" id="btn-tcls-fs-back" style="flex:0 0 auto">↩️ بازگشت از تمام‌صفحه</button>
+          <button type="button" class="btn sm sec" id="btn-tcls-fullscreen" style="flex:0 0 auto">🖥️ تمام‌صفحه</button>
           <button type="button" class="btn sm sec" id="btn-cls-options-toggle" style="flex:0 0 auto">⚙️ گزینه‌ها</button>
         </div>
         <div id="cls-options-drawer" class="cls-options-drawer hidden">
@@ -8448,7 +8508,7 @@ function teacherPage() {
         </div>
       </div>
 
-      <div class="subtab-content hidden" id="tab-webinar">
+      <div class="subtab-content hidden cls-fs-container" id="tab-webinar">
         <h3>🎙️ وبینار</h3>
         <p class="muted" style="margin-top:-6px">اتاقی جدا از کلاس آنلاین، با یک لینک واحد و عمومی — هرکس لینک را باز کند با وارد کردن نام و نام خانوادگی وارد می‌شود، بدون محدودیت تعداد. فقط تصویر شما (معلم) پخش می‌شود؛ شرکت‌کنندگان تماس تصویری ندارند و فقط می‌توانند صدا بفرستند و در چت بنویسند.</p>
 
@@ -8464,6 +8524,8 @@ function teacherPage() {
         <div class="cls-status" style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
           <span class="dot" id="webdot" style="width:10px;height:10px;border-radius:50%;background:#dc2626;display:inline-block;flex:0 0 auto"></span>
           <span id="t-web-status" class="muted" style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">وبینار شروع نشده</span>
+          <button type="button" class="btn sm sec cls-fs-back hidden" id="btn-tweb-fs-back" style="flex:0 0 auto">↩️ بازگشت از تمام‌صفحه</button>
+          <button type="button" class="btn sm sec" id="btn-tweb-fullscreen" style="flex:0 0 auto">🖥️ تمام‌صفحه</button>
           <button type="button" class="btn sm sec" id="btn-web-options-toggle" style="flex:0 0 auto">⚙️ گزینه‌ها</button>
         </div>
         <div id="web-options-drawer" class="cls-options-drawer hidden">
@@ -9753,6 +9815,7 @@ function teacherPage() {
 
 function teacherScript() {
   return `
+  ${CLS_FULLSCREEN_JS}
   const TYPES={descriptive:'تشریحی',multiple:'چهارگزینه‌ای',truefalse:'صحیح/غلط',short:'کوتاه‌پاسخ'};
   const MATH=['+','\u2212','\u00d7','\u00f7','=','\u2260','\u00b1','\u2213','<','>','\u2264','\u2265','\u221a','\u221b','\u221c','%','\u2030','\u03c0','\u00b0',
     '\u00bd','\u2153','\u2154','\u00bc','\u00be','\u2155','\u2156','\u2157','\u2158','\u2159','\u215a','\u215b','\u215c','\u215d','\u215e',
@@ -21281,6 +21344,9 @@ function teacherScript() {
     infoexLoadOutbox();
   }
   // ===================== پایان دریافت و ارسال اطلاعات =====================
+
+  clsSetupFullscreen('tab-classroom','btn-tcls-fullscreen','btn-tcls-fs-back');
+  clsSetupFullscreen('tab-webinar','btn-tweb-fullscreen','btn-tweb-fs-back');
 
   checkAuth();
   `;
