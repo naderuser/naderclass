@@ -9581,6 +9581,12 @@ function teacherPage() {
                   <td colspan="3"><textarea id="lp-learner-activity" class="lp-area" rows="4"></textarea></td>
                   <td colspan="3"><textarea id="lp-teacher-activity" class="lp-area" rows="4"></textarea></td>
                 </tr>
+                <tr id="lp-extra-stages-row">
+                  <td colspan="7" style="text-align:center;padding:8px;background:#f8fafc">
+                    <button type="button" class="btn sec sm" id="btn-lp-add-stage">➕ افزودن مرحله دلخواه</button>
+                    <span class="muted" style="font-size:12px;margin-inline-start:8px">برای افزودن مراحل بیشتر به «مراحل تدریس» از این دکمه استفاده کنید</span>
+                  </td>
+                </tr>
                 <tr>
                   <td class="lp-time"><input type="text" id="lp-time-c-header"></td>
                   <td colspan="6" class="lp-hd">ج) فعالیت‌های تکمیلی</td>
@@ -9601,6 +9607,18 @@ function teacherPage() {
                 </tr>
               </tbody>
             </table>
+          </div>
+
+          <div class="card" style="margin-top:16px;padding:12px" id="lp-custom-tables-section">
+            <h4 style="margin:0 0 10px">📊 جدول‌های سفارشی اضافی</h4>
+            <p class="muted" style="font-size:12.5px;margin:0 0 10px">در صورت نیاز می‌توانید جدول‌های دلخواه با تعداد سطر و ستون اختیاری به طرح درس اضافه یا کاملاً حذف کنید.</p>
+            <div class="row" style="gap:8px;flex-wrap:wrap;align-items:flex-end;margin-bottom:10px">
+              <div><label style="display:block;font-size:12px;margin-bottom:3px">عنوان جدول</label><input type="text" id="lp-ct-title" placeholder="مثلاً: منابع تکمیلی" style="width:180px;padding:6px;border:1px solid #ddd;border-radius:6px"></div>
+              <div><label style="display:block;font-size:12px;margin-bottom:3px">تعداد سطر</label><input type="number" id="lp-ct-rows" value="3" min="1" max="30" style="width:80px;padding:6px;border:1px solid #ddd;border-radius:6px"></div>
+              <div><label style="display:block;font-size:12px;margin-bottom:3px">تعداد ستون</label><input type="number" id="lp-ct-cols" value="3" min="1" max="12" style="width:80px;padding:6px;border:1px solid #ddd;border-radius:6px"></div>
+              <button type="button" class="btn primary sm" id="btn-lp-ct-add">➕ ساخت جدول جدید</button>
+            </div>
+            <div id="lp-custom-tables-wrap"></div>
           </div>
 
           <div class="row" style="margin-top:12px">
@@ -20773,6 +20791,152 @@ function teacherScript() {
   document.getElementById('lp-font-size').addEventListener('input',lpApplyStyle);
   document.getElementById('lp-font-size').addEventListener('change',lpApplyStyle);
   document.getElementById('lp-font-size').addEventListener('keydown',function(e){if(e.key==='Enter')lpApplyStyle();});
+
+  // ----- مراحل تدریس: افزودن/حذف مرحله (ردیف) دلخواه -----
+  var LP_EXTRA_STAGES=[]; // {id,time,text}
+  function lpExtraStageRowHtml(st){
+    return '<tr class="lp-extra-stage-row" data-id="'+st.id+'">'
+      +'<td class="lp-time"><input type="text" class="lp-extra-time" value="'+esc(st.time||'')+'" placeholder="زمان"><button type="button" class="btn danger sm lp-extra-del" style="margin-top:4px;width:100%">🗑️ حذف</button></td>'
+      +'<td colspan="6" class="lp-r"><textarea class="lp-area lp-extra-text" rows="2" placeholder="شرح مرحله اضافه...">'+esc(st.text||'')+'</textarea></td>'
+      +'</tr>';
+  }
+  function lpRenderExtraStages(){
+    var anchor=document.getElementById('lp-extra-stages-row');
+    if(!anchor)return;
+    document.querySelectorAll('.lp-extra-stage-row').forEach(function(r){r.remove();});
+    LP_EXTRA_STAGES.forEach(function(st){anchor.insertAdjacentHTML('beforebegin',lpExtraStageRowHtml(st));});
+    document.querySelectorAll('.lp-extra-stage-row').forEach(function(row){
+      var id=row.dataset.id;
+      row.querySelector('.lp-extra-time').addEventListener('input',function(){
+        var st=LP_EXTRA_STAGES.find(function(x){return x.id===id;});
+        if(st)st.time=this.value;
+      });
+      row.querySelector('.lp-extra-text').addEventListener('input',function(){
+        var st=LP_EXTRA_STAGES.find(function(x){return x.id===id;});
+        if(st)st.text=this.value;
+      });
+      row.querySelector('.lp-extra-del').addEventListener('click',function(){
+        if(!confirm('این مرحله حذف شود؟'))return;
+        LP_EXTRA_STAGES=LP_EXTRA_STAGES.filter(function(x){return x.id!==id;});
+        lpRenderExtraStages();
+      });
+    });
+    lpApplyStyle();
+  }
+  document.getElementById('btn-lp-add-stage').onclick=function(){
+    LP_EXTRA_STAGES.push({id:'st'+Date.now()+Math.random().toString(36).slice(2,7),time:'',text:''});
+    lpRenderExtraStages();
+  };
+  function lpExtraStagesExportHtml(){
+    var h='';
+    LP_EXTRA_STAGES.forEach(function(st){
+      h+='<tr><td style="border:1px solid #333;padding:6px;text-align:center;vertical-align:top">'+esc(st.time||'')+'</td>'
+        +'<td colspan="6" style="border:1px solid #333;padding:6px;text-align:right;vertical-align:top">'+lpNl2Br(st.text||'')+'</td></tr>';
+    });
+    return h;
+  }
+
+  // ----- جدول‌های سفارشی اضافی (جدول ساز حرفه‌ای داخل طرح درس) -----
+  var LP_CUSTOM_TABLES=[]; // {id,title,rows:[[cell,...],...]}
+  function lpCtMakeRows(r,c){
+    var rows=[];
+    for(var i=0;i<r;i++){var row=[];for(var j=0;j<c;j++)row.push('');rows.push(row);}
+    return rows;
+  }
+  function lpRenderCustomTables(){
+    var wrap=document.getElementById('lp-custom-tables-wrap');
+    if(!wrap)return;
+    wrap.innerHTML='';
+    LP_CUSTOM_TABLES.forEach(function(ct){
+      var box=document.createElement('div');
+      box.style.cssText='border:1px solid #e2e8f0;border-radius:8px;padding:10px;margin-bottom:14px;background:#fff;overflow-x:auto';
+      var head=document.createElement('div');
+      head.style.cssText='display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:8px';
+      head.innerHTML='<input type="text" class="lp-ct-title-input" value="'+esc(ct.title||'')+'" placeholder="عنوان جدول" style="flex:1;min-width:140px;padding:6px;border:1px solid #ddd;border-radius:6px;font-weight:700">'
+        +'<button type="button" class="btn sec sm lp-ct-addrow">➕ ردیف</button>'
+        +'<button type="button" class="btn gray sm lp-ct-delrow">➖ ردیف</button>'
+        +'<button type="button" class="btn sec sm lp-ct-addcol">➕ ستون</button>'
+        +'<button type="button" class="btn gray sm lp-ct-delcol">➖ ستون</button>'
+        +'<button type="button" class="btn danger sm lp-ct-deltable">🗑️ حذف جدول</button>';
+      box.appendChild(head);
+      var tbl=document.createElement('table');
+      tbl.className='lb-table';
+      tbl.style.cssText='width:100%;border-collapse:collapse;min-width:400px';
+      var tbody=document.createElement('tbody');
+      ct.rows.forEach(function(row,ri){
+        var tr=document.createElement('tr');
+        row.forEach(function(cell,ci){
+          var td=document.createElement('td');
+          td.style.cssText='border:1px solid #ccc;padding:0';
+          var ta=document.createElement('textarea');
+          ta.value=cell;
+          ta.rows=2;
+          ta.style.cssText='width:100%;border:none;padding:6px;resize:vertical;font:inherit;box-sizing:border-box';
+          ta.addEventListener('input',function(){ct.rows[ri][ci]=this.value;});
+          td.appendChild(ta);
+          tr.appendChild(td);
+        });
+        tbody.appendChild(tr);
+      });
+      tbl.appendChild(tbody);
+      box.appendChild(tbl);
+      wrap.appendChild(box);
+
+      head.querySelector('.lp-ct-title-input').addEventListener('input',function(){ct.title=this.value;});
+      head.querySelector('.lp-ct-addrow').onclick=function(){
+        var cols=ct.rows[0]?ct.rows[0].length:1;
+        var row=[];for(var i=0;i<cols;i++)row.push('');
+        ct.rows.push(row);
+        lpRenderCustomTables();
+      };
+      head.querySelector('.lp-ct-delrow').onclick=function(){
+        if(ct.rows.length<=1){toast('حداقل یک ردیف باید باقی بماند');return;}
+        ct.rows.pop();
+        lpRenderCustomTables();
+      };
+      head.querySelector('.lp-ct-addcol').onclick=function(){
+        ct.rows.forEach(function(row){row.push('');});
+        lpRenderCustomTables();
+      };
+      head.querySelector('.lp-ct-delcol').onclick=function(){
+        if(ct.rows[0]&&ct.rows[0].length<=1){toast('حداقل یک ستون باید باقی بماند');return;}
+        ct.rows.forEach(function(row){row.pop();});
+        lpRenderCustomTables();
+      };
+      head.querySelector('.lp-ct-deltable').onclick=function(){
+        if(!confirm('این جدول کاملاً حذف شود؟ این کار قابل بازگشت نیست.'))return;
+        LP_CUSTOM_TABLES=LP_CUSTOM_TABLES.filter(function(x){return x.id!==ct.id;});
+        lpRenderCustomTables();
+      };
+    });
+  }
+  document.getElementById('btn-lp-ct-add').onclick=function(){
+    var r=parseInt(document.getElementById('lp-ct-rows').value,10)||3;
+    var c=parseInt(document.getElementById('lp-ct-cols').value,10)||3;
+    r=Math.max(1,Math.min(30,r));
+    c=Math.max(1,Math.min(12,c));
+    var title=document.getElementById('lp-ct-title').value||'';
+    LP_CUSTOM_TABLES.push({id:'ct'+Date.now()+Math.random().toString(36).slice(2,7),title:title,rows:lpCtMakeRows(r,c)});
+    document.getElementById('lp-ct-title').value='';
+    lpRenderCustomTables();
+  };
+  function lpCustomTablesExportHtml(){
+    var h='';
+    LP_CUSTOM_TABLES.forEach(function(ct){
+      h+='<p style="text-align:center;font-weight:bold;margin:16px 0 6px">'+esc(ct.title||'جدول سفارشی')+'</p>';
+      h+='<table style="width:100%;border-collapse:collapse" class="lb-table-zebra"><tbody>';
+      ct.rows.forEach(function(row){
+        h+='<tr>';
+        row.forEach(function(cell){
+          h+='<td style="border:1px solid #333;padding:6px;text-align:right;vertical-align:top">'+lpNl2Br(cell)+'</td>';
+        });
+        h+='</tr>';
+      });
+      h+='</tbody></table>';
+    });
+    return h;
+  }
+
   // خروجی HTML جدول طرح درس با همان چیدمان ردیف/ستون سند اصلی، برای Word و چاپ/PDF
   function lpExportHtml(){
     function td(content,o){
@@ -20807,12 +20971,14 @@ function teacherScript() {
     h+='<tr>'+td(esc(lpVal('lp-time-main')),{center:true,rowspan:3})+td('ب) فعالیت‌های یاددهی – یادگیری',{colspan:6,center:true,bg:true})+'</tr>';
     h+='<tr>'+td('فعالیت‌های فراگیران (تجارب یادگیری)',{colspan:3,center:true,bg:true})+td('فعالیت‌های مدیر یادگیری (معلم)',{colspan:3,center:true,bg:true})+'</tr>';
     h+='<tr>'+td(lpNl2Br(lpVal('lp-learner-activity')),{colspan:3})+td(lpNl2Br(lpVal('lp-teacher-activity')),{colspan:3})+'</tr>';
+    h+=lpExtraStagesExportHtml();
     h+='<tr>'+td(esc(lpVal('lp-time-c-header')),{center:true})+td('ج) فعالیت‌های تکمیلی',{colspan:6,center:true,bg:true})+'</tr>';
     h+='<tr>'+td(esc(lpVal('lp-time-summary')),{center:true})+td('<b>۱- جمع‌بندی و نتیجه‌گیری:</b><br>'+lpNl2Br(lpVal('lp-summary')),{colspan:6})+'</tr>';
     h+='<tr>'+td(esc(lpVal('lp-time-final')),{center:true,rowspan:3})+td('<b>۲- ارزشیابی پایان درس یا تکمیلی:</b> جهت ارزشیابی تکمیلی درس سؤالات زیر را از دانش‌آموزان می‌پرسیم<br>'+lpNl2Br(lpVal('lp-final-eval')),{colspan:6})+'</tr>';
     h+='<tr>'+td('<b>۳- تعیین تکلیف و موضوع جلسه آینده:</b><br>'+lpNl2Br(lpVal('lp-homework')),{colspan:6})+'</tr>';
     h+='<tr>'+td('<b>معرفی منابع جهت مطالعه دانش‌آموزان:</b><br>'+lpNl2Br(lpVal('lp-resources')),{colspan:6})+'</tr>';
     h+='</tbody></table>';
+    h+=lpCustomTablesExportHtml();
     return h;
   }
   document.getElementById('btn-lp-word').onclick=function(){
@@ -20828,12 +20994,18 @@ function teacherScript() {
     LP_FIELDS.forEach(function(id){var el=document.getElementById(id);if(el)el.value='';});
     document.getElementById('lp-font').value='nazanin';
     document.getElementById('lp-font-size').value='12';
+    LP_EXTRA_STAGES=[];
+    LP_CUSTOM_TABLES=[];
+    lpRenderExtraStages();
+    lpRenderCustomTables();
     lpApplyStyle();
     toast('فرم طرح درس پاک شد ✅');
   };
   document.getElementById('btn-lp-save').onclick=function(){
     var data={font:document.getElementById('lp-font').value,fontSize:document.getElementById('lp-font-size').value};
     LP_FIELDS.forEach(function(id){data[id]=lpVal(id);});
+    data.extraStages=LP_EXTRA_STAGES;
+    data.customTables=LP_CUSTOM_TABLES;
     lbSave('lessonplan',data);
   };
   var LP_LOADED=false;
@@ -20845,6 +21017,10 @@ function teacherScript() {
       LP_FIELDS.forEach(function(id){if(saved[id]!==undefined){var el=document.getElementById(id);if(el)el.value=saved[id];}});
       document.getElementById('lp-font').value=saved.font||'nazanin';
       document.getElementById('lp-font-size').value=saved.fontSize||'12';
+      LP_EXTRA_STAGES=saved.extraStages&&saved.extraStages.length?saved.extraStages:[];
+      LP_CUSTOM_TABLES=saved.customTables&&saved.customTables.length?saved.customTables:[];
+      lpRenderExtraStages();
+      lpRenderCustomTables();
     }
     lpApplyStyle();
   }
