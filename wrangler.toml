@@ -4,7 +4,7 @@ compatibility_date = "2026-08-01"
 
 [[kv_namespaces]]
 binding = "EXAM_KV"
-id = "954c66f4efa949c68a65db063e1e1bb6"
+id = "e6ebb01c9cd24a74918d684ac236b616"
 
 [[durable_objects.bindings]]
 name = "CLASSROOM"
