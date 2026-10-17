@@ -3,7 +3,7 @@ main = "index.js"
 compatibility_date = "2026-08-01"
 
 [[kv_namespaces]]
-binding = "kvpanel"
+binding = "EXAM_KV"
 id = "fc21b8f5d18342dd8caf56f6588e359a"
 
 [[durable_objects.bindings]]
