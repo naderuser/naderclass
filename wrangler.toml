@@ -3,8 +3,8 @@ main = "index.js"
 compatibility_date = "2026-08-01"
 
 [[kv_namespaces]]
-binding = "EXAM_KV"
-id = "9adbdd035bca4ee3803de5439c8e9529"
+binding = "kvpanel"
+id = "fc21b8f5d18342dd8caf56f6588e359a"
 
 [[durable_objects.bindings]]
 name = "CLASSROOM"
